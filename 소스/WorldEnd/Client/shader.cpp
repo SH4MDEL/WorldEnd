@@ -17,7 +17,7 @@ Shader::Shader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignat
 	m_inputLayout =
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
 	};
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc{};
@@ -94,12 +94,12 @@ void Shader::SetCamera(const shared_ptr<Camera>& camera)
 	m_camera = camera;
 }
 
-TerrainShader::TerrainShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature)
+DetailShader::DetailShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature)
 {
 	CreatePipelineState(device, rootSignature);
 }
 
-void TerrainShader::CreatePipelineState(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature)
+void DetailShader::CreatePipelineState(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature)
 {
 	ComPtr<ID3DBlob> vertexShader, pixelShader;
 
@@ -138,17 +138,17 @@ void TerrainShader::CreatePipelineState(const ComPtr<ID3D12Device>& device, cons
 	DX::ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
 }
 
-void TerrainShader::ReleaseUploadBuffer() const
+void DetailShader::ReleaseUploadBuffer() const
 {
 	if (m_field) m_field->ReleaseUploadBuffer();
 }
 
-void TerrainShader::Update(FLOAT timeElapsed)
+void DetailShader::Update(FLOAT timeElapsed)
 {
 	if (m_field) m_field->Update(timeElapsed);
 }
 
-void TerrainShader::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const
+void DetailShader::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const
 {
 	UpdateShaderVariable(commandList);
 

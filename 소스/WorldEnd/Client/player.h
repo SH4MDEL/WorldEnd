@@ -30,5 +30,6 @@ private:
 	FLOAT							m_maxVelocity;	// 최대속도
 	FLOAT							m_friction;		// 마찰력
 
+
 	shared_ptr<Camera>				m_camera;		// 카메라
 };

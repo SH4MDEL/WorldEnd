@@ -37,11 +37,11 @@ protected:
 	shared_ptr<Camera>					m_camera;
 };
 
-class TerrainShader : public Shader
+class DetailShader : public Shader
 {
 public:
-	TerrainShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature);
-	~TerrainShader() = default;
+	DetailShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature);
+	~DetailShader() = default;
 
 	void ReleaseUploadBuffer() const override;
 
