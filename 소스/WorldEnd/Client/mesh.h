@@ -22,16 +22,6 @@ struct NormalVertex
 	XMFLOAT3 normal;
 };
 
-struct TerrainVertex
-{
-	TerrainVertex(const XMFLOAT3& p, const XMFLOAT2& uv0, const XMFLOAT2& uv1) : position{ p }, uv0{ uv0 }, uv1{ uv1 } { }
-	~TerrainVertex() = default;
-
-	XMFLOAT3 position;
-	XMFLOAT2 uv0;
-	XMFLOAT2 uv1;
-};
-
 struct TextureVertex
 {
 	TextureVertex(const XMFLOAT3& position, const XMFLOAT2& uv) : position{ position }, uv{ uv } { }
@@ -39,6 +29,16 @@ struct TextureVertex
 
 	XMFLOAT3 position;
 	XMFLOAT2 uv;
+};
+
+struct DetailVertex
+{
+	DetailVertex(const XMFLOAT3& p, const XMFLOAT2& uv0, const XMFLOAT2& uv1) : position{ p }, uv0{ uv0 }, uv1{ uv1 } { }
+	~DetailVertex() = default;
+
+	XMFLOAT3 position;
+	XMFLOAT2 uv0;
+	XMFLOAT2 uv1;
 };
 
 struct SkyboxVertex

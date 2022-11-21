@@ -262,7 +262,5 @@ VS_BLENDING_OUTPUT VS_BLENDING_MAIN(VS_BLENDING_INPUT input)
 
 float4 PS_BLENDING_MAIN(VS_BLENDING_OUTPUT input) : SV_TARGET
 {
-	float4 color = g_riverTexture.Sample(g_samplerWrap, input.uv);
-	color.a = material.diffuse.a;
-	return color;
+	return g_baseTexture.Sample(g_samplerWrap, input.uv);
 }

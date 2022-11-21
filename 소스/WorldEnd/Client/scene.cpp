@@ -102,7 +102,6 @@ void Scene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 
 	// 플레이어 생성
 	m_player = make_shared<Player>();
-
 	auto playerShader{ make_unique<Shader>(device, rootsignature) };
 	auto playerTexture{ make_shared<Texture>() };
 	auto playerMesh{ make_shared<Mesh>(device, commandlist, vertices, indices) };
@@ -128,13 +127,9 @@ void Scene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 	m_camera->SetProjMatrix(projMatrix);
 
 	// 지형 생성
-	unique_ptr<DetailShader> detailShader{ make_unique<DetailShader>(device, rootsignature) };
-	shared_ptr<Field> field{
-		make_shared<Field>(device, commandlist, 50, 50, 0, 50, 50, XMFLOAT3{ 1.f, 1.f, 1.f })
-	};
-	shared_ptr<Texture> fieldTexture{
-		make_shared<Texture>()
-	};
+	auto detailShader{ make_unique<DetailShader>(device, rootsignature) };
+	auto field{ make_shared<Field>(device, commandlist, 51, 51, 0, 51, 51, 0, XMFLOAT3{ 1.f, 1.f, 1.f })};
+	auto fieldTexture{ make_shared<Texture>()};
 	fieldTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/Base_Texture.dds"), 2); // BaseTexture
 	fieldTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/Detail_Texture.dds"), 3); // DetailTexture
 	fieldTexture->CreateSrvDescriptorHeap(device);
@@ -143,12 +138,21 @@ void Scene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 	field->SetTexture(fieldTexture);
 	detailShader->SetField(field);
 
+	// 펜스 생성
+	auto blendingShader{ make_unique<BlendingShader>(device, rootsignature) };
+	auto fence{ make_shared<Fence>(device, commandlist, 50, 50, 2, 2) };
+	auto fenceTexture{ make_shared<Texture>() };
+	fenceTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/Fence.dds"), 2); // BaseTexture
+	fenceTexture->CreateSrvDescriptorHeap(device);
+	fenceTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+	fence->SetPosition(XMFLOAT3{ 0.f, 1.f, 0.f });
+	fence->SetTexture(fenceTexture);
+	blendingShader->GetGameObjects().push_back(fence);
+
 	// 스카이박스 생성
-	unique_ptr<SkyboxShader> skyboxShader = make_unique<SkyboxShader>(device, rootsignature);
-	shared_ptr<Skybox> skybox{ make_shared<Skybox>(device, commandlist, 20.0f, 20.0f, 20.0f) };
-	shared_ptr<Texture> skyboxTexture{
-		make_shared<Texture>()
-	};
+	auto skyboxShader{ make_unique<SkyboxShader>(device, rootsignature) };
+	auto skybox{ make_shared<Skybox>(device, commandlist, 20.0f, 20.0f, 20.0f) };
+	auto skyboxTexture{ make_shared<Texture>()};
 	skyboxTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/SkyBox.dds"), 4);
 	skyboxTexture->CreateSrvDescriptorHeap(device);
 	skyboxTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURECUBE);
@@ -159,6 +163,7 @@ void Scene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 	m_shader.insert(make_pair("PLYAER", move(playerShader)));
 	m_shader.insert(make_pair("SKYBOX", move(skyboxShader)));
 	m_shader.insert(make_pair("DETAIL", move(detailShader)));
+	m_blending.insert(make_pair("FENCE", move(blendingShader)));
 }
 
 void Scene::Update(FLOAT timeElapsed)
@@ -167,10 +172,32 @@ void Scene::Update(FLOAT timeElapsed)
 	if (m_shader["SKYBOX"]) for (auto& skybox : m_shader["SKYBOX"]->GetGameObjects()) skybox->SetPosition(m_camera->GetEye());
 	for (const auto& shader : m_shader)
 		shader.second->Update(timeElapsed);
+	for (const auto& shader : m_blending)
+		shader.second->Update(timeElapsed);
+
+	CheckBorderLimit();
 }
 
 void Scene::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const
 {
 	if (m_camera) m_camera->UpdateShaderVariable(commandList);
 	for (const auto& shader : m_shader) { shader.second->Render(commandList); }
+	for (const auto& shader : m_blending) { shader.second->Render(commandList); }
+}
+
+void Scene::CheckBorderLimit()
+{
+	XMFLOAT3 pos = m_player->GetPosition();
+	if (pos.x > 25.f) {
+		m_player->SetPosition(XMFLOAT3{ 25.f, pos.y, pos.z });
+	}
+	if (pos.x < -25.f) {
+		m_player->SetPosition(XMFLOAT3{ -25.f, pos.y, pos.z });
+	}
+	if (pos.z > 25.f) {
+		m_player->SetPosition(XMFLOAT3{ pos.x, pos.y, 25.f });
+	}
+	if (pos.z < -25.f) {
+		m_player->SetPosition(XMFLOAT3{ pos.x, pos.y, -25.f });
+	}
 }

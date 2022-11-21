@@ -24,8 +24,11 @@ public:
 	shared_ptr<Player> GetPlayer() const { return m_player; }
 	shared_ptr<Camera> GetCamera() const { return m_camera; }
 
+	void CheckBorderLimit();
+
 private:
 	unordered_map<string, unique_ptr<Shader>>	m_shader;
+	unordered_map<string, unique_ptr<Shader>>	m_blending;
 	shared_ptr<Player>							m_player;
 	shared_ptr<Camera>							m_camera;
 };

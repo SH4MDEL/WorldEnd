@@ -464,7 +464,7 @@ FieldMapGridMesh::FieldMapGridMesh(const ComPtr<ID3D12Device>& device, const Com
 	m_length = length;
 	m_scale = scale;
 
-	vector<TerrainVertex> vertices;
+	vector<DetailVertex> vertices;
 
 	/*xStart와 zStart는 격자의 시작 위치(x-좌표와 z-좌표)를 나타낸다. 커다란 지형은 격자들의 이차원 배열로 만들 필
 	요가 있기 때문에 전체 지형에서 각 격자의 시작 위치를 나타내는 정보가 필요하다.*/
@@ -484,12 +484,12 @@ FieldMapGridMesh::FieldMapGridMesh(const ComPtr<ID3D12Device>& device, const Com
 
 	m_nVertices = (UINT)vertices.size();
 	m_vertexBuffer = CreateBufferResource(device, commandList, vertices.data(),
-		sizeof(TerrainVertex) * vertices.size(), D3D12_HEAP_TYPE_DEFAULT,
+		sizeof(DetailVertex) * vertices.size(), D3D12_HEAP_TYPE_DEFAULT,
 		D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, m_vertexUploadBuffer);
 
 	m_vertexBufferView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
-	m_vertexBufferView.StrideInBytes = sizeof(TerrainVertex);
-	m_vertexBufferView.SizeInBytes = sizeof(TerrainVertex) * vertices.size();
+	m_vertexBufferView.StrideInBytes = sizeof(DetailVertex);
+	m_vertexBufferView.SizeInBytes = sizeof(DetailVertex) * vertices.size();
 
 
 	vector<UINT> indices;
@@ -539,69 +539,69 @@ TextureRectMesh::TextureRectMesh(const ComPtr<ID3D12Device>& device, const ComPt
 	m_nVertices = 6;
 
 	vector<TextureVertex> vertices;
-	FLOAT fx = (width * 0.5f) + position.x, fy = (height * 0.5f) + position.y, fz = (depth * 0.5f) + position.z;
+	FLOAT fx = (width * 0.5f), fy = (height * 0.5f), fz = (depth * 0.5f);
 
 	if (width == 0.0f)
 	{
 		if (position.x > 0.0f)
 		{
-			vertices.emplace_back(XMFLOAT3(fx, +fy, -fz), XMFLOAT2(1.0f, 0.0f));
-			vertices.emplace_back(XMFLOAT3(fx, -fy, -fz), XMFLOAT2(1.0f, 1.0f));
-			vertices.emplace_back(XMFLOAT3(fx, -fy, +fz), XMFLOAT2(0.0f, 1.0f));
-			vertices.emplace_back(XMFLOAT3(fx, -fy, +fz), XMFLOAT2(0.0f, 1.0f));
-			vertices.emplace_back(XMFLOAT3(fx, +fy, +fz), XMFLOAT2(0.0f, 0.0f));
-			vertices.emplace_back(XMFLOAT3(fx, +fy, -fz), XMFLOAT2(1.0f, 0.0f));
+			vertices.emplace_back(XMFLOAT3(fx + position.x, +fy + position.y, -fz + position.z), XMFLOAT2(1.0f, 0.0f));
+			vertices.emplace_back(XMFLOAT3(fx + position.x, -fy + position.y, -fz + position.z), XMFLOAT2(1.0f, 1.0f));
+			vertices.emplace_back(XMFLOAT3(fx + position.x, -fy + position.y, +fz + position.z), XMFLOAT2(0.0f, 1.0f));
+			vertices.emplace_back(XMFLOAT3(fx + position.x, -fy + position.y, +fz + position.z), XMFLOAT2(0.0f, 1.0f));
+			vertices.emplace_back(XMFLOAT3(fx + position.x, +fy + position.y, +fz + position.z), XMFLOAT2(0.0f, 0.0f));
+			vertices.emplace_back(XMFLOAT3(fx + position.x, +fy + position.y, -fz + position.z), XMFLOAT2(1.0f, 0.0f));
 		}
 		else
 		{
-			vertices.emplace_back(XMFLOAT3(fx, +fy, +fz), XMFLOAT2(1.0f, 0.0f));
-			vertices.emplace_back(XMFLOAT3(fx, -fy, +fz), XMFLOAT2(1.0f, 1.0f));
-			vertices.emplace_back(XMFLOAT3(fx, -fy, -fz), XMFLOAT2(0.0f, 1.0f));
-			vertices.emplace_back(XMFLOAT3(fx, -fy, -fz), XMFLOAT2(0.0f, 1.0f));
-			vertices.emplace_back(XMFLOAT3(fx, +fy, -fz), XMFLOAT2(0.0f, 0.0f));
-			vertices.emplace_back(XMFLOAT3(fx, +fy, +fz), XMFLOAT2(1.0f, 0.0f));
+			vertices.emplace_back(XMFLOAT3(fx + position.x, +fy + position.y, +fz + position.z), XMFLOAT2(1.0f, 0.0f));
+			vertices.emplace_back(XMFLOAT3(fx + position.x, -fy + position.y, +fz + position.z), XMFLOAT2(1.0f, 1.0f));
+			vertices.emplace_back(XMFLOAT3(fx + position.x, -fy + position.y, -fz + position.z), XMFLOAT2(0.0f, 1.0f));
+			vertices.emplace_back(XMFLOAT3(fx + position.x, -fy + position.y, -fz + position.z), XMFLOAT2(0.0f, 1.0f));
+			vertices.emplace_back(XMFLOAT3(fx + position.x, +fy + position.y, -fz + position.z), XMFLOAT2(0.0f, 0.0f));
+			vertices.emplace_back(XMFLOAT3(fx + position.x, +fy + position.y, +fz + position.z), XMFLOAT2(1.0f, 0.0f));
 		}
 	}
 	else if (height == 0.0f)
 	{
 		if (position.y > 0.0f)
 		{
-			vertices.emplace_back(XMFLOAT3(+fx, fy, -fz), XMFLOAT2(1.0f, 0.0f));
-			vertices.emplace_back(XMFLOAT3(+fx, fy, +fz), XMFLOAT2(1.0f, 1.0f));
-			vertices.emplace_back(XMFLOAT3(-fx, fy, +fz), XMFLOAT2(0.0f, 1.0f));
-			vertices.emplace_back(XMFLOAT3(-fx, fy, +fz), XMFLOAT2(0.0f, 1.0f));
-			vertices.emplace_back(XMFLOAT3(-fx, fy, -fz), XMFLOAT2(0.0f, 0.0f));
-			vertices.emplace_back(XMFLOAT3(+fx, fy, -fz), XMFLOAT2(1.0f, 0.0f));
+			vertices.emplace_back(XMFLOAT3(+fx + position.x, fy + position.y, -fz + position.z), XMFLOAT2(1.0f, 0.0f));
+			vertices.emplace_back(XMFLOAT3(+fx + position.x, fy + position.y, +fz + position.z), XMFLOAT2(1.0f, 1.0f));
+			vertices.emplace_back(XMFLOAT3(-fx + position.x, fy + position.y, +fz + position.z), XMFLOAT2(0.0f, 1.0f));
+			vertices.emplace_back(XMFLOAT3(-fx + position.x, fy + position.y, +fz + position.z), XMFLOAT2(0.0f, 1.0f));
+			vertices.emplace_back(XMFLOAT3(-fx + position.x, fy + position.y, -fz + position.z), XMFLOAT2(0.0f, 0.0f));
+			vertices.emplace_back(XMFLOAT3(+fx + position.x, fy + position.y, -fz + position.z), XMFLOAT2(1.0f, 0.0f));
 		}
 		else
 		{
-			vertices.emplace_back(XMFLOAT3(+fx, fy, -fz), XMFLOAT2(1.0f, 1.0f));
-			vertices.emplace_back(XMFLOAT3(-fx, fy, -fz), XMFLOAT2(0.0f, 1.0f));
-			vertices.emplace_back(XMFLOAT3(-fx, fy, +fz), XMFLOAT2(0.0f, 0.0f));
-			vertices.emplace_back(XMFLOAT3(+fx, fy, -fz), XMFLOAT2(1.0f, 1.0f));
-			vertices.emplace_back(XMFLOAT3(-fx, fy, +fz), XMFLOAT2(0.0f, 0.0f));
-			vertices.emplace_back(XMFLOAT3(+fx, fy, +fz), XMFLOAT2(1.0f, 0.0f));
+			vertices.emplace_back(XMFLOAT3(+fx + position.x, fy + position.y, -fz + position.z), XMFLOAT2(1.0f, 1.0f));
+			vertices.emplace_back(XMFLOAT3(-fx + position.x, fy + position.y, -fz + position.z), XMFLOAT2(0.0f, 1.0f));
+			vertices.emplace_back(XMFLOAT3(-fx + position.x, fy + position.y, +fz + position.z), XMFLOAT2(0.0f, 0.0f));
+			vertices.emplace_back(XMFLOAT3(+fx + position.x, fy + position.y, -fz + position.z), XMFLOAT2(1.0f, 1.0f));
+			vertices.emplace_back(XMFLOAT3(-fx + position.x, fy + position.y, +fz + position.z), XMFLOAT2(0.0f, 0.0f));
+			vertices.emplace_back(XMFLOAT3(+fx + position.x, fy + position.y, +fz + position.z), XMFLOAT2(1.0f, 0.0f));
 		}
 	}
 	else if (depth == 0.0f)
 	{
 		if (position.z > 0.0f)
 		{
-			vertices.emplace_back(XMFLOAT3(+fx, +fy, fz), XMFLOAT2(1.0f, 0.0f));
-			vertices.emplace_back(XMFLOAT3(+fx, -fy, fz), XMFLOAT2(1.0f, 1.0f));
-			vertices.emplace_back(XMFLOAT3(-fx, -fy, fz), XMFLOAT2(0.0f, 1.0f));
-			vertices.emplace_back(XMFLOAT3(-fx, -fy, fz), XMFLOAT2(0.0f, 1.0f));
-			vertices.emplace_back(XMFLOAT3(-fx, +fy, fz), XMFLOAT2(0.0f, 0.0f));
-			vertices.emplace_back(XMFLOAT3(+fx, +fy, fz), XMFLOAT2(1.0f, 0.0f));
+			vertices.emplace_back(XMFLOAT3(+fx + position.x, +fy + position.y, fz + position.z), XMFLOAT2(1.0f, 0.0f));
+			vertices.emplace_back(XMFLOAT3(+fx + position.x, -fy + position.y, fz + position.z), XMFLOAT2(1.0f, 1.0f));
+			vertices.emplace_back(XMFLOAT3(-fx + position.x, -fy + position.y, fz + position.z), XMFLOAT2(0.0f, 1.0f));
+			vertices.emplace_back(XMFLOAT3(-fx + position.x, -fy + position.y, fz + position.z), XMFLOAT2(0.0f, 1.0f));
+			vertices.emplace_back(XMFLOAT3(-fx + position.x, +fy + position.y, fz + position.z), XMFLOAT2(0.0f, 0.0f));
+			vertices.emplace_back(XMFLOAT3(+fx + position.x, +fy + position.y, fz + position.z), XMFLOAT2(1.0f, 0.0f));
 		}
 		else
 		{
-			vertices.emplace_back(XMFLOAT3(-fx, +fy, fz), XMFLOAT2(1.0f, 0.0f));
-			vertices.emplace_back(XMFLOAT3(-fx, -fy, fz), XMFLOAT2(1.0f, 1.0f));
-			vertices.emplace_back(XMFLOAT3(+fx, -fy, fz), XMFLOAT2(0.0f, 1.0f));
-			vertices.emplace_back(XMFLOAT3(+fx, -fy, fz), XMFLOAT2(0.0f, 1.0f));
-			vertices.emplace_back(XMFLOAT3(+fx, +fy, fz), XMFLOAT2(0.0f, 0.0f));
-			vertices.emplace_back(XMFLOAT3(-fx, +fy, fz), XMFLOAT2(1.0f, 0.0f));
+			vertices.emplace_back(XMFLOAT3(-fx + position.x, +fy + position.y, fz + position.z), XMFLOAT2(1.0f, 0.0f));
+			vertices.emplace_back(XMFLOAT3(-fx + position.x, -fy + position.y, fz + position.z), XMFLOAT2(1.0f, 1.0f));
+			vertices.emplace_back(XMFLOAT3(+fx + position.x, -fy + position.y, fz + position.z), XMFLOAT2(0.0f, 1.0f));
+			vertices.emplace_back(XMFLOAT3(+fx + position.x, -fy + position.y, fz + position.z), XMFLOAT2(0.0f, 1.0f));
+			vertices.emplace_back(XMFLOAT3(+fx + position.x, +fy + position.y, fz + position.z), XMFLOAT2(0.0f, 0.0f));
+			vertices.emplace_back(XMFLOAT3(-fx + position.x, +fy + position.y, fz + position.z), XMFLOAT2(1.0f, 0.0f));
 		}
 	}
 

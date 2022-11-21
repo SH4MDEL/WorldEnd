@@ -81,7 +81,7 @@ class Field : public GameObject
 {
 public:
 	Field(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList,
-		INT width, INT length, INT height, INT blockWidth, INT blockLength, XMFLOAT3 scale);
+		INT width, INT length, INT height, INT blockWidth, INT blockLength, INT blockHeight, XMFLOAT3 scale);
 	~Field() = default;
 
 	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const;
@@ -91,8 +91,6 @@ public:
 	void SetPosition(const XMFLOAT3& position);
 
 	XMFLOAT3 GetPosition() const { return m_blocks.front()->GetPosition(); }
-	FLOAT GetHeight(FLOAT x, FLOAT z) const;
-	XMFLOAT3 GetNormal(FLOAT x, FLOAT z) const;
 	INT GetWidth() const { return m_width; }
 	INT GetLength() const { return m_length; }
 	XMFLOAT3 GetScale() const { return m_scale; }
@@ -100,12 +98,37 @@ public:
 	void ReleaseUploadBuffer() const override;
 
 private:
-	unique_ptr<FieldMapImage>		m_heightMapImage;	// 높이맵 이미지
+	unique_ptr<FieldMapImage>		m_fieldMapImage;	// 높이맵 이미지
 	vector<unique_ptr<GameObject>>	m_blocks;			// 블록들
 	INT								m_width;			// 이미지의 가로 길이
 	INT								m_length;			// 이미지의 세로 길이
 	INT								m_height;
 	XMFLOAT3						m_scale;			// 확대 비율
+};
+
+class Fence : public GameObject
+{
+public:
+	Fence(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList,
+		INT width, INT length, INT blockWidth, INT blockLength);
+	~Fence() = default;
+
+	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>&commandList) const;
+	virtual void Move(const XMFLOAT3 & shift);
+	virtual void Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw);
+
+	void SetPosition(const XMFLOAT3 & position);
+
+	XMFLOAT3 GetPosition() const { return m_blocks.front()->GetPosition(); }
+	INT GetWidth() const { return m_width; }
+	INT GetLength() const { return m_length; }
+
+	void ReleaseUploadBuffer() const override;
+
+private:
+	vector<unique_ptr<GameObject>>	m_blocks;			// 블록들
+	INT								m_width;			// 이미지의 가로 길이
+	INT								m_length;			// 이미지의 세로 길이
 };
 
 
