@@ -1,6 +1,11 @@
 #include "framework.h"
 
-GameFramework::GameFramework(UINT width, UINT height) : 
+GameFramework::GameFramework()
+{
+
+}
+
+GameFramework::GameFramework(UINT width, UINT height) :
 	m_width(width), 
 	m_height(height), 
 	m_frameIndex{0},
@@ -30,6 +35,10 @@ void GameFramework::OnDestroy()
 	WaitForGpuComplete();
 
 	::CloseHandle(m_fenceEvent);
+
+	if (m_connectManager) {
+		delete m_connectManager;
+	}
 }
 
 void GameFramework::OnProcessingMouseMessage() const
@@ -323,6 +332,7 @@ void GameFramework::BuildObjects()
 	m_scene = make_unique<Scene>();
 	m_scene->BuildObjects(m_device, m_commandList, m_rootSignature, m_aspectRatio);
 
+
 	// 명령 제출
 	m_commandList->Close();
 	ID3D12CommandList* ppCommandList[] = { m_commandList.Get() };
@@ -340,6 +350,10 @@ void GameFramework::BuildObjects()
 
 void GameFramework::FrameAdvance()
 {
+	// if loggin failed
+	
+	
+
 	m_timer.Tick();
 
 	if (m_isActive)
@@ -349,6 +363,8 @@ void GameFramework::FrameAdvance()
 	}
 	Update(m_timer.GetDeltaTime());
 	Render();
+
+	//size_t Length = _tcslen(m_pszFrame);
 }
 
 void GameFramework::Update(FLOAT timeElapsed)

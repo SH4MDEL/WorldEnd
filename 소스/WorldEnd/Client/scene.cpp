@@ -5,6 +5,11 @@ Scene::~Scene()
 {
 }
 
+void Scene::DoSend()
+{
+	
+}
+
 void Scene::OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime) const
 {
 	SetCursor(NULL);
@@ -27,7 +32,7 @@ void Scene::OnProcessingKeyboardMessage(FLOAT timeElapsed) const
 	}
 	if (GetAsyncKeyState('A') & 0x8000)
 	{
-		m_player->AddVelocity(Vector3::Mul(m_player->GetRight(), timeElapsed * -10.0f));
+		m_player->AddVelocity(Vector3::Mul(m_player->GetRight(), timeElapsed * -1.0f));
 	}
 	if (GetAsyncKeyState('S') & 0x8000)
 	{
@@ -45,7 +50,26 @@ void Scene::OnProcessingKeyboardMessage(FLOAT timeElapsed) const
 	{
 		m_player->AddVelocity(Vector3::Mul(m_player->GetUp(), timeElapsed * -10.0f));
 	}
+
+	
+	
+	XMFLOAT3 pos = m_player->GetPosition();
+
+	PLAYERINFO packet;
+	packet.x = pos.x;
+	packet.y = pos.y;
+	packet.z = pos.z;
+	packet.id = m_clientID;
+	WSAOVERLAPPED* c_over = new WSAOVERLAPPED;
+
+
+	int retval = WSASend(m_c_socket, (WSABUF*)&packet, 1, 0, 0, c_over, NULL);
+	cout << "[id]: " << packet.id << " x - " << packet.x << " y - " << packet.y << " z - " << packet.z;
+	cout << endl;
+
 }
+
+
 
 void Scene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, const ComPtr<ID3D12RootSignature>& rootsignature, FLOAT aspectRatio)
 {

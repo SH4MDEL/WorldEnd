@@ -4,10 +4,14 @@
 #include "camera.h"
 #include "scene.h"
 #include "object.h"
+#include "Connect.h"
+
+class Connect;
 
 class GameFramework
 {
 public:
+	GameFramework();
 	GameFramework(UINT width, UINT height);
 	~GameFramework();
 
@@ -94,6 +98,13 @@ private:
 	Timer								m_timer;
 
 	unique_ptr<Scene>					m_scene;
+
+
+private:
+	Connect* m_connectManager = nullptr;
+
+public:
+
 
 };
 

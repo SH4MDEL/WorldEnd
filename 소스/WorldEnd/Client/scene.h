@@ -6,12 +6,27 @@
 #include "camera.h"
 #include "mesh.h"
 #include "texture.h"
+#include "Connect.h"
 
 class Scene
 {
 public:
 	Scene() = default;
 	~Scene();
+
+	Connect conect;
+
+	static Scene* Get_Instatnce() {
+		if (nullptr == m_instansce)
+			m_instansce = new Scene;
+
+		return m_instansce;
+	}
+
+	int m_clientID = 0;
+	SOCKET m_c_socket;
+
+	void DoSend();
 
 	void BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, const ComPtr<ID3D12RootSignature>& rootsignature, FLOAT	aspectRatio);
 	void OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime) const;
@@ -26,9 +41,18 @@ public:
 
 	void CheckBorderLimit();
 
+	
+	
+
+	PLAYERINFO* GetPlayerInfo() { return m_playerInfo; }
+
 private:
 	unordered_map<string, unique_ptr<Shader>>	m_shader;
 	unordered_map<string, unique_ptr<Shader>>	m_blending;
 	shared_ptr<Player>							m_player;
 	shared_ptr<Camera>							m_camera;
+	shared_ptr<GameObject>							m_obj;
+
+	static Scene* m_instansce;
+	PLAYERINFO* m_playerInfo;
 };

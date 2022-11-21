@@ -10,6 +10,15 @@ public:
 	GameObject();
 	~GameObject();
 
+	//static GameObject* Get_Instatnce() {
+	//	if (nullptr == m_instansce)
+	//		m_instansce = new GameObject;
+
+	//	return m_instansce;
+	//}
+
+	XMFLOAT4X4					m_worldMatrix;
+
 	virtual void Update(FLOAT timeElapsed);
 	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const;
 	virtual void Move(const XMFLOAT3& shift);
@@ -40,9 +49,12 @@ public:
 	void UpdateBoundingBox();
 	void SetBoundingBox(const BoundingOrientedBox& boundingBox);
 
+	//XMFLOAT3 GetPositionX(return XMFLOAT3{ m_worldMatrix._41 };)
+
+	
 protected:
 	XMFLOAT4X4					m_transformMatrix;
-	XMFLOAT4X4					m_worldMatrix;
+	
 
 	XMFLOAT3					m_right;		// 로컬 x축
 	XMFLOAT3					m_up;			// 로컬 y축
@@ -62,6 +74,9 @@ protected:
 	shared_ptr<GameObject>		m_child;
 
 	BoundingOrientedBox			m_boundingBox;	
+
+private:
+	static GameObject* m_instansce;
 };
 
 class Helicoptor : public GameObject

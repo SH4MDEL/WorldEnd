@@ -141,6 +141,7 @@
   <ItemGroup>
     <ClInclude Include="camera.h" />
     <ClInclude Include="Client.h" />
+    <ClInclude Include="Connect.h" />
     <ClInclude Include="d3dx12.h" />
     <ClInclude Include="DDSTextureLoader12.h" />
     <ClInclude Include="framework.h" />
@@ -159,6 +160,7 @@
   <ItemGroup>
     <ClCompile Include="camera.cpp" />
     <ClCompile Include="Client.cpp" />
+    <ClCompile Include="Connect.cpp" />
     <ClCompile Include="DDSTextureLoader12.cpp" />
     <ClCompile Include="framework.cpp" />
     <ClCompile Include="material.cpp" />
