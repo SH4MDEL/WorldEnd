@@ -17,7 +17,6 @@ public:
 	//	return m_instansce;
 	//}
 
-	XMFLOAT4X4					m_worldMatrix;
 
 	virtual void Update(FLOAT timeElapsed);
 	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const;
@@ -54,6 +53,7 @@ public:
 	
 protected:
 	XMFLOAT4X4					m_transformMatrix;
+	XMFLOAT4X4					m_worldMatrix;
 	
 
 	XMFLOAT3					m_right;		// ∑Œƒ√ x√‡
@@ -76,7 +76,7 @@ protected:
 	BoundingOrientedBox			m_boundingBox;	
 
 private:
-	static GameObject* m_instansce;
+	static GameObject* m_instance;
 };
 
 class Helicoptor : public GameObject

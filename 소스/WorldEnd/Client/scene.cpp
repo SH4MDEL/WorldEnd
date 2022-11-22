@@ -32,7 +32,7 @@ void Scene::OnProcessingKeyboardMessage(FLOAT timeElapsed) const
 	}
 	if (GetAsyncKeyState('A') & 0x8000)
 	{
-		m_player->AddVelocity(Vector3::Mul(m_player->GetRight(), timeElapsed * -1.0f));
+		m_player->AddVelocity(Vector3::Mul(m_player->GetRight(), timeElapsed * -10.0f));
 	}
 	if (GetAsyncKeyState('S') & 0x8000)
 	{
@@ -59,14 +59,15 @@ void Scene::OnProcessingKeyboardMessage(FLOAT timeElapsed) const
 	packet.x = pos.x;
 	packet.y = pos.y;
 	packet.z = pos.z;
-	packet.id = m_clientID;
+	packet.id = m_clientId;
 	WSAOVERLAPPED* c_over = new WSAOVERLAPPED;
 
 
-	int retval = WSASend(m_c_socket, (WSABUF*)&packet, 1, 0, 0, c_over, NULL);
+	int retval = WSASend(m_socket, (WSABUF*)&packet, 1, 0, 0, c_over, NULL);
 	cout << "[id]: " << packet.id << " x - " << packet.x << " y - " << packet.y << " z - " << packet.z;
 	cout << endl;
 
+	delete c_over;
 }
 
 

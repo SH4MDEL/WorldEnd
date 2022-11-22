@@ -24,9 +24,9 @@ ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 
-int m_clientID = 0;
-SOCKET m_c_socket;
-WSABUF m_wsabuf;
+int g_clientId = 0;
+SOCKET g_socket;
+WSABUF g_wsabuf;
 bool check = true;
 
 void DoSend();
@@ -46,8 +46,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     }
 
     // socket
-    m_c_socket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, 0, 0, WSA_FLAG_OVERLAPPED);
-    if (m_c_socket == INVALID_SOCKET) {
+    g_socket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, 0, 0, WSA_FLAG_OVERLAPPED);
+    if (g_socket == INVALID_SOCKET) {
         cout << "SOCKET INIT ERROR!!" << endl;
         return -1;
     }
@@ -58,7 +58,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     serverAddr.sin_family = AF_INET;
     serverAddr.sin_port = htons(SERVERPORT);
     serverAddr.sin_addr.s_addr = inet_addr(SERVERIP);
-    int val = connect(m_c_socket, (SOCKADDR*)&serverAddr, sizeof(serverAddr));
+    int val = connect(g_socket, (SOCKADDR*)&serverAddr, sizeof(serverAddr));
     if (val == SOCKET_ERROR) return -1;
 
    
@@ -117,11 +117,11 @@ void DoSend() {
     packet.x = pos.x;
     packet.y = pos.y;
     packet.z = pos.z;
-    packet.id = m_clientID;
+    packet.id = g_clientId;
     WSAOVERLAPPED* c_over = new WSAOVERLAPPED;
 
 
-    int retval = WSASend(m_c_socket, (WSABUF*)&packet, 1, 0, 0, c_over, NULL);
+    int retval = WSASend(g_socket, (WSABUF*)&packet, 1, 0, 0, c_over, NULL);
     cout << "[id]: " << packet.id << " x - " << packet.x << " y - " << packet.y << " z - " << packet.z;
 }
 

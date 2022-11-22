@@ -14,17 +14,12 @@ public:
 	Scene() = default;
 	~Scene();
 
-	Connect conect;
-
 	static Scene* Get_Instatnce() {
 		if (nullptr == m_instansce)
 			m_instansce = new Scene;
 
 		return m_instansce;
 	}
-
-	int m_clientID = 0;
-	SOCKET m_c_socket;
 
 	void DoSend();
 
@@ -42,17 +37,26 @@ public:
 	void CheckBorderLimit();
 
 	
-	
 
 	PLAYERINFO* GetPlayerInfo() { return m_playerInfo; }
+
+	int GetClientId() const { return m_clientId; }
+	SOCKET GetSocket() const { return m_socket; }
+
+	void SetClientId(int id) { m_clientId = id; }
+	void SetSocket(SOCKET sock) { m_socket = sock; }
 
 private:
 	unordered_map<string, unique_ptr<Shader>>	m_shader;
 	unordered_map<string, unique_ptr<Shader>>	m_blending;
 	shared_ptr<Player>							m_player;
 	shared_ptr<Camera>							m_camera;
-	shared_ptr<GameObject>							m_obj;
+	shared_ptr<GameObject>						m_obj;
 
 	static Scene* m_instansce;
 	PLAYERINFO* m_playerInfo;
+
+	Connect connect;
+	int m_clientId{};
+	SOCKET m_socket;
 };
