@@ -50,24 +50,6 @@ void Scene::OnProcessingKeyboardMessage(FLOAT timeElapsed) const
 	{
 		m_player->AddVelocity(Vector3::Mul(m_player->GetUp(), timeElapsed * -10.0f));
 	}
-
-	
-	
-	XMFLOAT3 pos = m_player->GetPosition();
-
-	PLAYERINFO packet;
-	packet.x = pos.x;
-	packet.y = pos.y;
-	packet.z = pos.z;
-	packet.id = m_clientId;
-	WSAOVERLAPPED* c_over = new WSAOVERLAPPED;
-
-
-	int retval = WSASend(m_socket, (WSABUF*)&packet, 1, 0, 0, c_over, NULL);
-	cout << "[id]: " << packet.id << " x - " << packet.x << " y - " << packet.y << " z - " << packet.z;
-	cout << endl;
-
-	delete c_over;
 }
 
 

@@ -37,31 +37,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     _In_opt_ HINSTANCE hPrevInstance,
     _In_ LPWSTR    lpCmdLine,
     _In_ int       nCmdShow)
-{
-    // was start
-    WSADATA WSAData;
-    if (WSAStartup(MAKEWORD(2, 2), &WSAData) != 0) {
-        cout << "WSA START ERROR!!" << endl;
-        return -1;
-    }
-
-    // socket
-    g_socket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, 0, 0, WSA_FLAG_OVERLAPPED);
-    if (g_socket == INVALID_SOCKET) {
-        cout << "SOCKET INIT ERROR!!" << endl;
-        return -1;
-    }
-
-    // connect to ipAddr
-    SOCKADDR_IN serverAddr;
-    ZeroMemory(&serverAddr, sizeof(serverAddr));
-    serverAddr.sin_family = AF_INET;
-    serverAddr.sin_port = htons(SERVERPORT);
-    serverAddr.sin_addr.s_addr = inet_addr(SERVERIP);
-    int val = connect(g_socket, (SOCKADDR*)&serverAddr, sizeof(serverAddr));
-    if (val == SOCKET_ERROR) return -1;
-
-   
+{  
     UNREFERENCED_PARAMETER(hPrevInstance);
     UNREFERENCED_PARAMETER(lpCmdLine);
 
@@ -107,8 +83,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 }
 
 void DoSend() {
-
-   // Scene::Get_Instatnce()->GetPlayerInfo()->fx = GameObject::GetPosition()
 
     GameObject* obj = new GameObject;
     XMFLOAT3 pos = obj->GetPosition();
