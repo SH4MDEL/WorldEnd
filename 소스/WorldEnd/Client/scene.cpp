@@ -26,50 +26,59 @@ void Scene::OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT d
 
 void Scene::OnProcessingKeyboardMessage(FLOAT timeElapsed) const
 {
-
+#ifdef USE_NETWORK
 	XMFLOAT4X4 pos = m_player->GetWorldMatrix();
 
-	PLAYERINFO packet;
-	packet.dir = pos._41;
-	packet.id = m_clientId;
+	cs_packet_inputKey packet;
 	WSAOVERLAPPED* c_over = new WSAOVERLAPPED;
 
 	if (GetAsyncKeyState('W') & 0x8000)
 	{
-		m_player->AddVelocity(Vector3::Mul(m_player->GetFront(), timeElapsed * 10.0f));
+		//m_player->AddVelocity(Vector3::Mul(m_player->GetFront(), timeElapsed * 10.0f));
+		packet.inputKey &= INPUT_KEY_W;
+	}
+	if (GetAsyncKeyState('A') & 0x8000)
+	{
+		//m_player->AddVelocity(Vector3::Mul(m_player->GetRight(), timeElapsed * -10.0f));
+		packet.inputKey &= INPUT_KEY_A;
+	}
+	if (GetAsyncKeyState('S') & 0x8000)
+	{
+		//m_player->AddVelocity(Vector3::Mul(m_player->GetFront(), timeElapsed * -10.0f));
+		packet.inputKey &= INPUT_KEY_S;
+
+	}
+	if (GetAsyncKeyState('D') & 0x8000)
+	{
+		//m_player->AddVelocity(Vector3::Mul(m_player->GetRight(), timeElapsed * 10.0f));
+		packet.inputKey &= INPUT_KEY_D;
+
+	}
+	if (packet.inputKey |= (INPUT_KEY_W | INPUT_KEY_A | INPUT_KEY_S | INPUT_KEY_D)) {
 		int retval = WSASend(m_socket, (WSABUF*)&packet, 1, 0, 0, c_over, NULL);
-		cout << "[id]: " << packet.id << " dir - " << packet.dir << endl;
+		cout << "[]: " << packet.id << " dir - " << packet.inputKey << endl;
+	}
+	delete c_over;
+#endif // USE_NETWORK
+#ifndef USE_NETWORK
+	if (GetAsyncKeyState('W') & 0x8000)
+	{
+		m_player->AddVelocity(Vector3::Mul(m_player->GetFront(), timeElapsed * 10.0f));
 	}
 	if (GetAsyncKeyState('A') & 0x8000)
 	{
 		m_player->AddVelocity(Vector3::Mul(m_player->GetRight(), timeElapsed * -10.0f));
-		int retval = WSASend(m_socket, (WSABUF*)&packet, 1, 0, 0, c_over, NULL);
-		cout << "[id]: " << packet.id << " dir - " << packet.dir << endl;
 	}
 	if (GetAsyncKeyState('S') & 0x8000)
 	{
 		m_player->AddVelocity(Vector3::Mul(m_player->GetFront(), timeElapsed * -10.0f));
-		int retval = WSASend(m_socket, (WSABUF*)&packet, 1, 0, 0, c_over, NULL);
-		cout << "[id]: " << packet.id << " dir - " << packet.dir << endl;
 	}
 	if (GetAsyncKeyState('D') & 0x8000)
 	{
 		m_player->AddVelocity(Vector3::Mul(m_player->GetRight(), timeElapsed * 10.0f));
-		int retval = WSASend(m_socket, (WSABUF*)&packet, 1, 0, 0, c_over, NULL);
-		cout << "[id]: " << packet.id << " dir - " << packet.dir << endl;
 	}
-	if (GetAsyncKeyState(VK_SPACE) & 0x8000)
-	{
-		m_player->AddVelocity(Vector3::Mul(m_player->GetUp(), timeElapsed * 10.0f));
-	}
-	if (GetAsyncKeyState(VK_SHIFT) & 0x8000)
-	{
-		m_player->AddVelocity(Vector3::Mul(m_player->GetUp(), timeElapsed * -10.0f));
-	}
+#endif // !USE_NETWORK
 
-
-
-	delete c_over;
 }
 
 

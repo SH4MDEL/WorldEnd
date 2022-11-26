@@ -38,6 +38,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     _In_ LPWSTR    lpCmdLine,
     _In_ int       nCmdShow)
 {
+#ifdef USE_NETWORK
     // was start
     WSADATA WSAData;
     if (WSAStartup(MAKEWORD(2, 2), &WSAData) != 0) {
@@ -60,7 +61,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     serverAddr.sin_addr.s_addr = inet_addr(SERVERIP);
     int val = connect(g_socket, (SOCKADDR*)&serverAddr, sizeof(serverAddr));
     if (val == SOCKET_ERROR) return -1;
-
+#endif // USE_NETWORK
    
     UNREFERENCED_PARAMETER(hPrevInstance);
     UNREFERENCED_PARAMETER(lpCmdLine);

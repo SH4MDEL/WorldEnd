@@ -35,10 +35,6 @@ void GameFramework::OnDestroy()
 	WaitForGpuComplete();
 
 	::CloseHandle(m_fenceEvent);
-
-	if (m_connectManager) {
-		delete m_connectManager;
-	}
 }
 
 void GameFramework::OnProcessingMouseMessage() const

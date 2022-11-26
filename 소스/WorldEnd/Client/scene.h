@@ -14,13 +14,6 @@ public:
 	Scene() = default;
 	~Scene();
 
-	static Scene* Get_Instatnce() {
-		if (nullptr == m_instansce)
-			m_instansce = new Scene;
-
-		return m_instansce;
-	}
-
 	void DoSend();
 
 	void BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, const ComPtr<ID3D12RootSignature>& rootsignature, FLOAT	aspectRatio);
@@ -51,9 +44,7 @@ private:
 	unordered_map<string, unique_ptr<Shader>>	m_blending;
 	shared_ptr<Player>							m_player;
 	shared_ptr<Camera>							m_camera;
-	shared_ptr<GameObject>						m_obj;
 
-	static Scene* m_instansce;
 	PLAYERINFO* m_playerInfo;
 
 	Connect connect;

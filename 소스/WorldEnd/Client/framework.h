@@ -98,13 +98,5 @@ private:
 	Timer								m_timer;
 
 	unique_ptr<Scene>					m_scene;
-
-
-private:
-	Connect* m_connectManager = nullptr;
-
-public:
-
-
 };
 

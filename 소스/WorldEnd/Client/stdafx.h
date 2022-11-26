@@ -7,6 +7,8 @@
 #pragma warning (disable : 4996)
 #pragma comment(lib, "ws2_32")
 
+//#define USE_NETWORK
+
 #include "targetver.h"
 #define WIN32_LEAN_AND_MEAN             // 거의 사용되지 않는 내용을 Windows 헤더에서 제외합니다.
 
