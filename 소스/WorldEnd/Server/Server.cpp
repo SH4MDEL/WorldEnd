@@ -7,6 +7,18 @@
 #include <vector>
 #include "protocol.h"
 
+// d3d12 헤더 파일입니다.
+#pragma comment(lib, "d3d12.lib")
+#pragma comment(lib, "dxgi.lib")
+#pragma comment(lib, "d3dcompiler.lib")
+#pragma comment(lib, "dxguid.lib")
+#include <dxgi1_6.h>
+#include <d3d12.h>
+#include <d3d12sdklayers.h>
+#include <d3dcompiler.h>
+#include <DirectXMath.h>
+#include <DirectXCollision.h>
+
 using namespace std;
 
 #pragma comment (lib, "WS2_32.LIB")
@@ -33,6 +45,7 @@ enum COMP_TYPE { OP_ACCEPT, OP_RECV, OP_SEND };
 
 float sx, sy, sz;
 int client_id;
+
 
 class OVER_EXP {
 public:
@@ -109,14 +122,14 @@ void disconnect(int c_id)
 
 
 void Worker() {
-	WSABUF s_buf;
+	WSABUF s_buf{};
 	int retval;
 	struct sockaddr_in clientaddr;
 	char addr[INET_ADDRSTRLEN];
 	int addrlen;
 	char buf[BUF_SIZE + 1];
 	DWORD recv_flag = 0;
-	WSAOVERLAPPED s_over;
+	WSAOVERLAPPED* s_over = new WSAOVERLAPPED;
 
 	for (;;) {
 		
@@ -127,7 +140,13 @@ void Worker() {
 		OVER_EXP* ex_over = reinterpret_cast<OVER_EXP*>(over);
 
 		// 데이터 받기
-		retval = WSARecv(client_sock, &s_buf, 1, 0, &recv_flag, &s_over, 0);
+		retval = WSARecv(client_sock, &s_buf, 1, 0, &recv_flag, s_over, 0);
+		PLAYERINFO* p_packet = (PLAYERINFO*)&s_buf;
+		sx = p_packet->dir;
+		client_id = p_packet->id;
+
+
+		
 		if (retval == SOCKET_ERROR) {
 			error_display(WSAGetLastError());
 			break;
@@ -142,6 +161,26 @@ void Worker() {
 			}
 		}
 
+		switch (s_buf.buf[0])
+		{
+		case 'w':
+			sx += p_packet->dir;
+			cout << "[id]: " << client_id << " dir - " << sx << endl;
+			break;
+		case 's':
+			sx += p_packet->dir;
+			break;
+		case 'a':
+			sx += p_packet->dir;
+			break;
+		case 'd':
+			sx += p_packet->dir;
+			break;
+		default:
+			break;
+		}
+
+		cout << "[id]: " << client_id << " dir - " << sx << endl;
 		/*switch (ex_over->_comp_type) {
 		case OP_ACCEPT: {
 			int client_id = get_new_client_id();

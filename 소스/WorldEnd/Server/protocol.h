@@ -1,8 +1,6 @@
 #pragma once
 
 typedef struct PlayerInfo {
-	float x;
-	float y;
-	float z;
+	float dir;
 	int id;
 }PLAYERINFO;

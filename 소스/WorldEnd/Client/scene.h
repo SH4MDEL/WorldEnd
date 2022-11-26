@@ -57,6 +57,6 @@ private:
 	PLAYERINFO* m_playerInfo;
 
 	Connect connect;
-	int m_clientId{};
+	int m_clientId = 1;
 	SOCKET m_socket;
 };

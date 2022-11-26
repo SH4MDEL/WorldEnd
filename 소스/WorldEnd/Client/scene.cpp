@@ -26,21 +26,37 @@ void Scene::OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT d
 
 void Scene::OnProcessingKeyboardMessage(FLOAT timeElapsed) const
 {
+
+	XMFLOAT4X4 pos = m_player->GetWorldMatrix();
+
+	PLAYERINFO packet;
+	packet.dir = pos._41;
+	packet.id = m_clientId;
+	WSAOVERLAPPED* c_over = new WSAOVERLAPPED;
+
 	if (GetAsyncKeyState('W') & 0x8000)
 	{
 		m_player->AddVelocity(Vector3::Mul(m_player->GetFront(), timeElapsed * 10.0f));
+		int retval = WSASend(m_socket, (WSABUF*)&packet, 1, 0, 0, c_over, NULL);
+		cout << "[id]: " << packet.id << " dir - " << packet.dir << endl;
 	}
 	if (GetAsyncKeyState('A') & 0x8000)
 	{
 		m_player->AddVelocity(Vector3::Mul(m_player->GetRight(), timeElapsed * -10.0f));
+		int retval = WSASend(m_socket, (WSABUF*)&packet, 1, 0, 0, c_over, NULL);
+		cout << "[id]: " << packet.id << " dir - " << packet.dir << endl;
 	}
 	if (GetAsyncKeyState('S') & 0x8000)
 	{
 		m_player->AddVelocity(Vector3::Mul(m_player->GetFront(), timeElapsed * -10.0f));
+		int retval = WSASend(m_socket, (WSABUF*)&packet, 1, 0, 0, c_over, NULL);
+		cout << "[id]: " << packet.id << " dir - " << packet.dir << endl;
 	}
 	if (GetAsyncKeyState('D') & 0x8000)
 	{
 		m_player->AddVelocity(Vector3::Mul(m_player->GetRight(), timeElapsed * 10.0f));
+		int retval = WSASend(m_socket, (WSABUF*)&packet, 1, 0, 0, c_over, NULL);
+		cout << "[id]: " << packet.id << " dir - " << packet.dir << endl;
 	}
 	if (GetAsyncKeyState(VK_SPACE) & 0x8000)
 	{
@@ -51,21 +67,7 @@ void Scene::OnProcessingKeyboardMessage(FLOAT timeElapsed) const
 		m_player->AddVelocity(Vector3::Mul(m_player->GetUp(), timeElapsed * -10.0f));
 	}
 
-	
-	
-	XMFLOAT3 pos = m_player->GetPosition();
 
-	PLAYERINFO packet;
-	packet.x = pos.x;
-	packet.y = pos.y;
-	packet.z = pos.z;
-	packet.id = m_clientId;
-	WSAOVERLAPPED* c_over = new WSAOVERLAPPED;
-
-
-	int retval = WSASend(m_socket, (WSABUF*)&packet, 1, 0, 0, c_over, NULL);
-	cout << "[id]: " << packet.id << " x - " << packet.x << " y - " << packet.y << " z - " << packet.z;
-	cout << endl;
 
 	delete c_over;
 }

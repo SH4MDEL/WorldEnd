@@ -114,15 +114,11 @@ void DoSend() {
     XMFLOAT3 pos = obj->GetPosition();
 
     PLAYERINFO packet;
-    packet.x = pos.x;
-    packet.y = pos.y;
-    packet.z = pos.z;
     packet.id = g_clientId;
     WSAOVERLAPPED* c_over = new WSAOVERLAPPED;
 
 
-    int retval = WSASend(g_socket, (WSABUF*)&packet, 1, 0, 0, c_over, NULL);
-    cout << "[id]: " << packet.id << " x - " << packet.x << " y - " << packet.y << " z - " << packet.z;
+  
 }
 
 void DoRecv() {
