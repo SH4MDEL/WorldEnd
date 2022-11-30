@@ -4,9 +4,6 @@
 #include "camera.h"
 #include "scene.h"
 #include "object.h"
-#include "Connect.h"
-
-class Connect;
 
 class GameFramework
 {

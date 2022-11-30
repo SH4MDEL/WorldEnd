@@ -29,37 +29,48 @@ void Scene::OnProcessingKeyboardMessage(FLOAT timeElapsed) const
 #ifdef USE_NETWORK
 	XMFLOAT4X4 pos = m_player->GetWorldMatrix();
 
-	cs_packet_inputKey packet;
-	WSAOVERLAPPED* c_over = new WSAOVERLAPPED;
+	
+	char packetDirection = 0;
+	int direction = -1;
 
 	if (GetAsyncKeyState('W') & 0x8000)
 	{
 		//m_player->AddVelocity(Vector3::Mul(m_player->GetFront(), timeElapsed * 10.0f));
-		packet.inputKey &= INPUT_KEY_W;
+		packetDirection += INPUT_KEY_W;
+		direction = 0;
+
 	}
 	if (GetAsyncKeyState('A') & 0x8000)
 	{
 		//m_player->AddVelocity(Vector3::Mul(m_player->GetRight(), timeElapsed * -10.0f));
-		packet.inputKey &= INPUT_KEY_A;
+		packetDirection += INPUT_KEY_A;
+		direction = 1;
 	}
 	if (GetAsyncKeyState('S') & 0x8000)
 	{
 		//m_player->AddVelocity(Vector3::Mul(m_player->GetFront(), timeElapsed * -10.0f));
-		packet.inputKey &= INPUT_KEY_S;
+		packetDirection += INPUT_KEY_S;
+		direction = 2;
 
 	}
 	if (GetAsyncKeyState('D') & 0x8000)
 	{
 		//m_player->AddVelocity(Vector3::Mul(m_player->GetRight(), timeElapsed * 10.0f));
-		packet.inputKey &= INPUT_KEY_D;
+		packetDirection += INPUT_KEY_D;
+		direction = 3;
 
 	}
-	if (packet.inputKey |= (INPUT_KEY_W | INPUT_KEY_A | INPUT_KEY_S | INPUT_KEY_D)) {
-		int retval = WSASend(m_socket, (WSABUF*)&packet, 1, 0, 0, c_over, NULL);
-		cout << "[]: " << packet.id << " dir - " << packet.inputKey << endl;
+	if (packetDirection) {
+		CS_INPUT_KEY_PACKET key_packet;
+		key_packet.size = sizeof(key_packet);
+		key_packet.type = CS_MOVE;
+		key_packet.direction = packetDirection;  // 입력받은 키값 전달
+		//m_connect->SendPacket(&key_packet);
+		send(m_connect.m_c_socket, reinterpret_cast<char*>(&key_packet), sizeof(key_packet), 0);
 	}
-	delete c_over;
 #endif // USE_NETWORK
+
+
 #ifndef USE_NETWORK
 	if (GetAsyncKeyState('W') & 0x8000)
 	{

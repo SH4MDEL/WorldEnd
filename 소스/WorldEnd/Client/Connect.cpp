@@ -21,13 +21,13 @@ bool Connect::Init()
 	}
 
 	// socket
-	m_c_socket = socket(AF_INET, SOCK_STREAM,0);
+	m_c_socket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, 0, 0, WSA_FLAG_OVERLAPPED);
 	if (m_c_socket == INVALID_SOCKET) {
 		cout << "SOCKET INIT ERROR!!" << endl;
-		return false;
+		return true;
 	}
 
-	return true;
+	
 }
 
 
@@ -44,4 +44,11 @@ bool Connect::ConnectTo()
 
 	// login ok
 	return true;
+}
+
+void Connect::SendPacket(void* packet)
+{
+	EXP_OVER* s_data = new EXP_OVER{ reinterpret_cast<char*>(packet) };
+	WSASend(m_c_socket, &s_data->_wsabuf, 1, 0, 0, &s_data->_over, 0);
+	cout << "Send" << endl;
 }

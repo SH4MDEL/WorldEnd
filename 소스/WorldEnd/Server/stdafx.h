@@ -10,6 +10,16 @@
 // d3d12 헤더 파일입니다.
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
+#include <iostream>
+#include <WS2tcpip.h>
+#include <MSWSock.h>
+#include <thread>
+#include <array>
+#include <vector>
+#include <mutex>
+#include "protocol.h"
+
+
 #pragma comment(lib, "d3dcompiler.lib")
 #pragma comment(lib, "dxguid.lib")
 #include <dxgi1_6.h>
@@ -27,3 +37,5 @@ using namespace DirectX;
 
 #define SERVERPORT 9000
 #define MAX_PLAYERS 3
+
+

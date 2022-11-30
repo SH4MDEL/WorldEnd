@@ -3,6 +3,7 @@
 #include "framework.h"
 #include "scene.h"
 #include "object.h"
+#include "Connect.h"
 
 // 다음을 정의하면 프로그램 실행시 콘솔이 출력됩니다.
 #ifdef UNICODE
@@ -24,13 +25,11 @@ ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 
-int g_clientId = 0;
-SOCKET g_socket;
-WSABUF g_wsabuf;
-bool check = true;
 
 void DoSend();
 void DoRecv();
+
+Connect net;
 
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
@@ -38,29 +37,18 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     _In_ LPWSTR    lpCmdLine,
     _In_ int       nCmdShow)
 {
+
 #ifdef USE_NETWORK
-    // was start
-    WSADATA WSAData;
-    if (WSAStartup(MAKEWORD(2, 2), &WSAData) != 0) {
-        cout << "WSA START ERROR!!" << endl;
-        return -1;
-    }
+    net.Init();
+    net.ConnectTo();
 
-    // socket
-    g_socket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, 0, 0, WSA_FLAG_OVERLAPPED);
-    if (g_socket == INVALID_SOCKET) {
-        cout << "SOCKET INIT ERROR!!" << endl;
-        return -1;
-    }
+    CS_LOGIN_PACKET login_packet;
+    login_packet.size = sizeof(CS_LOGIN_PACKET);
+    login_packet.type = CS_LOGIN;
+    strcpy_s(login_packet.name, "SU");
+    //net.SendPacket(&login_packet);
+    send(net.m_c_socket, reinterpret_cast<char*>(&login_packet),sizeof(login_packet),0);
 
-    // connect to ipAddr
-    SOCKADDR_IN serverAddr;
-    ZeroMemory(&serverAddr, sizeof(serverAddr));
-    serverAddr.sin_family = AF_INET;
-    serverAddr.sin_port = htons(SERVERPORT);
-    serverAddr.sin_addr.s_addr = inet_addr(SERVERIP);
-    int val = connect(g_socket, (SOCKADDR*)&serverAddr, sizeof(serverAddr));
-    if (val == SOCKET_ERROR) return -1;
 #endif // USE_NETWORK
    
     UNREFERENCED_PARAMETER(hPrevInstance);
@@ -109,14 +97,14 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 void DoSend() {
 
-   // Scene::Get_Instatnce()->GetPlayerInfo()->fx = GameObject::GetPosition()
+   //// Scene::Get_Instatnce()->GetPlayerInfo()->fx = GameObject::GetPosition()
 
-    GameObject* obj = new GameObject;
-    XMFLOAT3 pos = obj->GetPosition();
+    //GameObject* obj = new GameObject;
+    //XMFLOAT3 pos = obj->GetPosition();
 
-    PLAYERINFO packet;
-    packet.id = g_clientId;
-    WSAOVERLAPPED* c_over = new WSAOVERLAPPED;
+    //PLAYERINFO packet;
+    //packet.id = g_clientId;
+    //WSAOVERLAPPED* c_over = new WSAOVERLAPPED;
 
 
   

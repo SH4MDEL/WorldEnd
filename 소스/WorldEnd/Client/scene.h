@@ -31,23 +31,18 @@ public:
 
 	
 
-	PLAYERINFO* GetPlayerInfo() { return m_playerInfo; }
 
-	int GetClientId() const { return m_clientId; }
-	SOCKET GetSocket() const { return m_socket; }
 
-	void SetClientId(int id) { m_clientId = id; }
-	void SetSocket(SOCKET sock) { m_socket = sock; }
-
+	
 private:
 	unordered_map<string, unique_ptr<Shader>>	m_shader;
 	unordered_map<string, unique_ptr<Shader>>	m_blending;
 	shared_ptr<Player>							m_player;
 	shared_ptr<Camera>							m_camera;
+	Connect                     m_connect;
+
 
 	PLAYERINFO* m_playerInfo;
 
-	Connect connect;
 	int m_clientId = 1;
-	SOCKET m_socket;
 };

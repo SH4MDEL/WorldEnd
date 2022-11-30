@@ -7,7 +7,7 @@
 #pragma warning (disable : 4996)
 #pragma comment(lib, "ws2_32")
 
-//#define USE_NETWORK
+#define USE_NETWORK
 
 #include "targetver.h"
 #define WIN32_LEAN_AND_MEAN             // 거의 사용되지 않는 내용을 Windows 헤더에서 제외합니다.
@@ -42,15 +42,17 @@
 #include <DirectXMath.h>
 #include <DirectXCollision.h>
 #include "d3dx12.h"
-#include "Connect.h"
 using namespace DirectX;
 using Microsoft::WRL::ComPtr;
 using namespace std;
 
+// 서버에서 쓰이는 정의와 변수들
 #define SERVERPORT 9000
 #define SERVERIP "127.0.0.1"
 
 #include "../Server/protocol.h"
+
+//extern SOCKET g_socket{};
 
 namespace DX
 {
