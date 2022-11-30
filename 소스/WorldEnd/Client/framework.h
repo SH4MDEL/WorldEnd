@@ -5,7 +5,6 @@
 #include "scene.h"
 #include "object.h"
 #include "Connect.h"
-#include "animmanager.h"
 
 class Connect;
 

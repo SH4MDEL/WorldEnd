@@ -7,6 +7,7 @@
 #include "mesh.h"
 #include "texture.h"
 #include "Connect.h"
+#include "animmanager.h"
 
 class Scene
 {
@@ -52,6 +53,7 @@ private:
 	shared_ptr<Player>							m_player;
 	shared_ptr<Camera>							m_camera;
 	shared_ptr<GameObject>						m_obj;
+	shared_ptr<AnimationManager>				m_animManager;
 
 	static Scene* m_instansce;
 	PLAYERINFO* m_playerInfo;

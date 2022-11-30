@@ -331,9 +331,6 @@ void GameFramework::BuildObjects()
 
 	m_scene = make_unique<Scene>();
 	m_scene->BuildObjects(m_device, m_commandList, m_rootSignature, m_aspectRatio);
-	
-	m_animManager = make_unique<AnimationManager>();
-	m_animManager->Initialize();
 
 	// 명령 제출
 	m_commandList->Close();

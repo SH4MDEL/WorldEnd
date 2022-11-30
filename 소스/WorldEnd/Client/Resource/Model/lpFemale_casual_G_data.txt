@@ -1,0 +1,119 @@
+<Node name = lpFemale_casual_G Translation = (0, 5, -0) Rotation = (0, 0 0) Scailing = (1, 1, 1)>
+	<Attribute type = Mesh, name = >
+</Node>
+<Node name = rig_CharRoot Translation = (0, 0, 0) Rotation = (0, 0 0) Scailing = (1, 1, 1)>
+	<Attribute type = Null, name = >
+	<Node name = bip Translation = (0, 1.6664495468139648, 93.859375) Rotation = (0, -0 -89.99992145282454) Scailing = (1.0000000000009397, 1.0000000000009397, 1)>
+		<Attribute type = Skeleton, name = >
+		<Node name = bip Footsteps Translation = (0, 0, -93.74420928955078) Rotation = (0, -0 89.99992145282454) Scailing = (1.0000000000009397, 1.0000000000009397, 1)>
+</Node>
+		<Node name = bip Pelvis Translation = (0, 0, 0) Rotation = (-89.99992054219867, -89.99992054220517 0) Scailing = (1.0000000000009615, 1.0000000000009615, 1.0000000000019231)>
+			<Attribute type = Skeleton, name = >
+			<Node name = bip Spine Translation = (3.5812301635742188, -0.29653334617614746, 1.8845166778191924e-06) Rotation = (-0.00025238141872454016, -6.776469606190933e-05 10.64943231662552) Scailing = (1.0000000668863551, 1.0000000668953573, 1.0000000000104008)>
+				<Attribute type = Skeleton, name = >
+				<Node name = bip Spine1 Translation = (16.152297973632812, -0.018178939819335938, -4.7628418542444706e-08) Rotation = (-2.084589177398866e-05, 8.293484607317513e-05 -23.12443149194137) Scailing = (0.9999999500779319, 0.9999999500769504, 1.0000000000011138)>
+					<Attribute type = Skeleton, name = >
+					<Node name = bip Neck Translation = (30.668052673339844, 1.5958080291748047, 3.7210338632576168e-06) Rotation = (-2.5113166416796842e-05, -8.573839741356103e-05 32.651084534625944) Scailing = (0.9999999971952024, 0.9999999971941788, 1.0000000000012157)>
+						<Attribute type = Skeleton, name = >
+						<Node name = bip Head Translation = (6.4856719970703125, 0, 0) Rotation = (0.15149138850986604, 0.0026837346561556946 -20.061191526242297) Scailing = (1.0000000150862738, 1.0000000620400713, 0.9999999798520044)>
+							<Attribute type = Skeleton, name = >
+							<Node name = bip HeadNub Translation = (21.363250732421875, -2.384185791015625e-07, 0) Rotation = (-5.6311586700260064e-09, -0 -1.3340211632404003e-08) Scailing = (1.0000001192092896, 1.0000001192092896, 1.0000001192092896)>
+								<Attribute type = Skeleton, name = >
+</Node>
+</Node>
+</Node>
+					<Node name = bip L Clavicle Translation = (24.423072814941406, -0.0399627685546875, 4.45879602432251) Rotation = (-179.99881047438777, -82.33880195854324 -0.04680576206474588) Scailing = (1.000000016914431, 1.0000000190300065, 1.0000000326896932)>
+						<Attribute type = Skeleton, name = >
+						<Node name = bip L UpperArm Translation = (13.368806838989258, 0, -1.52587890625e-05) Rotation = (17.212612748205903, 6.1565984123699495 4.040105585110437) Scailing = (0.9999998846333247, 1.0000000250324936, 1.0000000148978756)>
+							<Attribute type = Skeleton, name = >
+							<Node name = bip L Forearm Translation = (23.304100036621094, 0, 0) Rotation = (0, 2.401238127869817e-07 -13.530393475263118) Scailing = (1.000000105034477, 0.9999998732329809, 0.9999998807907106)>
+								<Attribute type = Skeleton, name = >
+								<Node name = bip L Hand Translation = (22.85134506225586, 3.814697265625e-06, 0) Rotation = (-89.85014742273734, 14.447198511636296 -7.674947211960223) Scailing = (0.9999999053362641, 0.9999998948508086, 1.0000000272622838)>
+									<Attribute type = Skeleton, name = >
+									<Node name = bip L Finger0 Translation = (3.5791397094726562, 1.31585693359375, -3.5134124755859375) Rotation = (79.2232042042137, 15.493036187913685 12.985437750463428) Scailing = (1.0000000087416585, 1.0000000360127592, 0.9999999572120895)>
+										<Attribute type = Skeleton, name = >
+										<Node name = bip L Finger01 Translation = (4.194072723388672, 0, 0) Rotation = (0, -1.7075473583791154e-06 1.8485759325502016) Scailing = (0.999999961420732, 0.9999998996840321, 1.0000000000000004)>
+											<Attribute type = Skeleton, name = >
+											<Node name = bip L Finger0Nub Translation = (4.194072723388672, -3.814697265625e-06, 1.52587890625e-05) Rotation = (0, -1.7075470889477114e-06 -1.280660316710784e-06) Scailing = (1.0000001192092902, 1.0000001192092896, 1.0000001192092896)>
+												<Attribute type = Skeleton, name = >
+</Node>
+</Node>
+</Node>
+									<Node name = bip L Finger1 Translation = (7.9718170166015625, -0.2516326904296875, 0.4154777526855469) Rotation = (3.0634261333696626, -3.967101759097316 6.95752236813436) Scailing = (0.9999999869916638, 0.9999999848565714, 0.9999999763606133)>
+										<Attribute type = Skeleton, name = >
+										<Node name = bip L Finger11 Translation = (3.6403541564941406, 1.52587890625e-05, 0) Rotation = (0, 4.268868302597721e-07 13.397387832084393) Scailing = (0.9999999832883691, 0.9999999763830655, 0.9999999403953553)>
+											<Attribute type = Skeleton, name = >
+											<Node name = bip L Finger1Nub Translation = (3.6403465270996094, 0, 0) Rotation = (0, 4.268868231257967e-07 -1.7075472925031871e-06) Scailing = (1.0000000000000004, 1, 0.9999999403953553)>
+												<Attribute type = Skeleton, name = >
+</Node>
+</Node>
+</Node>
+</Node>
+</Node>
+</Node>
+</Node>
+					<Node name = bip R Clavicle Translation = (24.423072814941406, -0.039936065673828125, -4.45879602432251) Rotation = (-179.9988054653823, 82.33880220733391 -0.044441018966543656) Scailing = (1.0000000163303344, 1.0000000190300387, 1.0000000923620216)>
+						<Attribute type = Skeleton, name = >
+						<Node name = bip R UpperArm Translation = (13.368806838989258, 1.9073486328125e-06, 1.52587890625e-05) Rotation = (-17.212608412164947, -6.156565584467659 4.040091581912833) Scailing = (0.9999999858668991, 1.0000000055044644, 0.9999999302299741)>
+							<Attribute type = Skeleton, name = >
+							<Node name = bip R Forearm Translation = (23.30410385131836, -9.5367431640625e-07, 0) Rotation = (-8.537737515054412e-07, -2.1344338839985767e-07 -13.530394305340998) Scailing = (1.0000001085207697, 0.9999998767192746, 1)>
+								<Attribute type = Skeleton, name = >
+								<Node name = bip R Hand Translation = (22.851341247558594, 0, -1.52587890625e-05) Rotation = (89.85014741475223, -14.447197706524275 -7.674944522471319) Scailing = (1.0000000196051033, 0.9999999486237383, 0.9999999661972699)>
+									<Attribute type = Skeleton, name = >
+									<Node name = bip R Finger0 Translation = (3.579143524169922, 1.3158416748046875, 3.513408660888672) Rotation = (-79.22320635506976, -15.493032999405798 12.985436023842544) Scailing = (0.9999999863666477, 0.9999998667355348, 0.999999933098907)>
+										<Attribute type = Skeleton, name = >
+										<Node name = bip R Finger01 Translation = (4.194068908691406, 3.814697265625e-06, -1.52587890625e-05) Rotation = (8.537736295583505e-07, -0 1.8485735788979007) Scailing = (1.0000000793662727, 1.0000000195523064, 1.0000000000000004)>
+											<Attribute type = Skeleton, name = >
+											<Node name = bip R Finger0Nub Translation = (4.194061279296875, -1.9073486328125e-06, 0) Rotation = (-0, -1.7075472925031871e-06 179.99999957311317) Scailing = (-1.0000000000000004, -1.0000001192092896, -1.0000000000000004)>
+												<Attribute type = Skeleton, name = >
+</Node>
+</Node>
+</Node>
+									<Node name = bip R Finger1 Translation = (7.971820831298828, -0.25164794921875, -0.4154777526855469) Rotation = (-3.063425884983776, 3.967100510389168 6.957524896530638) Scailing = (0.999999870483309, 0.9999999254048694, 0.9999999155905451)>
+										<Attribute type = Skeleton, name = >
+										<Node name = bip R Finger11 Translation = (3.640350341796875, 0, 3.814697265625e-06) Rotation = (4.2688679666441895e-07, -4.268868302597721e-07 13.397387832084393) Scailing = (0.9999999832883691, 1.000000061986874, 1.0000000000000002)>
+											<Attribute type = Skeleton, name = >
+											<Node name = bip R Finger1Nub Translation = (3.640350341796875, 0, -3.814697265625e-06) Rotation = (-4.268868231257967e-07, 4.2688682312579694e-07 -180) Scailing = (-1, -1.0000000000000004, -1)>
+												<Attribute type = Skeleton, name = >
+</Node>
+</Node>
+</Node>
+</Node>
+</Node>
+</Node>
+</Node>
+</Node>
+</Node>
+			<Node name = bip L Thigh Translation = (-1.52587890625e-05, 1.800060272216797e-05, 10.00976276397705) Rotation = (171.70582939836203, -4.748838169019389 178.13395582507292) Scailing = (0.9999999837834052, 1.0000000164652372, 1.0000001489109636)>
+				<Attribute type = Skeleton, name = >
+				<Node name = bip L Calf Translation = (38.79994201660156, -4.76837158203125e-07, -1.9073486328125e-06) Rotation = (1.1205779781360333e-06, -8.53773647524206e-07 -10.080809368793695) Scailing = (0.9999999985094271, 0.9999999398249672, 1)>
+					<Attribute type = Skeleton, name = >
+					<Node name = bip L Foot Translation = (40.968536376953125, -9.5367431640625e-07, 1.9073486328125e-06) Rotation = (4.27058356780398, -4.426638814753084 7.542296128834975) Scailing = (1.0000000828652917, 1.0000000864746408, 0.9999999385630478)>
+						<Attribute type = Skeleton, name = >
+						<Node name = bip L Toe0 Translation = (13.340713500976562, 12.397945404052734, -0.14570903778076172) Rotation = (8.490412437306624e-08, 2.333570259701606e-08 97.310464502322) Scailing = (1.0000001391310862, 1.0000000800109548, 1.0000001192092896)>
+							<Attribute type = Skeleton, name = >
+							<Node name = bip L Toe0Nub Translation = (6.146427631378174, -1.1920928955078125e-07, -1.9073486328125e-06) Rotation = (5.119204537565337e-08, -3.394970185037039e-08 -180) Scailing = (-1, -1, -1)>
+								<Attribute type = Skeleton, name = >
+</Node>
+</Node>
+</Node>
+</Node>
+</Node>
+			<Node name = bip R Thigh Translation = (1.52587890625e-05, -9.894371032714844e-06, -10.00976276397705) Rotation = (-171.70567427512933, 4.749012056099465 178.13396865075725) Scailing = (0.9999999892471225, 0.9999999408347114, 1.000000071618151)>
+				<Attribute type = Skeleton, name = >
+				<Node name = bip R Calf Translation = (38.799949645996094, 0, 0) Rotation = (-6.936910460952102e-07, 1.2806603927911571e-06 -10.080809611618852) Scailing = (1.0000000598021412, 1.0000000598021412, 1)>
+					<Attribute type = Skeleton, name = >
+					<Node name = bip R Foot Translation = (40.96854019165039, 0, 1.9073486328125e-06) Rotation = (-4.27058423936891, 4.426648612510011 7.542295279915698) Scailing = (1.0000000941415101, 1.0000001444255333, 0.999999893698529)>
+						<Attribute type = Skeleton, name = >
+						<Node name = bip R Toe0 Translation = (13.582810401916504, 12.397943496704102, 0.14570999145507812) Rotation = (-3.155015110581289e-08, 4.0355202020805607e-07 97.3104696278818) Scailing = (0.9999999102350023, 0.9999999102350023, 1)>
+							<Attribute type = Skeleton, name = >
+							<Node name = bip R Toe0Nub Translation = (6.146429061889648, -1.1920928955078125e-07, 1.9073486328125e-06) Rotation = (5.119206471752116e-08, -3.394972324768545e-08 0) Scailing = (1.0000001192092896, 1.0000001192092896, 1.0000001192092896)>
+								<Attribute type = Skeleton, name = >
+</Node>
+</Node>
+</Node>
+</Node>
+</Node>
+</Node>
+</Node>
+</Node>
