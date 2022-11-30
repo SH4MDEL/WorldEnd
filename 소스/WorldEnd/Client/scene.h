@@ -6,12 +6,12 @@
 #include "camera.h"
 #include "mesh.h"
 #include "texture.h"
-#include "Connect.h"
+
 
 class Scene
 {
 public:
-	Scene() = default;
+	Scene();
 	~Scene();
 
 	void DoSend();
@@ -31,7 +31,7 @@ public:
 
 	
 
-
+//	shared_ptr<Connect>                         m_connect;
 
 	
 private:
@@ -39,7 +39,7 @@ private:
 	unordered_map<string, unique_ptr<Shader>>	m_blending;
 	shared_ptr<Player>							m_player;
 	shared_ptr<Camera>							m_camera;
-	Connect                     m_connect;
+	
 
 
 	PLAYERINFO* m_playerInfo;

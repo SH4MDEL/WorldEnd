@@ -1,12 +1,3 @@
-#include <iostream>
-#include <WS2tcpip.h>
-#include <MSWSock.h>
-#include <chrono>
-#include <thread>
-#include <mutex>
-#include <vector>
-#include "protocol.h"
-
 // d3d12 헤더 파일입니다.
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
@@ -17,6 +8,7 @@
 #include <array>
 #include <vector>
 #include <mutex>
+#include <random>
 #include "protocol.h"
 
 

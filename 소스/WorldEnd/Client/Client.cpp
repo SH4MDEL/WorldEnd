@@ -3,7 +3,6 @@
 #include "framework.h"
 #include "scene.h"
 #include "object.h"
-#include "Connect.h"
 
 // 다음을 정의하면 프로그램 실행시 콘솔이 출력됩니다.
 #ifdef UNICODE
@@ -29,7 +28,7 @@ LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 void DoSend();
 void DoRecv();
 
-Connect net;
+//Connect net;
 
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
@@ -39,15 +38,15 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 {
 
 #ifdef USE_NETWORK
-    net.Init();
-    net.ConnectTo();
+    //Init();
+    //ConnectTo();
 
-    CS_LOGIN_PACKET login_packet;
-    login_packet.size = sizeof(CS_LOGIN_PACKET);
-    login_packet.type = CS_LOGIN;
-    strcpy_s(login_packet.name, "SU");
-    //net.SendPacket(&login_packet);
-    send(net.m_c_socket, reinterpret_cast<char*>(&login_packet),sizeof(login_packet),0);
+    //CS_LOGIN_PACKET login_packet;
+    //login_packet.size = sizeof(CS_LOGIN_PACKET);
+    //login_packet.type = CS_LOGIN;
+    //strcpy_s(login_packet.name, "SU");
+    ////net.SendPacket(&login_packet);
+    //send(m_c_socket, reinterpret_cast<char*>(&login_packet),sizeof(login_packet),0);
 
 #endif // USE_NETWORK
    

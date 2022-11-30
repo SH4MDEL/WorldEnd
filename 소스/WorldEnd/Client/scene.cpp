@@ -1,5 +1,20 @@
 #include "scene.h"
+#include "Connect.h"
 
+Scene::Scene()
+{
+#ifdef USE_NETWORK
+	Init();
+	ConnectTo();
+
+	CS_LOGIN_PACKET login_packet;
+	login_packet.size = sizeof(CS_LOGIN_PACKET);
+	login_packet.type = CS_LOGIN;
+	strcpy_s(login_packet.name, "SU");
+	//net.SendPacket(&login_packet);
+	send(m_c_socket, reinterpret_cast<char*>(&login_packet), sizeof(login_packet), 0);
+#endif // USE_NETWORK
+}
 
 Scene::~Scene()
 {
@@ -27,46 +42,46 @@ void Scene::OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT d
 void Scene::OnProcessingKeyboardMessage(FLOAT timeElapsed) const
 {
 #ifdef USE_NETWORK
-	XMFLOAT4X4 pos = m_player->GetWorldMatrix();
+	//XMFLOAT4X4 pos = m_player->GetWorldMatrix();
 
 	
 	char packetDirection = 0;
-	int direction = -1;
+	
 
 	if (GetAsyncKeyState('W') & 0x8000)
 	{
 		//m_player->AddVelocity(Vector3::Mul(m_player->GetFront(), timeElapsed * 10.0f));
 		packetDirection += INPUT_KEY_W;
-		direction = 0;
+	
 
 	}
 	if (GetAsyncKeyState('A') & 0x8000)
 	{
 		//m_player->AddVelocity(Vector3::Mul(m_player->GetRight(), timeElapsed * -10.0f));
 		packetDirection += INPUT_KEY_A;
-		direction = 1;
+	
 	}
 	if (GetAsyncKeyState('S') & 0x8000)
 	{
 		//m_player->AddVelocity(Vector3::Mul(m_player->GetFront(), timeElapsed * -10.0f));
 		packetDirection += INPUT_KEY_S;
-		direction = 2;
+	
 
 	}
 	if (GetAsyncKeyState('D') & 0x8000)
 	{
 		//m_player->AddVelocity(Vector3::Mul(m_player->GetRight(), timeElapsed * 10.0f));
 		packetDirection += INPUT_KEY_D;
-		direction = 3;
-
 	}
 	if (packetDirection) {
 		CS_INPUT_KEY_PACKET key_packet;
 		key_packet.size = sizeof(key_packet);
 		key_packet.type = CS_MOVE;
 		key_packet.direction = packetDirection;  // 입력받은 키값 전달
-		//m_connect->SendPacket(&key_packet);
-		send(m_connect.m_c_socket, reinterpret_cast<char*>(&key_packet), sizeof(key_packet), 0);
+		SendPacket(&key_packet);
+		//cout << "Do Send" << endl;
+//		int ret = send(m_connect.m_c_socket, reinterpret_cast<char*>(&key_packet), sizeof(key_packet), 0);
+
 	}
 #endif // USE_NETWORK
 
@@ -96,6 +111,9 @@ void Scene::OnProcessingKeyboardMessage(FLOAT timeElapsed) const
 
 void Scene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, const ComPtr<ID3D12RootSignature>& rootsignature, FLOAT aspectRatio)
 {
+
+	//m_connect = make_shared<Connect>();
+
 	vector<TextureVertex> vertices;
 	vector<UINT> indices;
 
@@ -148,6 +166,7 @@ void Scene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 	vertices.emplace_back(XMFLOAT3(+0.5f, +0.5f, -0.5f), XMFLOAT2(1.0f, 0.0f));
 
 	// 플레이어 생성
+
 	m_player = make_shared<Player>();
 	auto playerShader{ make_unique<Shader>(device, rootsignature) };
 	auto playerTexture{ make_shared<Texture>() };
