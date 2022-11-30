@@ -78,6 +78,9 @@
     <ClInclude Include="Connect.h">
       <Filter>헤더 파일\Framework</Filter>
     </ClInclude>
+    <ClInclude Include="animmanager.h">
+      <Filter>헤더 파일\Framework</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="camera.cpp">
@@ -120,6 +123,9 @@
       <Filter>소스 파일\Framework</Filter>
     </ClCompile>
     <ClCompile Include="Connect.cpp">
+      <Filter>소스 파일\Framework</Filter>
+    </ClCompile>
+    <ClCompile Include="animmanager.cpp">
       <Filter>소스 파일\Framework</Filter>
     </ClCompile>
   </ItemGroup>

@@ -52,7 +52,8 @@ void Scene::OnProcessingKeyboardMessage(FLOAT timeElapsed) const
 	}
 
 	
-	
+
+#ifdef __CONNECT_SERVER__
 	XMFLOAT3 pos = m_player->GetPosition();
 
 	PLAYERINFO packet;
@@ -68,6 +69,7 @@ void Scene::OnProcessingKeyboardMessage(FLOAT timeElapsed) const
 	cout << endl;
 
 	delete c_over;
+#endif
 }
 
 

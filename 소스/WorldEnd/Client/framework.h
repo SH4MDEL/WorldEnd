@@ -5,6 +5,7 @@
 #include "scene.h"
 #include "object.h"
 #include "Connect.h"
+#include "animmanager.h"
 
 class Connect;
 
@@ -98,6 +99,8 @@ private:
 	Timer								m_timer;
 
 	unique_ptr<Scene>					m_scene;
+
+	unique_ptr<AnimationManager>		m_animManager;
 
 
 private:
