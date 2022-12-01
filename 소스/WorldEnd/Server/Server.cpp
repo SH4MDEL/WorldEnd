@@ -184,7 +184,7 @@ void Init_NPC() {
 
 }
 
-int get_new_client_id()
+int Get_new_client_id()
 {
 	for (int i = 0; i < MAX_USER; ++i) {
 		clients[i]._s_lock.lock();
@@ -198,7 +198,7 @@ int get_new_client_id()
 	return -1;
 }
 
-void process_packet(int c_id, char* packet)
+void SProcess_packet(int c_id, char* packet)
 {
 	
 	switch (packet[1]) {
@@ -306,7 +306,7 @@ void process_packet(int c_id, char* packet)
 
 		clients[c_id]._s_lock.unlock();
 		cout << "PlaeyrID: " << clients[c_id]._id << ", name: " << clients[c_id]._name <<
-			"pos (" << clients[c_id].pos.x << ", " << clients[c_id].pos.y << ", " << clients[c_id].pos.z
+			" pos (" << clients[c_id].pos.x << ", " << clients[c_id].pos.y << ", " << clients[c_id].pos.z
 			<< ") " << endl;
 		// 작동 중인 모든 클라이언트에게 이동 결과를 알려준다.
 		for (int i = 0; i < MAX_USER; ++i) {
@@ -348,7 +348,7 @@ void WorkerThread()
 		switch (ex_over->_comp_type) {
 		case OP_ACCEPT: {
 			SOCKET c_socket = reinterpret_cast<SOCKET>(ex_over->_wsabuf.buf);
-			int client_id = get_new_client_id();
+			int client_id = Get_new_client_id();
 			if (client_id != -1) {
 				clients[client_id].pos = { 0.0f,0.0f,0.0f };
 				clients[client_id]._id = client_id;
@@ -380,7 +380,7 @@ void WorkerThread()
 			while (remain_data > 0) {
 				int packet_size = p[0];
 				if (packet_size <= remain_data) {
-					process_packet(static_cast<int>(key), p);
+					SProcess_packet(static_cast<int>(key), p);
 					p = p + packet_size;
 					remain_data = remain_data - packet_size;
 				}
@@ -412,7 +412,7 @@ int main() {
 	WSADATA WSAData;
 	if (WSAStartup(MAKEWORD(2, 2), &WSAData) != 0)
 		return 1;
-	g_s_socket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, 0, 0, WSA_FLAG_OVERLAPPED);
+	g_s_socket = WSASocket(AF_INET, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
 	if (INVALID_SOCKET == g_s_socket) err_display("socket()");
 	
 	m_worker_num = MAX_THREAD;
@@ -420,7 +420,7 @@ int main() {
 	SOCKADDR_IN server_addr;
 	ZeroMemory(&server_addr, sizeof(server_addr));
 	server_addr.sin_family = AF_INET;
-	server_addr.sin_port = htons(SERVERPORT);
+	server_addr.sin_port = htons(PORT_NUM);
 	server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
 	int retval = bind(g_s_socket, reinterpret_cast<sockaddr*>(&server_addr), sizeof(server_addr));
@@ -430,8 +430,8 @@ int main() {
 	retval = listen(g_s_socket, SOMAXCONN);
 	if (retval == SOCKET_ERROR) err_display("socket()");
 	g_h_iocp = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, NULL, 0);
-	CreateIoCompletionPort(reinterpret_cast<HANDLE>(g_s_socket), g_h_iocp, 0, 0);
-	SOCKET c_socket = WSASocket(AF_INET, SOCK_STREAM, 0, 0, 0, WSA_FLAG_OVERLAPPED);
+	CreateIoCompletionPort(reinterpret_cast<HANDLE>(g_s_socket), g_h_iocp, 9999, 0);
+	SOCKET c_socket = WSASocket(AF_INET, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
 	g_a_over._comp_type = OP_ACCEPT;
 	g_a_over._wsabuf.buf = reinterpret_cast<CHAR*>(c_socket);
 	AcceptEx(g_s_socket, c_socket, g_a_over._send_buf, 0, sizeof(SOCKADDR_IN) + 16,

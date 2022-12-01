@@ -4,15 +4,34 @@
 Scene::Scene()
 {
 #ifdef USE_NETWORK
-	Init();
-	ConnectTo();
+	//Init();
+	//ConnectTo();
+
+	cout.imbue(locale("korean"));
+	WSADATA WSAData;
+	if (WSAStartup(MAKEWORD(2, 0), &WSAData) != 0) {
+		cout << "WSA START ERROR!!" << endl;
+	}
+
+	m_c_socket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, 0, 0, WSA_FLAG_OVERLAPPED);
+	if (m_c_socket == INVALID_SOCKET) {
+		cout << "SOCKET INIT ERROR!!" << endl;
+	}
+	SOCKADDR_IN server_addr;
+	ZeroMemory(&server_addr, sizeof(server_addr));
+	server_addr.sin_family = AF_INET;
+	server_addr.sin_port = htons(PORT_NUM);
+	inet_pton(AF_INET, SERVER_ADDR, &server_addr.sin_addr);
+	connect(m_c_socket, reinterpret_cast<sockaddr*>(&server_addr), sizeof(server_addr));
 
 	CS_LOGIN_PACKET login_packet;
 	login_packet.size = sizeof(CS_LOGIN_PACKET);
 	login_packet.type = CS_LOGIN;
 	strcpy_s(login_packet.name, "SU");
-	//net.SendPacket(&login_packet);
-	send(m_c_socket, reinterpret_cast<char*>(&login_packet), sizeof(login_packet), 0);
+	SendPacket(&login_packet);
+	//send(m_c_socket, reinterpret_cast<char*>(&login_packet), sizeof(login_packet), 0);
+
+	RecvPacket();
 #endif // USE_NETWORK
 }
 

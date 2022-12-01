@@ -1,6 +1,7 @@
 #pragma once
 #include "stdafx.h"
 
+constexpr int PORT_NUM = 4000;
 constexpr int BUF_SIZE = 200;
 constexpr int NAME_SIZE = 20;
 
@@ -20,6 +21,8 @@ constexpr char INPUT_KEY_W = 0b1000;
 constexpr char INPUT_KEY_S = 0b0100;
 constexpr char INPUT_KEY_D = 0b0010;
 constexpr char INPUT_KEY_A = 0b0001;
+
+enum OBJECT_STATE { OBJ_ST_EMPTY, OBJ_ST_LOGOUT, OBJ_ST_RUNNING };
 
 #pragma pack(push,1)
 struct CS_LOGIN_PACKET {
@@ -65,4 +68,19 @@ typedef struct sc_packet_PlayerInfo {
 	int id;
 }PLAYERINFO;
 
+
 #pragma pack (pop)
+
+struct ObjectInfo {
+	SHORT m_id;
+	FLOAT m_x, m_y, m_z;
+	int m_state;
+
+	ObjectInfo() {
+		m_id = -1;
+		m_x = 0;
+		m_y = 0;
+		m_z = 0;
+		m_state = OBJ_ST_EMPTY;
+	}
+};
