@@ -12,6 +12,10 @@
 #include "protocol.h"
 
 
+#pragma comment (lib, "opengl32.lib")
+#pragma comment (lib, "winmm.lib")
+#pragma comment (lib, "ws2_32.lib")
+
 #pragma comment(lib, "d3dcompiler.lib")
 #pragma comment(lib, "dxguid.lib")
 #include <dxgi1_6.h>

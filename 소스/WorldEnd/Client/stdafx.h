@@ -47,6 +47,11 @@ using Microsoft::WRL::ComPtr;
 using namespace std;
 
 // 서버에서 쓰이는 정의와 변수들
+#include<WS2tcpip.h>
+#include<MSWSock.h>
+#pragma comment(lib, "WS2_32.LIB")
+#pragma comment(lib, "MSWSock.lib")
+
 #define SERVERPORT 9000
 #define SERVERIP "127.0.0.1"
 

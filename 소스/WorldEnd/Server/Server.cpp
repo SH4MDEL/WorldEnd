@@ -219,8 +219,8 @@ void SProcess_packet(int c_id, char* packet)
 		cout << "프로세스 패킷" << endl;
 		// 새로 접속한 플레이어의 초기 위취정보를 설정.
 		clients[c_id].pos.x = c_id * 2;
-		clients[c_id].pos.y = c_id;
-		clients[c_id].pos.y = -(c_id * 2);
+		clients[c_id].pos.y = 0.5;
+		clients[c_id].pos.z = -(c_id * 2);
 		cout << "초기 위치: " << " x: " << clients[c_id].pos.x << ", y: " << clients[c_id].pos.y
 			<< ", z: " << clients[c_id].pos.z << endl;
 
@@ -302,7 +302,7 @@ void SProcess_packet(int c_id, char* packet)
 		case INPUT_KEY_D: move_dir.z += 0.2; break;
 		}
 		clients[c_id].pos.x = move_dir.x;
-		clients[c_id].pos.y = move_dir.y;
+		clients[c_id].pos.z = move_dir.z;
 
 		clients[c_id]._s_lock.unlock();
 		cout << "PlaeyrID: " << clients[c_id]._id << ", name: " << clients[c_id]._name <<

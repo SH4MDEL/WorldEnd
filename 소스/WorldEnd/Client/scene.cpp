@@ -100,7 +100,7 @@ void Scene::OnProcessingKeyboardMessage(FLOAT timeElapsed) const
 		SendPacket(&key_packet);
 		//cout << "Do Send" << endl;
 //		int ret = send(m_connect.m_c_socket, reinterpret_cast<char*>(&key_packet), sizeof(key_packet), 0);
-
+		RecvPacket();
 	}
 #endif // USE_NETWORK
 
@@ -198,6 +198,8 @@ void Scene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 	m_player->SetPosition(XMFLOAT3{ 0.f, 0.5f, 0.f });
 	playerShader->SetPlayer(m_player);
 
+
+
 	// 카메라 생성
 	m_camera = make_shared<ThirdPersonCamera>();
 	m_camera->CreateShaderVariable(device, commandlist);
@@ -261,6 +263,21 @@ void Scene::Update(FLOAT timeElapsed)
 		shader.second->Update(timeElapsed);
 
 	CheckBorderLimit();
+
+	/*XMFLOAT3 temp = { my_info.m_x, my_info.m_y, my_info.m_z };
+	m_player->SetPosition(temp);*/
+
+	// 다른 Player
+	for (int j = 0; j < MAX_USER; j++) {
+		if (j == my_info.m_id || other_players[j].m_state == OBJ_ST_EMPTY) continue;
+
+		if (other_players[j].m_state == OBJ_ST_RUNNING) {
+			m_player->SetPosition(XMFLOAT3{ other_players[j].m_x, other_players[j].m_y, other_players[j].m_z });
+		/*	m_player->m_transformMatrix._41 = other_players[j].m_x;
+			m_player->m_transformMatrix._42 = other_players[j].m_y;
+			m_player->m_transformMatrix._43 = other_players[j].m_z;*/
+		}
+	}
 }
 
 void Scene::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const

@@ -40,6 +40,7 @@ SOCKET m_c_socket;
 EXP_OVER m_recv_over;
 
 
+
 bool Init();
 bool ConnectTo();
 
@@ -84,52 +85,81 @@ bool ConnectTo()
 	return true;
 }
 
+void RecvLoginInfo() {
+
+
+	char buf[sizeof(SC_LOGIN_INFO_PACKET)]{};
+	WSABUF wsabuf{ sizeof(buf), buf };
+	DWORD recvByte{}, recvFlag{};
+	WSARecv(m_c_socket, &wsabuf, 1, &recvByte, &recvFlag, &m_recv_over._over, nullptr);
+
+	SC_LOGIN_INFO_PACKET recv_info_packet{};
+	memcpy(&recv_info_packet, buf, sizeof(recv_info_packet));
+
+	my_info.m_id = recv_info_packet.id;
+	my_info.m_x = recv_info_packet.x;
+	my_info.m_y = recv_info_packet.y;
+	my_info.m_z = recv_info_packet.z;
+
+	my_info.m_state = OBJ_ST_RUNNING;
+	cout << "Recv My Info - id: " << my_info.m_id << ", Pos( x : " << my_info.m_x << ", y : " << my_info.m_y << ", z :"
+		<< my_info.m_z << endl;
+}
+
 void RecvPacket()
 {
 	cout << "Recv" << endl;
+
 	DWORD recv_flag = 0;
 
 	memset(&m_recv_over._over, 0, sizeof(m_recv_over._over));
 	m_recv_over._wsabuf.len = BUF_SIZE;
 	m_recv_over._wsabuf.buf = m_recv_over._send_buf;
-	if (WSARecv(m_c_socket, &m_recv_over._wsabuf, 1, 0, &recv_flag, &m_recv_over._over, RecvCallBack) == SOCKET_ERROR) {
-		if (GetLastError() != WSA_IO_PENDING)
-			cout << "WSARecv Error - " << GetLastError() << "\n" << endl;
+
+
+	int ret = WSARecv(m_c_socket, &m_recv_over._wsabuf, 1, 0, &recv_flag, &m_recv_over._over, NULL);
+	if (ret != 0 && GetLastError() != WSA_IO_PENDING) {
+		cout << "Recv Error - " << ret << endl;
+		cout << GetLastError() << endl;
 	}
+
+	CProcess_packet(m_recv_over._wsabuf.buf);
+
 }
 
 void SendPacket(void* packet)
 {
 	EXP_OVER* s_data = new EXP_OVER{ reinterpret_cast<char*>(packet) };
 	cout << "Send" << endl;
-	if (WSASend(m_c_socket, &s_data->_wsabuf, 1, 0, 0, &s_data->_over, SendCallBack) == SOCKET_ERROR) {
-		cout << "WSASend Error - " << GetLastError() << "\n" << endl;
+	int ret = WSASend(m_c_socket, &s_data->_wsabuf, 1, 0, 0, &s_data->_over, 0);
+	if (ret != 0) {
+		cout << "Send Error - " << ret << endl;
+		cout << GetLastError() << endl;
 	}
-	
 
 }
 
-void CALLBACK RecvCallBack(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED over, DWORD flag)
-{
-	if (num_bytes == 0) {
-		cout << "Num Byte Zero" << endl;
-		return;
-	}
-	cout << "Recv Call back" << endl;
-
-	ProcessThread(m_recv_over._send_buf, num_bytes);
-
-	RecvPacket();
-
-}
-
-
-void CALLBACK SendCallBack(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED over, DWORD flag)
-{
-	cout << "Send Call back" << endl;
-	delete over;
-	return;
-}
+//void CALLBACK RecvCallBack(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED over, DWORD flag)
+//{
+//	if (num_bytes == 0) {
+//		cout << "Num Byte Zero" << endl;
+//		return;
+//	}
+//	cout << "Recv Call back" << endl;
+//
+//	ProcessThread(m_recv_over._send_buf, num_bytes);
+//
+//	RecvPacket();
+//
+//}
+//
+//
+//void CALLBACK SendCallBack(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED over, DWORD flag)
+//{
+//	cout << "Send Call back" << endl;
+//	delete over;
+//	return;
+//}
 
 int my_id;
 
@@ -170,7 +200,7 @@ void CProcess_packet(char* ptr) {
 
 			cout << "Recv Other Players Info - id: " << other_players[other_pl_id].m_id
 				<< ", Pos( x : " << other_players[other_pl_id].m_x << ", y : " << other_players[other_pl_id].m_y
-				<< ", z : " << other_players[other_pl_id].m_z << endl;
+				<< ", z : )" << other_players[other_pl_id].m_z << endl;
 		}
 		else if (MAX_USER <= other_pl_id && other_pl_id < MAX_USER + MAX_NPC) {
 			int npc_id = other_pl_id - MAX_USER;
@@ -227,31 +257,32 @@ void CProcess_packet(char* ptr) {
 }
 
 
-void ProcessThread(char* net_buf, size_t iocp_byte) 
-{
-	cout << "ProcessThread" << endl;
-	char* ptr = net_buf;
-	static size_t in_packet_size = 0;
-	static size_t saved_packet_size = 0;
-	static char packet_buffer[BUF_SIZE];
-
-	while (0 != iocp_byte) {
-		if (0 == in_packet_size) in_packet_size = ptr[0];
-		if (iocp_byte + saved_packet_size >= in_packet_size) {
-			memcpy(packet_buffer + saved_packet_size, ptr, in_packet_size - saved_packet_size);
-			CProcess_packet(packet_buffer);
-			ptr += in_packet_size - saved_packet_size;
-			iocp_byte -= in_packet_size - saved_packet_size;
-			in_packet_size = 0;
-			saved_packet_size = 0;
-		}
-		else {
-			memcpy(packet_buffer + saved_packet_size, ptr, iocp_byte);
-			saved_packet_size += iocp_byte;
-			iocp_byte = 0;
-		}
-	}
-}
+//void ProcessThread(char* net_buf, size_t iocp_byte) 
+//{
+//	cout << "ProcessThread" << endl;
+//	char* ptr = net_buf;
+//	static size_t in_packet_size = 0;
+//	static size_t saved_packet_size = 0;
+//	static char packet_buffer[BUF_SIZE];
+//
+//	cout << iocp_byte << endl;
+//	while (0 != iocp_byte) {
+//		if (0 == in_packet_size) in_packet_size = ptr[0];
+//		if (iocp_byte + saved_packet_size >= in_packet_size) {
+//			memcpy(packet_buffer + saved_packet_size, ptr, in_packet_size - saved_packet_size);
+//			CProcess_packet(packet_buffer);
+//			ptr += in_packet_size - saved_packet_size;
+//			iocp_byte -= in_packet_size - saved_packet_size;
+//			in_packet_size = 0;
+//			saved_packet_size = 0;
+//		}
+//		else {
+//			memcpy(packet_buffer + saved_packet_size, ptr, iocp_byte);
+//			saved_packet_size += iocp_byte;
+//			iocp_byte = 0;
+//		}
+//	}
+//}
 
 
 

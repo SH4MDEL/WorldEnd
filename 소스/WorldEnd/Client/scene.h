@@ -40,8 +40,6 @@ private:
 	shared_ptr<Player>							m_player;
 	shared_ptr<Camera>							m_camera;
 	
-
-
 	PLAYERINFO* m_playerInfo;
 
 	int m_clientId = 1;

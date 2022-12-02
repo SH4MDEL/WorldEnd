@@ -369,6 +369,8 @@ void GameFramework::Update(FLOAT timeElapsed)
 	SetWindowText(m_hWnd, title.c_str());
 
 	if (m_scene) m_scene->Update(timeElapsed);
+
+	
 }
 
 void GameFramework::WaitForGpuComplete()
