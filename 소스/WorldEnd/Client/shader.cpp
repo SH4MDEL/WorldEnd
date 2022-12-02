@@ -49,7 +49,16 @@ void Shader::Update(FLOAT timeElapsed)
 	if (m_player) {
 		m_player->Update(timeElapsed);
 	}
+	if (!m_multiPlayers.empty()) {
+		// 다른 Player
+		for (int j = 0; j < MAX_USER; j++) {
+			if (j == my_info.m_id || other_players[j].m_state == OBJ_ST_EMPTY) continue;
 
+			if (other_players[j].m_state == OBJ_ST_RUNNING) {
+				m_multiPlayers[j]->SetPosition(XMFLOAT3{ other_players[j].m_x, other_players[j].m_y, other_players[j].m_z });
+			}
+		}
+	}
 	for (const auto& elm : m_gameObjects)
 		if (elm) elm->Update(timeElapsed);
 }
@@ -59,7 +68,15 @@ void Shader::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const
 	Shader::UpdateShaderVariable(commandList);
 
 	if (m_player) m_player->Render(commandList);
+	if (!m_multiPlayers.empty()) {// 다른 Player
+		for (int j = 0; j < MAX_USER; j++) {
+			if (j == my_info.m_id || other_players[j].m_state == OBJ_ST_EMPTY) continue;
 
+			if (other_players[j].m_state == OBJ_ST_RUNNING) {
+				m_multiPlayers[j]->Render(commandList);
+			}
+		}
+	}
 	for (const auto& elm : m_gameObjects)
 		if (elm) elm->Render(commandList);
 }
@@ -92,6 +109,11 @@ void Shader::SetCamera(const shared_ptr<Camera>& camera)
 {
 	if (m_camera) m_camera.reset();
 	m_camera = camera;
+}
+
+void Shader::SetMultiPlayer(const shared_ptr<Player>& multiPlayers)
+{
+	m_multiPlayers.push_back(multiPlayers);
 }
 
 DetailShader::DetailShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature)

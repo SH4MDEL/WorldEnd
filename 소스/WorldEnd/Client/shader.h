@@ -4,6 +4,9 @@
 #include "player.h"
 #include "camera.h"
 
+extern ObjectInfo my_info;
+extern array<ObjectInfo, MAX_USER> other_players;
+
 class Shader
 {
 public:
@@ -21,11 +24,13 @@ public:
 
 	shared_ptr<Player> GetPlayer() const { return m_player; }
 	shared_ptr<Camera> GetCamera() const { return m_camera; }
+	vector<shared_ptr<Player>> GetMultiPlayers() const { return m_multiPlayers; }
 	vector<shared_ptr<GameObject>>& GetGameObjects() { return m_gameObjects; }
 	ComPtr<ID3D12PipelineState> GetPipelineState() const { return m_pipelineState; }
 
 	void SetPlayer(const shared_ptr<Player>& player);
 	void SetCamera(const shared_ptr<Camera>& camera);
+	void SetMultiPlayer(const shared_ptr<Player>& multiPlayers);
 
 protected:
 	ComPtr<ID3D12PipelineState>			m_pipelineState;
@@ -34,6 +39,8 @@ protected:
 	vector<shared_ptr<GameObject>>		m_gameObjects;
 
 	shared_ptr<Player>					m_player;
+	vector<shared_ptr<Player>>			m_multiPlayers;
+
 	shared_ptr<Camera>					m_camera;
 };
 

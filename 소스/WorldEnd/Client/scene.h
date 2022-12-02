@@ -38,6 +38,7 @@ private:
 	unordered_map<string, unique_ptr<Shader>>	m_shader;
 	unordered_map<string, unique_ptr<Shader>>	m_blending;
 	shared_ptr<Player>							m_player;
+	array<shared_ptr<Player>, MAX_USER>			m_multiPlayers;
 	shared_ptr<Camera>							m_camera;
 	
 	PLAYERINFO* m_playerInfo;

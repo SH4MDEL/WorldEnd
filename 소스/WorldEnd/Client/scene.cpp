@@ -61,9 +61,7 @@ void Scene::OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT d
 void Scene::OnProcessingKeyboardMessage(FLOAT timeElapsed) const
 {
 #ifdef USE_NETWORK
-	//XMFLOAT4X4 pos = m_player->GetWorldMatrix();
 
-	
 	char packetDirection = 0;
 	
 
@@ -198,7 +196,13 @@ void Scene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 	m_player->SetPosition(XMFLOAT3{ 0.f, 0.5f, 0.f });
 	playerShader->SetPlayer(m_player);
 
-
+	for (int i = 0; i < MAX_USER; ++i) {
+		m_multiPlayers[i] = make_shared<Player>();
+		m_multiPlayers[i]->SetTexture(playerTexture);
+		m_multiPlayers[i]->SetMesh(playerMesh);
+		m_multiPlayers[i]->SetPosition(XMFLOAT3{ 0.f, 0.5f, 0.f });
+		playerShader->SetMultiPlayer(m_multiPlayers[i]);
+	}
 
 	// 카메라 생성
 	m_camera = make_shared<ThirdPersonCamera>();
@@ -264,20 +268,8 @@ void Scene::Update(FLOAT timeElapsed)
 
 	CheckBorderLimit();
 
-	/*XMFLOAT3 temp = { my_info.m_x, my_info.m_y, my_info.m_z };
-	m_player->SetPosition(temp);*/
-
-	// 다른 Player
-	for (int j = 0; j < MAX_USER; j++) {
-		if (j == my_info.m_id || other_players[j].m_state == OBJ_ST_EMPTY) continue;
-
-		if (other_players[j].m_state == OBJ_ST_RUNNING) {
-			m_player->SetPosition(XMFLOAT3{ other_players[j].m_x, other_players[j].m_y, other_players[j].m_z });
-		/*	m_player->m_transformMatrix._41 = other_players[j].m_x;
-			m_player->m_transformMatrix._42 = other_players[j].m_y;
-			m_player->m_transformMatrix._43 = other_players[j].m_z;*/
-		}
-	}
+	XMFLOAT3 temp = { my_info.m_x, my_info.m_y, my_info.m_z };
+	m_player->SetPosition(temp);
 }
 
 void Scene::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const
