@@ -11,7 +11,7 @@ public:
 
 	void Initialize();
 
-	//void ProcessNode(FbxNode* fbxNode);
+	void ProcessNode(FbxNode* fbxNode);
 	void ProcessMesh(FbxMesh* mesh);
 
 	void SetVertices(vector<TextureVertex>& vertices) { vertices = m_vertices; }

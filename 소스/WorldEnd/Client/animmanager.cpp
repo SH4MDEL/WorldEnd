@@ -44,10 +44,19 @@ void AnimationManager::Initialize()
 	importer->Import(m_scene);
 	importer->Destroy();
 
+	FbxAxisSystem sceneAxisSystem = m_scene->GetGlobalSettings().GetAxisSystem();
+	FbxAxisSystem axis(FbxAxisSystem::DirectX);
+	if (sceneAxisSystem != axis)
+		axis.ConvertScene(m_scene);
+
+
 	FbxNode* fbxRootNode = m_scene->GetRootNode();
 	
+	ProcessNode(fbxRootNode);
 	
 	ProcessMesh(fbxRootNode->GetChild(0)->GetMesh());
+
+
 
 	//if (fbxRootNode) {
 	//	for (int i = 0; i < fbxRootNode->GetChildCount(); ++i)
@@ -99,7 +108,7 @@ void PrintAttribute(FbxNodeAttribute* fbxAttribute)
 	if (fbxAttribute) {
 		FbxString type = GetAttributeTypeName(fbxAttribute->GetAttributeType());
 		FbxString name = fbxAttribute->GetName();
-		PrintTabs();
+		//PrintTabs();
 		if (type && name) {
 			printf("<Attribute type = %s, name = %s>\n", type.Buffer(), name.Buffer());
 		}
@@ -107,8 +116,6 @@ void PrintAttribute(FbxNodeAttribute* fbxAttribute)
 			printf("<Atrribute type = None>\n");
 	}
 }
-
-
 
 //void AnimationManager::ProcessNode(FbxNode* fbxNode)
 //{
@@ -225,6 +232,65 @@ void PrintAttribute(FbxNodeAttribute* fbxAttribute)
 //	}*/
 //}
 
+void PrintMatrix(const FbxAMatrix& mat)
+{
+	// 행렬은 열 우선
+	// 00 : 0열 0행, 10 : 1열 0행
+	for (int i = 0; i < 4; ++i) {
+		for (int j = 0; j < 4; ++j) {
+			printf("%f ", mat[i][j]);
+		}
+		printf("\n");
+	}
+}
+
+FbxAMatrix GetNodeOffset(FbxNode* fbxNode)
+{
+	FbxVector4 T = fbxNode->GetGeometricTranslation(FbxNode::eSourcePivot);
+	FbxVector4 R = fbxNode->GetGeometricRotation(FbxNode::eSourcePivot);
+	FbxVector4 S = fbxNode->GetGeometricScaling(FbxNode::eSourcePivot);
+
+	return(FbxAMatrix(T, R, S));
+}
+
+void LoadTexture(FbxMesh* mesh)
+{
+
+
+}
+
+void AnimationManager::ProcessNode(FbxNode* fbxNode)
+{
+	if (fbxNode) {
+
+		
+
+		//PrintAttribute(fbxNode->GetNodeAttribute());
+
+		FbxAMatrix& globalTransform = fbxNode->EvaluateGlobalTransform();
+		//printf("global transform\n");
+		//PrintMatrix(globalTransform);
+
+		FbxAMatrix& localTransform = fbxNode->EvaluateLocalTransform();
+		//printf("local transform\n");
+		//PrintMatrix(localTransform);
+
+		FbxAMatrix offsetMatrix = GetNodeOffset(fbxNode);
+		//printf("offset Matrix\n");
+		//PrintMatrix(offsetMatrix);
+		 
+		// 월드변환 = 부모 월드변환 * 이동행렬 * 오프셋 회전행렬 * 피봇 회전행렬 *
+		//			   회전 후 행렬의 역행렬 * 회전 피벗 행렬의 역행렬 *
+		//			   크기변환 오프셋 행렬 * 크기변환 피벗행렬 * 크기변환 행렬 *
+		//				크기변환 피벗의 역행렬
+		
+		for (int i = 0; i < fbxNode->GetChildCount(); ++i) {
+			ProcessNode(fbxNode->GetChild(i));
+		}
+
+	}
+}
+
 void AnimationManager::ProcessMesh(FbxMesh* mesh)
 {
 	int vertexCount = mesh->GetControlPointsCount();
@@ -233,7 +299,15 @@ void AnimationManager::ProcessMesh(FbxMesh* mesh)
 	if (uv)
 		uv->SetMappingMode(FbxGeometryElement::eByControlPoint);
 
+	
+	FbxLayerElementArray arr = uv->GetDirectArray();
+	cout << arr.GetCount() << "uv array" << endl;
+
+	// uv array 파일로 출력해보기
+
 	int index[4]{};
+	
+	//FbxArray<FbxLayerElement::EType> arr= mesh->GetAllChannelUV(0);
 
 	// 폴리곤 개수만큼 반복
 	for (int i = 0; i < polygonCount; ++i) {
@@ -286,3 +360,4 @@ void AnimationManager::ProcessMesh(FbxMesh* mesh)
 
 }
 
+ 
