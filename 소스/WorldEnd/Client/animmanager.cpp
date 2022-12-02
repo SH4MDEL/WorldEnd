@@ -29,7 +29,7 @@ void AnimationManager::Initialize()
 	m_sdkManager->SetIOSettings(ioSetting);
 
 	FbxImporter* importer = FbxImporter::Create(m_sdkManager, "");
-	bool retval = importer->Initialize("./Resource/Model/lpMale_casual_G.FBX", -1,
+	bool retval = importer->Initialize("./Resource/Model/Remy.FBX", -1,
 		m_sdkManager->GetIOSettings());
 
 	if (!retval) {
@@ -44,17 +44,13 @@ void AnimationManager::Initialize()
 	importer->Import(m_scene);
 	importer->Destroy();
 
-	FbxAxisSystem sceneAxisSystem = m_scene->GetGlobalSettings().GetAxisSystem();
-	FbxAxisSystem axis(FbxAxisSystem::DirectX);
-	if (sceneAxisSystem != axis)
-		axis.ConvertScene(m_scene);
 
 
 	FbxNode* fbxRootNode = m_scene->GetRootNode();
-	
+
 	ProcessNode(fbxRootNode);
-	
-	ProcessMesh(fbxRootNode->GetChild(0)->GetMesh());
+
+	//ProcessMesh(fbxRootNode->GetChild(0));
 
 
 
@@ -63,6 +59,10 @@ void AnimationManager::Initialize()
 	//		;//ProcessNode(fbxRootNode);
 	//}
 
+	FbxAxisSystem sceneAxisSystem = m_scene->GetGlobalSettings().GetAxisSystem();
+	FbxAxisSystem axis(FbxAxisSystem::DirectX);
+	if (sceneAxisSystem != axis)
+		axis.ConvertScene(m_scene);
 
 
 }
@@ -268,22 +268,24 @@ void AnimationManager::ProcessNode(FbxNode* fbxNode)
 		//PrintAttribute(fbxNode->GetNodeAttribute());
 
 		FbxAMatrix& globalTransform = fbxNode->EvaluateGlobalTransform();
-		//printf("global transform\n");
-		//PrintMatrix(globalTransform);
+		printf("global transform\n");
+		PrintMatrix(globalTransform);
 
 		FbxAMatrix& localTransform = fbxNode->EvaluateLocalTransform();
-		//printf("local transform\n");
-		//PrintMatrix(localTransform);
+		printf("local transform\n");
+		PrintMatrix(localTransform);
 
 		FbxAMatrix offsetMatrix = GetNodeOffset(fbxNode);
-		//printf("offset Matrix\n");
-		//PrintMatrix(offsetMatrix);
+		printf("offset Matrix\n");
+		PrintMatrix(offsetMatrix);
 		 
 		// 월드변환 = 부모 월드변환 * 이동행렬 * 오프셋 회전행렬 * 피봇 회전행렬 *
 		//			   회전 후 행렬의 역행렬 * 회전 피벗 행렬의 역행렬 *
 		//			   크기변환 오프셋 행렬 * 크기변환 피벗행렬 * 크기변환 행렬 *
 		//				크기변환 피벗의 역행렬
-		
+
+		if (fbxNode->GetMesh())
+			ProcessMesh(fbxNode);
 		for (int i = 0; i < fbxNode->GetChildCount(); ++i) {
 			ProcessNode(fbxNode->GetChild(i));
 		}
@@ -291,8 +293,9 @@ void AnimationManager::ProcessNode(FbxNode* fbxNode)
 	}
 }
 
-void AnimationManager::ProcessMesh(FbxMesh* mesh)
+void AnimationManager::ProcessMesh(FbxNode* fbxNode)
 {
+	FbxMesh* mesh = fbxNode->GetMesh();
 	int vertexCount = mesh->GetControlPointsCount();
 	int polygonCount = mesh->GetPolygonCount();
 	FbxGeometryElementUV* uv = mesh->GetElementUV();
@@ -300,14 +303,19 @@ void AnimationManager::ProcessMesh(FbxMesh* mesh)
 		uv->SetMappingMode(FbxGeometryElement::eByControlPoint);
 
 	
+
 	FbxLayerElementArray arr = uv->GetDirectArray();
-	cout << arr.GetCount() << "uv array" << endl;
+	//cout << arr.GetCount() << "uv array" << endl;
 
 	// uv array 파일로 출력해보기
+
 
 	int index[4]{};
 	
 	//FbxArray<FbxLayerElement::EType> arr= mesh->GetAllChannelUV(0);
+
+
+	FbxAMatrix mat = fbxNode->EvaluateGlobalTransform();
 
 	// 폴리곤 개수만큼 반복
 	for (int i = 0; i < polygonCount; ++i) {
@@ -322,33 +330,44 @@ void AnimationManager::ProcessMesh(FbxMesh* mesh)
 			index[2] = mesh->GetPolygonVertex(i, 2);
 			index[3] = mesh->GetPolygonVertex(i, 3);
 
-			FbxDouble4 pos = mesh->GetControlPointAt(index[0]);
+			FbxVector4 pos = mesh->GetControlPointAt(index[0]);
 			FbxDouble2 uv2 = uv->GetDirectArray().GetAt(index[0]);
+			pos = mat.MultT(pos);
 			m_vertices.emplace_back(XMFLOAT3(pos[0], pos[1], pos[2]), XMFLOAT2(uv2[0], uv2[1]));
+
 			pos = mesh->GetControlPointAt(index[1]);
 			uv2 = uv->GetDirectArray().GetAt(index[1]);
+			pos = mat.MultT(pos);
 			m_vertices.emplace_back(XMFLOAT3(pos[0], pos[1], pos[2]), XMFLOAT2(uv2[0], uv2[1]));
+
 			pos = mesh->GetControlPointAt(index[2]);
 			uv2 = uv->GetDirectArray().GetAt(index[2]);
+			pos = mat.MultT(pos);
 			m_vertices.emplace_back(XMFLOAT3(pos[0], pos[1], pos[2]), XMFLOAT2(uv2[0], uv2[1]));
 
 
 			pos = mesh->GetControlPointAt(index[2]);
 			uv2 = uv->GetDirectArray().GetAt(index[2]);
+			pos = mat.MultT(pos);
 			m_vertices.emplace_back(XMFLOAT3(pos[0], pos[1], pos[2]), XMFLOAT2(uv2[0], uv2[1]));
+
 			pos = mesh->GetControlPointAt(index[3]);
 			uv2 = uv->GetDirectArray().GetAt(index[3]);
+			pos = mat.MultT(pos);
 			m_vertices.emplace_back(XMFLOAT3(pos[0], pos[1], pos[2]), XMFLOAT2(uv2[0], uv2[1]));
+
 			pos = mesh->GetControlPointAt(index[0]);
 			uv2 = uv->GetDirectArray().GetAt(index[0]);
+			pos = mat.MultT(pos);
 			m_vertices.emplace_back(XMFLOAT3(pos[0], pos[1], pos[2]), XMFLOAT2(uv2[0], uv2[1]));
 			
 		}
 		// 3개 -> 삼각형 1개
 		else if (3 == verticeCount) {
 			for (int j = 0; j < 3; ++j) {
-				FbxDouble4 pos = mesh->GetControlPointAt(mesh->GetPolygonVertex(i, j));
+				FbxVector4 pos = mesh->GetControlPointAt(mesh->GetPolygonVertex(i, j));
 				FbxDouble2 uv2 = uv->GetDirectArray().GetAt(mesh->GetPolygonVertex(i, j));
+				pos = mat.MultT(pos);
 				m_vertices.emplace_back(XMFLOAT3(pos[0], pos[1], pos[2]), XMFLOAT2(uv2[0], uv2[1]));
 			}
 		}

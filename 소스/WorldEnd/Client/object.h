@@ -23,6 +23,8 @@ public:
 	virtual void Move(const XMFLOAT3& shift);
 	virtual void Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw);
 	virtual void UpdateTransform(XMFLOAT4X4* parentMatrix = nullptr);
+	virtual void ObjectUpdateCallBack(float timeElapsed) {}
+	void SetObjectContext(LPVOID context) { m_updateContext = context; }
 
 	void SetMesh(const shared_ptr<Mesh>& mesh);
 	void SetTexture(const shared_ptr<Texture>& texture);
@@ -75,6 +77,7 @@ protected:
 
 	BoundingOrientedBox			m_boundingBox;	
 
+	LPVOID						m_updateContext;
 private:
 	static GameObject* m_instance;
 };
@@ -155,4 +158,25 @@ public:
 	~Skybox() = default;
 
 	virtual void Update(FLOAT timeElapsed);
+};
+
+class MovingObject : public GameObject
+{
+public:
+	MovingObject() : m_curState{ IDLE }, m_prevState{ IDLE }{};
+	~MovingObject() = default;
+
+	virtual void Update(FLOAT timeElapsed);
+	virtual void ObjectUpdateCallBack(float timeElapsed) {}
+
+	void SetState(int state) { m_prevState = m_curState; m_curState = state; }
+
+	int GetCurrentState() const { return m_curState; }
+	int GetPrevState() const { return m_prevState; }
+
+	const char* GetCurrentStateString() const;
+
+protected:
+	int			m_curState;
+	int			m_prevState;
 };

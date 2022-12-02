@@ -50,6 +50,12 @@ using namespace std;
 
 #include "../Server/protocol.h"
 
+enum BehaivorState {
+    IDLE = 0,
+    WALK,
+    JUMP,
+};
+
 namespace DX
 {
     inline void ThrowIfFailed(HRESULT hr)

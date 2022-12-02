@@ -380,3 +380,24 @@ void Skybox::Update(FLOAT timeElapsed)
 {
 
 }
+
+void MovingObject::Update(FLOAT timeElapsed)
+{
+}
+
+const char* MovingObject::GetCurrentStateString() const
+{
+	switch (m_curState) {
+	case IDLE:
+		return "IDLE";
+
+	case WALK:
+		return "WALK";
+
+	case JUMP:
+		return "JUMP";
+
+	default:
+		return "Unknown State";
+	}
+}

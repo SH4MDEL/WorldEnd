@@ -12,7 +12,7 @@ public:
 	void Initialize();
 
 	void ProcessNode(FbxNode* fbxNode);
-	void ProcessMesh(FbxMesh* mesh);
+	void ProcessMesh(FbxNode* fbxNode);
 
 	void SetVertices(vector<TextureVertex>& vertices) { vertices = m_vertices; }
 	vector<TextureVertex>& GetVertices() { return m_vertices; }

@@ -26,31 +26,38 @@ void Scene::OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT d
 
 void Scene::OnProcessingKeyboardMessage(FLOAT timeElapsed) const
 {
-	if (GetAsyncKeyState('W') & 0x8000)
-	{
-		m_player->AddVelocity(Vector3::Mul(m_player->GetFront(), timeElapsed * 10.0f));
+	// 점프상태가 아닐때만 이동, 점프, 대쉬를 할 수 있음
+	if (JUMP != m_player->GetCurrentState()) {
+		if (GetAsyncKeyState('W') & 0x8000)
+		{
+			m_player->AddVelocity(Vector3::Mul(m_player->GetFront(), timeElapsed * 10.0f));
+			m_player->SetState(WALK);
+		}
+		if (GetAsyncKeyState('A') & 0x8000)
+		{
+			m_player->AddVelocity(Vector3::Mul(m_player->GetRight(), timeElapsed * -10.0f));
+			m_player->SetState(WALK);
+		}
+		if (GetAsyncKeyState('S') & 0x8000)
+		{
+			m_player->AddVelocity(Vector3::Mul(m_player->GetFront(), timeElapsed * -10.0f));
+			m_player->SetState(WALK);
+		}
+		if (GetAsyncKeyState('D') & 0x8000)
+		{
+			m_player->AddVelocity(Vector3::Mul(m_player->GetRight(), timeElapsed * 10.0f));
+			m_player->SetState(WALK);
+		}
+		if (GetAsyncKeyState(VK_SPACE) & 0x8000)
+		{
+			m_player->SetJumpVelocityDefault();
+			m_player->SetState(JUMP);
+		}
+		if (GetAsyncKeyState(VK_SHIFT) & 0x8000)
+		{
+			m_player->AddVelocity(Vector3::Mul(m_player->GetUp(), timeElapsed * -10.0f));
+		}
 	}
-	if (GetAsyncKeyState('A') & 0x8000)
-	{
-		m_player->AddVelocity(Vector3::Mul(m_player->GetRight(), timeElapsed * -10.0f));
-	}
-	if (GetAsyncKeyState('S') & 0x8000)
-	{
-		m_player->AddVelocity(Vector3::Mul(m_player->GetFront(), timeElapsed * -10.0f));
-	}
-	if (GetAsyncKeyState('D') & 0x8000)
-	{
-		m_player->AddVelocity(Vector3::Mul(m_player->GetRight(), timeElapsed * 10.0f));
-	}
-	if (GetAsyncKeyState(VK_SPACE) & 0x8000)
-	{
-		m_player->AddVelocity(Vector3::Mul(m_player->GetUp(), timeElapsed * 10.0f));
-	}
-	if (GetAsyncKeyState(VK_SHIFT) & 0x8000)
-	{
-		m_player->AddVelocity(Vector3::Mul(m_player->GetUp(), timeElapsed * -10.0f));
-	}
-
 	
 
 #ifdef __CONNECT_SERVER__
@@ -143,8 +150,9 @@ void Scene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 	playerTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
 	m_player->SetTexture(playerTexture);
 	m_player->SetMesh(playerMesh);
-	m_player->SetScale(0.03f, 0.03f, 0.03f);
-	m_player->SetPosition(XMFLOAT3{ 0.f, 0.5f, 0.f });
+	float s = 0.005f;
+	m_player->SetScale(s, s, s);
+	m_player->SetPosition(XMFLOAT3{ 0.f, 0.f, 0.f });
 	playerShader->SetPlayer(m_player);
 
 	// 카메라 생성
@@ -202,12 +210,12 @@ void Scene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 
 void Scene::Update(FLOAT timeElapsed)
 {
-	m_camera->Update(timeElapsed);
 	if (m_shader["SKYBOX"]) for (auto& skybox : m_shader["SKYBOX"]->GetGameObjects()) skybox->SetPosition(m_camera->GetEye());
 	for (const auto& shader : m_shader)
 		shader.second->Update(timeElapsed);
 	for (const auto& shader : m_blending)
 		shader.second->Update(timeElapsed);
+	m_camera->Update(timeElapsed);
 
 	CheckBorderLimit();
 }
