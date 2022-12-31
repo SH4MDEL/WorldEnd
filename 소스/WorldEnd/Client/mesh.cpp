@@ -283,15 +283,6 @@ void MeshFromFile::LoadMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3
 	m_vertexBufferView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
 	m_vertexBufferView.StrideInBytes = sizeof(TextureHierarchyVertex);
 	m_vertexBufferView.SizeInBytes = sizeof(TextureHierarchyVertex) * vertices.size();
-
-	//m_nIndices = indices.size();
-	//m_indexBuffer = CreateBufferResource(device, commandList, indices.data(),
-	//	sizeof(UINT) * indices.size(), D3D12_HEAP_TYPE_DEFAULT,
-	//	D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, m_indexUploadBuffer);
-
-	//m_indexBufferView.BufferLocation = m_indexBuffer->GetGPUVirtualAddress();
-	//m_indexBufferView.Format = DXGI_FORMAT_R32_UINT;
-	//m_indexBufferView.SizeInBytes = sizeof(UINT) * indices.size();
 }
 
 void MeshFromFile::LoadMaterial(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, ifstream& in)

@@ -24,43 +24,12 @@ ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 
-int g_clientId = 0;
-SOCKET g_socket;
-WSABUF g_wsabuf;
-bool check = true;
-
-void DoSend();
-void DoRecv();
-
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     _In_opt_ HINSTANCE hPrevInstance,
     _In_ LPWSTR    lpCmdLine,
     _In_ int       nCmdShow)
 {
-    // was start
-    WSADATA WSAData;
-    if (WSAStartup(MAKEWORD(2, 2), &WSAData) != 0) {
-        cout << "WSA START ERROR!!" << endl;
-        return -1;
-    }
-
-    // socket
-    g_socket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, 0, 0, WSA_FLAG_OVERLAPPED);
-    if (g_socket == INVALID_SOCKET) {
-        cout << "SOCKET INIT ERROR!!" << endl;
-        return -1;
-    }
-
-    // connect to ipAddr
-    SOCKADDR_IN serverAddr;
-    ZeroMemory(&serverAddr, sizeof(serverAddr));
-    serverAddr.sin_family = AF_INET;
-    serverAddr.sin_port = htons(SERVERPORT);
-    serverAddr.sin_addr.s_addr = inet_addr(SERVERIP);
-    int val = connect(g_socket, (SOCKADDR*)&serverAddr, sizeof(serverAddr));
-    if (val == SOCKET_ERROR) return -1;
-
    
     UNREFERENCED_PARAMETER(hPrevInstance);
     UNREFERENCED_PARAMETER(lpCmdLine);
@@ -104,29 +73,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     g_GameFramework.OnDestroy();
     return (int)msg.wParam;
-}
-
-void DoSend() {
-
-   // Scene::Get_Instatnce()->GetPlayerInfo()->fx = GameObject::GetPosition()
-
-    GameObject* obj = new GameObject;
-    XMFLOAT3 pos = obj->GetPosition();
-
-    PLAYERINFO packet;
-    packet.x = pos.x;
-    packet.y = pos.y;
-    packet.z = pos.z;
-    packet.id = g_clientId;
-    WSAOVERLAPPED* c_over = new WSAOVERLAPPED;
-
-
-    int retval = WSASend(g_socket, (WSABUF*)&packet, 1, 0, 0, c_over, NULL);
-    cout << "[id]: " << packet.id << " x - " << packet.x << " y - " << packet.y << " z - " << packet.z;
-}
-
-void DoRecv() {
-
 }
 
 ATOM MyRegisterClass(HINSTANCE hInstance)

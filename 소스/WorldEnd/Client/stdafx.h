@@ -12,7 +12,6 @@
 
 // Windows 헤더 파일
 #include <Windows.h>
-#include <winsock2.h>
 
 // C/C++ 런타임 헤더 파일입니다.
 #include <iostream>
@@ -40,13 +39,9 @@
 #include <DirectXMath.h>
 #include <DirectXCollision.h>
 #include "d3dx12.h"
-#include "Connect.h"
 using namespace DirectX;
 using Microsoft::WRL::ComPtr;
 using namespace std;
-
-#define SERVERPORT 9000
-#define SERVERIP "127.0.0.1"
 
 #include "../Server/protocol.h"
 

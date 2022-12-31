@@ -35,10 +35,6 @@ void GameFramework::OnDestroy()
 	WaitForGpuComplete();
 
 	::CloseHandle(m_fenceEvent);
-
-	if (m_connectManager) {
-		delete m_connectManager;
-	}
 }
 
 void GameFramework::OnProcessingMouseMessage() const
@@ -329,7 +325,7 @@ void GameFramework::BuildObjects()
 {
 	m_commandList->Reset(m_commandAllocator.Get(), nullptr);
 
-	m_scene = make_unique<Scene>();
+	m_scene = make_unique<TowerScene>();
 	m_scene->BuildObjects(m_device, m_commandList, m_rootSignature, m_aspectRatio);
 
 
@@ -350,10 +346,6 @@ void GameFramework::BuildObjects()
 
 void GameFramework::FrameAdvance()
 {
-	// if loggin failed
-	
-	
-
 	m_timer.Tick();
 
 	if (m_isActive)
@@ -364,7 +356,6 @@ void GameFramework::FrameAdvance()
 	Update(m_timer.GetDeltaTime());
 	Render();
 
-	//size_t Length = _tcslen(m_pszFrame);
 }
 
 void GameFramework::Update(FLOAT timeElapsed)

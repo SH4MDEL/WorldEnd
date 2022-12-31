@@ -210,24 +210,6 @@ void GameObject::SetBoundingBox(const BoundingOrientedBox& boundingBox)
 	m_boundingBox = boundingBox;
 }
 
-Helicoptor::Helicoptor() : GameObject()
-{
-}
-
-void Helicoptor::Update(FLOAT timeElapsed)
-{
-	if (m_mainRotorFrame) m_mainRotorFrame->Rotate(0.f, 720.f * timeElapsed, 0.f);
-	if (m_tailRotorFrame) m_tailRotorFrame->Rotate(720.f * timeElapsed, 0.f, 0.f);
-
-	GameObject::Update(timeElapsed);
-}
-
-void Helicoptor::SetRotorFrame()
-{
-	m_mainRotorFrame = FindFrame("Rotor");
-	m_tailRotorFrame = FindFrame("Back_Rotor");
-}
-
 Field::Field(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList,
 	INT width, INT length, INT height, INT blockWidth, INT blockLength, INT blockHeight, XMFLOAT3 scale)
 	: m_width{ width }, m_length{ length }, m_height{ height }, m_scale{ scale }

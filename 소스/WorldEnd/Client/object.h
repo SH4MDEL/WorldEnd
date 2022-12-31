@@ -10,14 +10,6 @@ public:
 	GameObject();
 	~GameObject();
 
-	//static GameObject* Get_Instatnce() {
-	//	if (nullptr == m_instansce)
-	//		m_instansce = new GameObject;
-
-	//	return m_instansce;
-	//}
-
-
 	virtual void Update(FLOAT timeElapsed);
 	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const;
 	virtual void Move(const XMFLOAT3& shift);
@@ -74,22 +66,6 @@ protected:
 	shared_ptr<GameObject>		m_child;
 
 	BoundingOrientedBox			m_boundingBox;	
-
-private:
-	static GameObject* m_instance;
-};
-
-class Helicoptor : public GameObject
-{
-public:
-	Helicoptor();
-	~Helicoptor() = default;
-
-	void Update(FLOAT timeElapsed) override;
-	void SetRotorFrame();
-private:
-	shared_ptr<GameObject>	m_mainRotorFrame;
-	shared_ptr<GameObject>	m_tailRotorFrame;
 };
 
 class Field : public GameObject

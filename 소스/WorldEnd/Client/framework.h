@@ -2,11 +2,9 @@
 #include "stdafx.h"
 #include "timer.h"
 #include "camera.h"
-#include "scene.h"
 #include "object.h"
-#include "Connect.h"
-
-class Connect;
+#include "scene.h"
+#include "towerScene.h"
 
 class GameFramework
 {
@@ -54,7 +52,6 @@ public:
 	void FrameAdvance();
 	void Update(FLOAT timeElapsed);
 	void Render();
-	//void AnimateObjects();
 
 	void WaitForGpuComplete();
 
@@ -98,13 +95,5 @@ private:
 	Timer								m_timer;
 
 	unique_ptr<Scene>					m_scene;
-
-
-private:
-	Connect* m_connectManager = nullptr;
-
-public:
-
-
 };
 
