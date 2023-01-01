@@ -45,6 +45,10 @@ using namespace std;
 
 #include "../Server/protocol.h"
 
+class GameFramework;
+
+extern GameFramework       g_GameFramework;
+
 namespace DX
 {
     inline void ThrowIfFailed(HRESULT hr)

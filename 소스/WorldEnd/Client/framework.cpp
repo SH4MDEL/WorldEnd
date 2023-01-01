@@ -11,9 +11,11 @@ GameFramework::GameFramework(UINT width, UINT height) :
 	m_frameIndex{0},
 	m_viewport{0.0f, 0.0f, (FLOAT)width, (FLOAT)height, 0.0f, 1.0f},
 	m_scissorRect{0, 0, (LONG)width, (LONG)height}, 
-	m_rtvDescriptorSize {0}
+	m_rtvDescriptorSize {0}, 
+	m_sceneIndex{static_cast<int>(SCENETAG::LoadingScene)}
 {
 	m_aspectRatio = (FLOAT)width / (FLOAT)height;
+	m_scenes.resize(static_cast<int>(SCENETAG::Count));
 }
 
 GameFramework::~GameFramework()
@@ -39,12 +41,12 @@ void GameFramework::OnDestroy()
 
 void GameFramework::OnProcessingMouseMessage() const
 {
-	if (m_scene) m_scene->OnProcessingMouseMessage(m_hWnd, m_width, m_height, m_timer.GetDeltaTime());
+	if (m_scenes[m_sceneIndex]) m_scenes[m_sceneIndex]->OnProcessingMouseMessage(m_hWnd, m_width, m_height, m_timer.GetDeltaTime());
 }
 
 void GameFramework::OnProcessingKeyboardMessage() const
 {
-	if (m_scene) m_scene->OnProcessingKeyboardMessage(m_timer.GetDeltaTime());
+	if (m_scenes[m_sceneIndex]) m_scenes[m_sceneIndex]->OnProcessingKeyboardMessage(m_timer.GetDeltaTime());
 }
 
 void GameFramework::StartPipeline()
@@ -325,23 +327,27 @@ void GameFramework::BuildObjects()
 {
 	m_commandList->Reset(m_commandAllocator.Get(), nullptr);
 
-	m_scene = make_unique<TowerScene>();
-	m_scene->BuildObjects(m_device, m_commandList, m_rootSignature, m_aspectRatio);
+	m_scenes[static_cast<int>(SCENETAG::LoadingScene)] = make_unique<LoadingScene>();
+	m_scenes[static_cast<int>(SCENETAG::TowerScene)] = make_unique<TowerScene>();
+	m_scenes[static_cast<int>(SCENETAG::LoadingScene)]->BuildObjects(m_device, m_commandList, m_rootSignature, m_aspectRatio);
+	m_scenes[static_cast<int>(SCENETAG::TowerScene)]->BuildObjects(m_device, m_commandList, m_rootSignature, m_aspectRatio);
 
-
-	// 명령 제출
 	m_commandList->Close();
 	ID3D12CommandList* ppCommandList[] = { m_commandList.Get() };
 	m_commandQueue->ExecuteCommandLists(_countof(ppCommandList), ppCommandList);
 
-	// 명령들이 완료될 때까지 대기
 	WaitForGpuComplete();
 
-	// 디폴트 버퍼로의 복사가 완료됐으므로 업로드 버퍼를 해제한다.
-	for (const auto& shader : m_scene->GetShaders())
-		shader.second->ReleaseUploadBuffer();
+	//for (const auto& shader : m_scene->GetShaders())
+	//	shader.second->ReleaseUploadBuffer();
 
 	m_timer.Tick();
+}
+
+void GameFramework::ChangeScene(SCENETAG tag)
+{
+	m_scenes[m_sceneIndex]->OnDestroy();
+	m_scenes[m_sceneIndex = static_cast<int>(tag)]->OnCreate();
 }
 
 void GameFramework::FrameAdvance()
@@ -363,7 +369,7 @@ void GameFramework::Update(FLOAT timeElapsed)
 	wstring title{ TEXT("세상끝 (") + to_wstring((int)(m_timer.GetFPS())) + TEXT("FPS)") };
 	SetWindowText(m_hWnd, title.c_str());
 
-	if (m_scene) m_scene->Update(timeElapsed);
+	if (m_scenes[m_sceneIndex]) m_scenes[m_sceneIndex]->Update(timeElapsed);
 }
 
 void GameFramework::WaitForGpuComplete()
@@ -408,7 +414,7 @@ void GameFramework::Render()
 	m_commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, NULL);
 
 	// Scene을 Render한다.
-	if (m_scene) m_scene->Render(m_commandList);
+	if (m_scenes[m_sceneIndex]) m_scenes[m_sceneIndex]->Render(m_commandList);
 
 	// 자원 용도와 관련된 상태 전이를 Direct3D에 통지한다.
 	m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_frameIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));

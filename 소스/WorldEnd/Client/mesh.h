@@ -69,7 +69,7 @@ class Mesh
 public:
 	Mesh() = default;
 	Mesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, const vector<TextureVertex>& vertices, const vector<UINT>& indices);
-	~Mesh() = default;
+	virtual ~Mesh() = default;
 
 	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& m_commandList) const;
 	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& m_commandList, const D3D12_VERTEX_BUFFER_VIEW& instanceBufferView) const;

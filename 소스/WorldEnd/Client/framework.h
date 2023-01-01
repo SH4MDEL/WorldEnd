@@ -4,6 +4,7 @@
 #include "camera.h"
 #include "object.h"
 #include "scene.h"
+#include "loadingScene.h"
 #include "towerScene.h"
 
 class GameFramework
@@ -48,6 +49,7 @@ public:
 
 
 	void BuildObjects();
+	void ChangeScene(SCENETAG tag);
 
 	void FrameAdvance();
 	void Update(FLOAT timeElapsed);
@@ -58,6 +60,7 @@ public:
 	UINT GetWindowWidth() const { return m_width; }
 	UINT GetWindowHeight() const { return m_height; }
 	void SetIsActive(BOOL isActive) { m_isActive = isActive; }
+
 
 private:
 	static const INT					SwapChainBufferCount = 2;
@@ -94,6 +97,7 @@ private:
 
 	Timer								m_timer;
 
-	unique_ptr<Scene>					m_scene;
+	vector<unique_ptr<Scene>>			m_scenes;
+	INT									m_sceneIndex;
 };
 

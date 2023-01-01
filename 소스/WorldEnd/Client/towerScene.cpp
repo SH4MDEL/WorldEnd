@@ -1,9 +1,14 @@
 #include "towerScene.h"
 
-#include "scene.h"
-
-
 TowerScene::~TowerScene()
+{
+}
+
+void TowerScene::OnCreate()
+{
+}
+
+void TowerScene::OnDestroy()
 {
 }
 
@@ -49,73 +54,14 @@ void TowerScene::OnProcessingKeyboardMessage(FLOAT timeElapsed) const
 	}
 }
 
-
-
 void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, const ComPtr<ID3D12RootSignature>& rootsignature, FLOAT aspectRatio)
 {
-	vector<TextureVertex> vertices;
-	vector<UINT> indices;
-
-	// right
-	vertices.emplace_back(XMFLOAT3(+0.5f, -0.5f, -0.5f), XMFLOAT2(0.0f, 1.0f));
-	vertices.emplace_back(XMFLOAT3(+0.5f, +0.5f, -0.5f), XMFLOAT2(0.0f, 0.0f));
-	vertices.emplace_back(XMFLOAT3(+0.5f, -0.5f, +0.5f), XMFLOAT2(1.0f, 1.0f));
-	vertices.emplace_back(XMFLOAT3(+0.5f, -0.5f, +0.5f), XMFLOAT2(1.0f, 1.0f));
-	vertices.emplace_back(XMFLOAT3(+0.5f, +0.5f, -0.5f), XMFLOAT2(0.0f, 0.0f));
-	vertices.emplace_back(XMFLOAT3(+0.5f, +0.5f, +0.5f), XMFLOAT2(1.0f, 0.0f));
-
-	// left
-	vertices.emplace_back(XMFLOAT3(-0.5f, -0.5f, +0.5f), XMFLOAT2(0.0f, 1.0f));
-	vertices.emplace_back(XMFLOAT3(-0.5f, +0.5f, +0.5f), XMFLOAT2(0.0f, 0.0f));
-	vertices.emplace_back(XMFLOAT3(-0.5f, -0.5f, -0.5f), XMFLOAT2(1.0f, 1.0f));
-	vertices.emplace_back(XMFLOAT3(-0.5f, -0.5f, -0.5f), XMFLOAT2(1.0f, 1.0f));
-	vertices.emplace_back(XMFLOAT3(-0.5f, +0.5f, +0.5f), XMFLOAT2(0.0f, 0.0f));
-	vertices.emplace_back(XMFLOAT3(-0.5f, +0.5f, -0.5f), XMFLOAT2(1.0f, 0.0f));
-
-	// top
-	vertices.emplace_back(XMFLOAT3(-0.5f, +0.5f, -0.5f), XMFLOAT2(0.0f, 1.0f));
-	vertices.emplace_back(XMFLOAT3(-0.5f, +0.5f, +0.5f), XMFLOAT2(0.0f, 0.0f));
-	vertices.emplace_back(XMFLOAT3(+0.5f, +0.5f, -0.5f), XMFLOAT2(1.0f, 1.0f));
-	vertices.emplace_back(XMFLOAT3(+0.5f, +0.5f, -0.5f), XMFLOAT2(1.0f, 1.0f));
-	vertices.emplace_back(XMFLOAT3(-0.5f, +0.5f, +0.5f), XMFLOAT2(0.0f, 0.0f));
-	vertices.emplace_back(XMFLOAT3(+0.5f, +0.5f, +0.5f), XMFLOAT2(1.0f, 0.0f));
-
-	// bottom
-	vertices.emplace_back(XMFLOAT3(+0.5f, -0.5f, -0.5f), XMFLOAT2(0.0f, 1.0f));
-	vertices.emplace_back(XMFLOAT3(+0.5f, -0.5f, +0.5f), XMFLOAT2(0.0f, 0.0f));
-	vertices.emplace_back(XMFLOAT3(-0.5f, -0.5f, -0.5f), XMFLOAT2(1.0f, 1.0f));
-	vertices.emplace_back(XMFLOAT3(-0.5f, -0.5f, -0.5f), XMFLOAT2(1.0f, 1.0f));
-	vertices.emplace_back(XMFLOAT3(+0.5f, -0.5f, +0.5f), XMFLOAT2(0.0f, 0.0f));
-	vertices.emplace_back(XMFLOAT3(-0.5f, -0.5f, +0.5f), XMFLOAT2(1.0f, 0.0f));
-
-	// back
-	vertices.emplace_back(XMFLOAT3(+0.5f, -0.5f, +0.5f), XMFLOAT2(0.0f, 1.0f));
-	vertices.emplace_back(XMFLOAT3(+0.5f, +0.5f, +0.5f), XMFLOAT2(0.0f, 0.0f));
-	vertices.emplace_back(XMFLOAT3(-0.5f, +0.5f, +0.5f), XMFLOAT2(1.0f, 0.0f));
-	vertices.emplace_back(XMFLOAT3(-0.5f, +0.5f, +0.5f), XMFLOAT2(1.0f, 0.0f));
-	vertices.emplace_back(XMFLOAT3(-0.5f, -0.5f, +0.5f), XMFLOAT2(1.0f, 1.0f));
-	vertices.emplace_back(XMFLOAT3(+0.5f, -0.5f, +0.5f), XMFLOAT2(0.0f, 1.0f));
-
-	// front
-	vertices.emplace_back(XMFLOAT3(-0.5f, -0.5f, -0.5f), XMFLOAT2(0.0f, 1.0f));
-	vertices.emplace_back(XMFLOAT3(-0.5f, +0.5f, -0.5f), XMFLOAT2(0.0f, 0.0f));
-	vertices.emplace_back(XMFLOAT3(+0.5f, -0.5f, -0.5f), XMFLOAT2(1.0f, 1.0f));
-	vertices.emplace_back(XMFLOAT3(+0.5f, -0.5f, -0.5f), XMFLOAT2(1.0f, 1.0f));
-	vertices.emplace_back(XMFLOAT3(-0.5f, +0.5f, -0.5f), XMFLOAT2(0.0f, 0.0f));
-	vertices.emplace_back(XMFLOAT3(+0.5f, +0.5f, -0.5f), XMFLOAT2(1.0f, 0.0f));
-
 	// 플레이어 생성
 	m_player = make_shared<Player>();
-	auto playerShader{ make_shared<Shader>(device, rootsignature) };
-	auto playerTexture{ make_shared<Texture>() };
-	auto playerMesh{ make_shared<Mesh>(device, commandlist, vertices, indices) };
-	playerTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/Bricks.dds"), 2);
-	playerTexture->CreateSrvDescriptorHeap(device);
-	playerTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
-	m_player->SetTexture(playerTexture);
-	m_player->SetMesh(playerMesh);
+	m_player->SetTexture(m_textures["PLAYER"]);
+	m_player->SetMesh(m_meshs["PLAYER"]);
 	m_player->SetPosition(XMFLOAT3{ 0.f, 0.5f, 0.f });
-	playerShader->SetPlayer(m_player);
+	m_shaders["PLAYER"]->SetPlayer(m_player);
 
 	// 카메라 생성
 	m_camera = make_shared<ThirdPersonCamera>();
@@ -131,64 +77,32 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	m_camera->SetProjMatrix(projMatrix);
 
 	// 지형 생성
-	auto fieldShader{ make_shared<DetailShader>(device, rootsignature) };
 	auto field{ make_shared<Field>(device, commandlist, 51, 51, 0, 51, 51, 0, XMFLOAT3{ 1.f, 1.f, 1.f }) };
-	auto fieldTexture{ make_shared<Texture>() };
-	fieldTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/Base_Texture.dds"), 2); // BaseTexture
-	fieldTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/Detail_Texture.dds"), 3); // DetailTexture
-	fieldTexture->CreateSrvDescriptorHeap(device);
-	fieldTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
 	field->SetPosition(XMFLOAT3{ -25.0f, 0.f, -25.0f });
-	field->SetTexture(fieldTexture);
-	fieldShader->SetField(field);
+	field->SetTexture(m_textures["FIELD"]);
+	static_pointer_cast<DetailShader>(m_shaders["FIELD"])->SetField(field);
 
 	// 펜스 생성
-	auto blendingShader{ make_shared<BlendingShader>(device, rootsignature) };
 	auto fence{ make_shared<Fence>(device, commandlist, 50, 50, 2, 2) };
-	auto fenceTexture{ make_shared<Texture>() };
-	fenceTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/Fence.dds"), 2); // BaseTexture
-	fenceTexture->CreateSrvDescriptorHeap(device);
-	fenceTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
-	fence->SetPosition(XMFLOAT3{ 0.f, 1.f, 0.f });
-	fence->SetTexture(fenceTexture);
-	blendingShader->GetGameObjects().push_back(fence);
+	fence->SetTexture(m_textures["FENCE"]);
+	m_shaders["FENCE"]->GetGameObjects().push_back(fence);
 
 	// 스카이박스 생성
-	auto skyboxShader{ make_shared<SkyboxShader>(device, rootsignature) };
 	auto skybox{ make_shared<Skybox>(device, commandlist, 20.0f, 20.0f, 20.0f) };
-	auto skyboxTexture{ make_shared<Texture>() };
-	skyboxTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/SkyBox.dds"), 4);
-	skyboxTexture->CreateSrvDescriptorHeap(device);
-	skyboxTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURECUBE);
-	skybox->SetTexture(skyboxTexture);
-	skyboxShader->GetGameObjects().push_back(skybox);
-
-	// 메쉬 설정
-	m_mesh.insert({ "PLAYER", playerMesh });
-
-	// 텍스처 설정
-	m_texture.insert({ "PLAYER", playerTexture });
-	m_texture.insert({ "SKYBOX", skyboxTexture });
-	m_texture.insert({ "FIELD", fieldTexture });
-	m_texture.insert({ "FENCE", fenceTexture });
+	skybox->SetTexture(m_textures["SKYBOX"]);
+	m_shaders["SKYBOX"]->GetGameObjects().push_back(skybox);
 
 	// 오브젝트 설정
 	m_object.insert({ "SKYBOX", skybox });
 	m_object.insert({ "FIELD", field });
 	m_object.insert({ "FENCE", fence });
-
-	// 셰이더 설정
-	m_shader.insert({ "PLAYER", playerShader });
-	m_shader.insert({ "SKYBOX", skyboxShader });
-	m_shader.insert({ "FIELD", fieldShader });
-	m_shader.insert({ "FENCE", blendingShader });
 }
 
 void TowerScene::Update(FLOAT timeElapsed)
 {
 	m_camera->Update(timeElapsed);
-	if (m_shader["SKYBOX"]) for (auto& skybox : m_shader["SKYBOX"]->GetGameObjects()) skybox->SetPosition(m_camera->GetEye());
-	for (const auto& shader : m_shader)
+	if (m_shaders["SKYBOX"]) for (auto& skybox : m_shaders["SKYBOX"]->GetGameObjects()) skybox->SetPosition(m_camera->GetEye());
+	for (const auto& shader : m_shaders)
 		shader.second->Update(timeElapsed);
 
 	CheckBorderLimit();
@@ -197,10 +111,10 @@ void TowerScene::Update(FLOAT timeElapsed)
 void TowerScene::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const
 {
 	if (m_camera) m_camera->UpdateShaderVariable(commandList);
-	m_shader.at("PLAYER")->Render(commandList);
-	m_shader.at("SKYBOX")->Render(commandList);
-	m_shader.at("FIELD")->Render(commandList);
-	m_shader.at("FENCE")->Render(commandList);
+	m_shaders.at("PLAYER")->Render(commandList);
+	m_shaders.at("SKYBOX")->Render(commandList);
+	m_shaders.at("FIELD")->Render(commandList);
+	m_shaders.at("FENCE")->Render(commandList);
 }
 
 void TowerScene::CheckBorderLimit()
