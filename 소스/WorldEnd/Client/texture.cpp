@@ -110,7 +110,7 @@ bool Texture::LoadTextureFileHierarchy(const ComPtr<ID3D12Device>& device, const
 	if (strToken != "null") {
 		wstring wstrToken = L"";
 		wstrToken.assign(strToken.begin(), strToken.end());
-		wstring strPath = L"Model/Textures/" + wstrToken + L".dds";
+		wstring strPath = L"./Resource/Texture/" + wstrToken + L".dds";
 		if (strToken[0] != '@') {
 			LoadTextureFile(device, commandList, strPath, rootParameterIndex);
 		}

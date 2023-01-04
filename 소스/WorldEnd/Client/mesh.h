@@ -120,6 +120,52 @@ private:
 	shared_ptr<vector<Material>>		m_materials;
 };
 
+// ------------------------------------------
+class GameObject;
+
+class SkinnedMesh : public Mesh
+{
+public: 
+	SkinnedMesh();
+	~SkinnedMesh() = default;
+
+	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& m_commandList) const;
+
+	void ReleaseUploadBuffer() override;
+
+	void LoadSkinnedMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, ifstream& in);
+
+private:
+	string								m_skinnedMeshName;
+
+	UINT								m_nBonesPerVertex;
+
+	vector<XMUINT4>						m_boneIndices;
+	vector<XMFLOAT4>					m_boneWeights;
+
+	vector<ComPtr<ID3D12Resource>>		m_boneIndicesBuffers;
+	vector<ComPtr<ID3D12Resource>>		m_boneIndicesUploadBuffers;
+	vector<D3D12_INDEX_BUFFER_VIEW>		m_boneIndicesBufferViews;
+
+	vector<ComPtr<ID3D12Resource>>		m_boneWeightsBuffers;
+	vector<ComPtr<ID3D12Resource>>		m_boneWeightsUploadBuffers;
+	vector<D3D12_INDEX_BUFFER_VIEW>		m_boneWeightsBufferViews;
+	
+
+	UINT								m_nSkinningBones;
+
+	vector<string>						m_skinningBoneNames;
+	vector<GameObject>					m_skinningBoneFrame;	// 해당 뼈를 바로 찾아가기 위해 저장하는 벡터
+
+	vector<XMFLOAT4X4>					m_bindPoseBoneOffsets;	// 바인드 포즈에서의 뼈 오프셋 행렬들
+
+	vector<ComPtr<ID3D12Resource>>		m_bindPoseBoneOffsetBuffers;
+	vector<XMFLOAT4X4>					m_mappedBindPoseBoneOffsets;
+
+	vector<ComPtr<ID3D12Resource>>		m_skinningBoneTransformBuffers;
+	vector<XMFLOAT4X4>					m_mappedSkinningBoneTransforms;
+};
+
 class FieldMapImage
 {
 public:

@@ -1,4 +1,5 @@
 #include "mesh.h"
+#include "object.h"
 
 Mesh::Mesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, const vector<TextureVertex>& vertices, const vector<UINT>& indices)
 {
@@ -665,4 +666,94 @@ SkyboxMesh::SkyboxMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12Gr
 	m_vertexBufferView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
 	m_vertexBufferView.StrideInBytes = sizeof(SkyboxVertex);
 	m_vertexBufferView.SizeInBytes = sizeof(SkyboxVertex) * vertices.size();
+}
+
+SkinnedMesh::SkinnedMesh()
+{
+}
+
+void SkinnedMesh::Render(const ComPtr<ID3D12GraphicsCommandList>& m_commandList) const
+{
+}
+
+void SkinnedMesh::ReleaseUploadBuffer()
+{
+}
+
+void SkinnedMesh::LoadSkinnedMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, ifstream& in)
+{
+	m_primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
+	BYTE strLength{};
+
+	INT bonesPerVertex{}, boneNameNum{}, boneOffsetNum{}, boneIndexNum{}, boneWeightNum{};
+
+	in.read((char*)(&strLength), sizeof(BYTE));
+	in.read(&m_skinnedMeshName[0], sizeof(char) * strLength);
+
+	while (1) {
+		in.read((char*)(&strLength), sizeof(BYTE));
+		string strToken(strLength, '\0');
+		in.read(&strToken[0], sizeof(char) * strLength);
+
+		if (strToken == "<BonesPerVertex>:") {
+			in.read((char*)(&bonesPerVertex), sizeof(INT));
+			m_nBonesPerVertex = bonesPerVertex;
+		}
+		else if (strToken == "<Bounds>:") {
+			XMFLOAT3 dummy;
+			in.read((char*)(&m_boundingBox.Center), sizeof(XMFLOAT3));
+			in.read((char*)(&m_boundingBox.Extents), sizeof(XMFLOAT3));
+		}
+		else if (strToken == "<BoneNames>:") {
+			in.read((char*)(&boneNameNum), sizeof(INT));
+			m_nSkinningBones = boneNameNum;
+
+			m_skinningBoneFrame.resize(boneNameNum);	// 오브젝트 벡터는 사이즈만 늘리고 정의 X
+			m_skinningBoneNames.resize(boneNameNum);
+
+			for (int i = 0; i < boneNameNum; ++i) {
+				in.read((char*)(&strLength), sizeof(BYTE));
+				m_skinningBoneNames[i].resize(strLength);
+				in.read(&m_skinningBoneNames[i][0], sizeof(char) * strLength);
+			}
+		}
+		else if (strToken == "<BoneOffsets>:") {
+			in.read((char*)(&boneOffsetNum), sizeof(INT));
+			m_bindPoseBoneOffsets.resize(boneOffsetNum);
+
+			for (int i = 0; i < boneOffsetNum; ++i) {
+				in.read((char*)(&m_bindPoseBoneOffsets[i]), sizeof(XMFLOAT4X4));
+				//XMStoreFloat4x4(&m_mappedBindPoseBoneOffsets[i], XMMatrixTranspose(XMLoadFloat4x4(&m_bindPoseBoneOffsets[i])));
+			}
+
+			// 버퍼 리소스 생성 처리 필요, boneOffsetNum > 0 일때
+
+		}
+		else if (strToken == "<BoneIndices>:") {
+			in.read((char*)(&boneIndexNum), sizeof(INT));
+			m_boneIndices.resize(boneIndexNum);
+
+			for (int i = 0; i < boneIndexNum; ++i) {
+				in.read((char*)(&m_boneIndices[i]), sizeof(XMUINT4));
+			}
+
+			// 뼈 인덱스 버퍼, 버퍼 뷰 처리 필요, boneIndexNum > 0 일때
+
+		}
+		else if (strToken == "<BoneWeights>:") {
+			in.read((char*)(&boneWeightNum), sizeof(INT));
+			m_boneWeights.resize(boneWeightNum);
+
+			for (int i = 0; i < boneWeightNum; ++i) {
+				in.read((char*)(&m_boneWeights[i]), sizeof(XMFLOAT4));
+			}
+
+			// 뼈 가중치 버퍼, 버퍼 뷰 처리 필요, boneWeightNum > 0 일때
+
+		}
+		else if (strToken == "</SkinningInfo>") {
+			break;
+		}
+	}
 }

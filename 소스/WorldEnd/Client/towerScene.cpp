@@ -58,9 +58,10 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 {
 	// 플레이어 생성
 	m_player = make_shared<Player>();
-	m_player->SetTexture(m_textures["PLAYER"]);
-	m_player->SetMesh(m_meshs["PLAYER"]);
-	m_player->SetPosition(XMFLOAT3{ 0.f, 0.5f, 0.f });
+	/*m_player->SetTexture(m_textures["PLAYER"]);
+	m_player->SetMesh(m_meshs["PLAYER"]);*/
+	m_player->LoadGeometry(device, commandlist, TEXT("./Resource/Model/Warrior.bin"));
+	m_player->SetPosition(XMFLOAT3{ 0.f, 0.f, 0.f });
 	m_shaders["PLAYER"]->SetPlayer(m_player);
 
 	// 카메라 생성

@@ -179,6 +179,16 @@ void GameObject::LoadFrameHierarchy(const ComPtr<ID3D12Device>& device, const Co
 			mesh->LoadMesh(device, commandList, in);
 			SetBoundingBox(mesh->GetBoundingBox());
 		}
+
+		else if (strToken == "<SkinningInfo>:") {		// 스킨메쉬 정보
+			unique_ptr<SkinnedMesh> skinned_mesh = make_unique<SkinnedMesh>();
+			skinned_mesh->LoadSkinnedMesh(device, commandList, in);
+			SetBoundingBox(skinned_mesh->GetBoundingBox());
+			// 스킨 메쉬를 파일에서 읽기만 처리함
+			// 스킨 메쉬에 대한 처리는 아직 하지 않음
+			// 스킨 메쉬가 여러개이므로 이를 어떻게 처리할지 생각할 필요 있음
+		}
+
 		else if (strToken == "<Materials>:") {
 			mesh->LoadMaterial(device, commandList, in);
 		}

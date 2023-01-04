@@ -72,13 +72,12 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	vertices.emplace_back(XMFLOAT3(+0.5f, +0.5f, -0.5f), XMFLOAT2(1.0f, 0.0f));
 
 	// 플레이어 생성
-	auto playerShader{ make_shared<Shader>(device, rootsignature) };
+	auto playerShader{ make_shared<TextureHierarchyShader>(device, rootsignature) };
 	auto playerTexture{ make_shared<Texture>() };
 	auto playerMesh{ make_shared<Mesh>(device, commandlist, vertices, indices) };
 	playerTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/Bricks.dds"), 2);
 	playerTexture->CreateSrvDescriptorHeap(device);
 	playerTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
-
 
 	// 지형 생성
 	auto fieldShader{ make_shared<DetailShader>(device, rootsignature) };
