@@ -10,6 +10,8 @@
 #include "targetver.h"
 #define WIN32_LEAN_AND_MEAN             // 거의 사용되지 않는 내용을 Windows 헤더에서 제외합니다.
 
+#define USE_NETWORK
+
 // Windows 헤더 파일
 #include <Windows.h>
 
@@ -48,6 +50,10 @@ using namespace std;
 class GameFramework;
 
 extern GameFramework       g_GameFramework;
+
+extern SOCKET               g_socket;                           // 소켓
+extern string				g_serverIP;							// 서버 아이피
+extern SOCKADDR_IN          server_address;
 
 namespace DX
 {

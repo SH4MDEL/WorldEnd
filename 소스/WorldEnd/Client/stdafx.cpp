@@ -3,6 +3,11 @@
 
 GameFramework       g_GameFramework(1280, 720);
 
+SOCKET                  g_socket{};
+string					g_serverIP{ "127.0.0.1" };
+SOCKADDR_IN             server_address{};
+
+
 ComPtr<ID3D12Resource> CreateBufferResource(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList,
 	const void* data, UINT byte, D3D12_HEAP_TYPE heapType, D3D12_RESOURCE_STATES resourceState, ComPtr<ID3D12Resource>& uploadBuffer)
 {
