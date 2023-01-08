@@ -1,7 +1,7 @@
 #include "player.h"
 #include "camera.h"
 
-Player::Player() : m_velocity{ 0.0f, 0.0f, 0.0f }, m_maxVelocity{ 10.0f }, m_friction{ 0.5f }
+Player::Player() : m_velocity{ 0.0f, 0.0f, 0.0f }, m_maxVelocity{ 10.0f }, m_friction{ 0.5f }, m_id{-1}
 {
 
 }
@@ -49,4 +49,9 @@ void Player::AddVelocity(const XMFLOAT3& increase)
 		FLOAT ratio{ m_maxVelocity / length };
 		m_velocity = Vector3::Mul(m_velocity, ratio);
 	}
+}
+
+INT Player::GetId() const
+{
+	return m_id;
 }

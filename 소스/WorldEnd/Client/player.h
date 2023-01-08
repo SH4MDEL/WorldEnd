@@ -24,12 +24,20 @@ public:
 	void SetVelocity(const XMFLOAT3& velocity) { m_velocity = velocity; }
 	void AddVelocity(const XMFLOAT3& increase);
 	void SetCamera(const shared_ptr<Camera>& camera) { m_camera = camera; }
+	
+	// 추가
+	void SetId(INT id) { m_id = id; }
+
+	INT GetId() const;
 
 private:
 	XMFLOAT3						m_velocity;		// 속도
 	FLOAT							m_maxVelocity;	// 최대속도
 	FLOAT							m_friction;		// 마찰력
 
+	// 플레이어를 id로 구별하기 위해 추가함.
+	INT					m_id;				// 플레이어 고유 아이디
+	BOOL				m_is_multi_player;	// 멀티플레이어 여부
 
 	shared_ptr<Camera>				m_camera;		// 카메라
 };

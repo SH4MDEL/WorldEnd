@@ -27,6 +27,8 @@
 #include <string>
 #include <shellapi.h>
 #include <wrl.h>
+#include <algorithm>
+#include <array>
 
 
 // d3d12 헤더 파일입니다.
@@ -53,7 +55,8 @@ extern GameFramework       g_GameFramework;
 
 extern SOCKET               g_socket;                           // 소켓
 extern string				g_serverIP;							// 서버 아이피
-extern SOCKADDR_IN          server_address;
+extern thread               g_networkThread;
+extern mutex                g_mutex;
 
 namespace DX
 {
@@ -143,3 +146,13 @@ namespace Matrix
 
 ComPtr<ID3D12Resource> CreateBufferResource(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList,
     const void* data, UINT byte, D3D12_HEAP_TYPE heapType, D3D12_RESOURCE_STATES resourceState, ComPtr<ID3D12Resource>& uploadBuffer);
+
+// 서버 관련
+
+void ErrorQuit(const char* msg);
+void ErrorDisplay(const char* msg);
+
+namespace Setting
+{
+    constexpr auto MAX_PLAYERS = 2;    // 최대 플레이어 수(본인 제외)
+}

@@ -2,26 +2,7 @@
 
 GameFramework::GameFramework()
 {
-#ifdef USE_NETWORK
-	wcout.imbue(locale("korean"));
-	WSADATA wsa;
-	if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) {
-		cout << "WSA START ERROR" << endl;
-	}
 
-	// socket 积己
-	g_socket = socket(AF_INET, SOCK_STREAM, 0);
-	if (g_socket == INVALID_SOCKET) {
-		cout << "SOCKET INIT ERROR!" << endl;
-	}
-
-	// connect
-	server_address.sin_family = AF_INET;
-	server_address.sin_port = htons(SERVER_PORT);
-	inet_pton(AF_INET, g_serverIP.c_str(), &(server_address.sin_addr.s_addr));
-
-	connect(g_socket, reinterpret_cast<SOCKADDR*>(&server_address), sizeof(server_address));
-#endif 
 }
 
 GameFramework::GameFramework(UINT width, UINT height) :
@@ -385,10 +366,13 @@ void GameFramework::FrameAdvance()
 
 void GameFramework::Update(FLOAT timeElapsed)
 {
+
 	wstring title{ TEXT("技惑场 (") + to_wstring((int)(m_timer.GetFPS())) + TEXT("FPS)") };
 	SetWindowText(m_hWnd, title.c_str());
 
 	if (m_scenes[m_sceneIndex]) m_scenes[m_sceneIndex]->Update(timeElapsed);
+
+
 }
 
 void GameFramework::WaitForGpuComplete()

@@ -4,7 +4,7 @@
 class TowerScene : public Scene
 {
 public:
-	TowerScene() = default;
+	TowerScene();
 	~TowerScene() override;
 
 	void OnCreate() override;
@@ -22,10 +22,24 @@ public:
 
 	void CheckBorderLimit();
 
-protected:
-	unordered_map<string, shared_ptr<GameObject>>	m_object;
+    // 서버 관련 함수들
+	void SendPlayerData();
+	void RecvPacket();
+	void ProcessPacket();
+	void RecvLoginOkPacket();
+	void RecvUpdateClient();
 
-	shared_ptr<Player>								m_player;
-	shared_ptr<Camera>								m_camera;
+protected:
+	// 다른 플레이어의 id 확인하기 위해서 추가
+	INT									                    m_left_other_player_id;
+	INT									                    m_right_other_player_id;
+
+	unordered_map<string, shared_ptr<GameObject>>	        m_object;
+
+	shared_ptr<Player>								        m_player;
+	shared_ptr<Camera>								        m_camera;
+
+	array<shared_ptr<Player>, Setting::MAX_PLAYERS>			m_multi_players;
+
 };
 

@@ -30,9 +30,6 @@ using namespace DirectX;
 #pragma comment (lib, "WS2_32.LIB")
 #pragma comment (lib, "MSWSock.LIB")
 
-#define SERVERPORT 9000
-#define MAX_PLAYERS 3
-
 class Server;
 extern Server           g_server;
 extern SOCKET			g_socket;
