@@ -41,6 +41,8 @@ void TowerScene::OnDestroy()
 {
 }
 
+void TowerScene::ReleaseUploadBuffer() {}
+
 void TowerScene::OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime) const
 {
 	SetCursor(NULL);
@@ -157,10 +159,7 @@ void TowerScene::OnProcessingKeyboardMessage(FLOAT timeElapsed) const
 void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, const ComPtr<ID3D12RootSignature>& rootsignature, FLOAT aspectRatio)
 {
 	// 플레이어 생성
-	m_player = make_shared<Player>();
-	/*m_player->SetTexture(m_textures["PLAYER"]);
-	m_player->SetMesh(m_meshs["PLAYER"]);*/
-	m_player->LoadGeometry(device, commandlist, TEXT("./Resource/Model/Warrior.bin"));
+	LoadObjectFromFile(device, commandlist, TEXT("./Resource/Model/Archer.bin"));
 	m_player->SetPosition(XMFLOAT3{ 0.f, 0.f, 0.f });
 	m_shaders["PLAYER"]->SetPlayer(m_player);
 
@@ -193,12 +192,10 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	skybox->SetTexture(m_textures["SKYBOX"]);
 	m_shaders["SKYBOX"]->GetGameObjects().push_back(skybox);
 
-	// 오브젝트 설정
-	m_object.insert({ "SKYBOX", skybox });
-	m_object.insert({ "FIELD", field });
-	m_object.insert({ "FENCE", fence });
-
-	
+	// 오브젝트 설정	
+	m_object.push_back(skybox);
+	m_object.push_back(field);
+	m_object.push_back(fence);
 }
 
 void TowerScene::Update(FLOAT timeElapsed)
@@ -218,6 +215,29 @@ void TowerScene::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) co
 	m_shaders.at("SKYBOX")->Render(commandList);
 	m_shaders.at("FIELD")->Render(commandList);
 	m_shaders.at("FENCE")->Render(commandList);
+}
+
+void TowerScene::LoadObjectFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, wstring fileName)
+{
+	ifstream in{ fileName, std::ios::binary };
+	if (!in) return;
+
+	BYTE strLength;
+
+	while (1) {
+		in.read((char*)(&strLength), sizeof(BYTE));
+		string strToken(strLength, '\0');
+		in.read(&strToken[0], sizeof(char) * strLength);
+
+		if (strToken == "<Hierarchy>:") {
+			auto object = make_shared<Player>();
+			object->LoadObject(device, commandList, in);
+			m_player = object;
+		}
+		else if (strToken == "</Hierarchy>") {
+			break;
+		}
+	}
 }
 
 void TowerScene::CheckBorderLimit()
@@ -289,7 +309,7 @@ void TowerScene::ProcessPacket()
 
 void TowerScene::RecvLoginOkPacket()
 {
-	
+
 	// 플레이어정보 + 닉네임 
 	char buf[sizeof(PlayerData) + NAME_SIZE]{};
 	WSABUF wsabuf{ sizeof(buf), buf };
@@ -304,7 +324,7 @@ void TowerScene::RecvLoginOkPacket()
 	memcpy(&name, &buf[sizeof(PlayerData)], sizeof(name));
 
 	// 다른 플레이어가 들어오면 옆에 위치시키게
-	for (auto& p : m_multi_players)
+	for (auto& p : m_multiPlayers)
 	{
 		if (p) continue;
 		//p = make_shared<Player>(TRUE);
@@ -342,7 +362,7 @@ void TowerScene::RecvUpdateClient()
 
 	// 멀티플레이어 업데이트
 	unique_lock<mutex> lock{ g_mutex };
-	for (auto& p : m_multi_players)
+	for (auto& p : m_multiPlayers)
 	{
 		if (!p) continue;
 		for (auto& d : data)

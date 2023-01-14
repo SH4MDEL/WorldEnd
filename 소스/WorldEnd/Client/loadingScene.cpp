@@ -1,6 +1,5 @@
 #include "loadingScene.h"
 
-
 LoadingScene::~LoadingScene()
 {
 }
@@ -15,69 +14,19 @@ void LoadingScene::OnDestroy()
 
 }
 
+void LoadingScene::ReleaseUploadBuffer()
+{
+	for (const auto& mesh : m_meshs) mesh.second->ReleaseUploadBuffer();
+	for (const auto& texture : m_textures) texture.second->ReleaseUploadBuffer();
+}
+
 void LoadingScene::OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime) const {}
 void LoadingScene::OnProcessingKeyboardMessage(FLOAT timeElapsed) const {}
 
 void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, const ComPtr<ID3D12RootSignature>& rootsignature, FLOAT aspectRatio)
 {
-	vector<TextureVertex> vertices;
-	vector<UINT> indices;
-
-	// right
-	vertices.emplace_back(XMFLOAT3(+0.5f, -0.5f, -0.5f), XMFLOAT2(0.0f, 1.0f));
-	vertices.emplace_back(XMFLOAT3(+0.5f, +0.5f, -0.5f), XMFLOAT2(0.0f, 0.0f));
-	vertices.emplace_back(XMFLOAT3(+0.5f, -0.5f, +0.5f), XMFLOAT2(1.0f, 1.0f));
-	vertices.emplace_back(XMFLOAT3(+0.5f, -0.5f, +0.5f), XMFLOAT2(1.0f, 1.0f));
-	vertices.emplace_back(XMFLOAT3(+0.5f, +0.5f, -0.5f), XMFLOAT2(0.0f, 0.0f));
-	vertices.emplace_back(XMFLOAT3(+0.5f, +0.5f, +0.5f), XMFLOAT2(1.0f, 0.0f));
-
-	// left
-	vertices.emplace_back(XMFLOAT3(-0.5f, -0.5f, +0.5f), XMFLOAT2(0.0f, 1.0f));
-	vertices.emplace_back(XMFLOAT3(-0.5f, +0.5f, +0.5f), XMFLOAT2(0.0f, 0.0f));
-	vertices.emplace_back(XMFLOAT3(-0.5f, -0.5f, -0.5f), XMFLOAT2(1.0f, 1.0f));
-	vertices.emplace_back(XMFLOAT3(-0.5f, -0.5f, -0.5f), XMFLOAT2(1.0f, 1.0f));
-	vertices.emplace_back(XMFLOAT3(-0.5f, +0.5f, +0.5f), XMFLOAT2(0.0f, 0.0f));
-	vertices.emplace_back(XMFLOAT3(-0.5f, +0.5f, -0.5f), XMFLOAT2(1.0f, 0.0f));
-
-	// top
-	vertices.emplace_back(XMFLOAT3(-0.5f, +0.5f, -0.5f), XMFLOAT2(0.0f, 1.0f));
-	vertices.emplace_back(XMFLOAT3(-0.5f, +0.5f, +0.5f), XMFLOAT2(0.0f, 0.0f));
-	vertices.emplace_back(XMFLOAT3(+0.5f, +0.5f, -0.5f), XMFLOAT2(1.0f, 1.0f));
-	vertices.emplace_back(XMFLOAT3(+0.5f, +0.5f, -0.5f), XMFLOAT2(1.0f, 1.0f));
-	vertices.emplace_back(XMFLOAT3(-0.5f, +0.5f, +0.5f), XMFLOAT2(0.0f, 0.0f));
-	vertices.emplace_back(XMFLOAT3(+0.5f, +0.5f, +0.5f), XMFLOAT2(1.0f, 0.0f));
-
-	// bottom
-	vertices.emplace_back(XMFLOAT3(+0.5f, -0.5f, -0.5f), XMFLOAT2(0.0f, 1.0f));
-	vertices.emplace_back(XMFLOAT3(+0.5f, -0.5f, +0.5f), XMFLOAT2(0.0f, 0.0f));
-	vertices.emplace_back(XMFLOAT3(-0.5f, -0.5f, -0.5f), XMFLOAT2(1.0f, 1.0f));
-	vertices.emplace_back(XMFLOAT3(-0.5f, -0.5f, -0.5f), XMFLOAT2(1.0f, 1.0f));
-	vertices.emplace_back(XMFLOAT3(+0.5f, -0.5f, +0.5f), XMFLOAT2(0.0f, 0.0f));
-	vertices.emplace_back(XMFLOAT3(-0.5f, -0.5f, +0.5f), XMFLOAT2(1.0f, 0.0f));
-
-	// back
-	vertices.emplace_back(XMFLOAT3(+0.5f, -0.5f, +0.5f), XMFLOAT2(0.0f, 1.0f));
-	vertices.emplace_back(XMFLOAT3(+0.5f, +0.5f, +0.5f), XMFLOAT2(0.0f, 0.0f));
-	vertices.emplace_back(XMFLOAT3(-0.5f, +0.5f, +0.5f), XMFLOAT2(1.0f, 0.0f));
-	vertices.emplace_back(XMFLOAT3(-0.5f, +0.5f, +0.5f), XMFLOAT2(1.0f, 0.0f));
-	vertices.emplace_back(XMFLOAT3(-0.5f, -0.5f, +0.5f), XMFLOAT2(1.0f, 1.0f));
-	vertices.emplace_back(XMFLOAT3(+0.5f, -0.5f, +0.5f), XMFLOAT2(0.0f, 1.0f));
-
-	// front
-	vertices.emplace_back(XMFLOAT3(-0.5f, -0.5f, -0.5f), XMFLOAT2(0.0f, 1.0f));
-	vertices.emplace_back(XMFLOAT3(-0.5f, +0.5f, -0.5f), XMFLOAT2(0.0f, 0.0f));
-	vertices.emplace_back(XMFLOAT3(+0.5f, -0.5f, -0.5f), XMFLOAT2(1.0f, 1.0f));
-	vertices.emplace_back(XMFLOAT3(+0.5f, -0.5f, -0.5f), XMFLOAT2(1.0f, 1.0f));
-	vertices.emplace_back(XMFLOAT3(-0.5f, +0.5f, -0.5f), XMFLOAT2(0.0f, 0.0f));
-	vertices.emplace_back(XMFLOAT3(+0.5f, +0.5f, -0.5f), XMFLOAT2(1.0f, 0.0f));
-
 	// 플레이어 생성
 	auto playerShader{ make_shared<TextureHierarchyShader>(device, rootsignature) };
-	auto playerTexture{ make_shared<Texture>() };
-	auto playerMesh{ make_shared<Mesh>(device, commandlist, vertices, indices) };
-	playerTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/Bricks.dds"), 2);
-	playerTexture->CreateSrvDescriptorHeap(device);
-	playerTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
 
 	// 지형 생성
 	auto fieldShader{ make_shared<DetailShader>(device, rootsignature) };
@@ -101,11 +50,14 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	skyboxTexture->CreateSrvDescriptorHeap(device);
 	skyboxTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURECUBE);
 
-	// 메쉬 설정
-	m_meshs.insert({ "PLAYER", playerMesh });
+	// 플레이어 메쉬 설정
+	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/WarriorMesh.bin"));
+	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/ArcherMesh.bin"));
+
+	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/WarriorTexture.bin"));
+	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/ArcherTexture.bin"));
 
 	// 텍스처 설정
-	m_textures.insert({ "PLAYER", playerTexture });
 	m_textures.insert({ "SKYBOX", skyboxTexture });
 	m_textures.insert({ "FIELD", fieldTexture });
 	m_textures.insert({ "FENCE", fenceTexture });
@@ -122,4 +74,69 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 void LoadingScene::Update(FLOAT timeElapsed) {}
 
 void LoadingScene::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const {}
+
+void LoadingScene::LoadMeshFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, wstring fileName)
+{
+	ifstream in{ fileName, std::ios::binary };
+	if (!in) return;
+
+	BYTE strLength;
+	string backup;
+	while (1) {
+		in.read((char*)(&strLength), sizeof(BYTE));
+		string strToken(strLength, '\0');
+		in.read(&strToken[0], sizeof(char) * strLength);
+
+		if (strToken == "<Hierarchy>:") {}
+		else if (strToken == "<SkinningInfo>:") {
+			auto skinnedMesh = make_shared<SkinnedMesh>();
+			skinnedMesh->LoadSkinnedMesh(device, commandList, in);
+		}
+		else if (strToken == "<Mesh>:") {
+			auto mesh = make_shared<MeshFromFile>();
+			mesh->LoadMesh(device, commandList, in);
+
+			m_meshs.insert({ mesh->GetMeshName(), mesh });
+		}
+		else if (strToken == "</Hierarchy>") {
+			break;
+		}
+	}
+}
+
+void LoadingScene::LoadMaterialFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, wstring fileName)
+{
+	ifstream in{ fileName, std::ios::binary };
+	if (!in) return;
+
+	BYTE strLength;
+	INT frame, texture;
+
+	while (1) {
+		in.read((char*)(&strLength), sizeof(BYTE));
+		string strToken(strLength, '\0');
+		in.read(&strToken[0], sizeof(char) * strLength);
+
+		if (strToken == "<Hierarchy>:") {}
+		else if (strToken == "<Frame>:") {
+			auto materials = make_shared<Materials>();
+
+			in.read((char*)(&frame), sizeof(INT));
+			in.read((char*)(&texture), sizeof(INT));
+
+			in.read((char*)(&strLength), sizeof(BYTE));
+			materials->m_materialName.resize(strLength);
+			in.read((&materials->m_materialName[0]), sizeof(char) * strLength);
+
+			materials->LoadMaterials(device, commandList, in);
+
+			m_materials.insert({ materials->m_materialName, materials });
+			m_materials.insert({ "@" + materials->m_materialName, materials});
+		}
+		else if (strToken == "</Hierarchy>") {
+			break;
+		}
+	}
+}
+
 

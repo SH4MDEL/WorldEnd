@@ -18,10 +18,11 @@ public:
 
 	void SetMesh(const shared_ptr<Mesh>& mesh);
 	void SetTexture(const shared_ptr<Texture>& texture);
-	void SetMaterial(const shared_ptr<Material>& material);
+	void SetMaterials(const shared_ptr<Materials>& materials);
 
 	void SetPosition(const XMFLOAT3& position);
 	void SetScale(FLOAT x, FLOAT y, FLOAT z);
+	void SetWorldMatrix(const XMFLOAT4X4& worldMatrix);
 
 	XMFLOAT4X4 GetWorldMatrix() const { return m_worldMatrix; }
 	XMFLOAT3 GetPosition() const;
@@ -34,15 +35,11 @@ public:
 	void SetChild(const shared_ptr<GameObject>& child);
 	shared_ptr<GameObject> FindFrame(string frameName);
 
-	void LoadGeometry(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, const wstring& fileName);
-	void LoadFrameHierarchy(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, ifstream& in);
+	void LoadObject(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, ifstream& in);
 
 	void UpdateBoundingBox();
 	void SetBoundingBox(const BoundingOrientedBox& boundingBox);
 
-	//XMFLOAT3 GetPositionX(return XMFLOAT3{ m_worldMatrix._41 };)
-
-	
 protected:
 	XMFLOAT4X4					m_transformMatrix;
 	XMFLOAT4X4					m_worldMatrix;
@@ -58,7 +55,7 @@ protected:
 
 	shared_ptr<Mesh>			m_mesh;			// 메쉬
 	shared_ptr<Texture>			m_texture;		// 텍스처
-	shared_ptr<Material>		m_material;		// 재질
+	shared_ptr<Materials>		m_materials;	// 재질
 
 	string						m_frameName;	// 현재 프레임의 이름
 	shared_ptr<GameObject>		m_parent;

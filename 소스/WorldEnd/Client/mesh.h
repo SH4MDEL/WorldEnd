@@ -73,6 +73,7 @@ public:
 
 	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& m_commandList) const;
 	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& m_commandList, const D3D12_VERTEX_BUFFER_VIEW& instanceBufferView) const;
+	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& m_commandList, UINT subMeshIndex) const;
 	virtual void ReleaseUploadBuffer();
 
 	BoundingOrientedBox GetBoundingBox() { return m_boundingBox; }
@@ -98,13 +99,15 @@ public:
 	MeshFromFile();
 	~MeshFromFile() = default;
 
-	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& m_commandList) const;
+	void Render(const ComPtr<ID3D12GraphicsCommandList>& m_commandList, UINT subMeshIndex) const override;
 
 	void ReleaseUploadBuffer() override;
 
+	void LoadFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, const wstring& fileName);
+	void LoadFileMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, ifstream& in);
 	void LoadMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, ifstream& in);
-	void LoadMaterial(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, ifstream& in);
-	void SetMaterials(const shared_ptr<vector<Material>> materials) { m_materials = materials; }
+
+	string GetMeshName() const { return m_meshName; }
 
 private:
 	string								m_meshName;
@@ -116,8 +119,6 @@ private:
 	vector<ComPtr<ID3D12Resource>>		m_subsetIndexBuffers;
 	vector<ComPtr<ID3D12Resource>>		m_subsetIndexUploadBuffers;
 	vector<D3D12_INDEX_BUFFER_VIEW>		m_subsetIndexBufferViews;
-
-	shared_ptr<vector<Material>>		m_materials;
 };
 
 // ------------------------------------------

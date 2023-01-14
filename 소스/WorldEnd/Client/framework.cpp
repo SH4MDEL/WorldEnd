@@ -20,7 +20,6 @@ GameFramework::GameFramework(UINT width, UINT height) :
 
 GameFramework::~GameFramework()
 {
-
 }
 
 void GameFramework::OnCreate(HINSTANCE hInstance, HWND hWnd)
@@ -338,8 +337,7 @@ void GameFramework::BuildObjects()
 
 	WaitForGpuComplete();
 
-	//for (const auto& shader : m_scene->GetShaders())
-	//	shader.second->ReleaseUploadBuffer();
+	for (const auto& scene : m_scenes) scene->ReleaseUploadBuffer();
 
 	m_timer.Tick();
 }

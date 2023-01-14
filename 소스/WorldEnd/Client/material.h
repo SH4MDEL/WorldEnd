@@ -41,3 +41,11 @@ struct Material
 	shared_ptr<Texture>		m_detailAlbedoMap;
 	shared_ptr<Texture>		m_detailNormalMap;
 };
+
+struct Materials 
+{
+	void LoadMaterials(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, ifstream& in);
+
+	string					m_materialName;
+	vector<Material>		m_materials;
+};

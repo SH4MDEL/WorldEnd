@@ -39,19 +39,12 @@ Shader::Shader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignat
 
 }
 
-Shader::~Shader()
-{
-	ReleaseShaderVariable();
-}
-
 void Shader::Update(FLOAT timeElapsed)
 {
-	if (m_player) {
-		m_player->Update(timeElapsed);
-	}
+	if (m_player) m_player->Update(timeElapsed);
 
 	for (const auto& elm : m_gameObjects)
-		if (elm) elm->Update(timeElapsed);
+		elm->Update(timeElapsed);
 }
 
 void Shader::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const
@@ -67,19 +60,6 @@ void Shader::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const
 void Shader::UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& commandList) const
 {
 	commandList->SetPipelineState(m_pipelineState.Get());
-}
-
-void Shader::ReleaseShaderVariable()
-{
-
-}
-
-void Shader::ReleaseUploadBuffer() const
-{
-	if (m_player) m_player->ReleaseUploadBuffer();
-
-	for (const auto& elm : m_gameObjects)
-		if (elm) elm->ReleaseUploadBuffer();
 }
 
 void Shader::SetPlayer(const shared_ptr<Player>& player)
@@ -136,11 +116,6 @@ void DetailShader::CreatePipelineState(const ComPtr<ID3D12Device>& device, const
 	psoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 	psoDesc.SampleDesc.Count = 1;
 	DX::ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
-}
-
-void DetailShader::ReleaseUploadBuffer() const
-{
-	if (m_field) m_field->ReleaseUploadBuffer();
 }
 
 void DetailShader::Update(FLOAT timeElapsed)

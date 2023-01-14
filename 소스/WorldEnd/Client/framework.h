@@ -19,7 +19,7 @@ public:
 	void OnProcessingMouseMessage() const;
 	void OnProcessingKeyboardMessage() const;
 	void StartPipeline();
-
+	
 	// 1. 디바이스 생성
 	void CreateDevice();
 

@@ -103,6 +103,8 @@ void Mesh::Render(const ComPtr<ID3D12GraphicsCommandList>& m_commandList, const 
 	}
 }
 
+void Mesh::Render(const ComPtr<ID3D12GraphicsCommandList>& m_commandList, UINT subMeshIndex) const { }
+
 void Mesh::ReleaseUploadBuffer()
 {
 	if (m_vertexUploadBuffer) m_vertexUploadBuffer.Reset();
@@ -114,21 +116,20 @@ MeshFromFile::MeshFromFile()
 	m_primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 }
 
-void MeshFromFile::Render(const ComPtr<ID3D12GraphicsCommandList>& m_commandList) const
+void MeshFromFile::Render(const ComPtr<ID3D12GraphicsCommandList>& m_commandList, UINT subMeshIndex) const
 {
 	m_commandList->IASetPrimitiveTopology(m_primitiveTopology);
 	m_commandList->IASetVertexBuffers(0, 1, &m_vertexBufferView);
-	if ((m_nSubMeshes > 0))
-	{
-		for (UINT i = 0; i < m_nSubMeshes; ++i) {
-			m_materials->at(i).UpdateShaderVariable(m_commandList);
 
-			m_commandList->IASetIndexBuffer(&m_subsetIndexBufferViews[i]);
-			m_commandList->DrawIndexedInstanced(m_vSubsetIndices[i], 1, 0, 0, 0);
-		}
+	if (0 < m_nSubMeshes && subMeshIndex < m_nSubMeshes) {
+		m_commandList->IASetIndexBuffer(&m_subsetIndexBufferViews[subMeshIndex]);
+		m_commandList->DrawIndexedInstanced(m_vSubsetIndices[subMeshIndex], 1, 0, 0, 0);
 	}
-	else
-	{
+	else if (m_nIndices) {
+		m_commandList->IASetIndexBuffer(&m_indexBufferView);
+		m_commandList->DrawIndexedInstanced(m_nIndices, 1, 0, 0, 0);
+	}
+	else {
 		m_commandList->DrawInstanced(m_nVertices, 1, 0, 0);
 	}
 }
@@ -142,9 +143,189 @@ void MeshFromFile::ReleaseUploadBuffer()
 	}
 }
 
+void MeshFromFile::LoadFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, const wstring& fileName)
+{
+	ifstream in{ fileName, std::ios::binary };
+	if (!in) return;
+
+	LoadFileMesh(device, commandList, in);
+}
+
+void MeshFromFile::LoadFileMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, ifstream& in)
+{
+	m_primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	m_nIndices = 0;
+
+	vector<TextureHierarchyVertex> vertices;
+	vector<UINT> indices;
+
+	BYTE strLength;
+
+	INT positionNum, colorNum, texcoord0Num, texcoord1Num, normalNum, tangentNum, biTangentNum;
+
+
+	while (1) {
+		in.read((char*)(&strLength), sizeof(BYTE));
+		string strToken(strLength, '\0');
+		in.read(&strToken[0], sizeof(char) * strLength);
+
+		if (strToken == "<BoundingBox>:") {
+			in.read((char*)(&m_boundingBox.Center), sizeof(XMFLOAT3));
+			in.read((char*)(&m_boundingBox.Extents), sizeof(XMFLOAT3));
+		}
+		else if (strToken == "<Vertices>:") {
+			in.read((char*)(&positionNum), sizeof(INT));
+			if (vertices.size() < positionNum) {
+				m_nVertices = positionNum;
+				vertices.resize(positionNum);
+			}
+			for (int i = 0; i < positionNum; ++i) {
+				in.read((char*)(&vertices[i].position), sizeof(XMFLOAT3));
+			}
+		}
+		else if (strToken == "<Colors>:") {
+			XMFLOAT4 dummy;
+			in.read((char*)(&colorNum), sizeof(INT));
+			for (int i = 0; i < colorNum; ++i) {
+				in.read((char*)(&dummy), sizeof(XMFLOAT4));
+			}
+		}
+		else if (strToken == "<TextureCoords0>:") {
+			in.read((char*)(&texcoord0Num), sizeof(INT));
+			if (vertices.size() < texcoord0Num) {
+				m_nVertices = texcoord0Num;
+				vertices.resize(texcoord0Num);
+			}
+			for (int i = 0; i < texcoord0Num; ++i) {
+				in.read((char*)(&vertices[i].uv0), sizeof(XMFLOAT2));
+			}
+		}
+		else if (strToken == "<TextureCoords1>:") {
+			XMFLOAT2 dummy;
+			in.read((char*)(&texcoord1Num), sizeof(INT));
+			for (int i = 0; i < texcoord1Num; ++i) {
+				in.read((char*)(&dummy), sizeof(XMFLOAT2));
+			}
+		}
+		else if (strToken == "<Normals>:") {
+			in.read((char*)(&normalNum), sizeof(INT));
+			if (vertices.size() < normalNum) {
+				m_nVertices = normalNum;
+				vertices.resize(normalNum);
+			}
+			for (int i = 0; i < normalNum; ++i) {
+				in.read((char*)(&vertices[i].normal), sizeof(XMFLOAT3));
+			}
+		}
+		else if (strToken == "<Tangents>:") {
+			in.read((char*)(&tangentNum), sizeof(INT));
+			if (vertices.size() < tangentNum) {
+				m_nVertices = tangentNum;
+				vertices.resize(tangentNum);
+			}
+			for (int i = 0; i < tangentNum; ++i) {
+				in.read((char*)(&vertices[i].tangent), sizeof(XMFLOAT3));
+			}
+		}
+		else if (strToken == "<BiTangents>:") {
+			in.read((char*)(&biTangentNum), sizeof(INT));
+			if (vertices.size() < biTangentNum) {
+				m_nVertices = biTangentNum;
+				vertices.resize(biTangentNum);
+			}
+			for (int i = 0; i < biTangentNum; ++i) {
+				in.read((char*)(&vertices[i].biTangent), sizeof(XMFLOAT3));
+			}
+		}
+		else if (strToken == "<Indices>:") {
+			in.read((char*)(&m_nIndices), sizeof(INT));
+			indices.resize(m_nIndices);
+			for (int i = 0; i < m_nIndices; ++i) {
+				in.read((char*)(&indices[i]), sizeof(UINT));
+			}
+		}
+		else if (strToken == "<SubMeshes>:") {
+			in.read((char*)(&m_nSubMeshes), sizeof(UINT));
+			if (m_nSubMeshes > 0) {
+				m_vSubsetIndices.resize(m_nSubMeshes);
+				m_vvSubsetIndices.resize(m_nSubMeshes);
+				m_subsetIndexBuffers.resize(m_nSubMeshes);
+				m_subsetIndexUploadBuffers.resize(m_nSubMeshes);
+				m_subsetIndexBufferViews.resize(m_nSubMeshes);
+
+				for (UINT i = 0; i < m_nSubMeshes; ++i) {
+					int index;
+					in.read((char*)(&index), sizeof(UINT));
+					in.read((char*)(&m_vSubsetIndices[i]), sizeof(UINT));
+					in.read((char*)(&m_nIndices), sizeof(INT));
+					if (m_vSubsetIndices[i] > 0) {
+						m_vvSubsetIndices[i].resize(m_vSubsetIndices[i]);
+						in.read((char*)(&m_vvSubsetIndices[i][0]), sizeof(UINT) * m_vSubsetIndices[i]);
+
+						m_subsetIndexBuffers[i] = CreateBufferResource(device, commandList, m_vvSubsetIndices[i].data(),
+							sizeof(UINT) * m_vSubsetIndices[i], D3D12_HEAP_TYPE_DEFAULT,
+							D3D12_RESOURCE_STATE_INDEX_BUFFER, m_subsetIndexUploadBuffers[i]);
+
+						m_subsetIndexBufferViews[i].BufferLocation = m_subsetIndexBuffers[i]->GetGPUVirtualAddress();
+						m_subsetIndexBufferViews[i].Format = DXGI_FORMAT_R32_UINT;
+						m_subsetIndexBufferViews[i].SizeInBytes = sizeof(UINT) * m_vSubsetIndices[i];
+					}
+				}
+			}
+			break;
+		}
+		else if (strToken == "</Mesh>") {
+			break;
+		}
+	}
+
+	m_nVertices = (UINT)vertices.size();
+	m_vertexBuffer = CreateBufferResource(device, commandList, vertices.data(),
+		sizeof(TextureHierarchyVertex) * vertices.size(), D3D12_HEAP_TYPE_DEFAULT,
+		D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, m_vertexUploadBuffer);
+
+	m_vertexBufferView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
+	m_vertexBufferView.StrideInBytes = sizeof(TextureHierarchyVertex);
+	m_vertexBufferView.SizeInBytes = sizeof(TextureHierarchyVertex) * vertices.size();
+
+	m_nIndices = (UINT)indices.size();
+	if (m_nIndices) {
+		const UINT indexBufferSize = (UINT)sizeof(UINT) * (UINT)indices.size();
+
+		DX::ThrowIfFailed(device->CreateCommittedResource(
+			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+			D3D12_HEAP_FLAG_NONE,
+			&CD3DX12_RESOURCE_DESC::Buffer(indexBufferSize),
+			D3D12_RESOURCE_STATE_COPY_DEST,
+			NULL,
+			IID_PPV_ARGS(&m_indexBuffer)));
+
+		DX::ThrowIfFailed(device->CreateCommittedResource(
+			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+			D3D12_HEAP_FLAG_NONE,
+			&CD3DX12_RESOURCE_DESC::Buffer(indexBufferSize),
+			D3D12_RESOURCE_STATE_GENERIC_READ,
+			NULL,
+			IID_PPV_ARGS(&m_indexUploadBuffer)));
+
+		D3D12_SUBRESOURCE_DATA indexData{};
+		indexData.pData = indices.data();
+		indexData.RowPitch = indexBufferSize;
+		indexData.SlicePitch = indexData.RowPitch;
+		UpdateSubresources<1>(commandList.Get(), m_indexBuffer.Get(), m_indexUploadBuffer.Get(), 0, 0, 1, &indexData);
+
+		commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_indexBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_INDEX_BUFFER));
+
+		m_indexBufferView.BufferLocation = m_indexBuffer->GetGPUVirtualAddress();
+		m_indexBufferView.Format = DXGI_FORMAT_R32_UINT;
+		m_indexBufferView.SizeInBytes = indexBufferSize;
+	}
+}
+
 void MeshFromFile::LoadMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, ifstream& in)
 {
 	m_primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	m_nIndices = 0;
 
 	vector<TextureHierarchyVertex> vertices;
 	vector<UINT> indices;
@@ -156,6 +337,7 @@ void MeshFromFile::LoadMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3
 	in.read((char*)(&m_nVertices), sizeof(INT));
 
 	in.read((char*)(&strLength), sizeof(BYTE));
+	m_meshName.resize(strLength, '\0');
 	in.read(&m_meshName[0], sizeof(char) * strLength);
 
 	while (1) {
@@ -164,7 +346,6 @@ void MeshFromFile::LoadMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3
 		in.read(&strToken[0], sizeof(char) * strLength);
 
 		if (strToken == "<Bounds>:") {
-			XMFLOAT3 dummy;
 			in.read((char*)(&m_boundingBox.Center), sizeof(XMFLOAT3));
 			in.read((char*)(&m_boundingBox.Extents), sizeof(XMFLOAT3));
 		}
@@ -286,109 +467,6 @@ void MeshFromFile::LoadMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3
 	m_vertexBufferView.SizeInBytes = sizeof(TextureHierarchyVertex) * vertices.size();
 }
 
-void MeshFromFile::LoadMaterial(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, ifstream& in)
-{
-	BYTE strLength;
-	INT materialNum, materialCount;
-	m_materials = make_shared<vector<Material>>();
-
-	in.read((char*)(&materialCount), sizeof(INT));
-	m_materials->resize(materialCount);
-
-	while (1) {
-		in.read((char*)(&strLength), sizeof(BYTE));
-		string strToken(strLength, '\0');
-		in.read((&strToken[0]), sizeof(char) * strLength);
-
-		if (strToken == "<Material>:") {
-			in.read((char*)(&materialNum), sizeof(INT));
-		}
-		else if (strToken == "<AlbedoColor>:") {
-			in.read((char*)(&m_materials->at(materialNum).m_albedoColor), sizeof(XMFLOAT4));
-		}
-		else if (strToken == "<EmissiveColor>:") {
-			in.read((char*)(&m_materials->at(materialNum).m_emissiveColor), sizeof(XMFLOAT4));
-		}
-		else if (strToken == "<SpecularColor>:") {
-			in.read((char*)(&m_materials->at(materialNum).m_specularColor), sizeof(XMFLOAT4));
-		}
-		else if (strToken == "<Glossiness>:") {
-			in.read((char*)(&m_materials->at(materialNum).m_glossiness), sizeof(FLOAT));
-		}
-		else if (strToken == "<Smoothness>:") {
-			in.read((char*)(&m_materials->at(materialNum).m_smoothness), sizeof(FLOAT));
-		}
-		else if (strToken == "<Metallic>:") {
-			in.read((char*)(&m_materials->at(materialNum).m_metalic), sizeof(FLOAT));
-		}
-		else if (strToken == "<SpecularHighlight>:") {
-			in.read((char*)(&m_materials->at(materialNum).m_specularHighlight), sizeof(FLOAT));
-		}
-		else if (strToken == "<GlossyReflection>:") {
-			in.read((char*)(&m_materials->at(materialNum).m_glossyReflection), sizeof(FLOAT));
-		}
-		else if (strToken == "<AlbedoMap>:") {
-			m_materials->at(materialNum).m_albedoMap = make_shared<Texture>();
-			if (m_materials->at(materialNum).m_albedoMap->LoadTextureFileHierarchy(device, commandList, in, 6)) {
-				m_materials->at(materialNum).m_type |= MATERIAL_ALBEDO_MAP;
-				m_materials->at(materialNum).m_albedoMap->CreateSrvDescriptorHeap(device);
-				m_materials->at(materialNum).m_albedoMap->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
-			}
-		}
-		else if (strToken == "<SpecularMap>:") {
-			m_materials->at(materialNum).m_specularMap = make_shared<Texture>();
-			if (m_materials->at(materialNum).m_specularMap->LoadTextureFileHierarchy(device, commandList, in, 7)) {
-				m_materials->at(materialNum).m_type |= MATERIAL_SPECULAR_MAP;
-				m_materials->at(materialNum).m_specularMap->CreateSrvDescriptorHeap(device);
-				m_materials->at(materialNum).m_specularMap->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
-			}
-		}
-		else if (strToken == "<NormalMap>:") {
-			m_materials->at(materialNum).m_normalMap = make_shared<Texture>();
-			if (m_materials->at(materialNum).m_normalMap->LoadTextureFileHierarchy(device, commandList, in, 8)) {
-				m_materials->at(materialNum).m_type |= MATERIAL_NORMAL_MAP;
-				m_materials->at(materialNum).m_normalMap->CreateSrvDescriptorHeap(device);
-				m_materials->at(materialNum).m_normalMap->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
-			}
-		}
-		else if (strToken == "<MetallicMap>:") {
-			m_materials->at(materialNum).m_metallicMap = make_shared<Texture>();
-			if (m_materials->at(materialNum).m_metallicMap->LoadTextureFileHierarchy(device, commandList, in, 9)) {
-				m_materials->at(materialNum).m_type |= MATERIAL_METALLIC_MAP;
-				m_materials->at(materialNum).m_metallicMap->CreateSrvDescriptorHeap(device);
-				m_materials->at(materialNum).m_metallicMap->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
-			}
-		}
-		else if (strToken == "<EmissionMap>:") {
-			m_materials->at(materialNum).m_emissionMap = make_shared<Texture>();
-			if (m_materials->at(materialNum).m_emissionMap->LoadTextureFileHierarchy(device, commandList, in, 10)) {
-				m_materials->at(materialNum).m_type |= MATERIAL_EMISSION_MAP;
-				m_materials->at(materialNum).m_emissionMap->CreateSrvDescriptorHeap(device);
-				m_materials->at(materialNum).m_emissionMap->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
-			}
-		}
-		else if (strToken == "<DetailAlbedoMap>:") {
-			m_materials->at(materialNum).m_detailAlbedoMap = make_shared<Texture>();
-			if (m_materials->at(materialNum).m_detailAlbedoMap->LoadTextureFileHierarchy(device, commandList, in, 11)) {
-				m_materials->at(materialNum).m_type |= MATERIAL_DETAIL_ALBEDO_MAP;
-				m_materials->at(materialNum).m_detailAlbedoMap->CreateSrvDescriptorHeap(device);
-				m_materials->at(materialNum).m_detailAlbedoMap->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
-			}
-		}
-		else if (strToken == "<DetailNormalMap>:") {
-			m_materials->at(materialNum).m_detailNormalMap = make_shared<Texture>();
-			if (m_materials->at(materialNum).m_detailNormalMap->LoadTextureFileHierarchy(device, commandList, in, 12)) {
-				m_materials->at(materialNum).m_type |= MATERIAL_DETAIL_NORMAL_MAP;
-				m_materials->at(materialNum).m_detailNormalMap->CreateSrvDescriptorHeap(device);
-				m_materials->at(materialNum).m_detailNormalMap->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
-			}
-		}
-		else if (strToken == "</Materials>") {
-			break;
-		}
-	}
-}
-
 FieldMapImage::FieldMapImage(INT width, INT length, INT height, XMFLOAT3 scale) :
 	m_width(width), m_length(length), m_scale(scale), m_pixels{ new BYTE[width * length] }
 {
@@ -410,7 +488,7 @@ FLOAT FieldMapImage::GetHeight(FLOAT x, FLOAT z) const
 	int mz{ (int)z };
 	float px{ x - mx };
 	float pz{ z - mz };
-
+	
 	float bottomLeft{ (float)m_pixels[mx + mz * m_width] };
 	float bottomRight{ (float)m_pixels[(mx + 1) + (mz * m_width)] };
 	float topLeft{ (float)m_pixels[mx + (mz + 1) * m_width] };
@@ -701,7 +779,6 @@ void SkinnedMesh::LoadSkinnedMesh(const ComPtr<ID3D12Device>& device, const ComP
 			m_nBonesPerVertex = bonesPerVertex;
 		}
 		else if (strToken == "<Bounds>:") {
-			XMFLOAT3 dummy;
 			in.read((char*)(&m_boundingBox.Center), sizeof(XMFLOAT3));
 			in.read((char*)(&m_boundingBox.Extents), sizeof(XMFLOAT3));
 		}

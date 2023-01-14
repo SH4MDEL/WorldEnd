@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "framework.h"
+#include "scene.h"
 
 GameFramework       g_GameFramework(1280, 720);
 
