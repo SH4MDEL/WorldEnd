@@ -146,7 +146,7 @@ shared_ptr<GameObject> GameObject::FindFrame(string frameName)
 	return nullptr;
 }
 
-void GameObject::LoadObject(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, ifstream& in)
+void GameObject::LoadObject(ifstream& in)
 {
 	BYTE strLength;
 	INT frame, texture;
@@ -206,7 +206,7 @@ void GameObject::LoadObject(const ComPtr<ID3D12Device>& device, const ComPtr<ID3
 			if (childNum) {
 				for (int i = 0; i < childNum; ++i) {
 					auto child = make_shared<GameObject>();
-					child->LoadObject(device, commandList, in);
+					child->LoadObject(in);
 					SetChild(child);
 				}
 			}

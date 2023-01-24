@@ -24,8 +24,8 @@ public:
 	void SetCamera(const shared_ptr<Camera>& camera) { m_camera = camera; }
 	
 	// 추가
-	void SetId(INT id) { m_id = id; }
-	INT GetId() const;
+	void SetID(INT id) { m_id = id; }
+	INT GetID() const { return m_id; }
 
 private:
 	XMFLOAT3						m_velocity;		// 속도

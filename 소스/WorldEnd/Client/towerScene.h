@@ -20,7 +20,7 @@ public:
 	void Update(FLOAT timeElapsed) override;
 	void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const override;
 
-	void LoadObjectFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, wstring fileName);
+	void LoadObjectFromFile(wstring fileName, shared_ptr<GameObject> object);
 
 	void CheckBorderLimit();
 
@@ -32,15 +32,11 @@ public:
 	void RecvUpdateClient();
 
 protected:
-	vector<shared_ptr<GameObject>>		m_object;
+	vector<shared_ptr<GameObject>>			m_object;
 
-	shared_ptr<Player>					m_player;
-	shared_ptr<Camera>					m_camera;
+	shared_ptr<Player>						m_player;
+	shared_ptr<Camera>						m_camera;
 
-	// 다른 플레이어의 id 확인하기 위해서 추가
-	INT									                    m_left_other_player_id;
-	INT									                    m_right_other_player_id;
-
-	array<shared_ptr<Player>, Setting::MAX_PLAYERS>			m_multiPlayers;
+	unordered_map<INT, shared_ptr<Player>>	m_multiPlayers;
 };
 

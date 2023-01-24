@@ -55,6 +55,9 @@ void Shader::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const
 
 	for (const auto& elm : m_gameObjects)
 		if (elm) elm->Render(commandList);
+
+	for (const auto& elm : m_multiPlayers)
+		if (elm.second) elm.second->Render(commandList);
 }
 
 void Shader::UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& commandList) const
@@ -72,6 +75,16 @@ void Shader::SetCamera(const shared_ptr<Camera>& camera)
 {
 	if (m_camera) m_camera.reset();
 	m_camera = camera;
+}
+
+void Shader::SetObject(const shared_ptr<GameObject>& object)
+{
+	m_gameObjects.push_back(object);
+}
+
+void Shader::SetMultiPlayer(INT ID, const shared_ptr<Player>& player)
+{
+	m_multiPlayers.insert({ ID, player });
 }
 
 DetailShader::DetailShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature)

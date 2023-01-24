@@ -117,8 +117,3 @@ void Player::AddVelocity(const XMFLOAT3& increase)
 		m_velocity = Vector3::Mul(m_velocity, ratio);
 	}
 }
-
-INT Player::GetId() const
-{
-	return m_id;
-}
