@@ -2,14 +2,109 @@
 #include "stdafx.h"
 #include "player.h"
 
-#define MAX_ROLL +20
-#define MIN_ROLL -10
+// 카메라 클래스는 두 종류의 중요한 정보를 저장한다
+// 1. 카메라 좌표계를 정의하는 속성
+// 2. 사야 절두체를 정의하는 속성
+
+#define MAX_PITCH +20
+#define MIN_PITCH -10
 
 struct CameraInfo
 {
 	XMFLOAT4X4			viewMatrix;	// 뷰변환 행렬
 	XMFLOAT4X4			projMatrix;	// 투영변환 행렬
 };
+
+//class Camera
+//{
+//public:
+//
+//	Camera();
+//	~Camera();
+//
+//	void CreateShaderVariable(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList);
+//	void UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& commandList);
+//
+//	virtual void Update(FLOAT timeElapsed) = 0;
+//	virtual void Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw) = 0;
+//	// Set frustum.
+//	void SetLens(float fovY, float aspect, float zn, float zf);
+//
+//	// Define camera space via LookAt parameters.
+//	void LookAt(const XMFLOAT3& pos, const XMFLOAT3& target, const XMFLOAT3& up);
+//
+//	XMFLOAT4X4 GetView() const { return m_view; }
+//	XMFLOAT4X4 GetProj() const { return m_proj; }
+//	void SetView(const XMFLOAT4X4& view) { m_view = view; }
+//	void SetProj(const XMFLOAT4X4& proj) { m_proj = proj; }
+//
+//	DirectX::XMFLOAT3 GetEye() const;
+//	DirectX::XMFLOAT3 GetRight() const;
+//	DirectX::XMFLOAT3 GetUp() const;
+//	DirectX::XMFLOAT3 GetLook() const;
+//	void SetEye(const XMFLOAT3& eye);
+//
+//	float GetNearZ() const;
+//	float GetFarZ() const;
+//	float GetAspect() const;
+//	float GetFovY() const;
+//	float GetFovX() const;
+//
+//	float GetNearWindowWidth() const;
+//	float GetNearWindowHeight() const;
+//	float GetFarWindowWidth() const;
+//	float GetFarWindowHeight() const;
+//
+//
+//	// Strafe/Walk the camera a distance d.
+//	void Strafe(float d);
+//	void Walk(float d);
+//
+//	// Rotate the camera.
+//	void SetPitch(float angle);
+//	void SetYaw(float angle);
+//
+//	// After modifying camera position/orientation, call to rebuild the view matrix.
+//	void UpdateViewMatrix();
+//
+//protected:
+//	XMFLOAT4X4 m_view;
+//	XMFLOAT4X4 m_proj;
+//
+//	ComPtr<ID3D12Resource>	m_cameraBuffer;
+//	CameraInfo* m_cameraBufferPointer;
+//
+//	XMFLOAT3 m_eye;
+//	XMFLOAT3 m_right;
+//	XMFLOAT3 m_up;
+//	XMFLOAT3 m_look;
+//
+//	FLOAT m_nearZ;
+//	FLOAT m_farZ;
+//	FLOAT m_aspect;
+//	FLOAT m_fovY;
+//	FLOAT m_nearWindowHeight;
+//	FLOAT m_farWindowHeight;
+//};
+//
+//class ThirdPersonCamera : public Camera
+//{
+//public:
+//	ThirdPersonCamera();
+//	~ThirdPersonCamera() = default;
+//
+//	void Update(FLOAT timeElapsed) override;
+//	void Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw) override;
+//
+//	XMFLOAT3 GetOffset() const { return m_offset; }
+//	void SetOffset(const XMFLOAT3& offset) { m_offset = offset; }
+//	void SetDelay(FLOAT delay) { m_delay = delay; }
+//
+//private:
+//	XMFLOAT3	m_offset;
+//	FLOAT		m_delay;
+//};
+
 
 class Camera
 {
@@ -20,7 +115,7 @@ public:
 	void CreateShaderVariable(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList);
 	void UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& commandList);
 	void UpdateLocalAxis();
-	virtual void Update(FLOAT timeElapsed) { };
+	virtual void Update(FLOAT timeElapsed) = 0;
 
 	void Move(const XMFLOAT3& shift);
 	virtual void Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw);

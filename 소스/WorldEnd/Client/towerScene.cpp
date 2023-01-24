@@ -53,107 +53,14 @@ void TowerScene::OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FL
 
 	int dx = nextPosition.x - prevPosition.x;
 	int dy = nextPosition.y - prevPosition.y;
-	m_player->Rotate(dy * 5.0f * deltaTime, dx * 5.0f * deltaTime, 0.0f);
+
+	if (m_camera) m_camera->Rotate(0.f, dy * 5.0f * deltaTime, dx * 5.0f * deltaTime);
 	SetCursorPos(prevPosition.x, prevPosition.y);
 }
 
 void TowerScene::OnProcessingKeyboardMessage(FLOAT timeElapsed) const
 {
-#ifdef USE_NETWORK
-	char packet_direction = 0;
-
-	if (GetAsyncKeyState('W') & 0x8000)
-	{
-		m_player->AddVelocity(Vector3::Mul(m_player->GetFront(), timeElapsed * 10.0f));
-		CS_PLAYER_MOVE_PACKET move_packet;
-		move_packet.size = sizeof(move_packet);
-		move_packet.type = CS_PACKET_PLAYER_MOVE;
-		move_packet.pos = m_player->GetPosition();
-		move_packet.velocity = m_player->GetVelocity();
-		//move_packet.yaw = m_yaw;
-		send(g_socket, reinterpret_cast<char*>(&move_packet), sizeof(move_packet), 0);
-		cout << " x: " << m_player->GetPosition().x << " y: " << m_player->GetPosition().y <<  
-			" z: " << m_player->GetPosition().z << endl;
-	}
-	if (GetAsyncKeyState('A') & 0x8000)
-	{
-		m_player->AddVelocity(Vector3::Mul(m_player->GetRight(), timeElapsed * -10.0f));
-		CS_PLAYER_MOVE_PACKET move_packet;
-		move_packet.size = sizeof(move_packet);
-		move_packet.type = CS_PACKET_PLAYER_MOVE;
-		move_packet.pos = m_player->GetPosition();
-		move_packet.velocity = m_player->GetVelocity();
-		//move_packet.yaw = m_yaw;
-		send(g_socket, reinterpret_cast<char*>(&move_packet), sizeof(move_packet), 0);
-		cout << " x: " << m_player->GetPosition().x << " y: " << m_player->GetPosition().y <<
-			" z: " << m_player->GetPosition().z << endl;
-	}
-	if (GetAsyncKeyState('S') & 0x8000)
-	{
-		m_player->AddVelocity(Vector3::Mul(m_player->GetFront(), timeElapsed * -10.0f));
-		CS_PLAYER_MOVE_PACKET move_packet;
-		move_packet.size = sizeof(move_packet);
-		move_packet.type = CS_PACKET_PLAYER_MOVE;
-		move_packet.pos = m_player->GetPosition();
-		move_packet.velocity = m_player->GetVelocity();
-		//move_packet.yaw = m_yaw;
-		send(g_socket, reinterpret_cast<char*>(&move_packet), sizeof(move_packet), 0);
-		cout << " x: " << m_player->GetPosition().x << " y: " << m_player->GetPosition().y <<
-			" z: " << m_player->GetPosition().z << endl;
-	}
-	if (GetAsyncKeyState('D') & 0x8000)
-	{
-	    m_player->AddVelocity(Vector3::Mul(m_player->GetRight(), timeElapsed * 10.0f));
-		CS_PLAYER_MOVE_PACKET move_packet;
-		move_packet.size = sizeof(move_packet);
-		move_packet.type = CS_PACKET_PLAYER_MOVE;
-		move_packet.pos = m_player->GetPosition();
-		move_packet.velocity = m_player->GetVelocity();
-		//move_packet.yaw = m_yaw;
-		send(g_socket, reinterpret_cast<char*>(&move_packet), sizeof(move_packet), 0);
-		cout << " x: " << m_player->GetPosition().x << " y: " << m_player->GetPosition().y <<
-			" z: " << m_player->GetPosition().z << endl;
-	}
-	if (GetAsyncKeyState(VK_SPACE) & 0x8000)
-	{
-		m_player->AddVelocity(Vector3::Mul(m_player->GetUp(), timeElapsed * 10.0f));
-	}
-	if (GetAsyncKeyState(VK_SHIFT) & 0x8000)
-	{
-		m_player->AddVelocity(Vector3::Mul(m_player->GetUp(), timeElapsed * -10.0f));
-	}
-
-
-#endif // USE_NETWORK
-
-	
-#ifndef USE_NETWORK
-	if (GetAsyncKeyState('W') & 0x8000)
-	{
-		m_player->AddVelocity(Vector3::Mul(m_player->GetFront(), timeElapsed * 10.0f));
-	}
-	if (GetAsyncKeyState('A') & 0x8000)
-	{
-		m_player->AddVelocity(Vector3::Mul(m_player->GetRight(), timeElapsed * -10.0f));
-	}
-	if (GetAsyncKeyState('S') & 0x8000)
-	{
-		m_player->AddVelocity(Vector3::Mul(m_player->GetFront(), timeElapsed * -10.0f));
-	}
-	if (GetAsyncKeyState('D') & 0x8000)
-	{
-		m_player->AddVelocity(Vector3::Mul(m_player->GetRight(), timeElapsed * 10.0f));
-	}
-	if (GetAsyncKeyState(VK_SPACE) & 0x8000)
-	{
-		m_player->AddVelocity(Vector3::Mul(m_player->GetUp(), timeElapsed * 10.0f));
-	}
-	if (GetAsyncKeyState(VK_SHIFT) & 0x8000)
-	{
-		m_player->AddVelocity(Vector3::Mul(m_player->GetUp(), timeElapsed * -10.0f));
-	}
-#endif // USE_NETWORK
-
+	m_player->OnProcessingKeyboardMessage(timeElapsed);
 }
 
 void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, const ComPtr<ID3D12RootSignature>& rootsignature, FLOAT aspectRatio)

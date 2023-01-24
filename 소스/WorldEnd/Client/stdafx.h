@@ -10,7 +10,7 @@
 #include "targetver.h"
 #define WIN32_LEAN_AND_MEAN             // 거의 사용되지 않는 내용을 Windows 헤더에서 제외합니다.
 
-#define USE_NETWORK
+//#define USE_NETWORK
 
 // Windows 헤더 파일
 #include <Windows.h>
@@ -92,6 +92,13 @@ namespace Vector3
     {
         XMFLOAT3 result;
         XMStoreFloat3(&result, XMVector3Cross(XMLoadFloat3(&a), XMLoadFloat3(&b)));
+        return result;
+    }
+    inline XMFLOAT3 Angle(const XMFLOAT3& a, const XMFLOAT3& b, BOOL isNormalized = true)
+    {
+        XMFLOAT3 result;
+        if (isNormalized) XMStoreFloat3(&result, XMVector3AngleBetweenNormals(XMLoadFloat3(&a), XMLoadFloat3(&b)));
+        else XMStoreFloat3(&result, XMVector3AngleBetweenVectors(XMLoadFloat3(&a), XMLoadFloat3(&b)));
         return result;
     }
     inline XMFLOAT3 Normalize(const XMFLOAT3& a)

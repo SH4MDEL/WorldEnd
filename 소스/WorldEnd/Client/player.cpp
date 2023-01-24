@@ -6,6 +6,85 @@ Player::Player() : m_velocity{ 0.0f, 0.0f, 0.0f }, m_maxVelocity{ 10.0f }, m_fri
 
 }
 
+void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
+{
+	XMFLOAT3 eye = m_camera->GetEye();
+	XMFLOAT3 direction{ Vector3::Normalize(Vector3::Sub(GetPosition(), eye)) };
+	if (GetAsyncKeyState('W') & 0x8000)
+	{
+		XMFLOAT3 front{ Vector3::Normalize(Vector3::Sub(GetPosition(), eye)) };
+		XMFLOAT3 angle{ Vector3::Angle(GetFront(), front) };
+		XMFLOAT3 clockwise{ Vector3::Cross(GetFront(), front) };
+		if (clockwise.y >= 0) {
+			Rotate(0.f, 0.f, timeElapsed * XMConvertToDegrees(angle.y) * 10.f);
+		}
+		else {
+			Rotate(0.f, 0.f, -timeElapsed * XMConvertToDegrees(angle.y) * 10.f);
+		}
+	}
+	if (GetAsyncKeyState('A') & 0x8000)
+	{
+		XMFLOAT3 left{ Vector3::Normalize(Vector3::Cross(direction, GetUp())) };
+		XMFLOAT3 angle{ Vector3::Angle(GetFront(), left) };
+		XMFLOAT3 clockwise{ Vector3::Cross(GetFront(), left) };
+		if (clockwise.y >= 0) {
+			Rotate(0.f, 0.f, timeElapsed * XMConvertToDegrees(angle.y) * 10.f);
+		}
+		else {
+			Rotate(0.f, 0.f, -timeElapsed * XMConvertToDegrees(angle.y) * 10.f);
+		}
+	}
+	if (GetAsyncKeyState('S') & 0x8000)
+	{
+		XMFLOAT3 back{ Vector3::Normalize(Vector3::Sub(eye, GetPosition())) };
+		XMFLOAT3 angle{ Vector3::Angle(GetFront(), back) };
+		XMFLOAT3 clockwise{ Vector3::Cross(GetFront(), back) };
+		if (clockwise.y >= 0) {
+			Rotate(0.f, 0.f, timeElapsed * XMConvertToDegrees(angle.y) * 10.f);
+		}
+		else {
+			Rotate(0.f, 0.f, -timeElapsed * XMConvertToDegrees(angle.y) * 10.f);
+		}
+	}
+	if (GetAsyncKeyState('D') & 0x8000)
+	{
+		XMFLOAT3 right{ Vector3::Normalize(Vector3::Cross(GetUp(), direction)) };
+		XMFLOAT3 angle{ Vector3::Angle(GetFront(), right) };
+		XMFLOAT3 clockwise{ Vector3::Cross(GetFront(), right)};
+		if (clockwise.y >= 0) {
+			Rotate(0.f, 0.f, timeElapsed * XMConvertToDegrees(angle.y) * 10.f);
+		}
+		else {
+			Rotate(0.f, 0.f, -timeElapsed * XMConvertToDegrees(angle.y) * 10.f);
+		}
+	}
+	if (GetAsyncKeyState('W') & 0x8000 || GetAsyncKeyState('A') & 0x8000 ||
+		GetAsyncKeyState('S') & 0x8000 || GetAsyncKeyState('D') & 0x8000)
+	{
+		AddVelocity(Vector3::Mul(GetFront(), timeElapsed * 10.0f));
+
+#ifdef USE_NETWORK
+		CS_PLAYER_MOVE_PACKET move_packet;
+		move_packet.size = sizeof(move_packet);
+		move_packet.type = CS_PACKET_PLAYER_MOVE;
+		move_packet.pos = GetPosition();
+		move_packet.velocity = GetVelocity();
+
+		send(g_socket, reinterpret_cast<char*>(&move_packet), sizeof(move_packet), 0);
+		cout << " x: " << move_packet.pos.x << " y: " << move_packet.pos.y <<
+			" z: " << move_packet.pos.z << endl;
+#endif // USE_NETWORK
+	}
+	if (GetAsyncKeyState(VK_SPACE) & 0x8000)
+	{
+
+	}
+	if (GetAsyncKeyState(VK_SHIFT) & 0x8000)
+	{
+
+	}
+}
+
 void Player::Update(FLOAT timeElapsed)
 {
 	GameObject::Update(timeElapsed);
@@ -16,21 +95,9 @@ void Player::Update(FLOAT timeElapsed)
 
 void Player::Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw)
 {
-	// 회전각 제한
-	if (m_roll + roll > MAX_ROLL)
-		roll = MAX_ROLL - m_roll;
-	else if (m_roll + roll < MIN_ROLL)
-		roll = MIN_ROLL - m_roll;
+	m_yaw += yaw;
 
-	// 회전각 합산
-	m_roll += roll; m_pitch += pitch; m_yaw += yaw;
-
-	// 카메라는 x,y축으로 회전할 수 있다.
-	// GameObject::Rotate에서 플레이어의 로컬 x,y,z축을 변경하므로 먼저 호출해야한다.
-	m_camera->Rotate(roll, pitch, 0.0f);
-
-	// 플레이어는 y축으로만 회전할 수 있다.
-	GameObject::Rotate(0.0f, pitch, 0.0f);
+	GameObject::Rotate(0.f, 0.f, yaw);
 }
 
 void Player::ApplyFriction(FLOAT deltaTime)

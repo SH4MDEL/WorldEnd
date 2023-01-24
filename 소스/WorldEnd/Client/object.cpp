@@ -49,12 +49,10 @@ void GameObject::Move(const XMFLOAT3& shift)
 
 void GameObject::Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw)
 {
-	// 회전
-	XMMATRIX rotate{ XMMatrixRotationRollPitchYaw(XMConvertToRadians(roll), XMConvertToRadians(pitch), XMConvertToRadians(yaw)) };
+	XMMATRIX rotate{ XMMatrixRotationRollPitchYaw(XMConvertToRadians(pitch), XMConvertToRadians(yaw), XMConvertToRadians(roll)) };
 	XMMATRIX transformMatrix{ rotate * XMLoadFloat4x4(&m_transformMatrix) };
 	XMStoreFloat4x4(&m_transformMatrix, transformMatrix);
 
-	// 로컬 x,y,z축 최신화
 	XMStoreFloat3(&m_right, XMVector3TransformNormal(XMLoadFloat3(&m_right), rotate));
 	XMStoreFloat3(&m_up, XMVector3TransformNormal(XMLoadFloat3(&m_up), rotate));
 	XMStoreFloat3(&m_front, XMVector3TransformNormal(XMLoadFloat3(&m_front), rotate));
