@@ -2,8 +2,12 @@
 #include "stdafx.h"
 #include "player.h"
 
-#define MAX_ROLL +20
-#define MIN_ROLL -10
+// 카메라 클래스는 두 종류의 중요한 정보를 저장한다
+// 1. 카메라 좌표계를 정의하는 속성
+// 2. 사야 절두체를 정의하는 속성
+
+#define MAX_PITCH +20
+#define MIN_PITCH -10
 
 struct CameraInfo
 {
@@ -20,7 +24,7 @@ public:
 	void CreateShaderVariable(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList);
 	void UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& commandList);
 	void UpdateLocalAxis();
-	virtual void Update(FLOAT timeElapsed) { };
+	virtual void Update(FLOAT timeElapsed) = 0;
 
 	void Move(const XMFLOAT3& shift);
 	virtual void Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw);

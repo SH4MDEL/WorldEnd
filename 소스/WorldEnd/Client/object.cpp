@@ -49,12 +49,10 @@ void GameObject::Move(const XMFLOAT3& shift)
 
 void GameObject::Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw)
 {
-	// 회전
-	XMMATRIX rotate{ XMMatrixRotationRollPitchYaw(XMConvertToRadians(roll), XMConvertToRadians(pitch), XMConvertToRadians(yaw)) };
+	XMMATRIX rotate{ XMMatrixRotationRollPitchYaw(XMConvertToRadians(pitch), XMConvertToRadians(yaw), XMConvertToRadians(roll)) };
 	XMMATRIX transformMatrix{ rotate * XMLoadFloat4x4(&m_transformMatrix) };
 	XMStoreFloat4x4(&m_transformMatrix, transformMatrix);
 
-	// 로컬 x,y,z축 최신화
 	XMStoreFloat3(&m_right, XMVector3TransformNormal(XMLoadFloat3(&m_right), rotate));
 	XMStoreFloat3(&m_up, XMVector3TransformNormal(XMLoadFloat3(&m_up), rotate));
 	XMStoreFloat3(&m_front, XMVector3TransformNormal(XMLoadFloat3(&m_front), rotate));
@@ -148,7 +146,7 @@ shared_ptr<GameObject> GameObject::FindFrame(string frameName)
 	return nullptr;
 }
 
-void GameObject::LoadObject(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, ifstream& in)
+void GameObject::LoadObject(ifstream& in)
 {
 	BYTE strLength;
 	INT frame, texture;
@@ -208,7 +206,7 @@ void GameObject::LoadObject(const ComPtr<ID3D12Device>& device, const ComPtr<ID3
 			if (childNum) {
 				for (int i = 0; i < childNum; ++i) {
 					auto child = make_shared<GameObject>();
-					child->LoadObject(device, commandList, in);
+					child->LoadObject(in);
 					SetChild(child);
 				}
 			}

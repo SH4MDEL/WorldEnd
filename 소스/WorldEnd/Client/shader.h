@@ -18,20 +18,24 @@ public:
 
 	shared_ptr<Player> GetPlayer() const { return m_player; }
 	shared_ptr<Camera> GetCamera() const { return m_camera; }
-	vector<shared_ptr<GameObject>>& GetGameObjects() { return m_gameObjects; }
+	const vector<shared_ptr<GameObject>>& GetObjects() const { return m_gameObjects; }
 	ComPtr<ID3D12PipelineState> GetPipelineState() const { return m_pipelineState; }
 
 	void SetPlayer(const shared_ptr<Player>& player);
 	void SetCamera(const shared_ptr<Camera>& camera);
+	void SetObject(const shared_ptr<GameObject>& object);
+	void SetMultiPlayer(INT ID, const shared_ptr<Player>& player);
 
 protected:
-	ComPtr<ID3D12PipelineState>			m_pipelineState;
-	vector<D3D12_INPUT_ELEMENT_DESC>	m_inputLayout;
+	ComPtr<ID3D12PipelineState>				m_pipelineState;
+	vector<D3D12_INPUT_ELEMENT_DESC>		m_inputLayout;
 
-	vector<shared_ptr<GameObject>>		m_gameObjects;
+	vector<shared_ptr<GameObject>>			m_gameObjects;
 
-	shared_ptr<Player>					m_player;
-	shared_ptr<Camera>					m_camera;
+	shared_ptr<Player>						m_player;
+	shared_ptr<Camera>						m_camera;
+
+	unordered_map<INT, shared_ptr<Player>>	m_multiPlayers;
 };
 
 class DetailShader : public Shader

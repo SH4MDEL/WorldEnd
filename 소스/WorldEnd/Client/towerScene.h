@@ -20,11 +20,11 @@ public:
 	void Update(FLOAT timeElapsed) override;
 	void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const override;
 
-	void LoadObjectFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, wstring fileName);
+	void LoadObjectFromFile(wstring fileName, shared_ptr<GameObject> object);
 
 	void CheckBorderLimit();
 
-    // ¼­¹ö °ü·Ã ÇÔ¼öµé
+    // Â¼Â­Â¹Ã¶ Â°Ã¼Â·Ãƒ Ã‡Ã”Â¼Ã¶ÂµÃ©
 	void SendPlayerData();
 	void RecvPacket();
 	void ProcessPacket();
@@ -32,16 +32,11 @@ public:
 	void RecvUpdateClient();
 
 protected:
-	vector<shared_ptr<GameObject>>		m_object;
+	vector<shared_ptr<GameObject>>			m_object;
 
-	shared_ptr<Player>					m_player;
-	shared_ptr<Camera>					m_camera;
-	shared_ptr<TowerScene>					m_tscene;
+	shared_ptr<Player>						m_player;
+	shared_ptr<Camera>						m_camera;
 
-	// ´Ù¸¥ ÇÃ·¹ÀÌ¾îÀÇ id È®ÀÎÇÏ±â À§ÇØ¼­ Ãß°¡
-	INT									                    m_left_other_player_id;
-	INT									                    m_right_other_player_id;
-
-	array<shared_ptr<Player>, Setting::MAX_PLAYERS>			m_multiPlayers;
+	unordered_map<INT, shared_ptr<Player>>	m_multiPlayers;
 };
 

@@ -161,7 +161,7 @@ void MeshFromFile::LoadFileMesh(const ComPtr<ID3D12Device>& device, const ComPtr
 
 	BYTE strLength;
 
-	INT positionNum, colorNum, texcoord0Num, texcoord1Num, normalNum, tangentNum, biTangentNum;
+	UINT positionNum, colorNum, texcoord0Num, texcoord1Num, normalNum, tangentNum, biTangentNum;
 
 
 	while (1) {
@@ -179,14 +179,14 @@ void MeshFromFile::LoadFileMesh(const ComPtr<ID3D12Device>& device, const ComPtr
 				m_nVertices = positionNum;
 				vertices.resize(positionNum);
 			}
-			for (int i = 0; i < positionNum; ++i) {
+			for (UINT i = 0; i < positionNum; ++i) {
 				in.read((char*)(&vertices[i].position), sizeof(XMFLOAT3));
 			}
 		}
 		else if (strToken == "<Colors>:") {
 			XMFLOAT4 dummy;
 			in.read((char*)(&colorNum), sizeof(INT));
-			for (int i = 0; i < colorNum; ++i) {
+			for (UINT i = 0; i < colorNum; ++i) {
 				in.read((char*)(&dummy), sizeof(XMFLOAT4));
 			}
 		}
@@ -196,14 +196,14 @@ void MeshFromFile::LoadFileMesh(const ComPtr<ID3D12Device>& device, const ComPtr
 				m_nVertices = texcoord0Num;
 				vertices.resize(texcoord0Num);
 			}
-			for (int i = 0; i < texcoord0Num; ++i) {
+			for (UINT i = 0; i < texcoord0Num; ++i) {
 				in.read((char*)(&vertices[i].uv0), sizeof(XMFLOAT2));
 			}
 		}
 		else if (strToken == "<TextureCoords1>:") {
 			XMFLOAT2 dummy;
 			in.read((char*)(&texcoord1Num), sizeof(INT));
-			for (int i = 0; i < texcoord1Num; ++i) {
+			for (UINT i = 0; i < texcoord1Num; ++i) {
 				in.read((char*)(&dummy), sizeof(XMFLOAT2));
 			}
 		}
@@ -213,7 +213,7 @@ void MeshFromFile::LoadFileMesh(const ComPtr<ID3D12Device>& device, const ComPtr
 				m_nVertices = normalNum;
 				vertices.resize(normalNum);
 			}
-			for (int i = 0; i < normalNum; ++i) {
+			for (UINT i = 0; i < normalNum; ++i) {
 				in.read((char*)(&vertices[i].normal), sizeof(XMFLOAT3));
 			}
 		}
@@ -223,7 +223,7 @@ void MeshFromFile::LoadFileMesh(const ComPtr<ID3D12Device>& device, const ComPtr
 				m_nVertices = tangentNum;
 				vertices.resize(tangentNum);
 			}
-			for (int i = 0; i < tangentNum; ++i) {
+			for (UINT i = 0; i < tangentNum; ++i) {
 				in.read((char*)(&vertices[i].tangent), sizeof(XMFLOAT3));
 			}
 		}
@@ -233,14 +233,14 @@ void MeshFromFile::LoadFileMesh(const ComPtr<ID3D12Device>& device, const ComPtr
 				m_nVertices = biTangentNum;
 				vertices.resize(biTangentNum);
 			}
-			for (int i = 0; i < biTangentNum; ++i) {
+			for (UINT i = 0; i < biTangentNum; ++i) {
 				in.read((char*)(&vertices[i].biTangent), sizeof(XMFLOAT3));
 			}
 		}
 		else if (strToken == "<Indices>:") {
 			in.read((char*)(&m_nIndices), sizeof(INT));
 			indices.resize(m_nIndices);
-			for (int i = 0; i < m_nIndices; ++i) {
+			for (UINT i = 0; i < m_nIndices; ++i) {
 				in.read((char*)(&indices[i]), sizeof(UINT));
 			}
 		}
@@ -286,7 +286,7 @@ void MeshFromFile::LoadFileMesh(const ComPtr<ID3D12Device>& device, const ComPtr
 
 	m_vertexBufferView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
 	m_vertexBufferView.StrideInBytes = sizeof(TextureHierarchyVertex);
-	m_vertexBufferView.SizeInBytes = sizeof(TextureHierarchyVertex) * vertices.size();
+	m_vertexBufferView.SizeInBytes = sizeof(TextureHierarchyVertex) * (UINT)vertices.size();
 
 	m_nIndices = (UINT)indices.size();
 	if (m_nIndices) {
@@ -332,7 +332,7 @@ void MeshFromFile::LoadMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3
 
 	BYTE strLength;
 
-	INT positionNum, colorNum, texcoord0Num, texcoord1Num, normalNum, tangentNum, biTangentNum;
+	UINT positionNum, colorNum, texcoord0Num, texcoord1Num, normalNum, tangentNum, biTangentNum;
 
 	in.read((char*)(&m_nVertices), sizeof(INT));
 
@@ -355,14 +355,14 @@ void MeshFromFile::LoadMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3
 				m_nVertices = positionNum;
 				vertices.resize(positionNum);
 			}
-			for (int i = 0; i < positionNum; ++i) {
+			for (UINT i = 0; i < positionNum; ++i) {
 				in.read((char*)(&vertices[i].position), sizeof(XMFLOAT3));
 			}
 		}
 		else if (strToken == "<Colors>:") {
 			XMFLOAT4 dummy;
 			in.read((char*)(&colorNum), sizeof(INT));
-			for (int i = 0; i < colorNum; ++i) {
+			for (UINT i = 0; i < colorNum; ++i) {
 				in.read((char*)(&dummy), sizeof(XMFLOAT4));
 			}
 		}
@@ -372,14 +372,14 @@ void MeshFromFile::LoadMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3
 				m_nVertices = texcoord0Num;
 				vertices.resize(texcoord0Num);
 			}
-			for (int i = 0; i < texcoord0Num; ++i) {
+			for (UINT i = 0; i < texcoord0Num; ++i) {
 				in.read((char*)(&vertices[i].uv0), sizeof(XMFLOAT2));
 			}
 		}
 		else if (strToken == "<TextureCoords1>:") {
 			XMFLOAT2 dummy;
 			in.read((char*)(&texcoord1Num), sizeof(INT));
-			for (int i = 0; i < texcoord1Num; ++i) {
+			for (UINT i = 0; i < texcoord1Num; ++i) {
 				in.read((char*)(&dummy), sizeof(XMFLOAT2));
 			}
 		}
@@ -389,7 +389,7 @@ void MeshFromFile::LoadMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3
 				m_nVertices = normalNum;
 				vertices.resize(normalNum);
 			}
-			for (int i = 0; i < normalNum; ++i) {
+			for (UINT i = 0; i < normalNum; ++i) {
 				in.read((char*)(&vertices[i].normal), sizeof(XMFLOAT3));
 			}
 		}
@@ -399,7 +399,7 @@ void MeshFromFile::LoadMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3
 				m_nVertices = tangentNum;
 				vertices.resize(tangentNum);
 			}
-			for (int i = 0; i < tangentNum; ++i) {
+			for (UINT i = 0; i < tangentNum; ++i) {
 				in.read((char*)(&vertices[i].tangent), sizeof(XMFLOAT3));
 			}
 		}
@@ -409,7 +409,7 @@ void MeshFromFile::LoadMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3
 				m_nVertices = biTangentNum;
 				vertices.resize(biTangentNum);
 			}
-			for (int i = 0; i < biTangentNum; ++i) {
+			for (UINT i = 0; i < biTangentNum; ++i) {
 				in.read((char*)(&vertices[i].biTangent), sizeof(XMFLOAT3));
 			}
 		}

@@ -94,6 +94,13 @@ namespace Vector3
         XMStoreFloat3(&result, XMVector3Cross(XMLoadFloat3(&a), XMLoadFloat3(&b)));
         return result;
     }
+    inline XMFLOAT3 Angle(const XMFLOAT3& a, const XMFLOAT3& b, BOOL isNormalized = true)
+    {
+        XMFLOAT3 result;
+        if (isNormalized) XMStoreFloat3(&result, XMVector3AngleBetweenNormals(XMLoadFloat3(&a), XMLoadFloat3(&b)));
+        else XMStoreFloat3(&result, XMVector3AngleBetweenVectors(XMLoadFloat3(&a), XMLoadFloat3(&b)));
+        return result;
+    }
     inline XMFLOAT3 Normalize(const XMFLOAT3& a)
     {
         XMFLOAT3 result;
