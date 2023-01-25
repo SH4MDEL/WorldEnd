@@ -36,6 +36,7 @@ protected:
 
 	shared_ptr<Player>					m_player;
 	shared_ptr<Camera>					m_camera;
+	shared_ptr<TowerScene>					m_tscene;
 
 	// 다른 플레이어의 id 확인하기 위해서 추가
 	INT									                    m_left_other_player_id;

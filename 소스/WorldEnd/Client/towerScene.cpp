@@ -16,7 +16,7 @@ TowerScene::TowerScene() : m_left_other_player_id{-1}, m_right_other_player_id{-
 		cout << "SOCKET INIT ERROR!" << endl;
 	}
 
-	// connect
+	// connectwadw
 	SOCKADDR_IN server_address{};
 	ZeroMemory(&server_address, sizeof(server_address));
 	server_address.sin_family = AF_INET;
@@ -25,7 +25,10 @@ TowerScene::TowerScene() : m_left_other_player_id{-1}, m_right_other_player_id{-
 
 	connect(g_socket, reinterpret_cast<SOCKADDR*>(&server_address), sizeof(server_address));
 
+	
 	g_networkThread = thread{ &TowerScene::RecvPacket, this };
+	g_networkThread.detach();
+	
 #endif
 }
 
@@ -72,8 +75,8 @@ void TowerScene::OnProcessingKeyboardMessage(FLOAT timeElapsed) const
 		move_packet.velocity = m_player->GetVelocity();
 		//move_packet.yaw = m_yaw;
 		send(g_socket, reinterpret_cast<char*>(&move_packet), sizeof(move_packet), 0);
-		cout << " x: " << m_player->GetPosition().x << " y: " << m_player->GetPosition().y <<  
-			" z: " << m_player->GetPosition().z << endl;
+		/*cout << " x: " << m_player->GetPosition().x << " y: " << m_player->GetPosition().y <<  
+			" z: " << m_player->GetPosition().z << endl;*/
 	}
 	if (GetAsyncKeyState('A') & 0x8000)
 	{
@@ -85,8 +88,7 @@ void TowerScene::OnProcessingKeyboardMessage(FLOAT timeElapsed) const
 		move_packet.velocity = m_player->GetVelocity();
 		//move_packet.yaw = m_yaw;
 		send(g_socket, reinterpret_cast<char*>(&move_packet), sizeof(move_packet), 0);
-		cout << " x: " << m_player->GetPosition().x << " y: " << m_player->GetPosition().y <<
-			" z: " << m_player->GetPosition().z << endl;
+
 	}
 	if (GetAsyncKeyState('S') & 0x8000)
 	{
@@ -98,8 +100,7 @@ void TowerScene::OnProcessingKeyboardMessage(FLOAT timeElapsed) const
 		move_packet.velocity = m_player->GetVelocity();
 		//move_packet.yaw = m_yaw;
 		send(g_socket, reinterpret_cast<char*>(&move_packet), sizeof(move_packet), 0);
-		cout << " x: " << m_player->GetPosition().x << " y: " << m_player->GetPosition().y <<
-			" z: " << m_player->GetPosition().z << endl;
+
 	}
 	if (GetAsyncKeyState('D') & 0x8000)
 	{
@@ -111,8 +112,7 @@ void TowerScene::OnProcessingKeyboardMessage(FLOAT timeElapsed) const
 		move_packet.velocity = m_player->GetVelocity();
 		//move_packet.yaw = m_yaw;
 		send(g_socket, reinterpret_cast<char*>(&move_packet), sizeof(move_packet), 0);
-		cout << " x: " << m_player->GetPosition().x << " y: " << m_player->GetPosition().y <<
-			" z: " << m_player->GetPosition().z << endl;
+
 	}
 	if (GetAsyncKeyState(VK_SPACE) & 0x8000)
 	{
@@ -122,6 +122,16 @@ void TowerScene::OnProcessingKeyboardMessage(FLOAT timeElapsed) const
 	{
 		m_player->AddVelocity(Vector3::Mul(m_player->GetUp(), timeElapsed * -10.0f));
 	}
+	if (GetAsyncKeyState('E') & 0x8000)
+	{
+		packet_direction += INPUT_KEY_E;
+		CS_ATTACK_PACKET attack_packet;
+		attack_packet.size = sizeof(attack_packet);
+		attack_packet.type = CS_PACKET_PLAYER_ATTACK;
+		attack_packet.key = packet_direction;
+		send(g_socket, reinterpret_cast<char*>(&attack_packet), sizeof(attack_packet), 0);
+	}
+
 
 
 #endif // USE_NETWORK
@@ -278,7 +288,6 @@ void TowerScene::RecvPacket()
 	login_packet.type = CS_PACKET_LOGIN;
 	memcpy(login_packet.name, name, sizeof(char) * 10);
 	send(g_socket, reinterpret_cast<char*>(&login_packet), sizeof(login_packet), NULL);
-	cout << login_packet.name << endl;
 	//while (!m_isReadyToPlay && !m_isLogout)
 	ProcessPacket();
 
@@ -292,14 +301,16 @@ void TowerScene::ProcessPacket()
 	if (WSARecv(g_socket, &wsabuf, 1, &recv_byte, &recv_flag, nullptr, nullptr) == SOCKET_ERROR)
 		ErrorDisplay("RecvSizeType");
 
-	UCHAR size{ static_cast<UCHAR>(buf[0]) };
-	UCHAR type{ static_cast<UCHAR>(buf[1]) };
-
+	UCHAR size{ static_cast<UCHAR>(wsabuf.buf[0]) };
+	UCHAR type{ static_cast<UCHAR>(wsabuf.buf[1]) };
+	cout << "Process Packet Type - " << (int)type << endl;
 	switch (type)
 	{
 	case SC_PACKET_LOGIN_OK:
+	{
 		RecvLoginOkPacket();
 		break;
+	}
 	case SC_PACKET_UPDATE_CLIENT:
 		RecvUpdateClient();
 		break;
@@ -309,56 +320,61 @@ void TowerScene::ProcessPacket()
 
 void TowerScene::RecvLoginOkPacket()
 {
-
 	// 플레이어정보 + 닉네임 
-	char buf[sizeof(PlayerData) + NAME_SIZE]{};
-	WSABUF wsabuf{ sizeof(buf), buf };
+	char buf[NAME_SIZE + sizeof(PlayerData)]{};
+	WSABUF wsa_buf{ sizeof(buf), buf };
 	DWORD recv_byte{}, recv_flag{};
-	WSARecv(g_socket, &wsabuf, 1, &recv_byte, &recv_flag, nullptr, nullptr);
+	WSARecv(g_socket, &wsa_buf, 1, &recv_byte, &recv_flag, nullptr, nullptr);
 
-	if (!m_player) return;
-	cout << "넘어 왔나" << endl;
+	//if (!m_player) return;
+
 	PlayerData pl_data{};
 	char name[NAME_SIZE]{};
-	memcpy(&pl_data, buf, sizeof(pl_data));
-	memcpy(&name, &buf[sizeof(PlayerData)], sizeof(name));
+	memcpy(&name, buf, sizeof(name));
+	memcpy(&pl_data, &buf[sizeof(PlayerData)], sizeof(pl_data));
+	pl_data.hp = 100;
 
+	cout << "이름 - " << name << endl;
+	cout << "Recv Player Info - id: " << static_cast<int> (pl_data.id) << " HP: " << pl_data.hp << "  Pos(x: " << pl_data.pos.x <<
+			pl_data.pos.x << " y: " << pl_data.pos.y << " z: " << pl_data.pos.z << " )" << endl;
+	
 	// 다른 플레이어가 들어오면 옆에 위치시키게
-	for (auto& p : m_multiPlayers)
-	{
-		if (p) continue;
-		//p = make_shared<Player>(TRUE);
-		p->SetId(static_cast<int>(pl_data.id));
+	//for (auto& p : m_multiPlayers)
+	//{
+	//	if (p) continue;
+	//	//p = make_shared<Player>(TRUE);
+	//	p->SetId(static_cast<int>(pl_data.id));
 
-		if (m_left_other_player_id == -1)
-		{
-			m_left_other_player_id = static_cast<int>(pl_data.id);
-			//p->LoadGeometry(device, commandlist, TEXT("./Resource/Model/Warrior.bin"));
-			m_shaders["PLAYER"]->SetPlayer(m_player);
-			p->Move(XMFLOAT3{ 3.0f, 0.0f, -3.0f });
-		}
-		else if (m_right_other_player_id == -1)
-		{
-			m_right_other_player_id = static_cast<int>(pl_data.id);
-			//p->LoadGeometry(device, commandlist, TEXT("./Resource/Model/Warrior.bin"));
-			m_shaders["PLAYER"]->SetPlayer(m_player);
-			p->Move(XMFLOAT3{ -3.0f, 0.0f, -3.0f });
-		}
-		break;
-	}
+	//	if (m_left_other_player_id == -1)
+	//	{
+	//		m_left_other_player_id = static_cast<int>(pl_data.id);
+	//		//p->LoadGeometry(device, commandlist, TEXT("./Resource/Model/Warrior.bin"));
+	//		m_shaders["PLAYER"]->SetPlayer(m_player);
+	//		p->Move(XMFLOAT3{ 3.0f, 0.0f, -3.0f });
+	//	}
+	//	else if (m_right_other_player_id == -1)
+	//	{
+	//		m_right_other_player_id = static_cast<int>(pl_data.id);
+	//		//p->LoadGeometry(device, commandlist, TEXT("./Resource/Model/Warrior.bin"));
+	//		m_shaders["PLAYER"]->SetPlayer(m_player);
+	//		p->Move(XMFLOAT3{ -3.0f, 0.0f, -3.0f });
+	//	}
+	//	break;
+	//}
 
 }
 
 void TowerScene::RecvUpdateClient()
 {
-	char subBuf[sizeof(PlayerData) * MAX_USER]{};
-	WSABUF wsabuf{ sizeof(subBuf), subBuf };
-	DWORD recvByte{}, recvFlag{};
-	WSARecv(g_socket, &wsabuf, 1, &recvByte, &recvFlag, nullptr, nullptr);
+	char sub_buf[sizeof(PlayerData) * MAX_USER]{};
+	WSABUF wsabuf{ sizeof(sub_buf), sub_buf };
+	DWORD recv_byte{}, recv_flag{};
+	WSARecv(g_socket, &wsabuf, 1, &recv_byte, &recv_flag, nullptr, nullptr);
+
 
 	// 모든 플레이어의 데이터
 	array<PlayerData, MAX_USER> data;
-	memcpy(&data, subBuf, sizeof(PlayerData) * MAX_USER);
+	memcpy(&data, sub_buf, sizeof(PlayerData) * MAX_USER);
 
 	// 멀티플레이어 업데이트
 	unique_lock<mutex> lock{ g_mutex };

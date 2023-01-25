@@ -9,10 +9,14 @@ constexpr int MAX_USER = 3;
 
 constexpr char CS_PACKET_LOGIN = 1;
 constexpr char CS_PACKET_PLAYER_MOVE = 2;
+constexpr char CS_PACKET_PLAYER_ATTACK = 3;
 
 constexpr char SC_PACKET_LOGIN_OK = 1;
 constexpr char SC_PACKET_UPDATE_CLIENT = 2;
+constexpr char SC_PACKET_PLAYER_ATTACK = 3;
 
+
+constexpr char INPUT_KEY_E = 0b1000;
 
 enum class ePlayerType : char {SWORD, BOW};
 enum class eAttackType : char { NORMAL, SKILL };
@@ -26,6 +30,7 @@ struct PlayerData
 	DirectX::XMFLOAT3	pos;			// 위치
 	DirectX::XMFLOAT3	velocity;		// 속도
 	FLOAT				yaw;			// 회전각
+	INT                 hp;
 };
 
 struct ArrowData    
@@ -73,8 +78,9 @@ struct CS_ATTACK_PACKET
 {
 	UCHAR size;
 	UCHAR type;
-	ePlayerType player_type; // 근접 캐릭인지 원거리 캐릭인지 구별해주는 열거체 변수
-	eAttackType attack_type; // 기본 공격인이 스킬 공격인지 구별해주는 열거체 변수
+	//ePlayerType player_type; // 근접 캐릭인지 원거리 캐릭인지 구별해주는 열거체 변수
+	//eAttackType attack_type; // 기본 공격인이 스킬 공격인지 구별해주는 열거체 변수
+	CHAR key;
 };
 
 struct CS_ARROW_PACKET      // 공격키를 눌렀을때 투사체를 생성해주는 패킷
@@ -100,7 +106,7 @@ struct SC_LOGIN_OK_PACKET    // 로그인 성공을 알려주는 패킷
 	CHAR  name[NAME_SIZE];
 	PlayerData player_data;
 	ePlayerType player_type;
-	bool		ready_check;
+	//bool		ready_check;
 };
 
 struct SC_LOGIN_FAILL_PACKET  // 로그인 실패를 알려주는 패킷
@@ -146,6 +152,14 @@ struct SC_UPDATE_CLIENT_PACKET
 	UCHAR		type;
 	PlayerData	data[MAX_USER];
 };
+
+struct SC_ATTACK_PACKET
+{
+	UCHAR     size;
+	UCHAR     type;
+	CHAR      id;
+};
+
 #pragma pack (pop)
 
 
