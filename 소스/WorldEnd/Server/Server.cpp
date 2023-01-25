@@ -46,8 +46,6 @@ int Server::Network()
 	for (auto& th : m_worker_threads)
 		th.join();
 
-	SendPlayerDataPacket();
-
 	closesocket(g_socket);
 	WSACleanup();
 	return 0;
@@ -172,6 +170,7 @@ void Server::ProcessPacket(const int id, char* p)
 		cout << "x: " << cl.m_player_data.pos .x << " y: " << cl.m_player_data.pos.y <<
 			" z: " << cl.m_player_data.pos.z << endl;
 
+		SendPlayerDataPacket();
 		break;
 	}
 	case CS_PACKET_PLAYER_ATTACK:

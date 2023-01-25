@@ -12,8 +12,9 @@ constexpr char CS_PACKET_PLAYER_MOVE = 2;
 constexpr char CS_PACKET_PLAYER_ATTACK = 3;
 
 constexpr char SC_PACKET_LOGIN_OK = 1;
-constexpr char SC_PACKET_UPDATE_CLIENT = 2;
-constexpr char SC_PACKET_PLAYER_ATTACK = 3;
+constexpr char SC_PACKET_ADD_PLAYER = 2;
+constexpr char SC_PACKET_UPDATE_CLIENT = 3;
+constexpr char SC_PACKET_PLAYER_ATTACK = 4;
 
 
 constexpr char INPUT_KEY_E = 0b1000;
@@ -106,7 +107,15 @@ struct SC_LOGIN_OK_PACKET    // 로그인 성공을 알려주는 패킷
 	CHAR  name[NAME_SIZE];
 	PlayerData player_data;
 	ePlayerType player_type;
-	//bool		ready_check;
+};
+
+struct SC_ADD_PLAYER_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+	CHAR  name[NAME_SIZE];
+	PlayerData player_data;
+	ePlayerType player_type;
 };
 
 struct SC_LOGIN_FAILL_PACKET  // 로그인 실패를 알려주는 패킷

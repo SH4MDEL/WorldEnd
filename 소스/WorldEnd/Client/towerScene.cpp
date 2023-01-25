@@ -207,6 +207,9 @@ void TowerScene::ProcessPacket()
 		case SC_PACKET_LOGIN_OK:
 			RecvLoginOkPacket();
 			break;
+		case SC_PACKET_ADD_PLAYER:
+			RecvLoginOkPacket();
+			break;
 		case SC_PACKET_UPDATE_CLIENT:
 			RecvUpdateClient();
 			break;
@@ -222,7 +225,7 @@ void TowerScene::RecvLoginOkPacket()
 	WSABUF wsabuf{ sizeof(buf), buf };
 
 	DWORD recv_byte{}, recv_flag{};
-	WSARecv(g_socket, &wsa_buf, 1, &recv_byte, &recv_flag, nullptr, nullptr);
+	WSARecv(g_socket, &wsabuf, 1, &recv_byte, &recv_flag, nullptr, nullptr);
 
 	if (!m_player) return;
 	PlayerData playerData{};
@@ -230,8 +233,26 @@ void TowerScene::RecvLoginOkPacket()
 	memcpy(&playerData, buf, sizeof(PlayerData));
 	memcpy(&name, &buf[sizeof(PlayerData)], sizeof(CHAR) * NAME_SIZE);
 
+	m_player->SetID(playerData.id);
+}
+
+void TowerScene::RecvAddPlayerPacket()
+{
+	// 플레이어정보 + 닉네임 
+	CHAR buf[sizeof(PlayerData) + NAME_SIZE]{};
+	WSABUF wsabuf{ sizeof(buf), buf };
+
+	DWORD recv_byte{}, recv_flag{};
+	WSARecv(g_socket, &wsabuf, 1, &recv_byte, &recv_flag, nullptr, nullptr);
+
+	PlayerData playerData{};
+	CHAR name[NAME_SIZE]{};
+	memcpy(&playerData, buf, sizeof(PlayerData));
+	memcpy(&name, &buf[sizeof(PlayerData)], sizeof(CHAR) * NAME_SIZE);
+
 	auto multiPlayer = make_shared<Player>();
 	LoadObjectFromFile(TEXT("./Resource/Model/Archer.bin"), multiPlayer);
+	multiPlayer->SetPosition(XMFLOAT3{ 0.f, 0.f, 0.f });
 	m_multiPlayers.insert({ playerData.id, multiPlayer });
 	m_shaders["PLAYER"]->SetMultiPlayer(playerData.id, multiPlayer);
 }
@@ -248,7 +269,10 @@ void TowerScene::RecvUpdateClient()
 
 	unique_lock<mutex> lock{ g_mutex };
 	for (const auto& playerData : playerDatas) {
-		if (playerData.id == m_player->GetID()) {
+		if (playerData.id == -1) {
+			continue;
+		}
+ 		if (playerData.id == m_player->GetID()) {
 			// 클라이언트 내에서 자체적으로 진행하던 업데이트 폐기하고
 			// 플레이어 데이터 업데이트
 			continue;
@@ -257,7 +281,7 @@ void TowerScene::RecvUpdateClient()
 			// towerScene의 multiPlayer를 업데이트 해도 shader의 multiPlayer도 업데이트 됨.
 			m_multiPlayers[playerData.id]->SetPosition(playerData.pos);
 			m_multiPlayers[playerData.id]->SetVelocity(playerData.velocity);
-			m_multiPlayers[playerData.id]->Rotate(0.f, 0.f, playerData.yaw - m_multiPlayers[playerData.id]->GetYaw());
+			//m_multiPlayers[playerData.id]->Rotate(0.f, 0.f, playerData.yaw - m_multiPlayers[playerData.id]->GetYaw());
 		}
 	}
 }
