@@ -245,10 +245,17 @@ void Server::SendLoginOkPacket(const Session& player) const
 	WSABUF wsa_buf{ sizeof(buf), buf };
 	DWORD sent_byte;
 
+	const int retval = WSASend(player.m_socket, &wsa_buf, 1, &sent_byte, 0, nullptr, nullptr);
+	if (retval == SOCKET_ERROR) ErrorDisplay("Send(SC_LOGIN_OK_PACKET) Error");
+
+	login_ok_packet.type = SC_PACKET_ADD_PLAYER;
+	memcpy(buf, reinterpret_cast<char*>(&login_ok_packet), sizeof(login_ok_packet));
+
 	// 현재 접속해 있는 모든 클라이언트들에게 새로 로그인한 클라이언트들의 정보를 전송
 	for (const auto& other : clients)
 	{
 		if (!other.m_player_data.active_check) continue;
+		if (player.m_player_data.id == other.m_player_data.id) continue;
 		const int retval = WSASend(other.m_socket, &wsa_buf, 1, &sent_byte, 0, nullptr, nullptr);
 		if (retval == SOCKET_ERROR) ErrorDisplay("Send(SC_LOGIN_OK_PACKET) Error");
 	}
@@ -261,7 +268,7 @@ void Server::SendLoginOkPacket(const Session& player) const
 
 		SC_LOGIN_OK_PACKET sub_packet{};
 		sub_packet.size = sizeof(sub_packet);
-		sub_packet.type = SC_PACKET_LOGIN_OK;
+		sub_packet.type = SC_PACKET_ADD_PLAYER;
 		sub_packet.player_data = other.m_player_data;
 		strcpy_s(sub_packet.name, sizeof(sub_packet.name), other.m_name);
 		//sub_packet.ready_check = other.m_ready_check;

@@ -2,34 +2,7 @@
 
 TowerScene::TowerScene()
 {
-#ifdef USE_NETWORK
 
-	wcout.imbue(locale("korean"));
-	WSADATA wsa;
-	if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) {
-		cout << "WSA START ERROR" << endl;
-	}
-
-	// socket 생성
-	g_socket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, 0, 0, WSA_FLAG_OVERLAPPED);
-	if (g_socket == INVALID_SOCKET) {
-		cout << "SOCKET INIT ERROR!" << endl;
-	}
-
-	// connectwadw
-	SOCKADDR_IN server_address{};
-	ZeroMemory(&server_address, sizeof(server_address));
-	server_address.sin_family = AF_INET;
-	server_address.sin_port = htons(SERVER_PORT);
-	inet_pton(AF_INET, g_serverIP.c_str(), &(server_address.sin_addr.s_addr));
-
-	connect(g_socket, reinterpret_cast<SOCKADDR*>(&server_address), sizeof(server_address));
-
-	
-	g_networkThread = thread{ &TowerScene::RecvPacket, this };
-	g_networkThread.detach();
-
-#endif
 }
 
 TowerScene::~TowerScene()
@@ -105,6 +78,8 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	m_object.push_back(skybox);
 	m_object.push_back(field);
 	m_object.push_back(fence);
+
+	InitServer();
 }
 
 void TowerScene::Update(FLOAT timeElapsed)
@@ -164,6 +139,38 @@ void TowerScene::CheckBorderLimit()
 	}
 }
 
+void TowerScene::InitServer()
+{
+#ifdef USE_NETWORK
+
+	wcout.imbue(locale("korean"));
+	WSADATA wsa;
+	if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) {
+		cout << "WSA START ERROR" << endl;
+	}
+
+	// socket 생성
+	g_socket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, 0, 0, WSA_FLAG_OVERLAPPED);
+	if (g_socket == INVALID_SOCKET) {
+		cout << "SOCKET INIT ERROR!" << endl;
+	}
+
+	// connectwadw
+	SOCKADDR_IN server_address{};
+	ZeroMemory(&server_address, sizeof(server_address));
+	server_address.sin_family = AF_INET;
+	server_address.sin_port = htons(SERVER_PORT);
+	inet_pton(AF_INET, g_serverIP.c_str(), &(server_address.sin_addr.s_addr));
+
+	connect(g_socket, reinterpret_cast<SOCKADDR*>(&server_address), sizeof(server_address));
+
+
+	g_networkThread = thread{ &TowerScene::RecvPacket, this };
+	g_networkThread.detach();
+
+#endif
+}
+
 void TowerScene::SendPlayerData()
 {
 #ifdef USE_NETWORK
@@ -208,7 +215,7 @@ void TowerScene::ProcessPacket()
 			RecvLoginOkPacket();
 			break;
 		case SC_PACKET_ADD_PLAYER:
-			RecvLoginOkPacket();
+			RecvAddPlayerPacket();
 			break;
 		case SC_PACKET_UPDATE_CLIENT:
 			RecvUpdateClient();
@@ -230,8 +237,8 @@ void TowerScene::RecvLoginOkPacket()
 	if (!m_player) return;
 	PlayerData playerData{};
 	CHAR name[NAME_SIZE]{};
-	memcpy(&playerData, buf, sizeof(PlayerData));
-	memcpy(&name, &buf[sizeof(PlayerData)], sizeof(CHAR) * NAME_SIZE);
+	memcpy(&name, buf, sizeof(CHAR) * NAME_SIZE);
+	memcpy(&playerData, &buf[NAME_SIZE], sizeof(PlayerData));
 
 	m_player->SetID(playerData.id);
 }
@@ -247,8 +254,8 @@ void TowerScene::RecvAddPlayerPacket()
 
 	PlayerData playerData{};
 	CHAR name[NAME_SIZE]{};
-	memcpy(&playerData, buf, sizeof(PlayerData));
-	memcpy(&name, &buf[sizeof(PlayerData)], sizeof(CHAR) * NAME_SIZE);
+	memcpy(&name, buf, sizeof(CHAR) * NAME_SIZE);
+	memcpy(&playerData, &buf[NAME_SIZE], sizeof(PlayerData));
 
 	auto multiPlayer = make_shared<Player>();
 	LoadObjectFromFile(TEXT("./Resource/Model/Archer.bin"), multiPlayer);

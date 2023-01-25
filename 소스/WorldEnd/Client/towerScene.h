@@ -25,6 +25,7 @@ public:
 	void CheckBorderLimit();
 
     // 서버 추가 코드
+	void InitServer();
 	void SendPlayerData();
 	void RecvPacket();
 	void ProcessPacket();
