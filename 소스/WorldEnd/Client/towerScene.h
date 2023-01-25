@@ -24,7 +24,7 @@ public:
 
 	void CheckBorderLimit();
 
-    // ¼­¹ö °ü·Ã ÇÔ¼öµé
+    // Â¼Â­Â¹Ã¶ Â°Ã¼Â·Ãƒ Ã‡Ã”Â¼Ã¶ÂµÃ©
 	void SendPlayerData();
 	void RecvPacket();
 	void ProcessPacket();

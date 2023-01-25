@@ -1,7 +1,7 @@
 #include "session.h"
 #include "stdafx.h"
 
-Session::Session() : m_socket{}, m_player_data{ 0, false , {},{},{} }, m_ready_check{ FALSE }, 
+Session::Session() : m_socket{}, m_player_data{ 0, false , {},{},{} , 100}, m_ready_check{FALSE},
 m_player_type{ ePlayerType::SWORD }, m_state{ STATE::ST_FREE }, m_prev_size{ 0 }
 {
 	strcpy_s(m_name, "Player\0");

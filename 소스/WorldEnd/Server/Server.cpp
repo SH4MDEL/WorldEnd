@@ -46,6 +46,7 @@ int Server::Network()
 	for (auto& th : m_worker_threads)
 		th.join();
 
+	SendPlayerDataPacket();
 
 	closesocket(g_socket);
 	WSACleanup();
@@ -54,8 +55,6 @@ int Server::Network()
 
 void Server::WorkerThreads() 
 {
-
-	cout << "WorkerThread Start" << endl;
 	for (;;) {
 		DWORD num_bytes{};
 		LONG64 key{};
@@ -66,7 +65,7 @@ void Server::WorkerThreads()
 			if (exp_over->_comp_type == OP_ACCEPT) cout << "Accept Error";
 			else {
 				cout << "GQCS Error on client[" << key << "]\n";
-				Disconnect(static_cast<int>(key));
+				//Disconnect(static_cast<int>(key));
 				if (exp_over->_comp_type == OP_SEND) delete exp_over;
 				continue;
 			}
@@ -145,15 +144,15 @@ void Server::ProcessPacket(const int id, char* p)
 {
 	char packet_type = p[1];
 	Session& cl = clients[id];
-
+	
 	switch (packet_type)
 	{
 	case CS_PACKET_LOGIN:
 	{
 		CS_LOGIN_PACKET* login_packet = reinterpret_cast<CS_LOGIN_PACKET*>(p);
 		strcpy_s(cl.m_name, login_packet->name);
-		SendLoginOkPacket(cl);
 		cl.m_lock.lock();
+		SendLoginOkPacket(cl);
 		cl.m_state = STATE::ST_INGAME;
 		cl.m_lock.unlock();
 		cout << login_packet->name << " is connect" << endl;
@@ -172,10 +171,46 @@ void Server::ProcessPacket(const int id, char* p)
 
 		cout << "x: " << cl.m_player_data.pos .x << " y: " << cl.m_player_data.pos.y <<
 			" z: " << cl.m_player_data.pos.z << endl;
-		SendPlayerDataPacket();
+
 		break;
 	}
+	case CS_PACKET_PLAYER_ATTACK:
+	{
+	
+		CS_ATTACK_PACKET* attack_packet = reinterpret_cast<CS_ATTACK_PACKET*>(p);
 
+		SendPlayerAttackPacket(cl.m_player_data.id);
+			switch (attack_packet->key)
+			{
+			case INPUT_KEY_E:
+			{
+				cout << "공격!" << endl;
+				auto attack_start_time = std::chrono::system_clock::now();
+				while (1)
+				{
+					auto attack_end_time = std::chrono::system_clock::now();
+					auto sec = std::chrono::duration_cast<std::chrono::seconds>(attack_end_time - attack_start_time);
+					if (sec.count() > start_cool_time)
+					{
+						start_cool_time++;
+						remain_cool_time = end_cool_time - start_cool_time;
+						cout << "남은 공격 쿨타임: " << remain_cool_time << "초" << endl;
+					}
+					else if (start_cool_time == 5) {
+						start_cool_time = 0;
+						break;
+						
+					}
+				}
+
+				break;
+			}
+			
+		}
+
+		break;
+	}
+	
 	}
 }
 
@@ -200,7 +235,10 @@ void Server::SendLoginOkPacket(const Session& player) const
 	login_ok_packet.type = SC_PACKET_LOGIN_OK;
 	login_ok_packet.player_data.id = player.m_player_data.id;
 	login_ok_packet.player_data.active_check = true;
-	login_ok_packet.player_data.pos = DirectX::XMFLOAT3{ 0.0f, 0.0f, 0.0f };
+	login_ok_packet.player_data.pos.x = player.m_player_data.pos.x;
+	login_ok_packet.player_data.pos.y = player.m_player_data.pos.y;
+	login_ok_packet.player_data.pos.z = player.m_player_data.pos.z;
+	login_ok_packet.player_data.hp = player.m_player_data.hp;
 	strcpy_s(login_ok_packet.name, sizeof(login_ok_packet.name), player.m_name);
 
 	char buf[sizeof(login_ok_packet)];
@@ -212,8 +250,8 @@ void Server::SendLoginOkPacket(const Session& player) const
 	for (const auto& other : clients)
 	{
 		if (!other.m_player_data.active_check) continue;
-		const int retVal = WSASend(other.m_socket, &wsa_buf, 1, &sent_byte, 0, nullptr, nullptr);
-		if (retVal == SOCKET_ERROR) ErrorDisplay("Send(SC_LOGIN_OK_PACKET) Error");
+		const int retval = WSASend(other.m_socket, &wsa_buf, 1, &sent_byte, 0, nullptr, nullptr);
+		if (retval == SOCKET_ERROR) ErrorDisplay("Send(SC_LOGIN_OK_PACKET) Error");
 	}
 
 	// 새로 로그인한 클라이언트에게 현재 접속해 있는 모든 클라이언트들의 정보를 전송
@@ -227,15 +265,16 @@ void Server::SendLoginOkPacket(const Session& player) const
 		sub_packet.type = SC_PACKET_LOGIN_OK;
 		sub_packet.player_data = other.m_player_data;
 		strcpy_s(sub_packet.name, sizeof(sub_packet.name), other.m_name);
-		sub_packet.ready_check = other.m_ready_check;
+		//sub_packet.ready_check = other.m_ready_check;
 		sub_packet.player_type = other.m_player_type;
 
 		memcpy(buf, reinterpret_cast<char*>(&sub_packet), sizeof(sub_packet));
-		const int retVal = WSASend(player.m_socket, &wsa_buf, 1, &sent_byte, 0, nullptr, nullptr);
-		if (retVal == SOCKET_ERROR) ErrorDisplay("Recv(SC_LOGIN_OK_PACKET) Error");
+		const int retval = WSASend(player.m_socket, &wsa_buf, 1, &sent_byte, 0, nullptr, nullptr);
+		if (retval == SOCKET_ERROR) ErrorDisplay("Send(SC_LOGIN_OK_PACKET) Error");
 	}
 
-	std::cout << "[ id: " << static_cast<int>(player.m_player_data.id) << " Login Packet Received ]" << std::endl;
+	std::cout << "[ id: " << static_cast<int>(login_ok_packet.player_data.id) << " Login Packet Received ]" << std::endl;
+	cout << "HP: " << login_ok_packet.player_data.hp << endl;
 
 }
 
@@ -248,16 +287,25 @@ void Server::SendPlayerDataPacket()
 	for (int i = 0; i < MAX_USER; ++i)
 		update_packet.data[i] = clients[i].m_player_data;
 
+	for (int i = 1; i < MAX_USER; ++i) 
+	{
+		if (!update_packet.data[i].active_check)
+		{
+			update_packet.data[i].id = -1;
+		}
+	}
+
 	char buf[sizeof(update_packet)];
 	memcpy(buf, reinterpret_cast<char*>(&update_packet), sizeof(update_packet));
-	WSABUF wsabuf{ sizeof(buf), buf };
+	WSABUF wsa_buf{ sizeof(buf), buf };
 	DWORD sent_byte;
 
 	for (const auto& cl : clients)
 	{
-		if (!cl.m_player_data.active_check) continue;
-		const int retVal = WSASend(cl.m_socket, &wsabuf, 1, &sent_byte, 0, nullptr, nullptr);
-		if (retVal == SOCKET_ERROR)
+		if (!cl.m_player_data.active_check) continue; 
+		
+		const int retval = WSASend(cl.m_socket, &wsa_buf, 1, &sent_byte, 0, nullptr, nullptr);
+		if (retval == SOCKET_ERROR)
 		{
 			if (WSAGetLastError() == WSAECONNRESET)
 				std::cout << "[" << static_cast<int>(cl.m_player_data.id) << " Session] Disconnect" << std::endl;
@@ -266,6 +314,26 @@ void Server::SendPlayerDataPacket()
 	}
 	//cout << "작동중인 모든 클라이언트들에게 이동 결과를 알려줌" << endl;
 }
+
+void Server::SendPlayerAttackPacket(int pl_id)
+{
+	SC_ATTACK_PACKET attack_packet;
+	attack_packet.size = sizeof(attack_packet);
+	attack_packet.type = SC_PACKET_PLAYER_ATTACK;
+	attack_packet.id = pl_id;
+
+	char buf[sizeof(attack_packet)];
+	memcpy(buf, reinterpret_cast<char*>(&attack_packet), sizeof(attack_packet));
+	WSABUF wsa_buf{ sizeof(buf), buf };
+	DWORD sent_byte;
+
+	for (const auto& cl : clients) {
+		if (!cl.m_player_data.active_check) continue;
+		const int retval = WSASend(cl.m_socket, &wsa_buf, 1, &sent_byte, 0, nullptr, nullptr);
+		if (retval == SOCKET_ERROR) ErrorDisplay("Send(SC_ATTACK_PACKET) Error");
+	}
+}
+
 
 CHAR Server::GetNewId() const
 {
@@ -278,7 +346,6 @@ CHAR Server::GetNewId() const
 	std::cout << "Maximum Number of Clients" << std::endl;
 	return -1;
 }
-
 
 
 

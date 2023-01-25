@@ -10,13 +10,13 @@ TowerScene::TowerScene()
 		cout << "WSA START ERROR" << endl;
 	}
 
-	// socket »ı¼º
+	// socket ìƒì„±
 	g_socket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, 0, 0, WSA_FLAG_OVERLAPPED);
 	if (g_socket == INVALID_SOCKET) {
 		cout << "SOCKET INIT ERROR!" << endl;
 	}
 
-	// connect
+	// connectwadw
 	SOCKADDR_IN server_address{};
 	ZeroMemory(&server_address, sizeof(server_address));
 	server_address.sin_family = AF_INET;
@@ -25,8 +25,10 @@ TowerScene::TowerScene()
 
 	connect(g_socket, reinterpret_cast<SOCKADDR*>(&server_address), sizeof(server_address));
 
+	
 	g_networkThread = thread{ &TowerScene::RecvPacket, this };
 	g_networkThread.detach();
+
 #endif
 }
 
@@ -67,13 +69,13 @@ void TowerScene::OnProcessingKeyboardMessage(FLOAT timeElapsed) const
 
 void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, const ComPtr<ID3D12RootSignature>& rootsignature, FLOAT aspectRatio)
 {
-	// ÇÃ·¹ÀÌ¾î »ı¼º
+	// í”Œë ˆì´ì–´ ìƒì„±
 	m_player = make_shared<Player>();
 	LoadObjectFromFile(TEXT("./Resource/Model/Archer.bin"), m_player);
 	m_player->SetPosition(XMFLOAT3{ 0.f, 0.f, 0.f });
 	m_shaders["PLAYER"]->SetPlayer(m_player);
 
-	// Ä«¸Ş¶ó »ı¼º
+	// ì¹´ë©”ë¼ ìƒì„±
 	m_camera = make_shared<ThirdPersonCamera>();
 	m_camera->CreateShaderVariable(device, commandlist);
 	m_camera->SetPlayer(m_player);
@@ -83,23 +85,23 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	XMStoreFloat4x4(&projMatrix, XMMatrixPerspectiveFovLH(0.25f * XM_PI, aspectRatio, 0.1f, 1000.0f));
 	m_camera->SetProjMatrix(projMatrix);
 
-	// ÁöÇü »ı¼º
+	// ì§€í˜• ìƒì„±
 	auto field{ make_shared<Field>(device, commandlist, 51, 51, 0, 51, 51, 0, XMFLOAT3{ 1.f, 1.f, 1.f }) };
 	field->SetPosition(XMFLOAT3{ -25.0f, 0.f, -25.0f });
 	field->SetTexture(m_textures["FIELD"]);
 	static_pointer_cast<DetailShader>(m_shaders["FIELD"])->SetField(field);
 
-	// Ææ½º »ı¼º
+	// íœìŠ¤ ìƒì„±
 	auto fence{ make_shared<Fence>(device, commandlist, 50, 50, 2, 2) };
 	fence->SetTexture(m_textures["FENCE"]);
 	m_shaders["FENCE"]->SetObject(fence);
 
-	// ½ºÄ«ÀÌ¹Ú½º »ı¼º
+	// ìŠ¤ì¹´ì´ë°•ìŠ¤ ìƒì„±
 	auto skybox{ make_shared<Skybox>(device, commandlist, 20.0f, 20.0f, 20.0f) };
 	skybox->SetTexture(m_textures["SKYBOX"]);
 	m_shaders["SKYBOX"]->SetObject(skybox);
 
-	// ¿ÀºêÁ§Æ® ¼³Á¤	
+	// ì˜¤ë¸Œì íŠ¸ ì„¤ì •	
 	m_object.push_back(skybox);
 	m_object.push_back(field);
 	m_object.push_back(fence);
@@ -183,7 +185,6 @@ void TowerScene::RecvPacket()
 	login_packet.type = CS_PACKET_LOGIN;
 	memcpy(login_packet.name, name, sizeof(char) * 10);
 	send(g_socket, reinterpret_cast<char*>(&login_packet), sizeof(login_packet), NULL);
-	cout << login_packet.name << endl;
 	//while (!m_isReadyToPlay && !m_isLogout)
 	ProcessPacket();
 
@@ -216,11 +217,12 @@ void TowerScene::ProcessPacket()
 
 void TowerScene::RecvLoginOkPacket()
 {
-	// ÇÃ·¹ÀÌ¾îÁ¤º¸ + ´Ğ³×ÀÓ 
+	// í”Œë ˆì´ì–´ì •ë³´ + ë‹‰ë„¤ì„ 
 	CHAR buf[sizeof(PlayerData) + NAME_SIZE]{};
 	WSABUF wsabuf{ sizeof(buf), buf };
+
 	DWORD recv_byte{}, recv_flag{};
-	WSARecv(g_socket, &wsabuf, 1, &recv_byte, &recv_flag, nullptr, nullptr);
+	WSARecv(g_socket, &wsa_buf, 1, &recv_byte, &recv_flag, nullptr, nullptr);
 
 	if (!m_player) return;
 	PlayerData playerData{};
@@ -247,12 +249,12 @@ void TowerScene::RecvUpdateClient()
 	unique_lock<mutex> lock{ g_mutex };
 	for (const auto& playerData : playerDatas) {
 		if (playerData.id == m_player->GetID()) {
-			// Å¬¶óÀÌ¾ğÆ® ³»¿¡¼­ ÀÚÃ¼ÀûÀ¸·Î ÁøÇàÇÏ´ø ¾÷µ¥ÀÌÆ® Æó±âÇÏ°í
-			// ÇÃ·¹ÀÌ¾î µ¥ÀÌÅÍ ¾÷µ¥ÀÌÆ®
+			// í´ë¼ì´ì–¸íŠ¸ ë‚´ì—ì„œ ìì²´ì ìœ¼ë¡œ ì§„í–‰í•˜ë˜ ì—…ë°ì´íŠ¸ íê¸°í•˜ê³ 
+			// í”Œë ˆì´ì–´ ë°ì´í„° ì—…ë°ì´íŠ¸
 			continue;
 		}
 		if (playerData.active_check) {
-			// towerSceneÀÇ multiPlayer¸¦ ¾÷µ¥ÀÌÆ® ÇØµµ shaderÀÇ multiPlayerµµ ¾÷µ¥ÀÌÆ® µÊ.
+			// towerSceneì˜ multiPlayerë¥¼ ì—…ë°ì´íŠ¸ í•´ë„ shaderì˜ multiPlayerë„ ì—…ë°ì´íŠ¸ ë¨.
 			m_multiPlayers[playerData.id]->SetPosition(playerData.pos);
 			m_multiPlayers[playerData.id]->SetVelocity(playerData.velocity);
 			m_multiPlayers[playerData.id]->Rotate(0.f, 0.f, playerData.yaw - m_multiPlayers[playerData.id]->GetYaw());
