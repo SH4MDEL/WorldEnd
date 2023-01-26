@@ -2,34 +2,7 @@
 
 TowerScene::TowerScene()
 {
-#ifdef USE_NETWORK
 
-	wcout.imbue(locale("korean"));
-	WSADATA wsa;
-	if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) {
-		cout << "WSA START ERROR" << endl;
-	}
-
-	// socket 생성
-	g_socket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, 0, 0, WSA_FLAG_OVERLAPPED);
-	if (g_socket == INVALID_SOCKET) {
-		cout << "SOCKET INIT ERROR!" << endl;
-	}
-
-	// connectwadw
-	SOCKADDR_IN server_address{};
-	ZeroMemory(&server_address, sizeof(server_address));
-	server_address.sin_family = AF_INET;
-	server_address.sin_port = htons(SERVER_PORT);
-	inet_pton(AF_INET, g_serverIP.c_str(), &(server_address.sin_addr.s_addr));
-
-	connect(g_socket, reinterpret_cast<SOCKADDR*>(&server_address), sizeof(server_address));
-
-	
-	g_networkThread = thread{ &TowerScene::RecvPacket, this };
-	g_networkThread.detach();
-
-#endif
 }
 
 TowerScene::~TowerScene()
@@ -105,6 +78,8 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	m_object.push_back(skybox);
 	m_object.push_back(field);
 	m_object.push_back(fence);
+
+	InitServer();
 }
 
 void TowerScene::Update(FLOAT timeElapsed)
@@ -164,6 +139,38 @@ void TowerScene::CheckBorderLimit()
 	}
 }
 
+void TowerScene::InitServer()
+{
+#ifdef USE_NETWORK
+
+	wcout.imbue(locale("korean"));
+	WSADATA wsa;
+	if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) {
+		cout << "WSA START ERROR" << endl;
+	}
+
+	// socket 생성
+	g_socket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, 0, 0, WSA_FLAG_OVERLAPPED);
+	if (g_socket == INVALID_SOCKET) {
+		cout << "SOCKET INIT ERROR!" << endl;
+	}
+
+	// connectwadw
+	SOCKADDR_IN server_address{};
+	ZeroMemory(&server_address, sizeof(server_address));
+	server_address.sin_family = AF_INET;
+	server_address.sin_port = htons(SERVER_PORT);
+	inet_pton(AF_INET, g_serverIP.c_str(), &(server_address.sin_addr.s_addr));
+
+	connect(g_socket, reinterpret_cast<SOCKADDR*>(&server_address), sizeof(server_address));
+
+
+	g_networkThread = thread{ &TowerScene::RecvPacket, this };
+	g_networkThread.detach();
+
+#endif
+}
+
 void TowerScene::SendPlayerData()
 {
 #ifdef USE_NETWORK
@@ -207,6 +214,9 @@ void TowerScene::ProcessPacket()
 		case SC_PACKET_LOGIN_OK:
 			RecvLoginOkPacket();
 			break;
+		case SC_PACKET_ADD_PLAYER:
+			RecvAddPlayerPacket();
+			break;
 		case SC_PACKET_UPDATE_CLIENT:
 			RecvUpdateClient();
 			break;
@@ -222,16 +232,34 @@ void TowerScene::RecvLoginOkPacket()
 	WSABUF wsabuf{ sizeof(buf), buf };
 
 	DWORD recv_byte{}, recv_flag{};
-	WSARecv(g_socket, &wsa_buf, 1, &recv_byte, &recv_flag, nullptr, nullptr);
+	WSARecv(g_socket, &wsabuf, 1, &recv_byte, &recv_flag, nullptr, nullptr);
 
 	if (!m_player) return;
 	PlayerData playerData{};
 	CHAR name[NAME_SIZE]{};
-	memcpy(&playerData, buf, sizeof(PlayerData));
-	memcpy(&name, &buf[sizeof(PlayerData)], sizeof(CHAR) * NAME_SIZE);
+	memcpy(&name, buf, sizeof(CHAR) * NAME_SIZE);
+	memcpy(&playerData, &buf[NAME_SIZE], sizeof(PlayerData));
+
+	m_player->SetID(playerData.id);
+}
+
+void TowerScene::RecvAddPlayerPacket()
+{
+	// 플레이어정보 + 닉네임 
+	CHAR buf[sizeof(PlayerData) + NAME_SIZE]{};
+	WSABUF wsabuf{ sizeof(buf), buf };
+
+	DWORD recv_byte{}, recv_flag{};
+	WSARecv(g_socket, &wsabuf, 1, &recv_byte, &recv_flag, nullptr, nullptr);
+
+	PlayerData playerData{};
+	CHAR name[NAME_SIZE]{};
+	memcpy(&name, buf, sizeof(CHAR) * NAME_SIZE);
+	memcpy(&playerData, &buf[NAME_SIZE], sizeof(PlayerData));
 
 	auto multiPlayer = make_shared<Player>();
 	LoadObjectFromFile(TEXT("./Resource/Model/Archer.bin"), multiPlayer);
+	multiPlayer->SetPosition(XMFLOAT3{ 0.f, 0.f, 0.f });
 	m_multiPlayers.insert({ playerData.id, multiPlayer });
 	m_shaders["PLAYER"]->SetMultiPlayer(playerData.id, multiPlayer);
 }
@@ -248,7 +276,10 @@ void TowerScene::RecvUpdateClient()
 
 	unique_lock<mutex> lock{ g_mutex };
 	for (const auto& playerData : playerDatas) {
-		if (playerData.id == m_player->GetID()) {
+		if (playerData.id == -1) {
+			continue;
+		}
+ 		if (playerData.id == m_player->GetID()) {
 			// 클라이언트 내에서 자체적으로 진행하던 업데이트 폐기하고
 			// 플레이어 데이터 업데이트
 			continue;
@@ -257,7 +288,7 @@ void TowerScene::RecvUpdateClient()
 			// towerScene의 multiPlayer를 업데이트 해도 shader의 multiPlayer도 업데이트 됨.
 			m_multiPlayers[playerData.id]->SetPosition(playerData.pos);
 			m_multiPlayers[playerData.id]->SetVelocity(playerData.velocity);
-			m_multiPlayers[playerData.id]->Rotate(0.f, 0.f, playerData.yaw - m_multiPlayers[playerData.id]->GetYaw());
+			//m_multiPlayers[playerData.id]->Rotate(0.f, 0.f, playerData.yaw - m_multiPlayers[playerData.id]->GetYaw());
 		}
 	}
 }

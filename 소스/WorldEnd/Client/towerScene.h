@@ -24,11 +24,13 @@ public:
 
 	void CheckBorderLimit();
 
-    // ¼­¹ö °ü·Ã ÇÔ¼öµé
+    // 서버 추가 코드
+	void InitServer();
 	void SendPlayerData();
 	void RecvPacket();
 	void ProcessPacket();
 	void RecvLoginOkPacket();
+	void RecvAddPlayerPacket();
 	void RecvUpdateClient();
 
 protected:
