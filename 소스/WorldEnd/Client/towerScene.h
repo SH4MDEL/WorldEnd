@@ -28,11 +28,10 @@ public:
 	void InitServer();
 	void SendPlayerData();
 	void RecvPacket();
-	void ProcessPacket(char* ptr);
-	void PacketReassembly(char* net_buf, size_t io_byte);
-	void RecvLoginOkPacket(char* ptr);
-	void RecvAddPlayerPacket(char* ptr);
-	void RecvUpdateClient(char* ptr);
+	void ProcessPacket();
+	void RecvLoginOkPacket();
+	void RecvAddPlayerPacket();
+	void RecvUpdateClient();
 
 protected:
 	vector<shared_ptr<GameObject>>			m_object;
@@ -40,11 +39,6 @@ protected:
 	shared_ptr<Player>						m_player;
 	shared_ptr<Camera>						m_camera;
 
-	// 서버 추가 코드
 	unordered_map<INT, shared_ptr<Player>>	m_multiPlayers;
-
-	
-
-
 };
 

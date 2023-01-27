@@ -4,7 +4,7 @@
 #include "texture.h"
 #include "material.h"
 
-class GameObject : public enable_shared_from_this<GameObject>
+class GameObject
 {
 public:
 	GameObject();
