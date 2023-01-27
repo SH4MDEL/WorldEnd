@@ -100,6 +100,7 @@ void Server::WorkerThreads()
 			*(reinterpret_cast<SOCKET*>(exp_over->_send_buf)) = c_socket;
 			AcceptEx(g_socket, c_socket, exp_over->_send_buf + 8, 0,
 				sizeof(SOCKADDR_IN) + 16, sizeof(SOCKADDR_IN) + 16, 0, &exp_over->_wsa_over);
+			break;
 		}
 		case OP_RECV: {
 			if (num_bytes == 0) {
@@ -256,6 +257,7 @@ void Server::SendLoginOkPacket(const Session& player) const
 	{
 		if (!other.m_player_data.active_check) continue;
 		if (player.m_player_data.id == other.m_player_data.id) continue;
+		cout << "sc packet1 " << endl;
 		const int retval = WSASend(other.m_socket, &wsa_buf, 1, &sent_byte, 0, nullptr, nullptr);
 		if (retval == SOCKET_ERROR) ErrorDisplay("Send(SC_LOGIN_OK_PACKET) Error");
 	}
@@ -266,6 +268,7 @@ void Server::SendLoginOkPacket(const Session& player) const
 		if (!other.m_player_data.active_check) continue;
 		if (static_cast<int>(other.m_player_data.id) == player.m_player_data.id) continue;
 
+		cout << "sc packet2 " << endl;
 		SC_LOGIN_OK_PACKET sub_packet{};
 		sub_packet.size = sizeof(sub_packet);
 		sub_packet.type = SC_PACKET_ADD_PLAYER;
@@ -277,6 +280,7 @@ void Server::SendLoginOkPacket(const Session& player) const
 		memcpy(buf, reinterpret_cast<char*>(&sub_packet), sizeof(sub_packet));
 		const int retval = WSASend(player.m_socket, &wsa_buf, 1, &sent_byte, 0, nullptr, nullptr);
 		if (retval == SOCKET_ERROR) ErrorDisplay("Send(SC_LOGIN_OK_PACKET) Error");
+		cout << (int)other.m_player_data.id << "add player to " << (int)player.m_player_data.id << endl;
 	}
 
 	std::cout << "[ id: " << static_cast<int>(login_ok_packet.player_data.id) << " Login Packet Received ]" << std::endl;

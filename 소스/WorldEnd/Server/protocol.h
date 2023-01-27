@@ -5,7 +5,7 @@ constexpr short SERVER_PORT = 9000;
 
 constexpr int BUF_SIZE = 1600;
 constexpr int NAME_SIZE = 20;
-constexpr int MAX_USER = 3;
+constexpr int MAX_USER = 4;
 
 constexpr char CS_PACKET_LOGIN = 1;
 constexpr char CS_PACKET_PLAYER_MOVE = 2;

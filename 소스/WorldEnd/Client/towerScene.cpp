@@ -84,8 +84,9 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 
 void TowerScene::Update(FLOAT timeElapsed)
 {
+	
 	m_camera->Update(timeElapsed);
-	if (m_shaders["SKYBOX"]) for (auto& skybox : m_shaders["SKYBOX"]->GetObjects()) skybox->SetPosition(m_camera->GetEye());
+	if (m_shaders.count("SKYBOX")) for (auto& skybox : m_shaders["SKYBOX"]->GetObjects()) skybox->SetPosition(m_camera->GetEye());
 	for (const auto& shader : m_shaders)
 		shader.second->Update(timeElapsed);
 
@@ -164,6 +165,12 @@ void TowerScene::InitServer()
 
 	connect(g_socket, reinterpret_cast<SOCKADDR*>(&server_address), sizeof(server_address));
 
+	constexpr char name[10] = "HSC\0";
+	CS_LOGIN_PACKET login_packet{};
+	login_packet.size = sizeof(login_packet);
+	login_packet.type = CS_PACKET_LOGIN;
+	memcpy(login_packet.name, name, sizeof(char) * 10);
+	send(g_socket, reinterpret_cast<char*>(&login_packet), sizeof(login_packet), NULL);
 
 	g_networkThread = thread{ &TowerScene::RecvPacket, this };
 	g_networkThread.detach();
@@ -186,111 +193,136 @@ void TowerScene::SendPlayerData()
 
 void TowerScene::RecvPacket()
 {
-	constexpr char name[10] = "HSC\0";
-	CS_LOGIN_PACKET login_packet{};
-	login_packet.size = sizeof(login_packet);
-	login_packet.type = CS_PACKET_LOGIN;
-	memcpy(login_packet.name, name, sizeof(char) * 10);
-	send(g_socket, reinterpret_cast<char*>(&login_packet), sizeof(login_packet), NULL);
-	//while (!m_isReadyToPlay && !m_isLogout)
-	ProcessPacket();
+	
+	
 
-}
-
-void TowerScene::ProcessPacket()
-{
 	while (true) {
-		char buf[2]{};
-		WSABUF wsabuf{ sizeof(buf), buf };
+
+		char buf[BUF_SIZE] = {0};
+		WSABUF wsabuf{ BUF_SIZE, buf };
 		DWORD recv_byte{ 0 }, recv_flag{ 0 };
+
 		if (WSARecv(g_socket, &wsabuf, 1, &recv_byte, &recv_flag, nullptr, nullptr) == SOCKET_ERROR)
 			ErrorDisplay("RecvSizeType");
 
-		UCHAR size{ static_cast<UCHAR>(buf[0]) };
-		UCHAR type{ static_cast<UCHAR>(buf[1]) };
+		//		UCHAR size{ static_cast<UCHAR>(buf[0]) };
+		//		UCHAR type{ static_cast<UCHAR>(buf[1]) };
+		if(recv_byte > 0)
+			PacketReassembly(wsabuf.buf, recv_byte);
 
-		switch (type)
+	}
+
+}
+
+
+void TowerScene::ProcessPacket(char* ptr)
+{
+		
+		cout << "[Process Packet] Packet Type: " << (int)ptr[1] << endl;//test
+
+		
+		switch (ptr[1])
 		{
 		case SC_PACKET_LOGIN_OK:
-			RecvLoginOkPacket();
+		{
+			RecvLoginOkPacket(ptr);
 			break;
+		}
 		case SC_PACKET_ADD_PLAYER:
-			RecvAddPlayerPacket();
+		{
+			RecvAddPlayerPacket(ptr);
 			break;
+		}
+
 		case SC_PACKET_UPDATE_CLIENT:
-			RecvUpdateClient();
+		{
+			RecvUpdateClient(ptr);
 			break;
+		}
+		
+
+	}
+}
+
+
+
+void TowerScene::PacketReassembly(char* net_buf, size_t io_byte)
+{
+	char* ptr = net_buf;
+	static size_t make_packet_size = 0;
+	static size_t saved_packet_size = 0;
+	static char packet_buffer[BUF_SIZE];
+
+	while (io_byte != 0) {
+		if (make_packet_size == 0)
+			make_packet_size = ptr[0];
+		if (io_byte + saved_packet_size >= make_packet_size) {
+			memcpy(packet_buffer + saved_packet_size, ptr, make_packet_size - saved_packet_size);
+			ProcessPacket(packet_buffer);
+			ZeroMemory(packet_buffer, BUF_SIZE);
+			ptr += make_packet_size - saved_packet_size;
+			io_byte -= make_packet_size - saved_packet_size;
+			cout << "io byte - " << io_byte << endl;
+			make_packet_size = 0;
+			saved_packet_size = 0;
+		}
+		else {
+			memcpy(packet_buffer + saved_packet_size, ptr, io_byte);
+			saved_packet_size += io_byte;
+			io_byte = 0;
 		}
 	}
 
 }
 
-void TowerScene::RecvLoginOkPacket()
+void TowerScene::RecvLoginOkPacket(char* ptr)
 {
-	// 플레이어정보 + 닉네임 
-	CHAR buf[sizeof(PlayerData) + NAME_SIZE]{};
-	WSABUF wsabuf{ sizeof(buf), buf };
+	SC_LOGIN_OK_PACKET* login_packet = reinterpret_cast<SC_LOGIN_OK_PACKET*>(ptr);
 
-	DWORD recv_byte{}, recv_flag{};
-	WSARecv(g_socket, &wsabuf, 1, &recv_byte, &recv_flag, nullptr, nullptr);
-
-	if (!m_player) return;
-	PlayerData playerData{};
-	CHAR name[NAME_SIZE]{};
-	memcpy(&name, buf, sizeof(CHAR) * NAME_SIZE);
-	memcpy(&playerData, &buf[NAME_SIZE], sizeof(PlayerData));
-
-	m_player->SetID(playerData.id);
+	m_player->SetID(login_packet->player_data.id);
 }
 
-void TowerScene::RecvAddPlayerPacket()
+void TowerScene::RecvAddPlayerPacket(char* ptr)
 {
-	// 플레이어정보 + 닉네임 
-	CHAR buf[sizeof(PlayerData) + NAME_SIZE]{};
-	WSABUF wsabuf{ sizeof(buf), buf };
-
-	DWORD recv_byte{}, recv_flag{};
-	WSARecv(g_socket, &wsabuf, 1, &recv_byte, &recv_flag, nullptr, nullptr);
+	SC_ADD_PLAYER_PACKET* add_pl_packet = reinterpret_cast<SC_ADD_PLAYER_PACKET*>(ptr);
 
 	PlayerData playerData{};
-	CHAR name[NAME_SIZE]{};
-	memcpy(&name, buf, sizeof(CHAR) * NAME_SIZE);
-	memcpy(&playerData, &buf[NAME_SIZE], sizeof(PlayerData));
+
+	playerData.hp = add_pl_packet->player_data.hp;
+	playerData.id = add_pl_packet->player_data.id;
+	playerData.pos = add_pl_packet->player_data.pos;
 
 	auto multiPlayer = make_shared<Player>();
 	LoadObjectFromFile(TEXT("./Resource/Model/Archer.bin"), multiPlayer);
 	multiPlayer->SetPosition(XMFLOAT3{ 0.f, 0.f, 0.f });
 	m_multiPlayers.insert({ playerData.id, multiPlayer });
 	m_shaders["PLAYER"]->SetMultiPlayer(playerData.id, multiPlayer);
+	cout << "add player" << static_cast<int>(playerData.id) << endl;
+
 }
 
-void TowerScene::RecvUpdateClient()
+void TowerScene::RecvUpdateClient(char* ptr)
 {
-	CHAR subBuf[sizeof(PlayerData) * MAX_USER]{};
-	WSABUF wsabuf{ sizeof(subBuf), subBuf };
-	DWORD recvByte{}, recvFlag{};
-	WSARecv(g_socket, &wsabuf, 1, &recvByte, &recvFlag, nullptr, nullptr);
-
-	array<PlayerData, MAX_USER> playerDatas;
-	memcpy(&playerDatas, subBuf, sizeof(PlayerData) * MAX_USER);
+	SC_UPDATE_CLIENT_PACKET* update_packet = reinterpret_cast<SC_UPDATE_CLIENT_PACKET*>(ptr);
 
 	unique_lock<mutex> lock{ g_mutex };
-	for (const auto& playerData : playerDatas) {
-		if (playerData.id == -1) {
-			continue;
+	for (int i = 0; i < MAX_USER; ++i) {
+		if (update_packet->data[i].id == -1) {
+			break;
 		}
- 		if (playerData.id == m_player->GetID()) {
+		if (update_packet->data[i].id == m_player->GetID()) {
 			// 클라이언트 내에서 자체적으로 진행하던 업데이트 폐기하고
 			// 플레이어 데이터 업데이트
 			continue;
 		}
-		if (playerData.active_check) {
+		if (update_packet->data[i].active_check) {
 			// towerScene의 multiPlayer를 업데이트 해도 shader의 multiPlayer도 업데이트 됨.
-			m_multiPlayers[playerData.id]->SetPosition(playerData.pos);
-			m_multiPlayers[playerData.id]->SetVelocity(playerData.velocity);
+			m_multiPlayers[update_packet->data[i].id]->SetPosition(update_packet->data[i].pos);
+			m_multiPlayers[update_packet->data[i].id]->SetVelocity(update_packet->data[i].velocity);
 			//m_multiPlayers[playerData.id]->Rotate(0.f, 0.f, playerData.yaw - m_multiPlayers[playerData.id]->GetYaw());
 		}
 	}
+
 }
 
 
