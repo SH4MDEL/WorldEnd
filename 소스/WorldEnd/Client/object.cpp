@@ -124,7 +124,7 @@ void GameObject::ReleaseUploadBuffer() const
 void GameObject::SetChild(const shared_ptr<GameObject>& child)
 {
 	if (child) {
-		child->m_parent = (shared_ptr<GameObject>)this;
+		child->m_parent = shared_from_this();
 	}
 	if (m_child) {
 		if (child) child->m_sibling = m_child->m_sibling;
@@ -138,7 +138,7 @@ void GameObject::SetChild(const shared_ptr<GameObject>& child)
 shared_ptr<GameObject> GameObject::FindFrame(string frameName)
 {
 	shared_ptr<GameObject> frame;
-	if (m_frameName == frameName) return (shared_ptr<GameObject>)this;
+	if (m_frameName == frameName) return shared_from_this();
 
 	if (m_sibling) if (frame = m_sibling->FindFrame(frameName)) return frame;
 	if (m_child) if (frame = m_child->FindFrame(frameName)) return frame;
