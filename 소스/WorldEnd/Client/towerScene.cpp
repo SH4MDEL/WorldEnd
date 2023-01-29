@@ -48,6 +48,13 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	m_player->SetPosition(XMFLOAT3{ 0.f, 0.f, 0.f });
 	m_shaders["PLAYER"]->SetPlayer(m_player);
 
+	// 체력 바 생성
+	auto hpBar = make_shared<HpBar>();
+	hpBar->SetMesh(m_meshs["HPBAR"]);
+	hpBar->SetTexture(m_textures["HPBAR"]);
+	m_shaders["HPBAR"]->SetObject(hpBar);
+	m_player->SetHpBar(hpBar);
+
 	// 카메라 생성
 	m_camera = make_shared<ThirdPersonCamera>();
 	m_camera->CreateShaderVariable(device, commandlist);
@@ -100,6 +107,7 @@ void TowerScene::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) co
 	m_shaders.at("SKYBOX")->Render(commandList);
 	m_shaders.at("FIELD")->Render(commandList);
 	m_shaders.at("FENCE")->Render(commandList);
+	m_shaders.at("HPBAR")->Render(commandList);
 }
 
 void TowerScene::LoadObjectFromFile(wstring fileName, shared_ptr<GameObject> object)
@@ -213,23 +221,19 @@ void TowerScene::RecvPacket()
 
 void TowerScene::ProcessPacket(char* ptr)
 {
-		
-		cout << "[Process Packet] Packet Type: " << (int)ptr[1] << endl;//test
+	cout << "[Process Packet] Packet Type: " << (int)ptr[1] << endl;//test
 
-		
-		switch (ptr[1])
-		{
-		case SC_PACKET_LOGIN_OK:
-			RecvLoginOkPacket(ptr);
-			break;
-		case SC_PACKET_ADD_PLAYER:
-			RecvAddPlayerPacket(ptr);
-			break;
-		case SC_PACKET_UPDATE_CLIENT:
-			RecvUpdateClient(ptr);
-			break;
-		
-
+	switch (ptr[1])
+	{
+	case SC_PACKET_LOGIN_OK:
+		RecvLoginOkPacket(ptr);
+		break;
+	case SC_PACKET_ADD_PLAYER:
+		RecvAddPlayerPacket(ptr);
+		break;
+	case SC_PACKET_UPDATE_CLIENT:
+		RecvUpdateClient(ptr);
+		break;
 	}
 }
 
@@ -284,6 +288,13 @@ void TowerScene::RecvAddPlayerPacket(char* ptr)
 	LoadObjectFromFile(TEXT("./Resource/Model/Archer.bin"), multiPlayer);
 	multiPlayer->SetPosition(XMFLOAT3{ 0.f, 0.f, 0.f });
 	m_multiPlayers.insert({ playerData.id, multiPlayer });
+
+	auto hpBar = make_shared<HpBar>();
+	hpBar->SetMesh(m_meshs["HPBAR"]);
+	hpBar->SetTexture(m_textures["HPBAR"]);
+	m_shaders["HPBAR"]->SetObject(hpBar);
+	multiPlayer->SetHpBar(hpBar);
+
 	m_shaders["PLAYER"]->SetMultiPlayer(playerData.id, multiPlayer);
 	cout << "add player" << static_cast<int>(playerData.id) << endl;
 
@@ -299,15 +310,18 @@ void TowerScene::RecvUpdateClient(char* ptr)
 			continue;
 		}
 		if (update_packet->data[i].id == m_player->GetID()) {
-			// 클라이언트 내에서 자체적으로 진행하던 업데이트 폐기하고
-			// 플레이어 데이터 업데이트
+			//m_player->SetPosition(update_packet->data[i].pos);
 			continue;
 		}
 		if (update_packet->data[i].active_check) {
 			// towerScene의 multiPlayer를 업데이트 해도 shader의 multiPlayer도 업데이트 됨.
-			m_multiPlayers[update_packet->data[i].id]->SetPosition(update_packet->data[i].pos);
+			XMFLOAT3 playerPosition = update_packet->data[i].pos;			
+			m_multiPlayers[update_packet->data[i].id]->SetPosition(playerPosition);
+			playerPosition.y += 1.8f;
+			m_multiPlayers[update_packet->data[i].id]->SetHpBarPosition(playerPosition);
 			m_multiPlayers[update_packet->data[i].id]->SetVelocity(update_packet->data[i].velocity);
-			//m_multiPlayers[playerData.id]->Rotate(0.f, 0.f, playerData.yaw - m_multiPlayers[playerData.id]->GetYaw());
+			m_multiPlayers[update_packet->data[i].id]->Rotate(0.f, 0.f, update_packet->data[i].yaw - m_multiPlayers[update_packet->data[i].id]->GetYaw());
+			m_multiPlayers[update_packet->data[i].id]->SetHp(update_packet->data[i].hp);
 		}
 	}
 

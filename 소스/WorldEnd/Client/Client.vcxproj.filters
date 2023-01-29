@@ -31,6 +31,9 @@
     <Filter Include="헤더 파일\Object">
       <UniqueIdentifier>{82c45914-5e2b-4f12-910e-c4c02461c226}</UniqueIdentifier>
     </Filter>
+    <Filter Include="셰이더 파일">
+      <UniqueIdentifier>{5e8128d9-02ae-4e3c-af85-33034289449f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Client.h">
@@ -149,6 +152,8 @@
     </Image>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Resource\Shader\Shaders.hlsl" />
+    <FxCompile Include="Resource\Shader\Shaders.hlsl">
+      <Filter>셰이더 파일</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

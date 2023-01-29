@@ -1,7 +1,7 @@
 #include "player.h"
 #include "camera.h"
 
-Player::Player() : m_velocity{ 0.0f, 0.0f, 0.0f }, m_maxVelocity{ 10.0f }, m_friction{ 0.5f }, m_id{-1}
+Player::Player() : m_velocity{ 0.0f, 0.0f, 0.0f }, m_maxVelocity{ 10.0f }, m_friction{ 0.5f }, m_hp{ 100.f }, m_maxHp{ 100.f }, m_id { -1 }
 {
 
 }
@@ -69,6 +69,7 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 		move_packet.type = CS_PACKET_PLAYER_MOVE;
 		move_packet.pos = GetPosition();
 		move_packet.velocity = GetVelocity();
+		move_packet.yaw = GetYaw();
 
 		send(g_socket, reinterpret_cast<char*>(&move_packet), sizeof(move_packet), 0);
 		cout << " x: " << move_packet.pos.x << " y: " << move_packet.pos.y <<
@@ -89,7 +90,26 @@ void Player::Update(FLOAT timeElapsed)
 {
 	GameObject::Update(timeElapsed);
 
+	//static FLOAT dummy = 50.f;
+	//if (dummy > 100.f) {
+	//	dummy -= 100.f;
+	//}
+	//else {
+	//	dummy += timeElapsed * 10.f;
+	//}
+
+	if (m_hpBar) {
+		m_hpBar->SetMaxHp(m_maxHp);
+		m_hpBar->SetHp(10.f);
+		XMFLOAT3 hpBarPosition = GetPosition();
+		hpBarPosition.y += 1.8f;
+		m_hpBar->SetPosition(hpBarPosition);
+	}
+
+//#ifndef USE_NETWORK
 	Move(m_velocity);
+//#endif // !USE_NETWORK
+
 	ApplyFriction(timeElapsed);
 }
 

@@ -834,3 +834,20 @@ void SkinnedMesh::LoadSkinnedMesh(const ComPtr<ID3D12Device>& device, const ComP
 		}
 	}
 }
+
+BillboardMesh::BillboardMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, XMFLOAT3 position, XMFLOAT2 size)
+{
+	m_nIndices = 0;
+	m_primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_POINTLIST;
+
+	TextureVertex vertex{ position, size };
+
+	m_nVertices = 1;
+	m_vertexBuffer = CreateBufferResource(device, commandList, &vertex,
+		sizeof(TextureVertex), D3D12_HEAP_TYPE_DEFAULT,
+		D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, m_vertexUploadBuffer);
+
+	m_vertexBufferView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
+	m_vertexBufferView.SizeInBytes = sizeof(TextureVertex);
+	m_vertexBufferView.StrideInBytes = sizeof(TextureVertex);
+}

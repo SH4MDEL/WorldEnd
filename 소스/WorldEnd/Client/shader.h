@@ -104,3 +104,10 @@ public:
 	BlendingShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature);
 	~BlendingShader() = default;
 };
+
+class HpBarShader : public Shader
+{
+public:
+	HpBarShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature);
+	~HpBarShader() = default;
+};

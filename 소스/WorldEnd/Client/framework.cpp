@@ -261,8 +261,8 @@ void GameFramework::CreateRootSignature()
 
 	CD3DX12_ROOT_PARAMETER rootParameter[13];
 
-	// cbGameObject : 월드 변환 행렬(16) + struct Material(16) + material type(1)
-	rootParameter[0].InitAsConstants(33, 0, 0, D3D12_SHADER_VISIBILITY_ALL);
+	// cbGameObject : 월드 변환 행렬(16) + struct Material(16) + material type(1) + float hp(1) + float maxHp(1)
+	rootParameter[0].InitAsConstants(35, 0, 0, D3D12_SHADER_VISIBILITY_ALL);
 
 	// cbCamera
 	rootParameter[1].InitAsConstantBufferView(1, 0, D3D12_SHADER_VISIBILITY_ALL);
@@ -364,13 +364,10 @@ void GameFramework::FrameAdvance()
 
 void GameFramework::Update(FLOAT timeElapsed)
 {
-
 	wstring title{ TEXT("세상끝 (") + to_wstring((int)(m_timer.GetFPS())) + TEXT("FPS)") };
 	SetWindowText(m_hWnd, title.c_str());
 
 	if (m_scenes[m_sceneIndex]) m_scenes[m_sceneIndex]->Update(timeElapsed);
-
-
 }
 
 void GameFramework::WaitForGpuComplete()

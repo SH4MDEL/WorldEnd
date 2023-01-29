@@ -227,3 +227,11 @@ public:
 		FLOAT width = 20.0f, FLOAT height = 20.0f, FLOAT depth = 20.0f);
 	~SkyboxMesh() = default;
 };
+
+class BillboardMesh : public Mesh
+{
+public:
+	BillboardMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList,
+		XMFLOAT3 position, XMFLOAT2 size);
+	~BillboardMesh() = default;
+};

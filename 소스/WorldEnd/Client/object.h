@@ -36,6 +36,7 @@ public:
 	virtual void ReleaseUploadBuffer() const;
 
 	void SetChild(const shared_ptr<GameObject>& child);
+	void SetFrameName(string&& frameName) noexcept;
 	shared_ptr<GameObject> FindFrame(string frameName);
 
 	void LoadObject(ifstream& in);
@@ -121,7 +122,6 @@ private:
 	INT								m_length;			// 이미지의 세로 길이
 };
 
-
 class Skybox : public GameObject
 {
 public:
@@ -130,4 +130,20 @@ public:
 	~Skybox() = default;
 
 	virtual void Update(FLOAT timeElapsed);
+};
+
+class HpBar : public GameObject
+{
+public:
+	HpBar();
+	~HpBar() = default;
+
+	void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const override;
+
+	void SetHp(FLOAT hp) { m_hp = hp; }
+	void SetMaxHp(FLOAT maxHp) { m_maxHp = maxHp; }
+
+private:
+	FLOAT	m_hp;
+	FLOAT	m_maxHp;
 };

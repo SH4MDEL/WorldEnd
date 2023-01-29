@@ -35,6 +35,9 @@ void Camera::UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& comma
 	XMStoreFloat4x4(&projMatrix, XMMatrixTranspose(XMLoadFloat4x4(&m_projMatrix)));
 	::memcpy(&m_cameraBufferPointer->projMatrix, &projMatrix, sizeof(XMFLOAT4X4));
 
+	XMFLOAT3 eye = m_eye;
+	::memcpy(&m_cameraBufferPointer->cameraPosition, &eye, sizeof(XMFLOAT3));
+
 	D3D12_GPU_VIRTUAL_ADDRESS virtualAddress = m_cameraBuffer->GetGPUVirtualAddress();
 	commandList->SetGraphicsRootConstantBufferView(1, virtualAddress);
 }
@@ -99,7 +102,7 @@ void Camera::SetPlayer(const shared_ptr<Player>& player)
 }
 
 
-ThirdPersonCamera::ThirdPersonCamera() : Camera{}, m_offset{ 0.0f, 1.0f, -5.0f }, m_delay{ 0.1f }
+ThirdPersonCamera::ThirdPersonCamera() : Camera{}, m_offset{ 0.0f, 1.0f, -6.0f }, m_delay{ 0.1f }
 {
 
 }

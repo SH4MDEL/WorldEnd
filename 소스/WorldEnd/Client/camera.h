@@ -13,6 +13,7 @@ struct CameraInfo
 {
 	XMFLOAT4X4			viewMatrix;	// 뷰변환 행렬
 	XMFLOAT4X4			projMatrix;	// 투영변환 행렬
+	XMFLOAT3			cameraPosition;	// 카메라 위치
 };
 
 class Camera

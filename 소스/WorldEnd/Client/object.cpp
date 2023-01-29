@@ -135,6 +135,11 @@ void GameObject::SetChild(const shared_ptr<GameObject>& child)
 	}
 }
 
+void GameObject::SetFrameName(string&& frameName) noexcept
+{
+	m_frameName = move(frameName);
+}
+
 shared_ptr<GameObject> GameObject::FindFrame(string frameName)
 {
 	shared_ptr<GameObject> frame;
@@ -378,4 +383,14 @@ Skybox::Skybox(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCo
 void Skybox::Update(FLOAT timeElapsed)
 {
 
+}
+
+HpBar::HpBar() {}
+
+void HpBar::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const
+{
+	commandList->SetGraphicsRoot32BitConstants(0, 1, &(m_hp), 33);
+	commandList->SetGraphicsRoot32BitConstants(0, 1, &(m_maxHp), 34);
+
+	GameObject::Render(commandList);
 }
