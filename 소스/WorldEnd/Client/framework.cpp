@@ -259,7 +259,7 @@ void GameFramework::CreateRootSignature()
 	descriptorRange[9].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 9, 0, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);	// t9
 	descriptorRange[10].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 10, 0, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);	// t10
 
-	CD3DX12_ROOT_PARAMETER rootParameter[13];
+	CD3DX12_ROOT_PARAMETER rootParameter[15];
 
 	// cbGameObject : 월드 변환 행렬(16) + struct Material(16) + material type(1)
 	rootParameter[0].InitAsConstants(33, 0, 0, D3D12_SHADER_VISIBILITY_ALL);
@@ -280,6 +280,10 @@ void GameFramework::CreateRootSignature()
 	rootParameter[11].InitAsDescriptorTable(1, &descriptorRange[9], D3D12_SHADER_VISIBILITY_PIXEL);
 	rootParameter[12].InitAsDescriptorTable(1, &descriptorRange[10], D3D12_SHADER_VISIBILITY_PIXEL);
 	
+	rootParameter[13].InitAsConstantBufferView(2, 0, D3D12_SHADER_VISIBILITY_VERTEX);		// 뼈대 오프셋
+	rootParameter[14].InitAsConstantBufferView(3, 0, D3D12_SHADER_VISIBILITY_VERTEX);		// 뼈대 변환행렬
+
+
 	CD3DX12_STATIC_SAMPLER_DESC samplerDesc[2];
 	samplerDesc[0].Init(								// s0
 		0,								 				// ShaderRegister

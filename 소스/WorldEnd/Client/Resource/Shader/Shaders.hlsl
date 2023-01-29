@@ -19,6 +19,21 @@ cbuffer cbCamera : register(b1)
 	matrix projMatrix : packoffset(c4);
 };
 
+#define MAX_BONES					128
+
+// bone
+cbuffer cbBoneOffsets : register(b2)
+{
+	float4x4 boneOffsets[MAX_BONES];
+};
+
+cbuffer cbBoneTransforms : register(b3)
+{
+	float4x4 boneTransforms[MAX_BONES];
+};
+// ------------------------------
+
+
 SamplerState g_samplerWrap : register(s0);
 SamplerState g_samplerClamp : register(s1);
 
@@ -43,8 +58,9 @@ Texture2D g_detailNormalTexture : register(t10);
 #define MATERIAL_DETAIL_ALBEDO_MAP	0x20
 #define MATERIAL_DETAIL_NORMAL_MAP	0x40
 
+
 /*
- *  STANDARD_SHADER 
+ *  STANDARD_SHADER
  */
 struct VS_STANDARD_INPUT
 {
@@ -161,10 +177,58 @@ float4 PS_TEXTUREHIERARCHY_MAIN(VS_TEXTUREHIERARCHY_OUTPUT input) : SV_TARGET
 }
 
 /*
+ *  SKIN_ANIMATION_SHADER
+ */
+struct VS_SKINNED_STANDARD_INPUT
+{
+	float3 position : POSITION;
+	float3 normal : NORMAL;
+	float3 tangent : TANGENT;
+	float3 biTangent : BITANGENT;
+	float2 uv : TEXCOORD;
+	int4 indices : BONEINDEX;
+	float4 weights : BONEWEIGHT;
+};
+
+VS_TEXTUREHIERARCHY_OUTPUT VS_SKINNED_ANIMATION_MAIN(VS_SKINNED_STANDARD_INPUT input)
+{
+	VS_TEXTUREHIERARCHY_OUTPUT output;
+
+	// 스킨 메쉬
+	if (input.weights[0]) {
+		// 정점이 영향을 받는 뼈마다 오프셋 * 애니메이션 변환행렬을 전부 더합
+		float4x4 mat = (float4x4)0.0f;
+		for (int i = 0; i < 4; ++i) {
+			mat += input.weights[i] * mul(boneOffsets[input.indices[i]], boneTransforms[input.indices[i]]);
+		}
+
+		output.position = mul(float4(input.position, 1.0f), mat);
+		output.position = mul(output.position, viewMatrix);
+		output.position = mul(output.position, projMatrix);
+		output.normal = mul(input.normal, (float3x3)mat);
+		output.tangent = mul(input.tangent, (float3x3)mat);
+		output.biTangent = mul(input.biTangent, (float3x3)mat);
+		output.uv = input.uv;
+	}
+	// 일반 메쉬
+	else {
+		output.position = mul(float4(input.position, 1.0f), worldMatrix);
+		output.position = mul(output.position, viewMatrix);
+		output.position = mul(output.position, projMatrix);
+		output.normal = mul(input.normal, (float3x3)worldMatrix);
+		output.tangent = mul(input.tangent, (float3x3)worldMatrix);
+		output.biTangent = mul(input.biTangent, (float3x3)worldMatrix);
+		output.uv = input.uv;
+	}
+
+	return output;
+}
+
+/*
  *  DETAIL_SHADER
  */
 
-struct VS_TERRAIN_INPUT
+	struct VS_TERRAIN_INPUT
 {
 	float3 position : POSITION;
 	float2 uv0 : TEXCOORD0;
@@ -202,7 +266,7 @@ float4 PS_TERRAIN_MAIN(VS_TERRAIN_OUTPUT input) : SV_TARGET
 /*
  *  SKYBOX_SHADER
  */
-struct VS_SKYBOX_INPUT
+	struct VS_SKYBOX_INPUT
 {
 	float3 position : POSITION;
 };
@@ -236,7 +300,7 @@ float4 PS_SKYBOX_MAIN(VS_SKYBOX_OUTPUT input) : SV_TARGET
  *  BLENDING_SHADER
  */
 
-struct VS_BLENDING_INPUT
+	struct VS_BLENDING_INPUT
 {
 	float3 position : POSITION;
 	float2 uv : TEXCOORD;

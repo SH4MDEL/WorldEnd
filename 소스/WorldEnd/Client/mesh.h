@@ -3,6 +3,10 @@
 #include "texture.h"
 #include "material.h"
 
+#define SKINNED_MESH 1
+#define STANDARD_MESH 2
+#define SKINNED_BONES 128
+
 struct Vertex
 {
 	Vertex(const XMFLOAT3& p, const XMFLOAT4& c) : position{ p }, color{ c } { }
@@ -64,6 +68,25 @@ struct TextureHierarchyVertex
 	XMFLOAT2 uv0;
 };
 
+struct SkinnedVertex
+{
+	SkinnedVertex() : position{ XMFLOAT3{0.f, 0.f, 0.f} }, normal{ XMFLOAT3{0.f, 0.f, 0.f} },
+		tangent{ XMFLOAT3{0.f, 0.f, 0.f} }, biTangent{ XMFLOAT3{0.f, 0.f, 0.f} }, uv0{ XMFLOAT2{0.f, 0.f} },
+		boneIndex{ XMINT4(0, 0,0,0) }, boneWeight{ XMFLOAT4(0.f, 0.f, 0.f, 0.f) } {}
+	SkinnedVertex(const XMFLOAT3& p, const XMFLOAT3& n, const XMFLOAT3& t, const XMFLOAT3& bt,
+		const XMFLOAT2& uv0, const XMINT4& bi, const XMFLOAT4& bw)
+		: position{ p }, normal{ n }, tangent{ t }, biTangent{ bt }, uv0{ uv0 }, boneIndex{ bi }, boneWeight{ bw } { }
+	~SkinnedVertex() = default;
+
+	XMFLOAT3 position;
+	XMFLOAT3 normal;
+	XMFLOAT3 tangent;
+	XMFLOAT3 biTangent;
+	XMFLOAT2 uv0;
+	XMINT4 boneIndex;
+	XMFLOAT4 boneWeight;
+};
+
 class Mesh
 {
 public:
@@ -78,6 +101,9 @@ public:
 
 	BoundingOrientedBox GetBoundingBox() { return m_boundingBox; }
 
+	UINT GetMeshType() const { return m_meshType; }
+	void SetMeshType(UINT type) { m_meshType = type; }
+
 protected:
 	UINT						m_nVertices;
 	ComPtr<ID3D12Resource>		m_vertexBuffer;
@@ -91,15 +117,17 @@ protected:
 
 	D3D12_PRIMITIVE_TOPOLOGY	m_primitiveTopology;
 	BoundingOrientedBox			m_boundingBox;
+
+	UINT						m_meshType;
 };
 
 class MeshFromFile : public Mesh
 {
 public:
 	MeshFromFile();
-	~MeshFromFile() = default;
+	virtual ~MeshFromFile() = default;
 
-	void Render(const ComPtr<ID3D12GraphicsCommandList>& m_commandList, UINT subMeshIndex) const override;
+	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& m_commandList, UINT subMeshIndex) const override;
 
 	void ReleaseUploadBuffer() override;
 
@@ -109,7 +137,8 @@ public:
 
 	string GetMeshName() const { return m_meshName; }
 
-private:
+
+protected:
 	string								m_meshName;
 
 	UINT								m_nSubMeshes;
@@ -122,49 +151,46 @@ private:
 };
 
 // ------------------------------------------
+
 class GameObject;
 
-class SkinnedMesh : public Mesh
+
+class SkinnedMesh : public MeshFromFile
 {
 public: 
 	SkinnedMesh();
-	~SkinnedMesh() = default;
+	virtual ~SkinnedMesh() = default;
 
-	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& m_commandList) const;
+	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT subMeshIndex) const override;
+
+	void UpdateShaderVariables(const ComPtr<ID3D12GraphicsCommandList>& commandList) const;
 
 	void ReleaseUploadBuffer() override;
 
 	void LoadSkinnedMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, ifstream& in);
 
+	ComPtr<ID3D12Resource>& GetSkinningBoneTransform() { return m_skinningBoneTransformBuffers; }
+	XMFLOAT4X4*& GetMappedSkinningBoneTransform() { return m_mappedSkinningBoneTransforms; }
+	vector<string>& GetSkinningBoneNames() { return m_skinningBoneNames; }
+	vector<shared_ptr<GameObject>>& GetSkinningBoneFrames() { return m_skinningBoneFrames; }
+
+	UINT GetSkinningBoneNum() const { return m_skinningBoneFrames.size(); }
+	string GetSkinnedMeshName() const { return m_skinnedMeshName; }
 private:
 	string								m_skinnedMeshName;
 
 	UINT								m_nBonesPerVertex;
 
-	vector<XMUINT4>						m_boneIndices;
-	vector<XMFLOAT4>					m_boneWeights;
-
-	vector<ComPtr<ID3D12Resource>>		m_boneIndicesBuffers;
-	vector<ComPtr<ID3D12Resource>>		m_boneIndicesUploadBuffers;
-	vector<D3D12_INDEX_BUFFER_VIEW>		m_boneIndicesBufferViews;
-
-	vector<ComPtr<ID3D12Resource>>		m_boneWeightsBuffers;
-	vector<ComPtr<ID3D12Resource>>		m_boneWeightsUploadBuffers;
-	vector<D3D12_INDEX_BUFFER_VIEW>		m_boneWeightsBufferViews;
-	
-
-	UINT								m_nSkinningBones;
-
 	vector<string>						m_skinningBoneNames;
-	vector<GameObject>					m_skinningBoneFrame;	// 해당 뼈를 바로 찾아가기 위해 저장하는 벡터
+	vector<shared_ptr<GameObject>>		m_skinningBoneFrames;	// 해당 뼈를 바로 찾아가기 위해 저장하는 벡터
 
 	vector<XMFLOAT4X4>					m_bindPoseBoneOffsets;	// 바인드 포즈에서의 뼈 오프셋 행렬들
 
-	vector<ComPtr<ID3D12Resource>>		m_bindPoseBoneOffsetBuffers;
-	vector<XMFLOAT4X4>					m_mappedBindPoseBoneOffsets;
+	ComPtr<ID3D12Resource>				m_bindPoseBoneOffsetBuffers;
+	XMFLOAT4X4*							m_mappedBindPoseBoneOffsets;
 
-	vector<ComPtr<ID3D12Resource>>		m_skinningBoneTransformBuffers;
-	vector<XMFLOAT4X4>					m_mappedSkinningBoneTransforms;
+	ComPtr<ID3D12Resource>				m_skinningBoneTransformBuffers;
+	XMFLOAT4X4*							m_mappedSkinningBoneTransforms;
 };
 
 class FieldMapImage

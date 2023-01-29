@@ -159,7 +159,14 @@ void TowerScene::OnProcessingKeyboardMessage(FLOAT timeElapsed) const
 void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, const ComPtr<ID3D12RootSignature>& rootsignature, FLOAT aspectRatio)
 {
 	// 플레이어 생성
-	LoadObjectFromFile(device, commandlist, TEXT("./Resource/Model/Archer.bin"));
+	LoadObjectFromFile(device, commandlist, TEXT("./Resource/Model/Warrior.bin"));
+
+	m_player->CreateAnimationController(device, commandlist, 2);
+	m_player->SetAnimationSet(m_animations["WarriorAnimation"]);
+	m_player->SetAnimationOnTrack(0, 0);
+	m_player->SetAnimationOnTrack(1, 1);
+	m_player->GetAnimationController()->SetTrackEnable(1, false);
+
 	m_player->SetPosition(XMFLOAT3{ 0.f, 0.f, 0.f });
 	m_shaders["PLAYER"]->SetPlayer(m_player);
 

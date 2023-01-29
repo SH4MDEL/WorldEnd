@@ -33,6 +33,8 @@ public:
 	static unordered_map<string, shared_ptr<Texture>>		m_textures;
 	static unordered_map<string, shared_ptr<Materials>>		m_materials;
 	static unordered_map<string, shared_ptr<Shader>>		m_shaders;
+	static unordered_map<string, shared_ptr<AnimationSet>>	m_animations;
+
 
 protected:
 };

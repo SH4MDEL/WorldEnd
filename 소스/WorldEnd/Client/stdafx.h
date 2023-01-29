@@ -10,7 +10,7 @@
 #include "targetver.h"
 #define WIN32_LEAN_AND_MEAN             // 거의 사용되지 않는 내용을 Windows 헤더에서 제외합니다.
 
-#define USE_NETWORK
+//#define USE_NETWORK
 
 // Windows 헤더 파일
 #include <Windows.h>
@@ -111,6 +111,29 @@ namespace Vector3
 
 namespace Matrix
 {
+    inline XMFLOAT4X4 Scale(const XMFLOAT4X4& a, float scale)
+    {
+        XMFLOAT4X4 result;
+        XMMATRIX x{ XMLoadFloat4x4(&a) };
+        XMStoreFloat4x4(&result, x * scale);
+        return result;
+    }
+    inline XMFLOAT4X4 Add(const XMFLOAT4X4& a, const XMFLOAT4X4& b)
+    {
+        XMFLOAT4X4 result;
+        XMMATRIX x{ XMLoadFloat4x4(&a) };
+        XMMATRIX y{ XMLoadFloat4x4(&b) };
+        XMStoreFloat4x4(&result, x + y);
+        return result;
+    }
+    inline XMFLOAT4X4 Add(const XMMATRIX& a, const XMFLOAT4X4& b)
+    {
+        XMFLOAT4X4 result;
+        XMMATRIX x{ a };
+        XMMATRIX y{ XMLoadFloat4x4(&b) };
+        XMStoreFloat4x4(&result, x + y);
+        return result;
+    }
     inline XMFLOAT4X4 Mul(const XMFLOAT4X4& a, const XMFLOAT4X4& b)
     {
         XMFLOAT4X4 result;
@@ -140,6 +163,20 @@ namespace Matrix
         XMFLOAT4X4 result;
         XMMATRIX m{ XMMatrixInverse(NULL, XMLoadFloat4x4(&a)) };
         XMStoreFloat4x4(&result, m);
+        return result;
+    }
+
+    inline XMFLOAT4X4 Interpolate(const XMFLOAT4X4& a, const XMFLOAT4X4& b, float t) 
+    {
+        XMFLOAT4X4 result;
+        XMVECTOR S0, R0, T0;
+        XMVECTOR S1, R1, T1;
+        XMMatrixDecompose(&S0, &R0, &T0, XMLoadFloat4x4(&a));
+        XMMatrixDecompose(&S1, &R1, &T1, XMLoadFloat4x4(&b));
+        XMVECTOR S = XMVectorLerp(S0, S1, t);
+        XMVECTOR R = XMQuaternionSlerp(R0, R1, t);
+        XMVECTOR T = XMVectorLerp(T0, T1, t);
+        XMStoreFloat4x4(&result, XMMatrixAffineTransformation(S, XMVectorZero(), R, T));
         return result;
     }
 }

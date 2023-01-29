@@ -14,6 +14,9 @@ GameObject::~GameObject()
 
 void GameObject::Update(FLOAT timeElapsed)
 {
+	if (m_animationController)
+		m_animationController->AdvanceTime(timeElapsed, this);
+
 	if (m_sibling) m_sibling->Update(timeElapsed);
 	if (m_child) m_child->Update(timeElapsed);
 
@@ -22,13 +25,16 @@ void GameObject::Update(FLOAT timeElapsed)
 
 void GameObject::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const
 {
+	if (m_animationController)
+		m_animationController->UpdateShaderVariables(commandList);
+
 	XMFLOAT4X4 worldMatrix;
 	XMStoreFloat4x4(&worldMatrix, XMMatrixTranspose(XMLoadFloat4x4(&m_worldMatrix)));
 	commandList->SetGraphicsRoot32BitConstants(0, 16, &worldMatrix, 0);
 
 	if (m_texture) { m_texture->UpdateShaderVariable(commandList); }
 	if (m_materials) {
-		for (size_t i = 0; const auto& material : m_materials->m_materials) {
+		for (size_t i = 0; const auto & material : m_materials->m_materials) {
 			material.UpdateShaderVariable(commandList);
 			m_mesh->Render(commandList, i);
 			++i;
@@ -77,6 +83,12 @@ void GameObject::SetTexture(const shared_ptr<Texture>& texture)
 void GameObject::SetMaterials(const shared_ptr<Materials>& materials)
 {
 	m_materials = materials;
+}
+
+void GameObject::SetAnimationSet(const shared_ptr<AnimationSet>& animationSet)
+{
+	if(m_animationController)
+		m_animationController->SetAnimationSet(animationSet, this);
 }
 
 XMFLOAT3 GameObject::GetPosition() const
@@ -152,7 +164,6 @@ void GameObject::LoadObject(const ComPtr<ID3D12Device>& device, const ComPtr<ID3
 {
 	BYTE strLength;
 	INT frame, texture;
-
 	while (1) {
 		in.read((char*)(&strLength), sizeof(BYTE));
 		string strToken(strLength, '\0');
@@ -182,6 +193,7 @@ void GameObject::LoadObject(const ComPtr<ID3D12Device>& device, const ComPtr<ID3
 			in.read((char*)(&strLength), sizeof(BYTE));
 			string meshName(strLength, '\0');
 			in.read(&meshName[0], sizeof(CHAR) * strLength);
+
 			SetMesh(Scene::m_meshs[meshName]);
 			SetBoundingBox(m_mesh->GetBoundingBox());
 		}
@@ -189,12 +201,22 @@ void GameObject::LoadObject(const ComPtr<ID3D12Device>& device, const ComPtr<ID3
 			in.read((char*)(&strLength), sizeof(BYTE));
 			string meshName(strLength, '\0');
 			in.read(&meshName[0], sizeof(CHAR) * strLength);
-			//SetMesh(Scene::m_meshs[meshName]);
-			//SetBoundingBox(m_mesh->GetBoundingBox());
-			// 
-			// 스킨 메쉬를 파일에서 읽기만 처리함
-			// 스킨 메쉬에 대한 처리는 아직 하지 않음
-			// 스킨 메쉬가 여러개이므로 이를 어떻게 처리할지 생각할 필요 있음
+
+			// 스킨메쉬는 메쉬정보까지 담고 있으므로
+			// 메쉬까지 읽기만 하고 넘기도록 함
+			SetMesh(Scene::m_meshs[meshName]);
+			SetBoundingBox(m_mesh->GetBoundingBox());
+
+			// </SkinningInfo>		읽고 넘김
+			in.read((char*)(&strLength), sizeof(BYTE));
+			strToken.resize(strLength);
+			in.read((&strToken[0]), sizeof(char) * strLength);
+
+			// <Mesh>:		읽고 넘김
+			in.read((char*)(&strLength), sizeof(BYTE));
+			strToken.resize(strLength);
+			in.read((&strToken[0]), sizeof(char) * strLength);
+			
 		}
 		else if (strToken == "<Materials>:") {
 			in.read((char*)(&strLength), sizeof(BYTE));
@@ -227,6 +249,30 @@ void GameObject::UpdateBoundingBox()
 void GameObject::SetBoundingBox(const BoundingOrientedBox& boundingBox)
 {
 	m_boundingBox = boundingBox;
+}
+
+void GameObject::CreateAnimationController(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, int trackNum)
+{
+	// 3개의 트랙을 가진 애니메이션 컨트롤러 생성
+	m_animationController = make_shared<AnimationController>(trackNum);
+	m_animationController->SetSkinnedMeshes(device, commandList, *this);
+}
+
+void GameObject::FindAndSetSkinnedMesh(vector<SkinnedMesh*>& skinnedMeshes)
+{
+	if (m_mesh) {
+		if (SKINNED_MESH == m_mesh->GetMeshType()) {
+			skinnedMeshes.push_back(static_cast<SkinnedMesh*>(m_mesh.get()));
+		}
+	}
+
+	if (m_sibling) m_sibling->FindAndSetSkinnedMesh(skinnedMeshes);
+	if (m_child) m_child->FindAndSetSkinnedMesh(skinnedMeshes);
+}
+
+void GameObject::SetAnimationOnTrack(int animationTrackNumber, int animation)
+{
+	m_animationController->SetTrackAnimation(animationTrackNumber, animation);
 }
 
 Field::Field(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList,
@@ -380,4 +426,294 @@ Skybox::Skybox(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCo
 void Skybox::Update(FLOAT timeElapsed)
 {
 
+}
+
+// 애니메이션
+void AnimationCallbackHandler::Callback(void* callbackData, float trackPosition)
+{
+	// 콜백 처리
+}
+
+Animation::Animation(float length, int framePerSecond, int keyFrames, int skinningBones, string name)
+{
+	m_length = length;
+	m_framePerSecond = framePerSecond;
+	m_animationName = name;
+	m_keyFrameTimes.resize(keyFrames);
+	m_keyFrameTransforms.resize(keyFrames);
+
+	for (auto& transforms : m_keyFrameTransforms) {
+		transforms.resize(skinningBones);
+	}
+}
+
+Animation::~Animation()
+{
+	m_keyFrameTimes.clear();
+	for (auto& transforms : m_keyFrameTransforms)
+		transforms.clear();
+	m_keyFrameTransforms.clear();
+}
+
+XMFLOAT4X4 Animation::GetSRT(int boneNumber, float position)
+{
+	XMFLOAT4X4 transform;
+	XMStoreFloat4x4(&transform, XMMatrixIdentity());
+	
+	size_t keyFrames = m_keyFrameTimes.size();
+	for (size_t i = 0; i < keyFrames - 1; ++i) {
+		if ((m_keyFrameTimes[i] <= position) && (position < m_keyFrameTimes[i + 1])) {
+			float t = (position - m_keyFrameTimes[i]) / (m_keyFrameTimes[i + 1] - m_keyFrameTimes[i]);
+			transform = Matrix::Interpolate(m_keyFrameTransforms[i][boneNumber], m_keyFrameTransforms[i + 1][boneNumber], t);
+		}
+	}
+
+	if (position >= m_keyFrameTimes[keyFrames - 1])
+		transform = m_keyFrameTransforms[keyFrames - 1][boneNumber];
+
+	return transform;
+}
+
+AnimationSet::AnimationSet(int nAnimation)
+{
+	m_animations.resize(nAnimation);
+}
+
+AnimationTrack::AnimationTrack()
+{
+	m_enable = true;
+	m_speed = 1.0f;
+	m_position = -ANIMATION_EPSILON;
+	m_weight = 1.0f;
+	m_animation = 0;
+	m_type = ANIMATION_TYPE_LOOP;
+	m_nCallbackKey = 0;
+	m_animationCallbackHandler = nullptr;
+}
+
+AnimationTrack::~AnimationTrack()
+{
+}
+
+void AnimationTrack::SetCallbackKeys(int callbackKeys)
+{
+	m_nCallbackKey = callbackKeys;
+	m_callbackKeys.resize(callbackKeys);
+}
+
+void AnimationTrack::SetCallbackKey(int Index, float time, void* data)
+{
+	m_callbackKeys[Index].m_time = time;
+	m_callbackKeys[Index].m_callbackData = data;
+}
+
+void AnimationTrack::SetAnimationCallbackHandler(const shared_ptr<AnimationCallbackHandler>& callbackHandler)
+{
+	m_animationCallbackHandler = callbackHandler;
+}
+
+float AnimationTrack::UpdatePosition(float trackPosition, float elapsedTime, float animationLength)
+{
+	float trackElapsedTime = elapsedTime * m_speed;		// 트랙 재생정도 = 시간의 흐름 * 애니메이션 재생속도
+
+	if (ANIMATION_TYPE_LOOP == m_type) {
+		if (m_position < 0.0f)
+			m_position = 0.0f;
+		else {
+			m_position = trackPosition + trackElapsedTime;
+			if (m_position > animationLength) {
+				m_position = -ANIMATION_EPSILON;
+				return animationLength;
+			}
+		}
+	}
+	else if (ANIMATION_TYPE_ONCE == m_type) {
+		m_position = trackPosition + trackElapsedTime;
+		if (m_position > animationLength)
+			m_position = animationLength;
+	}
+
+	return m_position;
+}
+
+void AnimationTrack::AnimationCallback()
+{
+	// callback 핸들러가 있다면
+	// 트랙에 있는 callbackKeys를 검사함
+	// callbackKey 에 정의된 callback 시간과 현재 애니메이션 시간이 같은지 검사
+	// callbackKey 에 callback 데이터가 있다면 
+	// 해당 callback 동작을 수행
+
+	// ex) 공격 동작 중간에 공격판정을 넣고자 한다면 공격 시작시간과 끝시간을 설정해
+	// 시작시간엔 공격 판정이 되도록, 끝시간엔 공격 판정이 끝나도록 callback을 설정하면 됨
+	if (m_animationCallbackHandler) {
+		for (auto& callbackKey : m_callbackKeys) {
+			if (abs(callbackKey.m_time - m_position) <= ANIMATION_EPSILON) {
+				if (callbackKey.m_callbackData)
+					m_animationCallbackHandler->Callback(callbackKey.m_callbackData, m_position);
+				break;
+			}
+		}
+	}
+}
+
+AnimationController::AnimationController(int animationTracks)
+{
+	// 컨트롤러 생성 시 원하는 갯수만큼 트랙 생성
+	m_animationTracks.resize(animationTracks);
+}
+
+AnimationController::~AnimationController()
+{
+	for (int i = 0; i < m_skinnedMeshes.size(); ++i) {
+		m_skinningBoneTransform[i]->Unmap(0, nullptr);
+		m_skinningBoneTransform[i]->Release();
+	}
+}
+
+void AnimationController::UpdateShaderVariables(const ComPtr<ID3D12GraphicsCommandList>& commandList)
+{
+	for (int i = 0; i < m_skinnedMeshes.size(); ++i) {
+		m_skinnedMeshes[i]->GetSkinningBoneTransform() = m_skinningBoneTransform[i];
+		m_skinnedMeshes[i]->GetMappedSkinningBoneTransform() = m_mappedSkinningBoneTransforms[i];
+	}
+}
+
+void AnimationController::SetAnimationSet(const shared_ptr<AnimationSet>& animationSet, GameObject* rootObject)
+{
+	m_animationSet = animationSet;
+
+	// 애니메이션이 영향을 주는 뼈대들을 세팅함
+	auto& frameCaches = m_animationSet->GetBoneFramesCaches();
+	auto& frameNames = m_animationSet->GetFrameNames();
+
+	if (frameCaches[0] == nullptr) {
+		for (int i = 0; i < frameCaches.size(); ++i)
+			frameCaches[i] = rootObject->FindFrame(frameNames[i]);
+	}
+}
+
+void AnimationController::SetSkinnedMeshes(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, GameObject& rootObject)
+{
+	// 오브젝트로 부터 스킨메쉬를 가져옴
+	rootObject.FindAndSetSkinnedMesh(m_skinnedMeshes);
+
+	// 스킨메쉬들의 스킨 뼈대 오브젝트들을 세팅함
+	for (auto& mesh : m_skinnedMeshes) {
+		auto& boneNames = mesh->GetSkinningBoneNames();
+		auto& boneFrames = mesh->GetSkinningBoneFrames();
+
+		for (size_t i = 0; i < mesh->GetSkinningBoneNum(); ++i) {
+			boneFrames[i] = rootObject.FindFrame(boneNames[i]);
+		}
+	}
+
+	int meshCount = m_skinnedMeshes.size();
+	m_skinningBoneTransform.resize(meshCount);
+	m_mappedSkinningBoneTransforms.resize(meshCount);
+
+	// 스킨메쉬 갯수만큼 스키닝 뼈대 변환 버퍼 리소스를 생성하고 
+	// 변수에 매핑함
+	UINT elementBytes = (((sizeof(XMFLOAT4X4) * SKINNED_BONES) + 255) & ~255);
+	for (size_t i = 0; auto& resource : m_skinningBoneTransform) {
+		resource = CreateBufferResource(device, commandList, nullptr, elementBytes,
+			D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, ComPtr<ID3D12Resource>());
+		resource->Map(0, nullptr, (void**)&m_mappedSkinningBoneTransforms[i]);
+		++i;
+	}
+}
+
+void AnimationController::SetTrackAnimation(int animationTrack, int animation)
+{
+	if (!m_animationTracks.empty())
+		m_animationTracks[animationTrack].SetAnimation(animation);
+}
+
+void AnimationController::SetTrackEnable(int animationTrack, bool enable)
+{
+	if (!m_animationTracks.empty())
+		m_animationTracks[animationTrack].SetEnable(enable);
+}
+
+void AnimationController::SetTrackPosition(int animationTrack, float position)
+{
+	if (!m_animationTracks.empty())
+		m_animationTracks[animationTrack].SetPosition(position);
+}
+
+void AnimationController::SetTrackSpeed(int animationTrack, float speed)
+{
+	if (!m_animationTracks.empty())
+		m_animationTracks[animationTrack].SetSpeed(speed);
+}
+
+void AnimationController::SetTrackWeight(int animationTrack, float weight)
+{
+	if (!m_animationTracks.empty())
+		m_animationTracks[animationTrack].SetWeight(weight);
+}
+
+void AnimationController::SetCallbackKeys(int animationTrack, int callbackKeys)
+{
+	if (!m_animationTracks.empty())
+		m_animationTracks[animationTrack].SetCallbackKeys(callbackKeys);
+}
+
+void AnimationController::SetCallbackKey(int animationTrack, int keyIndex, float time, void* data)
+{
+	if (!m_animationTracks.empty())
+		m_animationTracks[animationTrack].SetCallbackKey(keyIndex, time, data);
+}
+
+void AnimationController::SetAnimationCallbackHandler(int animationTrack, const shared_ptr<AnimationCallbackHandler>& callbackHandler)
+{
+	if (!m_animationTracks.empty())
+		m_animationTracks[animationTrack].SetAnimationCallbackHandler(callbackHandler);
+
+}
+
+void AnimationController::AdvanceTime(float timeElapsed, GameObject* rootGameObject)
+{
+	m_time += timeElapsed;
+	XMFLOAT3 pos = rootGameObject->GetPosition();
+	if (!m_animationTracks.empty()) {
+		auto& boneFrameCaches = m_animationSet->GetBoneFramesCaches();
+
+		for (auto& boneFrame : boneFrameCaches) {
+			boneFrame->SetTransformMatrix(XMFLOAT4X4(0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f,
+				0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f));
+		}
+
+		// 트랙을 돌면서 트랙이 활성화 되어있으면
+		for (int i = 0; i < m_animationTracks.size(); ++i) {
+			auto& track = m_animationTracks[i];
+			if (track.GetEnable()) {
+
+				// 현재 컨트롤러에 등록된 애니메이션 조합에서 
+				// 트랙에 등록된 애니메이션 번호에 해당하는 애니메이션을 가져옴
+				shared_ptr<Animation> animation = m_animationSet->GetAnimations()[track.GetAnimation()];
+
+				// 트랙의 애니메이션 재생 위치를 갱신하고 갱신된 위치를 가져옴
+				float position = track.UpdatePosition(track.GetPosition(), timeElapsed, animation->GetLength());
+
+				// 현재 애니메이션 조합에 등록된 뼈대 이름들을 탐색
+				for (int j = 0; j < boneFrameCaches.size(); ++j) {
+
+					// 해당 뼈대의 변환행렬을 가져오고
+					// 애니메이션에서 현재 재생위치에 해당하는 변환행렬을 가져옴
+					XMFLOAT4X4 transform = boneFrameCaches[j]->GetTransformMatrix();
+					XMFLOAT4X4 animationTransform = animation->GetSRT(j, position);
+
+					transform = Matrix::Add(transform, Matrix::Scale(animationTransform, track.GetWeight()));
+
+					boneFrameCaches[j]->SetTransformMatrix(transform);
+				}
+
+
+			}
+		}
+
+		rootGameObject->UpdateTransform(nullptr);
+		rootGameObject->Move(pos);
+	}
 }

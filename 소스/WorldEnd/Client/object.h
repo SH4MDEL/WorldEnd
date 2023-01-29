@@ -4,6 +4,14 @@
 #include "texture.h"
 #include "material.h"
 
+#define ANIMATION_TYPE_ONCE				0
+#define ANIMATION_TYPE_LOOP				1
+
+#define ANIMATION_EPSILON		0.00165f
+
+class AnimationController;
+class AnimationSet;
+
 class GameObject
 {
 public:
@@ -19,6 +27,7 @@ public:
 	void SetMesh(const shared_ptr<Mesh>& mesh);
 	void SetTexture(const shared_ptr<Texture>& texture);
 	void SetMaterials(const shared_ptr<Materials>& materials);
+	void SetAnimationSet(const shared_ptr<AnimationSet>& animations);
 
 	void SetPosition(const XMFLOAT3& position);
 	void SetScale(FLOAT x, FLOAT y, FLOAT z);
@@ -39,6 +48,46 @@ public:
 
 	void UpdateBoundingBox();
 	void SetBoundingBox(const BoundingOrientedBox& boundingBox);
+
+	//XMFLOAT3 GetPositionX(return XMFLOAT3{ m_worldMatrix._41 };)
+
+
+
+	XMFLOAT4X4 GetTransformMatrix() const { return m_transformMatrix; }
+	void SetTransformMatrix(XMFLOAT4X4 mat) { m_transformMatrix = mat; }
+
+	// 오브젝트에서 애니메이션파일 읽기, 스킨메쉬 찾기, 애니메이션 설정 함수 추가
+	void CreateAnimationController(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, int trackNum);
+
+	shared_ptr<SkinnedMesh> FindSkinnedMesh(string meshName);
+	void FindAndSetSkinnedMesh(vector<SkinnedMesh*>& skinnedMeshes);
+
+	void SetAnimationOnTrack(int animationTrackNumber, int animation);
+	void SetAnimationPositionOnTrack(int animationTrackNumber, float position);
+
+	AnimationController* GetAnimationController() const { return m_animationController.get(); }
+
+	void Check() {
+		XMFLOAT3 p = GetPosition();
+		cout << m_frameName << " : " << p.x << ", " << p.y << ", " << p.z << endl;
+
+		if (m_sibling) m_sibling->Check();
+		if (m_child) m_child->Check();
+	}
+	
+	void CheckMat(){
+		float x = m_transformMatrix._41;
+		float y = m_transformMatrix._42;
+		float z = m_transformMatrix._43;
+		cout << m_frameName << " : " << x << ", " << y << ", " << z << endl;
+
+		if (m_sibling) m_sibling->CheckMat();
+		if (m_child) m_child->CheckMat();
+	}
+
+	string GetName() const {
+		return m_frameName;
+	}
 
 protected:
 	XMFLOAT4X4					m_transformMatrix;
@@ -63,6 +112,8 @@ protected:
 	shared_ptr<GameObject>		m_child;
 
 	BoundingOrientedBox			m_boundingBox;	
+
+	shared_ptr<AnimationController>		m_animationController;
 };
 
 class Field : public GameObject
@@ -128,4 +179,148 @@ public:
 	~Skybox() = default;
 
 	virtual void Update(FLOAT timeElapsed);
+};
+
+
+struct CALLBACKKEY
+{
+	float	m_time = 0.0f;
+	void*	m_callbackData = nullptr;
+};
+
+class AnimationCallbackHandler
+{
+public:
+	AnimationCallbackHandler() {}
+	~AnimationCallbackHandler() {}
+
+	void Callback(void* callbackData, float trackPosition);
+};
+
+class Animation		// 애니메이션 행동 정의
+{
+public:
+	Animation(float length, int framePerSecond, int keyFrames, int skinningBones, string name);
+	~Animation();
+
+	string GetName() const { return m_animationName; }
+	float GetLength() const { return m_length; }
+	vector<float>& GetKeyFrameTimes() { return m_keyFrameTimes; }
+	vector<vector<XMFLOAT4X4>>& GetKeyFrameTransforms() { return m_keyFrameTransforms; }
+	XMFLOAT4X4 GetSRT(int boneNumber, float position);
+
+
+	void SetName(const string_view s) { m_animationName = s; }
+	void SetLength(float length) { m_length = length; }
+	void SetFramePerSecond(int i) { m_framePerSecond = i; }
+	
+
+private:
+	string								m_animationName;
+	float								m_length;
+	int									m_framePerSecond;
+
+	vector<float>						m_keyFrameTimes;
+	vector<vector<XMFLOAT4X4>>			m_keyFrameTransforms;
+};
+
+class AnimationSet		// 애니메이션들의 집합
+{
+public:
+	AnimationSet() = default;
+	AnimationSet(int nAnimation);
+	~AnimationSet() = default;
+
+	vector<shared_ptr<Animation>>& GetAnimations() { return m_animations; }
+	vector<shared_ptr<GameObject>>& GetBoneFramesCaches() { return m_animatedBoneFramesCaches; }
+	vector<string>& GetFrameNames() { return m_frameNames; }
+
+private:
+	vector<shared_ptr<Animation>>		m_animations;
+	vector<string>						m_frameNames;
+
+	vector<shared_ptr<GameObject>>		m_animatedBoneFramesCaches;
+};
+
+class AnimationTrack		// 애니메이션 제어 클래스
+{
+public:
+	AnimationTrack();
+	~AnimationTrack();
+
+	void SetAnimation(int animation) { m_animation = animation; }
+	void SetEnable(int enable) { m_enable = enable; }
+	void SetSpeed(float speed) { m_speed = speed; }
+	void SetPosition(float position) { m_position = position; }
+	void SetWeight(float weight) { m_weight = weight; }
+
+	void SetCallbackKeys(int callbackKeys);
+	void SetCallbackKey(int keyIndex, float time, void* data);
+	void SetAnimationCallbackHandler(const shared_ptr<AnimationCallbackHandler>& callbackHandler);
+
+
+	bool  GetEnable() const { return m_enable; }
+	float GetSpeed() const { return m_speed; }
+	float GetPosition() const { return m_position; }
+	float GetWeight() const { return m_weight; }
+	int   GetAnimation() const { return m_animation; }
+
+	int GetNumberOfCallbackKey() const { return m_nCallbackKey; }
+	vector<CALLBACKKEY> GetCallbackKeys() const { return m_callbackKeys; }
+	AnimationCallbackHandler* GetAnimationCallbackHandler() const { return m_animationCallbackHandler.get(); }
+
+	float UpdatePosition(float trackPosition, float trackElapsedTime, float animationLength);
+
+	void AnimationCallback();
+
+private:
+	bool									m_enable;				// 해당 트랙을 활성화 할지
+	float									m_speed;				// 애니메이션 재생 속도
+	float									m_position;				// 애니메이션 재생 위치
+	float									m_weight;				// 애니메이션 블렌딩 가중치
+	int										m_animation;			// 애니메이션 번호
+	int										m_type;					// 재생 타입(한번, 반복)
+
+	int										m_nCallbackKey;			// 콜백 갯수
+	vector<CALLBACKKEY>						m_callbackKeys;			// 콜백 컨테이너
+
+	shared_ptr<AnimationCallbackHandler>	m_animationCallbackHandler;		// 콜벡 핸들러 컨테이너
+};
+
+class AnimationController
+{
+public:
+	AnimationController(int animationTracks);
+	~AnimationController();
+
+	void UpdateShaderVariables(const ComPtr<ID3D12GraphicsCommandList>& commandList);
+
+	void SetAnimationSet(const shared_ptr<AnimationSet>& animationSet, GameObject* rootObject);
+	void SetSkinnedMeshes(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, GameObject& rootObject);
+
+	void SetTrackAnimation(int animationTrack, int animations);
+	void SetTrackEnable(int animationTrack, bool enable);
+	void SetTrackPosition(int animationTrack, float position);
+	void SetTrackSpeed(int animationTrack, float speed);
+	void SetTrackWeight(int animationTrack, float weight);
+
+	void SetCallbackKeys(int animationTrack, int callbackKeys);
+	void SetCallbackKey(int animationTrack, int keyIndex, float  time, void* data);
+	void SetAnimationCallbackHandler(int animationTrack, const shared_ptr<AnimationCallbackHandler>& callbackHandler);
+
+	AnimationTrack& GetAnimationTrack(int index) { return m_animationTracks[index]; }
+	AnimationSet* GetAnimationSet() const { return m_animationSet.get(); }
+
+	void AdvanceTime(float timeElapsed, GameObject* rootGameObject);
+
+private:
+	float									m_time;
+	vector<AnimationTrack>					m_animationTracks;
+
+	shared_ptr<AnimationSet>				m_animationSet;		// 등록된 애니메이션 조합
+
+	vector<SkinnedMesh*>					m_skinnedMeshes;
+
+	vector<ComPtr<ID3D12Resource>>			m_skinningBoneTransform;
+	vector<XMFLOAT4X4*>						m_mappedSkinningBoneTransforms;	// skinmesh 별 뼈대 변환행렬
 };

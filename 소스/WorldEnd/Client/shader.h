@@ -100,3 +100,10 @@ public:
 	BlendingShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature);
 	~BlendingShader() = default;
 };
+
+class SkinnedAnimationShader : public Shader
+{
+public:
+	SkinnedAnimationShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature);
+	~SkinnedAnimationShader() = default;
+};

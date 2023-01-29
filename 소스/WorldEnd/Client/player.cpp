@@ -11,6 +11,19 @@ void Player::Update(FLOAT timeElapsed)
 	GameObject::Update(timeElapsed);
 
 	Move(m_velocity);
+	if (m_animationController) {
+		float length = fabs(m_velocity.x) + fabs(m_velocity.z);
+		if (length <= FLT_EPSILON) {
+			m_animationController->SetTrackEnable(0, true);
+			m_animationController->SetTrackEnable(1, false);
+			m_animationController->SetTrackPosition(1, 0.0f);
+		}
+		else {
+			m_animationController->SetTrackEnable(0, false);
+			m_animationController->SetTrackEnable(1, true);
+		}
+	}
+
 	ApplyFriction(timeElapsed);
 }
 
