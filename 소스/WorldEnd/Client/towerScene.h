@@ -33,6 +33,7 @@ public:
 	void RecvLoginOkPacket(char* ptr);
 	void RecvAddPlayerPacket(char* ptr);
 	void RecvUpdateClient(char* ptr);
+	void RecvAttackPacket(char* ptr);
 
 protected:
 	vector<shared_ptr<GameObject>>			m_object;
@@ -42,8 +43,6 @@ protected:
 
 	// 서버 추가 코드
 	unordered_map<INT, shared_ptr<Player>>	m_multiPlayers;
-
-	
 
 
 };

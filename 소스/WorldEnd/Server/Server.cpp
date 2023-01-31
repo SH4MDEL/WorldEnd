@@ -1,7 +1,7 @@
 #include "Server.h"
 #include "stdafx.h"
 
-Server::Server() : disconnect_cnt{ 0 }
+Server::Server() : m_disconnect_cnt{ 0 }
 {
 }
 
@@ -76,7 +76,7 @@ void Server::WorkerThreads()
 				std::cout << "Maxmum user overflow. Accept aborted." << std::endl;
 			}
 			else {
-				Session& cl = clients[new_id];
+				Session& cl = m_clients[new_id];
 				cl.m_lock.lock();
 				cl.m_player_data.id = new_id;
 				cl.m_player_data.active_check = true;
@@ -107,7 +107,7 @@ void Server::WorkerThreads()
 				//disconnect(static_cast<int>(key));
 				continue;
 			}
-			Session& cl = clients[static_cast<int>(key)];
+			Session& cl = m_clients[static_cast<int>(key)];
 			int remain_data = num_bytes + cl.m_prev_size;
 			char* packet_start = exp_over->_send_buf;
 			int packet_size = packet_start[0];
@@ -142,7 +142,7 @@ void Server::WorkerThreads()
 void Server::ProcessPacket(const int id, char* p) 
 {
 	char packet_type = p[1];
-	Session& cl = clients[id];
+	Session& cl = m_clients[id];
 	
 	switch (packet_type)
 	{
@@ -176,10 +176,8 @@ void Server::ProcessPacket(const int id, char* p)
 	}
 	case CS_PACKET_PLAYER_ATTACK:
 	{
-	
 		CS_ATTACK_PACKET* attack_packet = reinterpret_cast<CS_ATTACK_PACKET*>(p);
 
-		SendPlayerAttackPacket(cl.m_player_data.id);
 			switch (attack_packet->key)
 			{
 			case INPUT_KEY_E:
@@ -190,24 +188,22 @@ void Server::ProcessPacket(const int id, char* p)
 				{
 					auto attack_end_time = std::chrono::system_clock::now();
 					auto sec = std::chrono::duration_cast<std::chrono::seconds>(attack_end_time - attack_start_time);
-					if (sec.count() > start_cool_time)
+					if (sec.count() > m_start_cool_time)
 					{
-						start_cool_time++;
-						remain_cool_time = end_cool_time - start_cool_time;
-						cout << "남은 공격 쿨타임: " << remain_cool_time << "초" << endl;
+						m_start_cool_time++;
+						m_remain_cool_time = m_end_cool_time - m_start_cool_time;
+						cout << "남은 공격 쿨타임: " << m_remain_cool_time << "초" << endl;
 					}
-					else if (start_cool_time == 5) {
-						start_cool_time = 0;
+					else if (m_start_cool_time == 5) {
+						m_start_cool_time = 0;
 						break;
 						
 					}
 				}
-
 				break;
-			}
-			
+			}	
 		}
-
+			SendPlayerAttackPacket(cl.m_player_data.id);
 		break;
 	}
 	
@@ -217,7 +213,7 @@ void Server::ProcessPacket(const int id, char* p)
 
 void Server::Disconnect(const int id)
 {
-	Session& cl = clients[id];
+	Session& cl = m_clients[id];
 	cl.m_lock.lock();
 	cl.m_player_data.id = 0;
 	cl.m_player_data.active_check = false;
@@ -253,7 +249,7 @@ void Server::SendLoginOkPacket(const Session& player) const
 	memcpy(buf, reinterpret_cast<char*>(&login_ok_packet), sizeof(login_ok_packet));
 
 	// 현재 접속해 있는 모든 클라이언트들에게 새로 로그인한 클라이언트들의 정보를 전송
-	for (const auto& other : clients)
+	for (const auto& other : m_clients)
 	{
 		if (!other.m_player_data.active_check) continue;
 		if (player.m_player_data.id == other.m_player_data.id) continue;
@@ -263,7 +259,7 @@ void Server::SendLoginOkPacket(const Session& player) const
 	}
 
 	// 새로 로그인한 클라이언트에게 현재 접속해 있는 모든 클라이언트들의 정보를 전송
-	for (const auto& other : clients)
+	for (const auto& other : m_clients)
 	{
 		if (!other.m_player_data.active_check) continue;
 		if (static_cast<int>(other.m_player_data.id) == player.m_player_data.id) continue;
@@ -295,7 +291,7 @@ void Server::SendPlayerDataPacket()
 	update_packet.size = sizeof(update_packet);
 	update_packet.type = SC_PACKET_UPDATE_CLIENT;
 	for (int i = 0; i < MAX_USER; ++i)
-		update_packet.data[i] = clients[i].m_player_data;
+		update_packet.data[i] = m_clients[i].m_player_data;
 
 	for (int i = 1; i < MAX_USER; ++i) 
 	{
@@ -310,7 +306,7 @@ void Server::SendPlayerDataPacket()
 	WSABUF wsa_buf{ sizeof(buf), buf };
 	DWORD sent_byte;
 
-	for (const auto& cl : clients)
+	for (const auto& cl : m_clients)
 	{
 		if (!cl.m_player_data.active_check) continue; 
 		
@@ -331,13 +327,14 @@ void Server::SendPlayerAttackPacket(int pl_id)
 	attack_packet.size = sizeof(attack_packet);
 	attack_packet.type = SC_PACKET_PLAYER_ATTACK;
 	attack_packet.id = pl_id;
+	attack_packet.key = INPUT_KEY_E;
 
 	char buf[sizeof(attack_packet)];
 	memcpy(buf, reinterpret_cast<char*>(&attack_packet), sizeof(attack_packet));
 	WSABUF wsa_buf{ sizeof(buf), buf };
 	DWORD sent_byte;
 
-	for (const auto& cl : clients) {
+	for (const auto& cl : m_clients) {
 		if (!cl.m_player_data.active_check) continue;
 		const int retval = WSASend(cl.m_socket, &wsa_buf, 1, &sent_byte, 0, nullptr, nullptr);
 		if (retval == SOCKET_ERROR) ErrorDisplay("Send(SC_ATTACK_PACKET) Error");
@@ -345,10 +342,11 @@ void Server::SendPlayerAttackPacket(int pl_id)
 }
 
 
+
 CHAR Server::GetNewId() const
 {
 	for (int i = 0; i < MAX_USER; ++i) {
-		if (false == clients[i].m_player_data.active_check)
+		if (false == m_clients[i].m_player_data.active_check)
 		{
 			return i;
 		}
@@ -356,6 +354,7 @@ CHAR Server::GetNewId() const
 	std::cout << "Maximum Number of Clients" << std::endl;
 	return -1;
 }
+
 
 
 

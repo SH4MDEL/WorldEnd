@@ -5,14 +5,15 @@ class Server
 {
 	// 통신 관련 변수
 private:
-	array<Session, MAX_USER>				clients;
+	array<Session, MAX_USER>				m_clients;
 	vector <thread>                         m_worker_threads;
 
-	INT									    disconnect_cnt;	// 연결 끊긴 인원 수
+	INT									    m_disconnect_cnt;	// 연결 끊긴 인원 수
 
-	int                                     start_cool_time  {};
-	int                                     end_cool_time = 5;
-	int                                     remain_cool_time{};
+	int                                     m_start_cool_time;
+	int                                     m_end_cool_time = 5;
+	int                                     m_remain_cool_time;
+
 
 public:
 	Server();

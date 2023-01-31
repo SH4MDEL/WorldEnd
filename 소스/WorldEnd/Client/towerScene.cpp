@@ -234,6 +234,9 @@ void TowerScene::ProcessPacket(char* ptr)
 	case SC_PACKET_UPDATE_CLIENT:
 		RecvUpdateClient(ptr);
 		break;
+	case SC_PACKET_PLAYER_ATTACK:
+		RecvAttackPacket(ptr);
+		break;
 	}
 }
 
@@ -325,6 +328,12 @@ void TowerScene::RecvUpdateClient(char* ptr)
 		}
 	}
 
+}
+
+void TowerScene::RecvAttackPacket(char* ptr)
+{
+	SC_ATTACK_PACKET* attack_packet = reinterpret_cast<SC_ATTACK_PACKET*>(ptr);
+	m_player->SetKey(attack_packet->key);
 }
 
 

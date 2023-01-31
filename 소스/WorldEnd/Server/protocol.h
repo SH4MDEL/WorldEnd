@@ -9,7 +9,7 @@ constexpr int MAX_USER = 3;
 
 constexpr char CS_PACKET_LOGIN = 1;
 constexpr char CS_PACKET_PLAYER_MOVE = 2;
-constexpr char CS_PACKET_PLAYER_ATTACK = 3;
+constexpr char CS_PACKET_PLAYER_ATTACK = 4;
 
 constexpr char SC_PACKET_LOGIN_OK = 1;
 constexpr char SC_PACKET_ADD_PLAYER = 2;
@@ -167,6 +167,7 @@ struct SC_ATTACK_PACKET
 	UCHAR     size;
 	UCHAR     type;
 	CHAR      id;
+	CHAR      key;
 };
 
 #pragma pack (pop)

@@ -84,16 +84,16 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 	{
 
 	}
-	
-	if (GetAsyncKeyState('E') & 0x8000) {
-		char packet_direction{};
-		packet_direction += INPUT_KEY_E;
-		CS_ATTACK_PACKET attack_packet;
-		attack_packet.size = sizeof(attack_packet);
-		attack_packet.type = CS_PACKET_PLAYER_ATTACK;
-		attack_packet.key = packet_direction;
+	if (m_key == INPUT_KEY_E) {
+		if (GetAsyncKeyState('E') & 0x8000) {
+			CS_ATTACK_PACKET attack_packet;
+			attack_packet.size = sizeof(attack_packet);
+			attack_packet.type = CS_PACKET_PLAYER_ATTACK;
+			attack_packet.key = m_key;
+			m_key = 0;
+			send(g_socket, reinterpret_cast<char*>(&attack_packet), sizeof(attack_packet), 0);
 
-		send(g_socket, reinterpret_cast<char*>(&attack_packet), sizeof(attack_packet), 0);
+		}
 	}
 }
 
