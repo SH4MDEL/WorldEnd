@@ -31,22 +31,22 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	// 지형 생성
 	auto fieldShader{ make_shared<DetailShader>(device, rootsignature) };
 	auto fieldTexture{ make_shared<Texture>() };
-	fieldTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/Base_Texture.dds"), 2); // BaseTexture
-	fieldTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/Detail_Texture.dds"), 3); // SubTexture
+	fieldTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/Base_Texture.dds"), 4); // BaseTexture
+	fieldTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/Detail_Texture.dds"), 5); // SubTexture
 	fieldTexture->CreateSrvDescriptorHeap(device);
 	fieldTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
 
 	// 펜스 생성
 	auto blendingShader{ make_shared<BlendingShader>(device, rootsignature) };
 	auto fenceTexture{ make_shared<Texture>() };
-	fenceTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/Fence.dds"), 2); // BaseTexture
+	fenceTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/Fence.dds"), 4); // BaseTexture
 	fenceTexture->CreateSrvDescriptorHeap(device);
 	fenceTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
 
 	// 스카이박스 생성
 	auto skyboxShader{ make_shared<SkyboxShader>(device, rootsignature) };
 	auto skyboxTexture{ make_shared<Texture>() };
-	skyboxTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/SkyBox.dds"), 4);
+	skyboxTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/SkyBox.dds"), 6);	// Skybox
 	skyboxTexture->CreateSrvDescriptorHeap(device);
 	skyboxTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURECUBE);
 
@@ -54,8 +54,8 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	auto hpBarShader{ make_shared<HpBarShader>(device, rootsignature) };
 	auto hpBarMesh{ make_shared<BillboardMesh>(device, commandlist, XMFLOAT3{ 0.f, 0.f, 0.f }, XMFLOAT2{ 0.75f, 0.15f }) };
 	auto hpBarTexture{ make_shared<Texture>() };
-	hpBarTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/Full_HpBar.dds"), 2); // BaseTexture
-	hpBarTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/Empty_HpBar.dds"), 3); // SubTexture
+	hpBarTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/Full_HpBar.dds"), 4); // BaseTexture
+	hpBarTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/Empty_HpBar.dds"), 5); // SubTexture
 	hpBarTexture->CreateSrvDescriptorHeap(device);
 	hpBarTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
 
@@ -143,6 +143,7 @@ void LoadingScene::LoadMaterialFromFile(const ComPtr<ID3D12Device>& device, cons
 			in.read((&materials->m_materialName[0]), sizeof(char) * strLength);
 
 			materials->LoadMaterials(device, commandList, in);
+			
 
 			m_materials.insert({ materials->m_materialName, materials });
 			m_materials.insert({ "@" + materials->m_materialName, materials});

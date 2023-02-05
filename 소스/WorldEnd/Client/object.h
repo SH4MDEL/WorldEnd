@@ -20,7 +20,7 @@ public:
 	void SetTexture(const shared_ptr<Texture>& texture);
 	void SetMaterials(const shared_ptr<Materials>& materials);
 
-	void SetPosition(const XMFLOAT3& position);
+	virtual void SetPosition(const XMFLOAT3& position);
 	void SetScale(FLOAT x, FLOAT y, FLOAT z);
 	void SetWorldMatrix(const XMFLOAT4X4& worldMatrix);
 
@@ -79,7 +79,7 @@ public:
 	virtual void Move(const XMFLOAT3& shift);
 	virtual void Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw);
 
-	void SetPosition(const XMFLOAT3& position);
+	void SetPosition(const XMFLOAT3& position) override;
 
 	XMFLOAT3 GetPosition() const { return m_blocks.front()->GetPosition(); }
 	INT GetWidth() const { return m_width; }
@@ -108,7 +108,7 @@ public:
 	virtual void Move(const XMFLOAT3 & shift);
 	virtual void Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw);
 
-	void SetPosition(const XMFLOAT3 & position);
+	void SetPosition(const XMFLOAT3 & position) override;
 
 	XMFLOAT3 GetPosition() const { return m_blocks.front()->GetPosition(); }
 	INT GetWidth() const { return m_width; }

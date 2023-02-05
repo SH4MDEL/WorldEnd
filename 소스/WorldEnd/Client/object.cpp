@@ -389,8 +389,8 @@ HpBar::HpBar() {}
 
 void HpBar::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const
 {
-	commandList->SetGraphicsRoot32BitConstants(0, 1, &(m_hp), 33);
-	commandList->SetGraphicsRoot32BitConstants(0, 1, &(m_maxHp), 34);
+	commandList->SetGraphicsRoot32BitConstants(0, 1, &(m_hp), 16);
+	commandList->SetGraphicsRoot32BitConstants(0, 1, &(m_maxHp), 17);
 
 	GameObject::Render(commandList);
 }

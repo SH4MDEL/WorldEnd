@@ -146,6 +146,7 @@
     <ClInclude Include="d3dx12.h" />
     <ClInclude Include="DDSTextureLoader12.h" />
     <ClInclude Include="framework.h" />
+    <ClInclude Include="light.h" />
     <ClInclude Include="loadingScene.h" />
     <ClInclude Include="towerScene.h" />
     <ClInclude Include="material.h" />
@@ -165,6 +166,7 @@
     <ClCompile Include="Client.cpp" />
     <ClCompile Include="DDSTextureLoader12.cpp" />
     <ClCompile Include="framework.cpp" />
+    <ClCompile Include="light.cpp" />
     <ClCompile Include="loadingScene.cpp" />
     <ClCompile Include="towerScene.cpp" />
     <ClCompile Include="material.cpp" />
@@ -185,6 +187,12 @@
     <Image Include="small.ico" />
   </ItemGroup>
   <ItemGroup>
+    <FxCompile Include="Resource\Shader\Buffer.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="Resource\Shader\Lighting.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </FxCompile>
     <FxCompile Include="Resource\Shader\Shaders.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>

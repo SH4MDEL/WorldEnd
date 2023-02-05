@@ -86,12 +86,53 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	m_object.push_back(field);
 	m_object.push_back(fence);
 
+	// 조명 생성
+	CreateLight(device, commandlist);
+
 	InitServer();
+}
+
+void TowerScene::CreateLight(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist)
+{
+	m_lightSystem = make_shared<LightSystem>();
+	m_lightSystem->m_globalAmbient = XMFLOAT4{ 0.0f, 0.0f, 0.0f, 1.f };
+	m_lightSystem->m_numLight = 1;
+
+	m_lightSystem->m_lights[0].m_type = DIRECTIONAL_LIGHT;
+	m_lightSystem->m_lights[0].m_ambient = XMFLOAT4{ 0.3f, 0.3f, 0.3f, 1.f };
+	m_lightSystem->m_lights[0].m_diffuse = XMFLOAT4{ 0.7f, 0.7f, 0.7f, 1.f };
+	m_lightSystem->m_lights[0].m_specular = XMFLOAT4{ 0.4f, 0.4f, 0.4f, 0.f };
+	m_lightSystem->m_lights[0].m_direction = XMFLOAT3{ -1.f, 0.f, 0.f };
+	m_lightSystem->m_lights[0].m_enable = true;
+
+	//m_lightSystem->m_lights[1].m_type = POINT_LIGHT;
+	//m_lightSystem->m_lights[1].m_range = 5000.0f;
+	//m_lightSystem->m_lights[1].m_ambient = XMFLOAT4(0.3f, 0.3f, 0.3f, 1.0f);
+	//m_lightSystem->m_lights[1].m_diffuse = XMFLOAT4(0.8f, 0.0f, 0.0f, 1.0f);
+	//m_lightSystem->m_lights[1].m_specular = XMFLOAT4(0.5f, 0.5f, 0.5f, 0.0f);
+	//m_lightSystem->m_lights[1].m_position = XMFLOAT3(0.f, 0.f, 0.f);
+	//m_lightSystem->m_lights[1].m_direction = XMFLOAT3(0.0f, 0.0f, 0.0f);
+	//m_lightSystem->m_lights[1].m_attenuation = XMFLOAT3(1.0f, 0.001f, 0.0001f);
+	//m_lightSystem->m_lights[1].m_enable = true;
+
+	//m_lightSystem->m_lights[2].m_type = SPOT_LIGHT;
+	//m_lightSystem->m_lights[2].m_range = 100.0f;
+	//m_lightSystem->m_lights[2].m_ambient = XMFLOAT4(0.3f, 0.3f, 0.3f, 1.0f);
+	//m_lightSystem->m_lights[2].m_diffuse = XMFLOAT4(0.4f, 0.4f, 0.4f, 1.0f);
+	//m_lightSystem->m_lights[2].m_specular = XMFLOAT4(0.3f, 0.3f, 0.3f, 0.0f);
+	//m_lightSystem->m_lights[2].m_position = XMFLOAT3(0.f, 5.f, 0.f);
+	//m_lightSystem->m_lights[2].m_direction = XMFLOAT3(0.0f, 1.0f, 0.0f);
+	//m_lightSystem->m_lights[2].m_attenuation = XMFLOAT3(1.0f, 0.001f, 0.0001f);
+	//m_lightSystem->m_lights[2].m_falloff = 8.f;
+	//m_lightSystem->m_lights[2].m_phi = (float)cos(XMConvertToRadians(40.0f));
+	//m_lightSystem->m_lights[2].m_theta = (float)cos(XMConvertToRadians(20.0f));
+	//m_lightSystem->m_lights[2].m_enable = true;
+
+	m_lightSystem->CreateShaderVariable(device, commandlist);
 }
 
 void TowerScene::Update(FLOAT timeElapsed)
 {
-	
 	m_camera->Update(timeElapsed);
 	if (m_shaders["SKYBOX"]) for (auto& skybox : m_shaders["SKYBOX"]->GetObjects()) skybox->SetPosition(m_camera->GetEye());
 	for (const auto& shader : m_shaders)
@@ -103,6 +144,7 @@ void TowerScene::Update(FLOAT timeElapsed)
 void TowerScene::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const
 {
 	if (m_camera) m_camera->UpdateShaderVariable(commandList);
+	if (m_lightSystem) m_lightSystem->UpdateShaderVariable(commandList);
 	m_shaders.at("PLAYER")->Render(commandList);
 	m_shaders.at("SKYBOX")->Render(commandList);
 	m_shaders.at("FIELD")->Render(commandList);
@@ -317,8 +359,6 @@ void TowerScene::RecvUpdateClient(char* ptr)
 			// towerScene의 multiPlayer를 업데이트 해도 shader의 multiPlayer도 업데이트 됨.
 			XMFLOAT3 playerPosition = update_packet->data[i].pos;			
 			m_multiPlayers[update_packet->data[i].id]->SetPosition(playerPosition);
-			playerPosition.y += 1.8f;
-			m_multiPlayers[update_packet->data[i].id]->SetHpBarPosition(playerPosition);
 			m_multiPlayers[update_packet->data[i].id]->SetVelocity(update_packet->data[i].velocity);
 			m_multiPlayers[update_packet->data[i].id]->Rotate(0.f, 0.f, update_packet->data[i].yaw - m_multiPlayers[update_packet->data[i].id]->GetYaw());
 			m_multiPlayers[update_packet->data[i].id]->SetHp(update_packet->data[i].hp);

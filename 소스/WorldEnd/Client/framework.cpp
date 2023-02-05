@@ -245,40 +245,39 @@ void GameFramework::CreateDepthStencilView()
 
 void GameFramework::CreateRootSignature()
 {
-	CD3DX12_DESCRIPTOR_RANGE descriptorRange[11];
+	CD3DX12_DESCRIPTOR_RANGE descriptorRange[10];
 	descriptorRange[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);	// t0
 	descriptorRange[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);	// t1
 	descriptorRange[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2, 0, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);	// t2
-	descriptorRange[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3, 0, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);	// t3
 
+	descriptorRange[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3, 0, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);	// t3
 	descriptorRange[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4, 0, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);	// t4
 	descriptorRange[5].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 5, 0, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);	// t5
 	descriptorRange[6].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 6, 0, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);	// t6
 	descriptorRange[7].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 7, 0, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);	// t7
 	descriptorRange[8].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 8, 0, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);	// t8
 	descriptorRange[9].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 9, 0, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);	// t9
-	descriptorRange[10].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 10, 0, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);	// t10
 
-	CD3DX12_ROOT_PARAMETER rootParameter[13];
+	CD3DX12_ROOT_PARAMETER rootParameter[14];
 
-	// cbGameObject : 월드 변환 행렬(16) + struct Material(16) + material type(1) + float hp(1) + float maxHp(1)
-	rootParameter[0].InitAsConstants(35, 0, 0, D3D12_SHADER_VISIBILITY_ALL);
+	// cbGameObject : 월드 변환 행렬(16) + float hp(1) + float maxHp(1)
+	rootParameter[0].InitAsConstants(18, 0, 0, D3D12_SHADER_VISIBILITY_ALL);
 
-	// cbCamera
-	rootParameter[1].InitAsConstantBufferView(1, 0, D3D12_SHADER_VISIBILITY_ALL);
+	rootParameter[1].InitAsConstantBufferView(1, 0, D3D12_SHADER_VISIBILITY_ALL); // cbCamera
+	rootParameter[2].InitAsConstantBufferView(2, 0, D3D12_SHADER_VISIBILITY_ALL); // cbMaterial
+	rootParameter[3].InitAsConstantBufferView(3, 0, D3D12_SHADER_VISIBILITY_ALL); // cbLight
 
-	rootParameter[2].InitAsDescriptorTable(1, &descriptorRange[0], D3D12_SHADER_VISIBILITY_PIXEL);
-	rootParameter[3].InitAsDescriptorTable(1, &descriptorRange[1], D3D12_SHADER_VISIBILITY_PIXEL);
-	rootParameter[4].InitAsDescriptorTable(1, &descriptorRange[2], D3D12_SHADER_VISIBILITY_PIXEL);
-	rootParameter[5].InitAsDescriptorTable(1, &descriptorRange[3], D3D12_SHADER_VISIBILITY_PIXEL);
-
-	rootParameter[6].InitAsDescriptorTable(1, &descriptorRange[4], D3D12_SHADER_VISIBILITY_PIXEL);
-	rootParameter[7].InitAsDescriptorTable(1, &descriptorRange[5], D3D12_SHADER_VISIBILITY_PIXEL);
-	rootParameter[8].InitAsDescriptorTable(1, &descriptorRange[6], D3D12_SHADER_VISIBILITY_PIXEL);
-	rootParameter[9].InitAsDescriptorTable(1, &descriptorRange[7], D3D12_SHADER_VISIBILITY_PIXEL);
-	rootParameter[10].InitAsDescriptorTable(1, &descriptorRange[8], D3D12_SHADER_VISIBILITY_PIXEL);
-	rootParameter[11].InitAsDescriptorTable(1, &descriptorRange[9], D3D12_SHADER_VISIBILITY_PIXEL);
-	rootParameter[12].InitAsDescriptorTable(1, &descriptorRange[10], D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameter[4].InitAsDescriptorTable(1, &descriptorRange[0], D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameter[5].InitAsDescriptorTable(1, &descriptorRange[1], D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameter[6].InitAsDescriptorTable(1, &descriptorRange[2], D3D12_SHADER_VISIBILITY_PIXEL);
+	
+	rootParameter[7].InitAsDescriptorTable(1, &descriptorRange[3], D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameter[8].InitAsDescriptorTable(1, &descriptorRange[4], D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameter[9].InitAsDescriptorTable(1, &descriptorRange[5], D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameter[10].InitAsDescriptorTable(1, &descriptorRange[6], D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameter[11].InitAsDescriptorTable(1, &descriptorRange[7], D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameter[12].InitAsDescriptorTable(1, &descriptorRange[8], D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameter[13].InitAsDescriptorTable(1, &descriptorRange[9], D3D12_SHADER_VISIBILITY_PIXEL);
 	
 	CD3DX12_STATIC_SAMPLER_DESC samplerDesc[2];
 	samplerDesc[0].Init(								// s0
