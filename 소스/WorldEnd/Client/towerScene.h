@@ -22,6 +22,7 @@ public:
 	void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const override;
 
 	void LoadObjectFromFile(wstring fileName, shared_ptr<GameObject> object);
+	void LoadSceneFromFile(wstring fileName);
 
 	void CheckBorderLimit();
 

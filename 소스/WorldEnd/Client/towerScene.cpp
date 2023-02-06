@@ -173,6 +173,11 @@ void TowerScene::LoadObjectFromFile(wstring fileName, shared_ptr<GameObject> obj
 	}
 }
 
+void TowerScene::LoadSceneFromFile(wstring fileName)
+{
+
+}
+
 void TowerScene::CheckBorderLimit()
 {
 	XMFLOAT3 pos = m_player->GetPosition();

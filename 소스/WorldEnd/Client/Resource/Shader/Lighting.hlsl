@@ -102,7 +102,7 @@ float4 Lighting(float3 position, float3 normal, PhongMaterial material)
 
 	float4 color = float4(0.0f, 0.0f, 0.0f, 0.0f);
 	[unroll(MAX_LIGHTS)] 
-	for (int i = 0; i < numLight; i++) {
+	for (int i = 0; i < numLight; ++i) {
 		if (lights[i].m_enable) {
 			if (lights[i].m_type == DIRECTIONAL_LIGHT)
 			{
