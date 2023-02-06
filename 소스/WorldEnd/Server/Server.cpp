@@ -171,6 +171,7 @@ void Server::ProcessPacket(const int id, char* p)
 
 		cout << "x: " << cl.m_player_data.pos .x << " y: " << cl.m_player_data.pos.y <<
 			" z: " << cl.m_player_data.pos.z << endl;
+		PlayerCollisionCheck(cl, id);
 		SendPlayerDataPacket();
 		break;
 	}
@@ -197,8 +198,7 @@ void Server::ProcessPacket(const int id, char* p)
 					else if (m_start_cool_time == 5) {
 						m_start_cool_time = 0;
 						break;
-						
-					}
+				    }
 				}
 				break;
 			}	
@@ -339,6 +339,18 @@ void Server::SendPlayerAttackPacket(int pl_id)
 		const int retval = WSASend(cl.m_socket, &wsa_buf, 1, &sent_byte, 0, nullptr, nullptr);
 		if (retval == SOCKET_ERROR) ErrorDisplay("Send(SC_ATTACK_PACKET) Error");
 	}
+}
+
+void Server::PlayerCollisionCheck(Session& player , const int id )
+{
+	for (auto& p : m_clients) {
+		p.m_boundingbox = BoundingOrientedBox{ p.m_player_data.pos, XMFLOAT3{ 4.0f, 4.0f, 10.0f }, XMFLOAT4{ 0.0f, 0.0f, 0.0f, 1.0f }};
+
+		if (p.m_boundingbox.Intersects(p.m_boundingbox)) {
+			player.m_player_data.pos.z -= 3.0f;
+		}
+	}
+
 }
 
 

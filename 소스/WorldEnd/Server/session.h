@@ -41,12 +41,15 @@ public:
 	CHAR				m_name[NAME_SIZE];	// 닉네임
 	bool                m_ready_check;      // 로비에서 준비 
 	ePlayerType         m_player_type;      // 플레이어 종류
-
+	BoundingOrientedBox                     m_boundingbox;
+	XMFLOAT4X4				                m_worldMatrix;	
 public:
 	Session();
 	~Session();
 
 	void DoRecv();
 	void DoSend();
+
+	DirectX::BoundingOrientedBox GetBoundingBox() const;
 };
 

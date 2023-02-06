@@ -14,7 +14,6 @@ private:
 	int                                     m_end_cool_time = 5;
 	int                                     m_remain_cool_time;
 
-
 public:
 	Server();
 	~Server() = default;
@@ -27,6 +26,8 @@ public:
 	void SendLoginOkPacket(const Session& player) const;
 	void SendPlayerDataPacket();
 	void SendPlayerAttackPacket(int pl_id);
+
+	void PlayerCollisionCheck (Session& player, const int id);
 
 	CHAR GetNewId() const;
 };

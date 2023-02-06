@@ -34,3 +34,11 @@ void Session::DoRecv()
 void Session::DoSend()
 {
 }
+
+DirectX::BoundingOrientedBox Session::GetBoundingBox() const
+{
+	BoundingOrientedBox result{};
+	m_boundingbox.Transform(result, XMLoadFloat4x4(&m_worldMatrix));
+	return result;
+	return DirectX::BoundingOrientedBox();
+}
