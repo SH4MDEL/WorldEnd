@@ -2,8 +2,11 @@
 #include "stdafx.h"
 
 Session::Session() : m_socket{}, m_player_data{ 0, false , {},{},{} , 100}, m_ready_check{FALSE},
-m_player_type{ ePlayerType::SWORD }, m_state{ STATE::ST_FREE }, m_prev_size{ 0 }
+m_state{ STATE::ST_FREE }, m_prev_size{ 0 }
 {
+	// 플레이어 타입 설정
+	SetPlayerType(ePlayerType::BOW);
+
 	strcpy_s(m_name, "Player\0");
 }
 
@@ -35,10 +38,29 @@ void Session::DoSend()
 {
 }
 
+void Session::SetPlayerType(ePlayerType type)
+{
+	m_player_type = type;
+	SetBoundingBox(type);
+}
+
+void Session::SetBoundingBox(ePlayerType type)
+{
+	switch (type) {
+	case ePlayerType::BOW:
+		// 바운드 박스는 현재 궁수의 몸통을 기준으로 생성함
+		m_bounding_box = BoundingOrientedBox{ XMFLOAT3{0.f, 0.f, 0.f}, XMFLOAT3{0.65f, 0.37f, 0.65f}, XMFLOAT4{0.0f, 0.0f, 0.0f, 1.0f} };
+		m_weopon_bounding_box = BoundingOrientedBox{ XMFLOAT3{0.f, 0.f, 0.f}, XMFLOAT3{0.18f, 0.04f, 0.68f}, XMFLOAT4{0.0f, 0.0f, 0.0f, 1.0f} };
+		break;
+
+	case ePlayerType::SWORD:
+		m_bounding_box = BoundingOrientedBox{ XMFLOAT3{0.f, 0.f, 0.f}, XMFLOAT3{0.65f, 0.17f, 0.7f}, XMFLOAT4{0.0f, 0.0f, 0.0f, 1.0f} };
+		m_weopon_bounding_box = BoundingOrientedBox{ XMFLOAT3{0.f, 0.f, 0.f}, XMFLOAT3{0.13f, 0.03f, 0.68f}, XMFLOAT4{0.0f, 0.0f, 0.0f, 1.0f} };
+		break;
+	}
+}
+
 DirectX::BoundingOrientedBox Session::GetBoundingBox() const
 {
-	BoundingOrientedBox result{};
-	m_boundingbox.Transform(result, XMLoadFloat4x4(&m_worldMatrix));
-	return result;
-	return DirectX::BoundingOrientedBox();
+	return m_bounding_box;
 }

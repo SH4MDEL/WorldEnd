@@ -169,6 +169,11 @@ void Server::ProcessPacket(const int id, char* p)
 		cl.m_player_data.velocity = move_packet->velocity;
 		cl.m_player_data.yaw = move_packet->yaw;
 
+		// 바운드 박스 처리
+		// 회전값은 y축을 기준으로만 회전함
+		cl.m_bounding_box.Center = move_packet->pos;
+		//cl.m_boundingbox.Orientation.y = move_packet->yaw;
+
 		cout << "x: " << cl.m_player_data.pos .x << " y: " << cl.m_player_data.pos.y <<
 			" z: " << cl.m_player_data.pos.z << endl;
 		PlayerCollisionCheck(cl, id);
@@ -179,29 +184,29 @@ void Server::ProcessPacket(const int id, char* p)
 	{
 		CS_ATTACK_PACKET* attack_packet = reinterpret_cast<CS_ATTACK_PACKET*>(p);
 
-			switch (attack_packet->key)
+		switch (attack_packet->key)
+		{
+		case INPUT_KEY_E:
+		{
+			cout << "공격!" << endl;
+			auto attack_start_time = std::chrono::system_clock::now();
+			while (1)
 			{
-			case INPUT_KEY_E:
-			{
-				cout << "공격!" << endl;
-				auto attack_start_time = std::chrono::system_clock::now();
-				while (1)
+				auto attack_end_time = std::chrono::system_clock::now();
+				auto sec = std::chrono::duration_cast<std::chrono::seconds>(attack_end_time - attack_start_time);
+				if (sec.count() > m_start_cool_time)
 				{
-					auto attack_end_time = std::chrono::system_clock::now();
-					auto sec = std::chrono::duration_cast<std::chrono::seconds>(attack_end_time - attack_start_time);
-					if (sec.count() > m_start_cool_time)
-					{
-						m_start_cool_time++;
-						m_remain_cool_time = m_end_cool_time - m_start_cool_time;
-						cout << "남은 공격 쿨타임: " << m_remain_cool_time << "초" << endl;
-					}
-					else if (m_start_cool_time == 5) {
-						m_start_cool_time = 0;
-						break;
-				    }
+					m_start_cool_time++;
+					m_remain_cool_time = m_end_cool_time - m_start_cool_time;
+					cout << "남은 공격 쿨타임: " << m_remain_cool_time << "초" << endl;
 				}
-				break;
-			}	
+				else if (m_start_cool_time == 5) {
+					m_start_cool_time = 0;
+					break;
+				}
+			}
+			break;
+		}
 		}
 			SendPlayerAttackPacket(cl.m_player_data.id);
 		break;
@@ -341,13 +346,15 @@ void Server::SendPlayerAttackPacket(int pl_id)
 	}
 }
 
-void Server::PlayerCollisionCheck(Session& player , const int id )
+void Server::PlayerCollisionCheck(Session& player , const int id)
 {
-	for (auto& p : m_clients) {
-		p.m_boundingbox = BoundingOrientedBox{ p.m_player_data.pos, XMFLOAT3{ 4.0f, 4.0f, 10.0f }, XMFLOAT4{ 0.0f, 0.0f, 0.0f, 1.0f }};
+	for (int i = 0; i < m_clients.size(); ++i) {
+		for (int j = i + 1; j < m_clients.size(); ++j) {
+			if (!m_clients[j].m_player_data.active_check) continue;
 
-		if (p.m_boundingbox.Intersects(p.m_boundingbox)) {
-			player.m_player_data.pos.z -= 3.0f;
+			if (m_clients[i].m_bounding_box.Intersects(m_clients[j].m_bounding_box)) {
+				cout << "충돌" << endl;
+			}
 		}
 	}
 
@@ -366,7 +373,3 @@ CHAR Server::GetNewId() const
 	std::cout << "Maximum Number of Clients" << std::endl;
 	return -1;
 }
-
-
-
-
