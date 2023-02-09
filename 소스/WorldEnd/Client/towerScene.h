@@ -21,8 +21,8 @@ public:
 	void Update(FLOAT timeElapsed) override;
 	void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const override;
 
+	void LoadSceneFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, wstring fileName, wstring sceneName);
 	void LoadObjectFromFile(wstring fileName, shared_ptr<GameObject> object);
-	void LoadSceneFromFile(wstring fileName);
 
 	void CheckBorderLimit();
 

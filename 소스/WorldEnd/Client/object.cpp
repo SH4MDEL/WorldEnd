@@ -160,7 +160,7 @@ void GameObject::LoadObject(ifstream& in)
 		in.read((char*)(&strLength), sizeof(BYTE));
 		string strToken(strLength, '\0');
 		in.read((&strToken[0]), sizeof(char) * strLength);
-
+		
 		if (strToken == "<Frame>:") {
 			in.read((char*)(&frame), sizeof(INT));
 			in.read((char*)(&texture), sizeof(INT));

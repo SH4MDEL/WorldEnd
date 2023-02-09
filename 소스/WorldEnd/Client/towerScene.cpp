@@ -65,16 +65,8 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	XMStoreFloat4x4(&projMatrix, XMMatrixPerspectiveFovLH(0.25f * XM_PI, aspectRatio, 0.1f, 1000.0f));
 	m_camera->SetProjMatrix(projMatrix);
 
-	// 지형 생성
-	auto field{ make_shared<Field>(device, commandlist, 51, 51, 0, 51, 51, 0, XMFLOAT3{ 1.f, 1.f, 1.f }) };
-	field->SetPosition(XMFLOAT3{ -25.0f, 0.f, -25.0f });
-	field->SetTexture(m_textures["FIELD"]);
-	static_pointer_cast<DetailShader>(m_shaders["FIELD"])->SetField(field);
-
-	// 펜스 생성
-	auto fence{ make_shared<Fence>(device, commandlist, 50, 50, 2, 2) };
-	fence->SetTexture(m_textures["FENCE"]);
-	m_shaders["FENCE"]->SetObject(fence);
+	// 씬 로드
+	LoadSceneFromFile(device, commandlist, TEXT("./Resource/Scene/TowerScene.bin"), TEXT("TowerScene"));
 
 	// 스카이박스 생성
 	auto skybox{ make_shared<Skybox>(device, commandlist, 20.0f, 20.0f, 20.0f) };
@@ -83,8 +75,6 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 
 	// 오브젝트 설정	
 	m_object.push_back(skybox);
-	m_object.push_back(field);
-	m_object.push_back(fence);
 
 	// 조명 생성
 	CreateLight(device, commandlist);
@@ -96,7 +86,7 @@ void TowerScene::CreateLight(const ComPtr<ID3D12Device>& device, const ComPtr<ID
 {
 	m_lightSystem = make_shared<LightSystem>();
 	m_lightSystem->m_globalAmbient = XMFLOAT4{ 0.0f, 0.0f, 0.0f, 1.f };
-	m_lightSystem->m_numLight = 1;
+	m_lightSystem->m_numLight = 3;
 
 	m_lightSystem->m_lights[0].m_type = DIRECTIONAL_LIGHT;
 	m_lightSystem->m_lights[0].m_ambient = XMFLOAT4{ 0.3f, 0.3f, 0.3f, 1.f };
@@ -105,15 +95,25 @@ void TowerScene::CreateLight(const ComPtr<ID3D12Device>& device, const ComPtr<ID
 	m_lightSystem->m_lights[0].m_direction = XMFLOAT3{ -1.f, 0.f, 0.f };
 	m_lightSystem->m_lights[0].m_enable = true;
 
-	//m_lightSystem->m_lights[1].m_type = POINT_LIGHT;
-	//m_lightSystem->m_lights[1].m_range = 5000.0f;
-	//m_lightSystem->m_lights[1].m_ambient = XMFLOAT4(0.3f, 0.3f, 0.3f, 1.0f);
-	//m_lightSystem->m_lights[1].m_diffuse = XMFLOAT4(0.8f, 0.0f, 0.0f, 1.0f);
-	//m_lightSystem->m_lights[1].m_specular = XMFLOAT4(0.5f, 0.5f, 0.5f, 0.0f);
-	//m_lightSystem->m_lights[1].m_position = XMFLOAT3(0.f, 0.f, 0.f);
-	//m_lightSystem->m_lights[1].m_direction = XMFLOAT3(0.0f, 0.0f, 0.0f);
-	//m_lightSystem->m_lights[1].m_attenuation = XMFLOAT3(1.0f, 0.001f, 0.0001f);
-	//m_lightSystem->m_lights[1].m_enable = true;
+	m_lightSystem->m_lights[1].m_type = POINT_LIGHT;
+	m_lightSystem->m_lights[1].m_range = 2.f;
+	m_lightSystem->m_lights[1].m_ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
+	m_lightSystem->m_lights[1].m_diffuse = XMFLOAT4(0.8f, 0.3f, 0.3f, 1.0f);
+	m_lightSystem->m_lights[1].m_specular = XMFLOAT4(0.1f, 0.1f, 0.1f, 0.0f);
+	m_lightSystem->m_lights[1].m_position = XMFLOAT3(1.927f, 2.215f, 0.267f);
+	m_lightSystem->m_lights[1].m_direction = XMFLOAT3(0.0f, 1.0f, 0.0f);
+	m_lightSystem->m_lights[1].m_attenuation = XMFLOAT3(1.0f, 0.001f, 0.0001f);
+	m_lightSystem->m_lights[1].m_enable = true;
+
+	m_lightSystem->m_lights[2].m_type = POINT_LIGHT;
+	m_lightSystem->m_lights[2].m_range = 2.f;
+	m_lightSystem->m_lights[2].m_ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
+	m_lightSystem->m_lights[2].m_diffuse = XMFLOAT4(0.8f, 0.3f, 0.3f, 1.0f);
+	m_lightSystem->m_lights[2].m_specular = XMFLOAT4(0.1f, 0.1f, 0.1f, 0.0f);
+	m_lightSystem->m_lights[2].m_position = XMFLOAT3(-5.916f, 2.215f, 0.267f);
+	m_lightSystem->m_lights[2].m_direction = XMFLOAT3(0.0f, 1.0f, 0.0f);
+	m_lightSystem->m_lights[2].m_attenuation = XMFLOAT3(1.0f, 0.001f, 0.0001f);
+	m_lightSystem->m_lights[2].m_enable = true;
 
 	//m_lightSystem->m_lights[2].m_type = SPOT_LIGHT;
 	//m_lightSystem->m_lights[2].m_range = 100.0f;
@@ -147,9 +147,45 @@ void TowerScene::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) co
 	if (m_lightSystem) m_lightSystem->UpdateShaderVariable(commandList);
 	m_shaders.at("PLAYER")->Render(commandList);
 	m_shaders.at("SKYBOX")->Render(commandList);
-	m_shaders.at("FIELD")->Render(commandList);
-	m_shaders.at("FENCE")->Render(commandList);
 	m_shaders.at("HPBAR")->Render(commandList);
+}
+
+void TowerScene::LoadSceneFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, wstring fileName, wstring sceneName)
+{
+	ifstream in{ fileName, std::ios::binary };
+	if (!in) return;
+
+	BYTE strLength;
+	in.read((CHAR*)(&strLength), sizeof(BYTE));
+	string strToken(strLength, '\0');
+	in.read(&strToken[0], sizeof(CHAR) * strLength);
+	INT objectCount;
+	in.read((CHAR*)(&objectCount), sizeof(INT));
+
+	for (int i = 0; i < objectCount; ++i) {
+		auto object = make_shared<GameObject>();
+
+		in.read((CHAR*)(&strLength), sizeof(BYTE));
+		string strToken(strLength, '\0');
+		in.read(&strToken[0], sizeof(CHAR) * strLength);
+
+		in.read((CHAR*)(&strLength), sizeof(BYTE));
+		string objectName(strLength, '\0');
+		in.read(&objectName[0], sizeof(CHAR) * strLength);
+
+		wstring wstrToken = L"";
+		wstrToken.assign(objectName.begin(), objectName.end());
+		wstring strPath = L"./Resource/Model/" + sceneName + L"/" + wstrToken + L".bin";
+
+		LoadObjectFromFile(strPath, object);
+
+		XMFLOAT4X4 worldMetrix;
+		in.read((CHAR*)(&worldMetrix), sizeof(XMFLOAT4X4));
+		object->SetWorldMatrix(worldMetrix);
+
+		m_object.push_back(object);
+		m_shaders["PLAYER"]->SetObject(object);
+	}
 }
 
 void TowerScene::LoadObjectFromFile(wstring fileName, shared_ptr<GameObject> object)
@@ -171,11 +207,6 @@ void TowerScene::LoadObjectFromFile(wstring fileName, shared_ptr<GameObject> obj
 			break;
 		}
 	}
-}
-
-void TowerScene::LoadSceneFromFile(wstring fileName)
-{
-
 }
 
 void TowerScene::CheckBorderLimit()

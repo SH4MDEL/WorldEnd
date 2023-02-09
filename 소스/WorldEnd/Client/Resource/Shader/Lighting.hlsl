@@ -55,6 +55,7 @@ float4 PointLight(int index, float3 position, float3 normal, float3 toCamera, Ph
 	float distance = length(toLight);
 
 	if (distance > lights[index].m_range) return float4(0.0f, 0.0f, 0.0f, 0.0f);
+
 	toLight /= distance;
 
 	float specularFactor = 0.0f;

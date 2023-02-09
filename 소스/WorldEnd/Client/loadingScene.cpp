@@ -28,21 +28,6 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	// 플레이어 생성
 	auto playerShader{ make_shared<TextureHierarchyShader>(device, rootsignature) };
 
-	// 지형 생성
-	auto fieldShader{ make_shared<DetailShader>(device, rootsignature) };
-	auto fieldTexture{ make_shared<Texture>() };
-	fieldTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/Base_Texture.dds"), 4); // BaseTexture
-	fieldTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/Detail_Texture.dds"), 5); // SubTexture
-	fieldTexture->CreateSrvDescriptorHeap(device);
-	fieldTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
-
-	// 펜스 생성
-	auto blendingShader{ make_shared<BlendingShader>(device, rootsignature) };
-	auto fenceTexture{ make_shared<Texture>() };
-	fenceTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/Fence.dds"), 4); // BaseTexture
-	fenceTexture->CreateSrvDescriptorHeap(device);
-	fenceTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
-
 	// 스카이박스 생성
 	auto skyboxShader{ make_shared<SkyboxShader>(device, rootsignature) };
 	auto skyboxTexture{ make_shared<Texture>() };
@@ -66,20 +51,53 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/WarriorTexture.bin"));
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/ArcherTexture.bin"));
 
+	// 타워 씬 메쉬 설정
+	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/Book_09Mesh.bin"));
+	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/Bottle_05Mesh.bin"));
+	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/Box_02Mesh.bin"));
+	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/Candle_01Mesh.bin"));
+	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/Chair_05Mesh.bin"));
+	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/Column_01Mesh.bin"));
+	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/Ground_01Mesh.bin"));
+	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/Ground_03Mesh.bin"));
+	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/Jug_02Mesh.bin"));
+	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/Light_08Mesh.bin"));
+	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/Mud_04Mesh.bin"));
+	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/Pot_01Mesh.bin"));
+	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/Rock_01Mesh.bin"));
+	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/Table_01Mesh.bin"));
+	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/Wall_27Mesh.bin"));
+	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/WallDecor_05Mesh.bin"));
+	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/Wood_02Mesh.bin"));
+
+	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/Book_09Texture.bin"));
+	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/Bottle_05Texture.bin"));
+	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/Box_02Texture.bin"));
+	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/Candle_01Texture.bin"));
+	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/Chair_05Texture.bin"));
+	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/Column_01Texture.bin"));
+	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/Ground_01Texture.bin"));
+	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/Ground_03Texture.bin"));
+	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/Jug_02Texture.bin"));
+	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/Light_08Texture.bin"));
+	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/Mud_04Texture.bin"));
+	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/Pot_01Texture.bin"));
+	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/Rock_01Texture.bin"));
+	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/Table_01Texture.bin"));
+	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/Wall_27Texture.bin"));
+	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/WallDecor_05Texture.bin"));
+	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/Wood_02Texture.bin"));
+
 	// 메쉬 설정
 	m_meshs.insert({ "HPBAR", hpBarMesh });
 
 	// 텍스처 설정
 	m_textures.insert({ "SKYBOX", skyboxTexture });
-	m_textures.insert({ "FIELD", fieldTexture });
-	m_textures.insert({ "FENCE", fenceTexture });
 	m_textures.insert({ "HPBAR", hpBarTexture });
 
 	// 셰이더 설정
 	m_shaders.insert({ "PLAYER", playerShader });
 	m_shaders.insert({ "SKYBOX", skyboxShader });
-	m_shaders.insert({ "FIELD", fieldShader });
-	m_shaders.insert({ "FENCE", blendingShader });
 	m_shaders.insert({ "HPBAR", hpBarShader });
 
 	g_GameFramework.ChangeScene(SCENETAG::TowerScene);

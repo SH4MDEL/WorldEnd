@@ -7,7 +7,7 @@
 // 2. 사야 절두체를 정의하는 속성
 
 #define MAX_PITCH +30
-#define MIN_PITCH +5
+#define MIN_PITCH -15
 
 struct CameraInfo
 {

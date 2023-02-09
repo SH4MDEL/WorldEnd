@@ -78,6 +78,7 @@ struct VS_TEXTUREHIERARCHY_INPUT
 struct VS_TEXTUREHIERARCHY_OUTPUT
 {
 	float4 position : SV_POSITION;
+	float3 positionW : POSITION;
 	float3 normal : NORMAL;
 	float3 tangent : TANGENT;
 	float3 biTangent : BITANGENT;
@@ -88,6 +89,7 @@ VS_TEXTUREHIERARCHY_OUTPUT VS_TEXTUREHIERARCHY_MAIN(VS_TEXTUREHIERARCHY_INPUT in
 {
 	VS_TEXTUREHIERARCHY_OUTPUT output;
 	output.position = mul(float4(input.position, 1.0f), worldMatrix);
+	output.positionW = output.position.xyz;
 	output.position = mul(output.position, viewMatrix);
 	output.position = mul(output.position, projMatrix);
 	output.normal = mul(input.normal, (float3x3)worldMatrix);
@@ -121,7 +123,7 @@ float4 PS_TEXTUREHIERARCHY_MAIN(VS_TEXTUREHIERARCHY_OUTPUT input) : SV_TARGET
 	//float3x3 TBN = float3x3(normalize(input.tangent), normalize(input.biTangent), normalize(normal));
 	//float3 vNormal = normalize(normal * 2.0f - 1.0f); //[0, 1] ¡æ [-1, 1]
 	//normal = normalize(mul(vNormal, TBN));
-	float4 light = Lighting(input.position, normal, material);
+	float4 light = Lighting(input.positionW, normal, material);
 	color = lerp(color, light, 0.5);
 	return color;
 }
