@@ -1,4 +1,4 @@
-// d3d12 Çì´õ ÆÄÀÏÀÔ´Ï´Ù.
+ï»¿// d3d12 í—¤ë” íŒŒì¼ì…ë‹ˆë‹¤.
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
 #include <iostream>
@@ -37,5 +37,4 @@ extern HANDLE           g_h_iocp;
 
 void ErrorDisplay(const char* msg);
 void ErrorDisplay(int err_no);
-
 

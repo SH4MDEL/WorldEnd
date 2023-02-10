@@ -1,4 +1,4 @@
-#include "Server.h"
+ï»¿#include "Server.h"
 #include "stdafx.h"
 
 Server::Server() : m_disconnect_cnt{ 0 }
@@ -156,7 +156,7 @@ void Server::ProcessPacket(const int id, char* p)
 		cl.m_lock.unlock();
 		cout << login_packet->name << " is connect" << endl;
 
-		// ÀçÁ¢¼Ó ½Ã disconnectCount¸¦ °¨¼Ò½ÃÄÑ¾ßÇÔ
+		// ì¬ì ‘ì† ì‹œ disconnectCountë¥¼ ê°ì†Œì‹œì¼œì•¼í•¨
 		// disconnect_cnt = max(0, disconnect_cnt - 1);
 		SendPlayerDataPacket();
 		break;
@@ -164,18 +164,29 @@ void Server::ProcessPacket(const int id, char* p)
 	case CS_PACKET_PLAYER_MOVE:
 	{
 		CS_PLAYER_MOVE_PACKET* move_packet = reinterpret_cast<CS_PLAYER_MOVE_PACKET*>(p);
-		
-		cl.m_player_data.pos = move_packet->pos;
+
 		cl.m_player_data.velocity = move_packet->velocity;
-		cl.m_player_data.yaw = move_packet->yaw;
 
-		// ¹Ù¿îµå ¹Ú½º Ã³¸®
-		// È¸Àü°ªÀº yÃàÀ» ±âÁØÀ¸·Î¸¸ È¸ÀüÇÔ
-		cl.m_bounding_box.Center = move_packet->pos;
-		//cl.m_boundingbox.Orientation.y = move_packet->yaw;
+		XMFLOAT3 pos = move_packet->pos;
+		pos.x += move_packet->velocity.x;
+		pos.y += move_packet->velocity.y;
+		pos.z += move_packet->velocity.z;
 
-		cout << "x: " << cl.m_player_data.pos .x << " y: " << cl.m_player_data.pos.y <<
-			" z: " << cl.m_player_data.pos.z << endl;
+		MovePlayer(cl, pos);
+		RotatePlayer(cl, move_packet->yaw);
+
+		//cl.m_player_data.pos = move_packet->pos;
+		//cl.m_player_data.velocity = move_packet->velocity;
+		//cl.m_player_data.yaw = move_packet->yaw;
+
+
+		//// ë°”ìš´ë“œ ë°•ìŠ¤ ì²˜ë¦¬
+		//cl.m_bounding_box.Center = move_packet->pos;
+
+		//cout << "x: " << cl.m_player_data.pos .x << " y: " << cl.m_player_data.pos.y <<
+		//	" z: " << cl.m_player_data.pos.z << endl;
+
+
 		PlayerCollisionCheck(cl, id);
 		SendPlayerDataPacket();
 		break;
@@ -188,7 +199,7 @@ void Server::ProcessPacket(const int id, char* p)
 		{
 		case INPUT_KEY_E:
 		{
-			cout << "°ø°İ!" << endl;
+			cout << "ê³µê²©!" << endl;
 			auto attack_start_time = std::chrono::system_clock::now();
 			while (1)
 			{
@@ -198,7 +209,7 @@ void Server::ProcessPacket(const int id, char* p)
 				{
 					m_start_cool_time++;
 					m_remain_cool_time = m_end_cool_time - m_start_cool_time;
-					cout << "³²Àº °ø°İ ÄğÅ¸ÀÓ: " << m_remain_cool_time << "ÃÊ" << endl;
+					cout << "ë‚¨ì€ ê³µê²© ì¿¨íƒ€ì„: " << m_remain_cool_time << "ì´ˆ" << endl;
 				}
 				else if (m_start_cool_time == 5) {
 					m_start_cool_time = 0;
@@ -253,7 +264,7 @@ void Server::SendLoginOkPacket(const Session& player) const
 	login_ok_packet.type = SC_PACKET_ADD_PLAYER;
 	memcpy(buf, reinterpret_cast<char*>(&login_ok_packet), sizeof(login_ok_packet));
 
-	// ÇöÀç Á¢¼ÓÇØ ÀÖ´Â ¸ğµç Å¬¶óÀÌ¾ğÆ®µé¿¡°Ô »õ·Î ·Î±×ÀÎÇÑ Å¬¶óÀÌ¾ğÆ®µéÀÇ Á¤º¸¸¦ Àü¼Û
+	// í˜„ì¬ ì ‘ì†í•´ ìˆëŠ” ëª¨ë“  í´ë¼ì´ì–¸íŠ¸ë“¤ì—ê²Œ ìƒˆë¡œ ë¡œê·¸ì¸í•œ í´ë¼ì´ì–¸íŠ¸ë“¤ì˜ ì •ë³´ë¥¼ ì „ì†¡
 	for (const auto& other : m_clients)
 	{
 		if (!other.m_player_data.active_check) continue;
@@ -263,7 +274,7 @@ void Server::SendLoginOkPacket(const Session& player) const
 		if (retval == SOCKET_ERROR) ErrorDisplay("Send(SC_LOGIN_OK_PACKET) Error");
 	}
 
-	// »õ·Î ·Î±×ÀÎÇÑ Å¬¶óÀÌ¾ğÆ®¿¡°Ô ÇöÀç Á¢¼ÓÇØ ÀÖ´Â ¸ğµç Å¬¶óÀÌ¾ğÆ®µéÀÇ Á¤º¸¸¦ Àü¼Û
+	// ìƒˆë¡œ ë¡œê·¸ì¸í•œ í´ë¼ì´ì–¸íŠ¸ì—ê²Œ í˜„ì¬ ì ‘ì†í•´ ìˆëŠ” ëª¨ë“  í´ë¼ì´ì–¸íŠ¸ë“¤ì˜ ì •ë³´ë¥¼ ì „ì†¡
 	for (const auto& other : m_clients)
 	{
 		if (!other.m_player_data.active_check) continue;
@@ -323,7 +334,7 @@ void Server::SendPlayerDataPacket()
 			else ErrorDisplay("Send(SC_PACKET_UPDATE_CLIENT)");
 		}
 	}
-	//cout << "ÀÛµ¿ÁßÀÎ ¸ğµç Å¬¶óÀÌ¾ğÆ®µé¿¡°Ô ÀÌµ¿ °á°ú¸¦ ¾Ë·ÁÁÜ" << endl;
+	//cout << "ì‘ë™ì¤‘ì¸ ëª¨ë“  í´ë¼ì´ì–¸íŠ¸ë“¤ì—ê²Œ ì´ë™ ê²°ê³¼ë¥¼ ì•Œë ¤ì¤Œ" << endl;
 }
 
 void Server::SendPlayerAttackPacket(int pl_id)
@@ -353,7 +364,9 @@ void Server::PlayerCollisionCheck(Session& player , const int id)
 			if (!m_clients[j].m_player_data.active_check) continue;
 
 			if (m_clients[i].m_bounding_box.Intersects(m_clients[j].m_bounding_box)) {
-				cout << "Ãæµ¹" << endl;
+				cout << "ì¶©ëŒ" << endl;
+
+				CollideByStatic(m_clients[i], m_clients[j].m_bounding_box);
 			}
 		}
 	}
@@ -373,3 +386,86 @@ CHAR Server::GetNewId() const
 	std::cout << "Maximum Number of Clients" << std::endl;
 	return -1;
 }
+
+void Server::MovePlayer(Session& player, XMFLOAT3 pos)
+{
+	player.m_player_data.pos.x = pos.x;
+	player.m_player_data.pos.y = pos.y;
+	player.m_player_data.pos.z = pos.z;
+
+	// ë°”ìš´ë“œ ë°•ìŠ¤ ê°±ì‹ 
+	player.m_bounding_box.Center = player.m_player_data.pos;
+}
+
+void Server::RotatePlayer(Session& player, FLOAT yaw)
+{
+	// í”Œë ˆì´ì–´ íšŒì „
+	player.m_player_data.yaw = yaw;
+
+	// ë°”ìš´ë“œ ë°•ìŠ¤ íšŒì „
+	//player.m_bounding_box.Orientation;
+}
+
+void Server::CollideByStatic(Session& pl1, DirectX::BoundingOrientedBox obb)
+{
+	DirectX::BoundingOrientedBox& obb1 = pl1.m_bounding_box;
+
+	// length ëŠ” ë°”ìš´ë“œ ë°•ìŠ¤ì˜ ê¸¸ì´ í•©
+	// dist ëŠ” ë°”ìš´ë“œ ë°•ìŠ¤ê°„ì˜ ê±°ë¦¬
+	FLOAT x_length = obb1.Extents.x + obb.Extents.x;
+	FLOAT x_dist = abs(obb1.Center.x - obb.Center.x);
+
+	FLOAT z_length = obb1.Extents.z + obb.Extents.z;
+	FLOAT z_dist = abs(obb1.Center.z - obb.Center.z);
+
+	// ê²¹ì¹˜ëŠ” ì •ë„
+	FLOAT x_bias = x_length - x_dist;
+	FLOAT z_bias = z_length - z_dist;
+
+
+	XMFLOAT3 pos = pl1.m_player_data.pos;
+
+	// z ë°©í–¥ìœ¼ë¡œ ë°€ì–´ë‚´ê¸°
+	if (x_bias - z_bias >= FLT_EPSILON) {
+		
+		// obb1ì´ ì•ìª½ìœ¼ë¡œ ë°€ë ¤ë‚¨
+		if (obb1.Center.z - obb.Center.z >= FLT_EPSILON) {
+			pos.z += z_bias;
+		}
+		// obb1ì´ ë’¤ìª½ìœ¼ë¡œ ë°€ë ¤ë‚¨
+		else {
+			pos.z -= z_bias;
+		}
+	}
+
+	// x ë°©í–¥ìœ¼ë¡œ ë°€ì–´ë‚´ê¸°
+	else {
+
+		// obb1 ì´ ì•ìª½ìœ¼ë¡œ ë°€ë ¤ë‚¨
+		if (obb1.Center.x - obb.Center.x >= FLT_EPSILON) {
+			pos.x += x_bias;
+		}
+		// obb1ì´ ë’¤ìª½ìœ¼ë¡œ ë°€ë ¤ë‚¨
+		else {
+			pos.x -= x_bias;
+		}
+	}
+	MovePlayer(pl1, pos);
+}
+
+void Server::CollideByMoveMent(Session& player1, Session& player2)
+{
+	// ì¶©ëŒí•œ í”Œë ˆì´ì–´ì˜ ì†ë„
+	XMFLOAT3 velocity = player1.m_player_data.velocity;
+
+	// ì¶©ëŒëœ ì˜¤ë¸Œì íŠ¸ì˜ ìœ„ì¹˜
+	XMFLOAT3 pos = player2.m_player_data.pos;
+
+	// ì¶©ëŒëœ ì˜¤ë¸Œì íŠ¸ë¥¼ ì¶©ëŒí•œ í”Œë ˆì´ì–´ì˜ ì†ë„ë§Œí¼ ë°€ì–´ëƒ„
+	// ë°€ì–´ë‚´ëŠ” ë°©í–¥ ê³ ë ¤í•  í•„ìš” ìˆìŒ ( ì•„ì§ X )
+	pos.x += velocity.x;
+	pos.y += velocity.y;
+	pos.z += velocity.z;
+	MovePlayer(player2, pos);
+}
+

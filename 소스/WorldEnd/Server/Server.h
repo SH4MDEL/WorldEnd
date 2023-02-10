@@ -1,14 +1,14 @@
-#pragma once
+ï»¿#pragma once
 #include "session.h"
 
 class Server
 {
-	// Åë½Å °ü·Ã º¯¼ö
+	// í†µì‹  ê´€ë ¨ ë³€ìˆ˜
 private:
 	array<Session, MAX_USER>				m_clients;
 	vector <thread>                         m_worker_threads;
 
-	INT									    m_disconnect_cnt;	// ¿¬°á ²÷±ä ÀÎ¿ø ¼ö
+	INT									    m_disconnect_cnt;	// ì—°ê²° ëŠê¸´ ì¸ì› ìˆ˜
 
 	int                                     m_start_cool_time;
 	int                                     m_end_cool_time = 5;
@@ -27,7 +27,15 @@ public:
 	void SendPlayerDataPacket();
 	void SendPlayerAttackPacket(int pl_id);
 
-	void PlayerCollisionCheck (Session& player, const int id);
+	void PlayerCollisionCheck(Session& player, const int id);
 
 	CHAR GetNewId() const;
+
+
+	// í”Œë ˆì´ì–´ ì²˜ë¦¬
+	void MovePlayer(Session& player, XMFLOAT3 velocity);
+	void RotatePlayer(Session& player, FLOAT yaw);
+
+	void CollideByStatic(Session& player1, DirectX::BoundingOrientedBox obb);
+	void CollideByMoveMent(Session& player1, Session& player2);
 };
