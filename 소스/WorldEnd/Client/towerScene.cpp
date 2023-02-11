@@ -237,6 +237,9 @@ void TowerScene::ProcessPacket(char* ptr)
 	case SC_PACKET_PLAYER_ATTACK:
 		RecvAttackPacket(ptr);
 		break;
+	case SC_PACKET_UPDATE_MONSTER:
+		RecvUpdateMonster(ptr);
+		break;
 	}
 }
 
@@ -281,16 +284,16 @@ void TowerScene::RecvAddPlayerPacket(char* ptr)
 {
 	SC_ADD_PLAYER_PACKET* add_pl_packet = reinterpret_cast<SC_ADD_PLAYER_PACKET*>(ptr);
 
-	PlayerData playerData{};
+	PlayerData player_data{};
 
-	playerData.hp = add_pl_packet->player_data.hp;
-	playerData.id = add_pl_packet->player_data.id;
-	playerData.pos = add_pl_packet->player_data.pos;
+	player_data.hp = add_pl_packet->player_data.hp;
+	player_data.id = add_pl_packet->player_data.id;
+	player_data.pos = add_pl_packet->player_data.pos;
 
 	auto multiPlayer = make_shared<Player>();
 	LoadObjectFromFile(TEXT("./Resource/Model/Archer.bin"), multiPlayer);
 	multiPlayer->SetPosition(XMFLOAT3{ 0.f, 0.f, 0.f });
-	m_multiPlayers.insert({ playerData.id, multiPlayer });
+	m_multiPlayers.insert({ player_data.id, multiPlayer });
 
 	auto hpBar = make_shared<HpBar>();
 	hpBar->SetMesh(m_meshs["HPBAR"]);
@@ -298,8 +301,8 @@ void TowerScene::RecvAddPlayerPacket(char* ptr)
 	m_shaders["HPBAR"]->SetObject(hpBar);
 	multiPlayer->SetHpBar(hpBar);
 
-	m_shaders["PLAYER"]->SetMultiPlayer(playerData.id, multiPlayer);
-	cout << "add player" << static_cast<int>(playerData.id) << endl;
+	m_shaders["PLAYER"]->SetMultiPlayer(player_data.id, multiPlayer);
+	cout << "add player" << static_cast<int>(player_data.id) << endl;
 
 }
 
@@ -327,7 +330,6 @@ void TowerScene::RecvUpdateClient(char* ptr)
 			m_multiPlayers[update_packet->data[i].id]->SetHp(update_packet->data[i].hp);
 		}
 	}
-
 }
 
 void TowerScene::RecvAttackPacket(char* ptr)
@@ -335,6 +337,26 @@ void TowerScene::RecvAttackPacket(char* ptr)
 	SC_ATTACK_PACKET* attack_packet = reinterpret_cast<SC_ATTACK_PACKET*>(ptr);
 	m_player->SetKey(attack_packet->key);
 }
+
+void TowerScene::RecvUpdateMonster(char* ptr)
+{
+	SC_MONSTER_UPDATE_PACKET* monster_packet = reinterpret_cast<SC_MONSTER_UPDATE_PACKET*>(ptr);
+
+	MonsterData monster_data{};
+
+	monster_data.id = monster_packet->data->id;
+	monster_data.pos = monster_packet->data->pos;
+
+	cout << "monster id - " << (int)monster_data.id << endl;
+	cout << "monster pos (x: " << monster_data.pos.x << " y: " << monster_data.pos.y << " z: " << monster_data.pos.z << ")" << endl;
+	
+
+}
+
+
+
+
+
 
 
 

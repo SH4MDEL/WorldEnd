@@ -3,14 +3,14 @@
 
 enum COMP_TYPE { OP_RECV, OP_SEND, OP_ACCEPT};
 
-class OverExp {
+class ExpOver {
 public:
 	WSAOVERLAPPED _wsa_over;
 	WSABUF        _wsa_buf;
 	char          _send_buf[BUF_SIZE];
 	COMP_TYPE     _comp_type;
 
-	OverExp(COMP_TYPE comp_type, char num_bytes, void* mess) : _comp_type{ comp_type }
+	ExpOver(COMP_TYPE comp_type, char num_bytes, void* mess) : _comp_type{ comp_type }
 	{
 		ZeroMemory(&_wsa_over, sizeof(_wsa_over));
 		_wsa_buf.buf = reinterpret_cast<char*>(_send_buf);
@@ -18,9 +18,9 @@ public:
 		memcpy(_send_buf, mess, num_bytes);
 	}
 
-	OverExp(COMP_TYPE comp_type) : _comp_type{ comp_type } { }
-	OverExp() : _comp_type{ OP_RECV } { }
-	~OverExp() { }
+	ExpOver(COMP_TYPE comp_type) : _comp_type{ comp_type } { }
+	ExpOver() : _comp_type{ OP_RECV } { }
+	~ExpOver() { }
 };
 
 enum class STATE { ST_FREE, ST_ACCEPT, ST_INGAME };
@@ -32,7 +32,7 @@ public:
 	SOCKET				m_socket;
 	std::mutex			m_lock;
 	STATE				m_state;
-	OverExp			    m_recv_over;
+	ExpOver			    m_recv_over;
 	INT					m_prev_size;
 
 

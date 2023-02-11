@@ -6,6 +6,7 @@ constexpr short SERVER_PORT = 9000;
 constexpr int BUF_SIZE = 1600;
 constexpr int NAME_SIZE = 20;
 constexpr int MAX_USER = 3;
+constexpr int MAX_MONSTER = 1;
 
 constexpr char CS_PACKET_LOGIN = 1;
 constexpr char CS_PACKET_PLAYER_MOVE = 2;
@@ -15,13 +16,15 @@ constexpr char SC_PACKET_LOGIN_OK = 1;
 constexpr char SC_PACKET_ADD_PLAYER = 2;
 constexpr char SC_PACKET_UPDATE_CLIENT = 3;
 constexpr char SC_PACKET_PLAYER_ATTACK = 4;
-
+constexpr char SC_PACKET_UPDATE_MONSTER = 5;
 
 constexpr char INPUT_KEY_E = 0b1000;
 
 enum class ePlayerType : char {SWORD, BOW};
 enum class eAttackType : char { NORMAL, SKILL };
 enum class eSceneType : char { LOGIN, LOADING, VILLAGE, PARTY, DUNGEON  };
+
+enum eEventType : char { EVENT_PLAYER_ATTACK };
 
 #pragma pack(push,1)
 struct PlayerData
@@ -42,6 +45,13 @@ struct ArrowData
 	CHAR				player_id;	// 쏜 사람
 };
 
+struct MonsterData
+{
+	CHAR				id = -1;			// 몬스터 고유 번호
+	DirectX::XMFLOAT3	pos;		// 위치
+	DirectX::XMFLOAT3	velocity;	// 속도
+	FLOAT				yaw;		// 회전각
+};
 //////////////////////////////////////////////////////
 // 클라에서 서버로
 
@@ -168,6 +178,13 @@ struct SC_ATTACK_PACKET
 	UCHAR     type;
 	CHAR      id;
 	CHAR      key;
+};
+
+struct SC_MONSTER_UPDATE_PACKET
+{
+	UCHAR		size;
+	UCHAR		type;
+	MonsterData	data[MAX_MONSTER];
 };
 
 #pragma pack (pop)

@@ -33,18 +33,22 @@ int Server::Network()
 
 	SOCKET c_socket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, 0, 0, WSA_FLAG_OVERLAPPED);
 	char accept_buf[sizeof(SOCKADDR_IN) * 2 + 32 + 100];
-	OverExp accept_ex;
+	ExpOver accept_ex;
 	*(reinterpret_cast<SOCKET*>(&accept_ex._send_buf)) = c_socket;
 	ZeroMemory(&accept_ex._wsa_over, sizeof(accept_ex._wsa_over));
 	accept_ex._comp_type = OP_ACCEPT;
 
 	bool ret = AcceptEx(g_socket, c_socket, accept_buf, 0, sizeof(SOCKADDR_IN) + 16, sizeof(SOCKADDR_IN) + 16, 0, &accept_ex._wsa_over);
 
-
+	thread thread1{ &Server::Timer,this };
 	for (int i = 0; i < 6; ++i)
 		m_worker_threads.emplace_back(&Server::WorkerThreads, this);
+
+	thread1.join();
 	for (auto& th : m_worker_threads)
 		th.join();
+
+
 
 	closesocket(g_socket);
 	WSACleanup();
@@ -58,7 +62,7 @@ void Server::WorkerThreads()
 		LONG64 key{};
 		WSAOVERLAPPED* over{};
 		BOOL ret = GetQueuedCompletionStatus(g_h_iocp, &num_bytes, reinterpret_cast<PULONG_PTR>(&key), &over, INFINITE);
-		OverExp* exp_over = reinterpret_cast<OverExp*>(over);
+		ExpOver* exp_over = reinterpret_cast<ExpOver*>(over);
 		if (FALSE == ret) {
 			if (exp_over->_comp_type == OP_ACCEPT) cout << "Accept Error";
 			else {
@@ -159,6 +163,7 @@ void Server::ProcessPacket(const int id, char* p)
 		// 재접속 시 disconnectCount를 감소시켜야함
 		// disconnect_cnt = max(0, disconnect_cnt - 1);
 		SendPlayerDataPacket();
+		SendMonsterDataPacket();
 		break;
 	}
 	case CS_PACKET_PLAYER_MOVE:
@@ -179,34 +184,19 @@ void Server::ProcessPacket(const int id, char* p)
 	{
 		CS_ATTACK_PACKET* attack_packet = reinterpret_cast<CS_ATTACK_PACKET*>(p);
 
-			switch (attack_packet->key)
-			{
+		
+		switch (attack_packet->key)
+		{
 			case INPUT_KEY_E:
 			{
 				cout << "공격!" << endl;
-				auto attack_start_time = std::chrono::system_clock::now();
-				while (1)
-				{
-					auto attack_end_time = std::chrono::system_clock::now();
-					auto sec = std::chrono::duration_cast<std::chrono::seconds>(attack_end_time - attack_start_time);
-					if (sec.count() > m_start_cool_time)
-					{
-						m_start_cool_time++;
-						m_remain_cool_time = m_end_cool_time - m_start_cool_time;
-						cout << "남은 공격 쿨타임: " << m_remain_cool_time << "초" << endl;
-					}
-					else if (m_start_cool_time == 5) {
-						m_start_cool_time = 0;
-						break;
-				    }
-				}
+				m_attack_check = true;
 				break;
-			}	
-		}
-			SendPlayerAttackPacket(cl.m_player_data.id);
+		    }	
+	    }
 		break;
 	}
-	
+
 	}
 }
 
@@ -350,10 +340,40 @@ void Server::PlayerCollisionCheck(Session& player , const int id )
 			player.m_player_data.pos.z -= 3.0f;
 		}
 	}
-
 }
 
+void Server::SendMonsterDataPacket()
+{
+	
+	for (size_t i = 0; i < m_monsters.size(); ++i)
+		m_monsters[i]->SetPosition(XMFLOAT3(0.0f, 0.0f, 0.0f));
 
+	SC_MONSTER_UPDATE_PACKET monster_packet{};
+	monster_packet.size = static_cast<UCHAR>(sizeof(monster_packet));
+	monster_packet.type = SC_PACKET_UPDATE_MONSTER;
+	for (size_t i = 0; i < m_monsters.size(); ++i)
+		monster_packet.data[i] = m_monsters[i]->GetData();
+
+	char buf[sizeof(monster_packet)];
+	memcpy(buf, reinterpret_cast<char*>(&monster_packet), sizeof(monster_packet));
+	WSABUF wsa_buf{ sizeof(buf), buf };
+	DWORD sent_byte;
+
+	for (const auto& cl : m_clients)
+	{
+		if (!cl.m_player_data.active_check) continue;
+		const int retVal = WSASend(cl.m_socket , &wsa_buf, 1, &sent_byte, 0, nullptr, nullptr);
+		if (retVal == SOCKET_ERROR)
+		{
+			if (WSAGetLastError() == WSAECONNRESET)
+				std::cout << "[" << static_cast<int>(cl.m_player_data.id) << " Session] Disconnect" << std::endl;
+			else ErrorDisplay("Send(SC_PACKET_UPDATE_MONSTER)");
+		}
+	}
+
+	
+
+}
 
 CHAR Server::GetNewId() const
 {
@@ -366,6 +386,35 @@ CHAR Server::GetNewId() const
 	std::cout << "Maximum Number of Clients" << std::endl;
 	return -1;
 }
+
+void Server::Timer()
+{
+	using namespace chrono;
+	TimerEvent event;
+	event.start_time = std::chrono::system_clock::now() + std::chrono::seconds(3);
+	while (m_start_cool_time < 6) {
+			auto attack_end_time = std::chrono::system_clock::now();
+			auto sec = std::chrono::duration_cast<std::chrono::seconds>(attack_end_time - event.start_time);
+			if (m_attack_check == true) {
+				if (sec.count() > m_start_cool_time)
+				{
+					m_start_cool_time++;
+					m_remain_cool_time = m_end_cool_time - m_start_cool_time;
+					cout << "남은 스킬 쿨타임: " << m_remain_cool_time << "초" << endl;
+				}
+				else if (m_start_cool_time == 5)
+				{
+					m_attack_check = false;
+					m_start_cool_time = 0;
+					SendPlayerAttackPacket(0);
+					event.start_time = std::chrono::system_clock::now() + std::chrono::seconds(1);
+					attack_end_time = std::chrono::system_clock::now();
+				}
+			}
+		}
+}
+
+
 
 
 
