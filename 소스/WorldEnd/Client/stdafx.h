@@ -94,6 +94,13 @@ namespace Vector3
         XMStoreFloat3(&result, XMVector3Cross(XMLoadFloat3(&a), XMLoadFloat3(&b)));
         return result;
     }
+    inline XMFLOAT3 Angle(const XMFLOAT3& a, const XMFLOAT3& b, BOOL isNormalized = true)
+    {
+        XMFLOAT3 result;
+        if (isNormalized) XMStoreFloat3(&result, XMVector3AngleBetweenNormals(XMLoadFloat3(&a), XMLoadFloat3(&b)));
+        else XMStoreFloat3(&result, XMVector3AngleBetweenVectors(XMLoadFloat3(&a), XMLoadFloat3(&b)));
+        return result;
+    }
     inline XMFLOAT3 Normalize(const XMFLOAT3& a)
     {
         XMFLOAT3 result;
@@ -177,6 +184,13 @@ namespace Matrix
         XMVECTOR R = XMQuaternionSlerp(R0, R1, t);
         XMVECTOR T = XMVectorLerp(T0, T1, t);
         XMStoreFloat4x4(&result, XMMatrixAffineTransformation(S, XMVectorZero(), R, T));
+        return result;
+    }
+
+    inline XMFLOAT4X4 Zero()
+    {
+        XMFLOAT4X4 result;
+        XMStoreFloat4x4(&result, XMMatrixSet(0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f));
         return result;
     }
 }

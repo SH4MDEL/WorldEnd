@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include "stdafx.h"
 #include "mesh.h"
 #include "texture.h"
@@ -12,7 +12,7 @@
 class AnimationController;
 class AnimationSet;
 
-class GameObject
+class GameObject : public enable_shared_from_this<GameObject>
 {
 public:
 	GameObject();
@@ -38,13 +38,17 @@ public:
 	XMFLOAT3 GetRight() const { return m_right; }
 	XMFLOAT3 GetUp() const { return m_up; }
 	XMFLOAT3 GetFront() const { return m_front; }
+	FLOAT GetRoll() const { return m_roll; }
+	FLOAT GetPitch() const { return m_pitch; }
+	FLOAT GetYaw() const { return m_yaw; }
 
 	virtual void ReleaseUploadBuffer() const;
 
 	void SetChild(const shared_ptr<GameObject>& child);
+	void SetFrameName(string&& frameName) noexcept;
 	shared_ptr<GameObject> FindFrame(string frameName);
 
-	void LoadObject(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, ifstream& in);
+	void LoadObject(ifstream& in);
 
 	void UpdateBoundingBox();
 	void SetBoundingBox(const BoundingOrientedBox& boundingBox);
@@ -56,7 +60,7 @@ public:
 	XMFLOAT4X4 GetTransformMatrix() const { return m_transformMatrix; }
 	void SetTransformMatrix(XMFLOAT4X4 mat) { m_transformMatrix = mat; }
 
-	// ¿ÀºêÁ§Æ®¿¡¼­ ¾Ö´Ï¸ŞÀÌ¼ÇÆÄÀÏ ÀĞ±â, ½ºÅ²¸Ş½¬ Ã£±â, ¾Ö´Ï¸ŞÀÌ¼Ç ¼³Á¤ ÇÔ¼ö Ãß°¡
+	// ì˜¤ë¸Œì íŠ¸ì—ì„œ ì• ë‹ˆë©”ì´ì…˜íŒŒì¼ ì½ê¸°, ìŠ¤í‚¨ë©”ì‰¬ ì°¾ê¸°, ì• ë‹ˆë©”ì´ì…˜ ì„¤ì • í•¨ìˆ˜ ì¶”ê°€
 	void CreateAnimationController(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, int trackNum);
 
 	shared_ptr<SkinnedMesh> FindSkinnedMesh(string meshName);
@@ -67,46 +71,23 @@ public:
 
 	AnimationController* GetAnimationController() const { return m_animationController.get(); }
 
-	void Check() {
-		XMFLOAT3 p = GetPosition();
-		cout << m_frameName << " : " << p.x << ", " << p.y << ", " << p.z << endl;
-
-		if (m_sibling) m_sibling->Check();
-		if (m_child) m_child->Check();
-	}
-	
-	void CheckMat(){
-		float x = m_transformMatrix._41;
-		float y = m_transformMatrix._42;
-		float z = m_transformMatrix._43;
-		cout << m_frameName << " : " << x << ", " << y << ", " << z << endl;
-
-		if (m_sibling) m_sibling->CheckMat();
-		if (m_child) m_child->CheckMat();
-	}
-
-	string GetName() const {
-		return m_frameName;
-	}
-
 protected:
 	XMFLOAT4X4					m_transformMatrix;
 	XMFLOAT4X4					m_worldMatrix;
-	
 
-	XMFLOAT3					m_right;		// ·ÎÄÃ xÃà
-	XMFLOAT3					m_up;			// ·ÎÄÃ yÃà
-	XMFLOAT3					m_front;		// ·ÎÄÃ zÃà
+	XMFLOAT3					m_right;		// ë¡œì»¬ xì¶•
+	XMFLOAT3					m_up;			// ë¡œì»¬ yì¶•
+	XMFLOAT3					m_front;		// ë¡œì»¬ zì¶•
 
-	FLOAT						m_roll;			// xÃà È¸Àü°¢
-	FLOAT						m_pitch;		// yÃà È¸Àü°¢
-	FLOAT						m_yaw;			// zÃà È¸Àü°¢
+	FLOAT						m_roll;			// xì¶• íšŒì „ê°
+	FLOAT						m_pitch;		// yì¶• íšŒì „ê°
+	FLOAT						m_yaw;			// zì¶• íšŒì „ê°
 
-	shared_ptr<Mesh>			m_mesh;			// ¸Ş½¬
-	shared_ptr<Texture>			m_texture;		// ÅØ½ºÃ³
-	shared_ptr<Materials>		m_materials;	// ÀçÁú
+	shared_ptr<Mesh>			m_mesh;			// ë©”ì‰¬
+	shared_ptr<Texture>			m_texture;		// í…ìŠ¤ì²˜
+	shared_ptr<Materials>		m_materials;	// ì¬ì§ˆ
 
-	string						m_frameName;	// ÇöÀç ÇÁ·¹ÀÓÀÇ ÀÌ¸§
+	string						m_frameName;	// í˜„ì¬ í”„ë ˆì„ì˜ ì´ë¦„
 	shared_ptr<GameObject>		m_parent;
 	shared_ptr<GameObject>		m_sibling;
 	shared_ptr<GameObject>		m_child;
@@ -137,12 +118,12 @@ public:
 	void ReleaseUploadBuffer() const override;
 
 private:
-	unique_ptr<FieldMapImage>		m_fieldMapImage;	// ³ôÀÌ¸Ê ÀÌ¹ÌÁö
-	vector<unique_ptr<GameObject>>	m_blocks;			// ºí·Ïµé
-	INT								m_width;			// ÀÌ¹ÌÁöÀÇ °¡·Î ±æÀÌ
-	INT								m_length;			// ÀÌ¹ÌÁöÀÇ ¼¼·Î ±æÀÌ
+	unique_ptr<FieldMapImage>		m_fieldMapImage;	// ë†’ì´ë§µ ì´ë¯¸ì§€
+	vector<unique_ptr<GameObject>>	m_blocks;			// ë¸”ë¡ë“¤
+	INT								m_width;			// ì´ë¯¸ì§€ì˜ ê°€ë¡œ ê¸¸ì´
+	INT								m_length;			// ì´ë¯¸ì§€ì˜ ì„¸ë¡œ ê¸¸ì´
 	INT								m_height;
-	XMFLOAT3						m_scale;			// È®´ë ºñÀ²
+	XMFLOAT3						m_scale;			// í™•ëŒ€ ë¹„ìœ¨
 };
 
 class Fence : public GameObject
@@ -165,9 +146,9 @@ public:
 	void ReleaseUploadBuffer() const override;
 
 private:
-	vector<unique_ptr<GameObject>>	m_blocks;			// ºí·Ïµé
-	INT								m_width;			// ÀÌ¹ÌÁöÀÇ °¡·Î ±æÀÌ
-	INT								m_length;			// ÀÌ¹ÌÁöÀÇ ¼¼·Î ±æÀÌ
+	vector<unique_ptr<GameObject>>	m_blocks;			// ë¸”ë¡ë“¤
+	INT								m_width;			// ì´ë¯¸ì§€ì˜ ê°€ë¡œ ê¸¸ì´
+	INT								m_length;			// ì´ë¯¸ì§€ì˜ ì„¸ë¡œ ê¸¸ì´
 };
 
 
@@ -181,6 +162,21 @@ public:
 	virtual void Update(FLOAT timeElapsed);
 };
 
+class HpBar : public GameObject
+{
+public:
+	HpBar();
+	~HpBar() = default;
+
+	void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const override;
+
+	void SetHp(FLOAT hp) { m_hp = hp; }
+	void SetMaxHp(FLOAT maxHp) { m_maxHp = maxHp; }
+
+private:
+	FLOAT	m_hp;
+	FLOAT	m_maxHp;
+};
 
 struct CALLBACKKEY
 {
@@ -197,7 +193,7 @@ public:
 	void Callback(void* callbackData, float trackPosition);
 };
 
-class Animation		// ¾Ö´Ï¸ŞÀÌ¼Ç Çàµ¿ Á¤ÀÇ
+class Animation		// ì• ë‹ˆë©”ì´ì…˜ í–‰ë™ ì •ì˜
 {
 public:
 	Animation(float length, int framePerSecond, int keyFrames, int skinningBones, string name);
@@ -224,7 +220,7 @@ private:
 	vector<vector<XMFLOAT4X4>>			m_keyFrameTransforms;
 };
 
-class AnimationSet		// ¾Ö´Ï¸ŞÀÌ¼ÇµéÀÇ ÁıÇÕ
+class AnimationSet		// ì• ë‹ˆë©”ì´ì…˜ë“¤ì˜ ì§‘í•©
 {
 public:
 	AnimationSet() = default;
@@ -242,7 +238,7 @@ private:
 	vector<shared_ptr<GameObject>>		m_animatedBoneFramesCaches;
 };
 
-class AnimationTrack		// ¾Ö´Ï¸ŞÀÌ¼Ç Á¦¾î Å¬·¡½º
+class AnimationTrack		// ì• ë‹ˆë©”ì´ì…˜ ì œì–´ í´ë˜ìŠ¤
 {
 public:
 	AnimationTrack();
@@ -274,17 +270,17 @@ public:
 	void AnimationCallback();
 
 private:
-	bool									m_enable;				// ÇØ´ç Æ®·¢À» È°¼ºÈ­ ÇÒÁö
-	float									m_speed;				// ¾Ö´Ï¸ŞÀÌ¼Ç Àç»ı ¼Óµµ
-	float									m_position;				// ¾Ö´Ï¸ŞÀÌ¼Ç Àç»ı À§Ä¡
-	float									m_weight;				// ¾Ö´Ï¸ŞÀÌ¼Ç ºí·»µù °¡ÁßÄ¡
-	int										m_animation;			// ¾Ö´Ï¸ŞÀÌ¼Ç ¹øÈ£
-	int										m_type;					// Àç»ı Å¸ÀÔ(ÇÑ¹ø, ¹İº¹)
+	bool									m_enable;				// í•´ë‹¹ íŠ¸ë™ì„ í™œì„±í™” í• ì§€
+	float									m_speed;				// ì• ë‹ˆë©”ì´ì…˜ ì¬ìƒ ì†ë„
+	float									m_position;				// ì• ë‹ˆë©”ì´ì…˜ ì¬ìƒ ìœ„ì¹˜
+	float									m_weight;				// ì• ë‹ˆë©”ì´ì…˜ ë¸”ë Œë”© ê°€ì¤‘ì¹˜
+	int										m_animation;			// ì• ë‹ˆë©”ì´ì…˜ ë²ˆí˜¸
+	int										m_type;					// ì¬ìƒ íƒ€ì…(í•œë²ˆ, ë°˜ë³µ)
 
-	int										m_nCallbackKey;			// Äİ¹é °¹¼ö
-	vector<CALLBACKKEY>						m_callbackKeys;			// Äİ¹é ÄÁÅ×ÀÌ³Ê
+	int										m_nCallbackKey;			// ì½œë°± ê°¯ìˆ˜
+	vector<CALLBACKKEY>						m_callbackKeys;			// ì½œë°± ì»¨í…Œì´ë„ˆ
 
-	shared_ptr<AnimationCallbackHandler>	m_animationCallbackHandler;		// Äİº¤ ÇÚµé·¯ ÄÁÅ×ÀÌ³Ê
+	shared_ptr<AnimationCallbackHandler>	m_animationCallbackHandler;		// ì½œë²¡ í•¸ë“¤ëŸ¬ ì»¨í…Œì´ë„ˆ
 };
 
 class AnimationController
@@ -317,10 +313,10 @@ private:
 	float									m_time;
 	vector<AnimationTrack>					m_animationTracks;
 
-	shared_ptr<AnimationSet>				m_animationSet;		// µî·ÏµÈ ¾Ö´Ï¸ŞÀÌ¼Ç Á¶ÇÕ
+	shared_ptr<AnimationSet>				m_animationSet;		// ë“±ë¡ëœ ì• ë‹ˆë©”ì´ì…˜ ì¡°í•©
 
 	vector<SkinnedMesh*>					m_skinnedMeshes;
 
 	vector<ComPtr<ID3D12Resource>>			m_skinningBoneTransform;
-	vector<XMFLOAT4X4*>						m_mappedSkinningBoneTransforms;	// skinmesh º° »À´ë º¯È¯Çà·Ä
+	vector<XMFLOAT4X4*>						m_mappedSkinningBoneTransforms;	// skinmesh ë³„ ë¼ˆëŒ€ ë³€í™˜í–‰ë ¬
 };

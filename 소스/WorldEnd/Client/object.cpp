@@ -1,4 +1,4 @@
-#include "object.h"
+ï»¿#include "object.h"
 #include "scene.h"
 
 GameObject::GameObject() : m_right{ 1.0f, 0.0f, 0.0f }, m_up{ 0.0f, 1.0f, 0.0f }, m_front{ 0.0f, 0.0f, 1.0f }, m_roll{ 0.0f }, m_pitch{ 0.0f }, m_yaw{ 0.0f }
@@ -9,7 +9,7 @@ GameObject::GameObject() : m_right{ 1.0f, 0.0f, 0.0f }, m_up{ 0.0f, 1.0f, 0.0f }
 
 GameObject::~GameObject()
 {
-	if (m_mesh) m_mesh->ReleaseUploadBuffer();
+	//if (m_mesh) m_mesh->ReleaseUploadBuffer();
 }
 
 void GameObject::Update(FLOAT timeElapsed)
@@ -55,12 +55,12 @@ void GameObject::Move(const XMFLOAT3& shift)
 
 void GameObject::Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw)
 {
-	// È¸Àü
+	// íšŒì „
 	XMMATRIX rotate{ XMMatrixRotationRollPitchYaw(XMConvertToRadians(roll), XMConvertToRadians(pitch), XMConvertToRadians(yaw)) };
 	XMMATRIX transformMatrix{ rotate * XMLoadFloat4x4(&m_transformMatrix) };
 	XMStoreFloat4x4(&m_transformMatrix, transformMatrix);
 
-	// ·ÎÄÃ x,y,zÃà ÃÖ½ÅÈ­
+	// ë¡œì»¬ x,y,zì¶• ìµœì‹ í™”
 	XMStoreFloat3(&m_right, XMVector3TransformNormal(XMLoadFloat3(&m_right), rotate));
 	XMStoreFloat3(&m_up, XMVector3TransformNormal(XMLoadFloat3(&m_up), rotate));
 	XMStoreFloat3(&m_front, XMVector3TransformNormal(XMLoadFloat3(&m_front), rotate));
@@ -149,6 +149,11 @@ void GameObject::SetChild(const shared_ptr<GameObject>& child)
 	}
 }
 
+void GameObject::SetFrameName(string&& frameName) noexcept
+{
+	m_frameName = move(frameName);
+}
+
 shared_ptr<GameObject> GameObject::FindFrame(string frameName)
 {
 	shared_ptr<GameObject> frame;
@@ -160,10 +165,11 @@ shared_ptr<GameObject> GameObject::FindFrame(string frameName)
 	return nullptr;
 }
 
-void GameObject::LoadObject(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, ifstream& in)
+void GameObject::LoadObject(ifstream& in)
 {
 	BYTE strLength;
 	INT frame, texture;
+
 	while (1) {
 		in.read((char*)(&strLength), sizeof(BYTE));
 		string strToken(strLength, '\0');
@@ -197,22 +203,22 @@ void GameObject::LoadObject(const ComPtr<ID3D12Device>& device, const ComPtr<ID3
 			SetMesh(Scene::m_meshs[meshName]);
 			SetBoundingBox(m_mesh->GetBoundingBox());
 		}
-		else if (strToken == "<SkinningInfo>:") {		// ½ºÅ²¸Ş½¬ Á¤º¸
+		else if (strToken == "<SkinningInfo>:") {		// ìŠ¤í‚¨ë©”ì‰¬ ì •ë³´
 			in.read((char*)(&strLength), sizeof(BYTE));
 			string meshName(strLength, '\0');
 			in.read(&meshName[0], sizeof(CHAR) * strLength);
 
-			// ½ºÅ²¸Ş½¬´Â ¸Ş½¬Á¤º¸±îÁö ´ã°í ÀÖÀ¸¹Ç·Î
-			// ¸Ş½¬±îÁö ÀĞ±â¸¸ ÇÏ°í ³Ñ±âµµ·Ï ÇÔ
+			// ìŠ¤í‚¨ë©”ì‰¬ëŠ” ë©”ì‰¬ì •ë³´ê¹Œì§€ ë‹´ê³  ìˆìœ¼ë¯€ë¡œ
+			// ë©”ì‰¬ê¹Œì§€ ì½ê¸°ë§Œ í•˜ê³  ë„˜ê¸°ë„ë¡ í•¨
 			SetMesh(Scene::m_meshs[meshName]);
 			SetBoundingBox(m_mesh->GetBoundingBox());
 
-			// </SkinningInfo>		ÀĞ°í ³Ñ±è
+			// </SkinningInfo>		ì½ê³  ë„˜ê¹€
 			in.read((char*)(&strLength), sizeof(BYTE));
 			strToken.resize(strLength);
 			in.read((&strToken[0]), sizeof(char) * strLength);
 
-			// <Mesh>:		ÀĞ°í ³Ñ±è
+			// <Mesh>:		ì½ê³  ë„˜ê¹€
 			in.read((char*)(&strLength), sizeof(BYTE));
 			strToken.resize(strLength);
 			in.read((&strToken[0]), sizeof(char) * strLength);
@@ -230,7 +236,7 @@ void GameObject::LoadObject(const ComPtr<ID3D12Device>& device, const ComPtr<ID3
 			if (childNum) {
 				for (int i = 0; i < childNum; ++i) {
 					auto child = make_shared<GameObject>();
-					child->LoadObject(device, commandList, in);
+					child->LoadObject(in);
 					SetChild(child);
 				}
 			}
@@ -253,7 +259,7 @@ void GameObject::SetBoundingBox(const BoundingOrientedBox& boundingBox)
 
 void GameObject::CreateAnimationController(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, int trackNum)
 {
-	// 3°³ÀÇ Æ®·¢À» °¡Áø ¾Ö´Ï¸ŞÀÌ¼Ç ÄÁÆ®·Ñ·¯ »ı¼º
+	// 3ê°œì˜ íŠ¸ë™ì„ ê°€ì§„ ì• ë‹ˆë©”ì´ì…˜ ì»¨íŠ¸ë¡¤ëŸ¬ ìƒì„±
 	m_animationController = make_shared<AnimationController>(trackNum);
 	m_animationController->SetSkinnedMeshes(device, commandList, *this);
 }
@@ -279,15 +285,15 @@ Field::Field(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsComm
 	INT width, INT length, INT height, INT blockWidth, INT blockLength, INT blockHeight, XMFLOAT3 scale)
 	: m_width{ width }, m_length{ length }, m_height{ height }, m_scale{ scale }
 {
-	// ³ôÀÌ¸ÊÀÌ¹ÌÁö ·Îµù
+	// ë†’ì´ë§µì´ë¯¸ì§€ ë¡œë”©
 	m_fieldMapImage = make_unique<FieldMapImage>(m_width, m_length, m_height, m_scale);
 
-	// °¡·Î, ¼¼·Î ºí·ÏÀÇ °³¼ö
+	// ê°€ë¡œ, ì„¸ë¡œ ë¸”ë¡ì˜ ê°œìˆ˜
 	if (height == 0) {
 		int widthBlockCount{ m_width / blockWidth };
 		int lengthBlockCount{ m_length / blockLength };
 
-		// ºí·Ï »ı¼º
+		// ë¸”ë¡ ìƒì„±
 		for (int z = 0; z < lengthBlockCount; ++z) {
 			for (int x = 0; x < widthBlockCount; ++x)
 			{
@@ -327,7 +333,7 @@ void Field::Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw)
 
 void Field::SetPosition(const XMFLOAT3& position)
 {
-	// ÁöÇüÀÇ À§Ä¡ ¼³Á¤Àº ¸ğµç ºí·ÏµéÀÇ À§Ä¡¸¦ Á¶Á¤ÇÑ´Ù´Â °ÍÀÓ
+	// ì§€í˜•ì˜ ìœ„ì¹˜ ì„¤ì •ì€ ëª¨ë“  ë¸”ë¡ë“¤ì˜ ìœ„ì¹˜ë¥¼ ì¡°ì •í•œë‹¤ëŠ” ê²ƒì„
 	for (auto& block : m_blocks)
 		block->SetPosition(position);
 }
@@ -344,11 +350,11 @@ Fence::Fence(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsComm
 	INT width, INT length, INT blockWidth, INT blockLength)
 	: m_width{ width }, m_length{ length }
 {
-	// °¡·Î, ¼¼·Î ºí·ÏÀÇ °³¼ö
+	// ê°€ë¡œ, ì„¸ë¡œ ë¸”ë¡ì˜ ê°œìˆ˜
 	int widthBlockCount{ m_width / blockWidth };
 	int lengthBlockCount{ m_length / blockLength };	
 
-	// ºí·Ï »ı¼º
+	// ë¸”ë¡ ìƒì„±
 	for (int x = 0; x < widthBlockCount; ++x)
 	{
 		int xStart{ x * blockWidth - m_width / 2 + blockWidth / 2 };
@@ -404,7 +410,7 @@ void Fence::Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw)
 
 void Fence::SetPosition(const XMFLOAT3& position)
 {
-	// ÁöÇüÀÇ À§Ä¡ ¼³Á¤Àº ¸ğµç ºí·ÏµéÀÇ À§Ä¡¸¦ Á¶Á¤ÇÑ´Ù´Â °ÍÀÓ
+	// ì§€í˜•ì˜ ìœ„ì¹˜ ì„¤ì •ì€ ëª¨ë“  ë¸”ë¡ë“¤ì˜ ìœ„ì¹˜ë¥¼ ì¡°ì •í•œë‹¤ëŠ” ê²ƒì„
 	for (auto& block : m_blocks)
 		block->SetPosition(position);
 }
@@ -428,10 +434,20 @@ void Skybox::Update(FLOAT timeElapsed)
 
 }
 
-// ¾Ö´Ï¸ŞÀÌ¼Ç
+HpBar::HpBar() {}
+
+void HpBar::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const
+{
+	commandList->SetGraphicsRoot32BitConstants(0, 1, &(m_hp), 33);
+	commandList->SetGraphicsRoot32BitConstants(0, 1, &(m_maxHp), 34);
+
+	GameObject::Render(commandList);
+}
+
+// ì• ë‹ˆë©”ì´ì…˜
 void AnimationCallbackHandler::Callback(void* callbackData, float trackPosition)
 {
-	// Äİ¹é Ã³¸®
+	// ì½œë°± ì²˜ë¦¬
 }
 
 Animation::Animation(float length, int framePerSecond, int keyFrames, int skinningBones, string name)
@@ -514,7 +530,7 @@ void AnimationTrack::SetAnimationCallbackHandler(const shared_ptr<AnimationCallb
 
 float AnimationTrack::UpdatePosition(float trackPosition, float elapsedTime, float animationLength)
 {
-	float trackElapsedTime = elapsedTime * m_speed;		// Æ®·¢ Àç»ıÁ¤µµ = ½Ã°£ÀÇ Èå¸§ * ¾Ö´Ï¸ŞÀÌ¼Ç Àç»ı¼Óµµ
+	float trackElapsedTime = elapsedTime * m_speed;		// íŠ¸ë™ ì¬ìƒì •ë„ = ì‹œê°„ì˜ íë¦„ * ì• ë‹ˆë©”ì´ì…˜ ì¬ìƒì†ë„
 
 	if (ANIMATION_TYPE_LOOP == m_type) {
 		if (m_position < 0.0f)
@@ -538,14 +554,14 @@ float AnimationTrack::UpdatePosition(float trackPosition, float elapsedTime, flo
 
 void AnimationTrack::AnimationCallback()
 {
-	// callback ÇÚµé·¯°¡ ÀÖ´Ù¸é
-	// Æ®·¢¿¡ ÀÖ´Â callbackKeys¸¦ °Ë»çÇÔ
-	// callbackKey ¿¡ Á¤ÀÇµÈ callback ½Ã°£°ú ÇöÀç ¾Ö´Ï¸ŞÀÌ¼Ç ½Ã°£ÀÌ °°ÀºÁö °Ë»ç
-	// callbackKey ¿¡ callback µ¥ÀÌÅÍ°¡ ÀÖ´Ù¸é 
-	// ÇØ´ç callback µ¿ÀÛÀ» ¼öÇà
+	// callback í•¸ë“¤ëŸ¬ê°€ ìˆë‹¤ë©´
+	// íŠ¸ë™ì— ìˆëŠ” callbackKeysë¥¼ ê²€ì‚¬í•¨
+	// callbackKey ì— ì •ì˜ëœ callback ì‹œê°„ê³¼ í˜„ì¬ ì• ë‹ˆë©”ì´ì…˜ ì‹œê°„ì´ ê°™ì€ì§€ ê²€ì‚¬
+	// callbackKey ì— callback ë°ì´í„°ê°€ ìˆë‹¤ë©´ 
+	// í•´ë‹¹ callback ë™ì‘ì„ ìˆ˜í–‰
 
-	// ex) °ø°İ µ¿ÀÛ Áß°£¿¡ °ø°İÆÇÁ¤À» ³Ö°íÀÚ ÇÑ´Ù¸é °ø°İ ½ÃÀÛ½Ã°£°ú ³¡½Ã°£À» ¼³Á¤ÇØ
-	// ½ÃÀÛ½Ã°£¿£ °ø°İ ÆÇÁ¤ÀÌ µÇµµ·Ï, ³¡½Ã°£¿£ °ø°İ ÆÇÁ¤ÀÌ ³¡³ªµµ·Ï callbackÀ» ¼³Á¤ÇÏ¸é µÊ
+	// ex) ê³µê²© ë™ì‘ ì¤‘ê°„ì— ê³µê²©íŒì •ì„ ë„£ê³ ì í•œë‹¤ë©´ ê³µê²© ì‹œì‘ì‹œê°„ê³¼ ëì‹œê°„ì„ ì„¤ì •í•´
+	// ì‹œì‘ì‹œê°„ì—” ê³µê²© íŒì •ì´ ë˜ë„ë¡, ëì‹œê°„ì—” ê³µê²© íŒì •ì´ ëë‚˜ë„ë¡ callbackì„ ì„¤ì •í•˜ë©´ ë¨
 	if (m_animationCallbackHandler) {
 		for (auto& callbackKey : m_callbackKeys) {
 			if (abs(callbackKey.m_time - m_position) <= ANIMATION_EPSILON) {
@@ -559,7 +575,7 @@ void AnimationTrack::AnimationCallback()
 
 AnimationController::AnimationController(int animationTracks)
 {
-	// ÄÁÆ®·Ñ·¯ »ı¼º ½Ã ¿øÇÏ´Â °¹¼ö¸¸Å­ Æ®·¢ »ı¼º
+	// ì»¨íŠ¸ë¡¤ëŸ¬ ìƒì„± ì‹œ ì›í•˜ëŠ” ê°¯ìˆ˜ë§Œí¼ íŠ¸ë™ ìƒì„±
 	m_animationTracks.resize(animationTracks);
 }
 
@@ -583,7 +599,7 @@ void AnimationController::SetAnimationSet(const shared_ptr<AnimationSet>& animat
 {
 	m_animationSet = animationSet;
 
-	// ¾Ö´Ï¸ŞÀÌ¼ÇÀÌ ¿µÇâÀ» ÁÖ´Â »À´ëµéÀ» ¼¼ÆÃÇÔ
+	// ì• ë‹ˆë©”ì´ì…˜ì´ ì˜í–¥ì„ ì£¼ëŠ” ë¼ˆëŒ€ë“¤ì„ ì„¸íŒ…í•¨
 	auto& frameCaches = m_animationSet->GetBoneFramesCaches();
 	auto& frameNames = m_animationSet->GetFrameNames();
 
@@ -595,10 +611,10 @@ void AnimationController::SetAnimationSet(const shared_ptr<AnimationSet>& animat
 
 void AnimationController::SetSkinnedMeshes(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, GameObject& rootObject)
 {
-	// ¿ÀºêÁ§Æ®·Î ºÎÅÍ ½ºÅ²¸Ş½¬¸¦ °¡Á®¿È
+	// ì˜¤ë¸Œì íŠ¸ë¡œ ë¶€í„° ìŠ¤í‚¨ë©”ì‰¬ë¥¼ ê°€ì ¸ì˜´
 	rootObject.FindAndSetSkinnedMesh(m_skinnedMeshes);
 
-	// ½ºÅ²¸Ş½¬µéÀÇ ½ºÅ² »À´ë ¿ÀºêÁ§Æ®µéÀ» ¼¼ÆÃÇÔ
+	// ìŠ¤í‚¨ë©”ì‰¬ë“¤ì˜ ìŠ¤í‚¨ ë¼ˆëŒ€ ì˜¤ë¸Œì íŠ¸ë“¤ì„ ì„¸íŒ…í•¨
 	for (auto& mesh : m_skinnedMeshes) {
 		auto& boneNames = mesh->GetSkinningBoneNames();
 		auto& boneFrames = mesh->GetSkinningBoneFrames();
@@ -612,14 +628,13 @@ void AnimationController::SetSkinnedMeshes(const ComPtr<ID3D12Device>& device, c
 	m_skinningBoneTransform.resize(meshCount);
 	m_mappedSkinningBoneTransforms.resize(meshCount);
 
-	// ½ºÅ²¸Ş½¬ °¹¼ö¸¸Å­ ½ºÅ°´× »À´ë º¯È¯ ¹öÆÛ ¸®¼Ò½º¸¦ »ı¼ºÇÏ°í 
-	// º¯¼ö¿¡ ¸ÅÇÎÇÔ
+	// ìŠ¤í‚¨ë©”ì‰¬ ê°¯ìˆ˜ë§Œí¼ ìŠ¤í‚¤ë‹ ë¼ˆëŒ€ ë³€í™˜ ë²„í¼ ë¦¬ì†ŒìŠ¤ë¥¼ ìƒì„±í•˜ê³  
+	// ë³€ìˆ˜ì— ë§¤í•‘í•¨
 	UINT elementBytes = (((sizeof(XMFLOAT4X4) * SKINNED_BONES) + 255) & ~255);
-	for (size_t i = 0; auto& resource : m_skinningBoneTransform) {
-		resource = CreateBufferResource(device, commandList, nullptr, elementBytes,
+	for (size_t i = 0; i < meshCount; ++i) {
+		m_skinningBoneTransform[i] = CreateBufferResource(device, commandList, nullptr, elementBytes,
 			D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, ComPtr<ID3D12Resource>());
-		resource->Map(0, nullptr, (void**)&m_mappedSkinningBoneTransforms[i]);
-		++i;
+		m_skinningBoneTransform[i]->Map(0, nullptr, (void**)&m_mappedSkinningBoneTransforms[i]);
 	}
 }
 
@@ -679,28 +694,26 @@ void AnimationController::AdvanceTime(float timeElapsed, GameObject* rootGameObj
 	if (!m_animationTracks.empty()) {
 		auto& boneFrameCaches = m_animationSet->GetBoneFramesCaches();
 
-		for (auto& boneFrame : boneFrameCaches) {
-			boneFrame->SetTransformMatrix(XMFLOAT4X4(0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f,
-				0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f));
+		for (size_t i = 0; auto & boneFrame : boneFrameCaches) {
+			boneFrame->SetTransformMatrix(Matrix::Zero());
 		}
 
-		// Æ®·¢À» µ¹¸é¼­ Æ®·¢ÀÌ È°¼ºÈ­ µÇ¾îÀÖÀ¸¸é
-		for (int i = 0; i < m_animationTracks.size(); ++i) {
-			auto& track = m_animationTracks[i];
+		// íŠ¸ë™ì„ ëŒë©´ì„œ íŠ¸ë™ì´ í™œì„±í™” ë˜ì–´ìˆìœ¼ë©´
+		for (auto& track : m_animationTracks) {
 			if (track.GetEnable()) {
 
-				// ÇöÀç ÄÁÆ®·Ñ·¯¿¡ µî·ÏµÈ ¾Ö´Ï¸ŞÀÌ¼Ç Á¶ÇÕ¿¡¼­ 
-				// Æ®·¢¿¡ µî·ÏµÈ ¾Ö´Ï¸ŞÀÌ¼Ç ¹øÈ£¿¡ ÇØ´çÇÏ´Â ¾Ö´Ï¸ŞÀÌ¼ÇÀ» °¡Á®¿È
+				// í˜„ì¬ ì»¨íŠ¸ë¡¤ëŸ¬ì— ë“±ë¡ëœ ì• ë‹ˆë©”ì´ì…˜ ì¡°í•©ì—ì„œ 
+				// íŠ¸ë™ì— ë“±ë¡ëœ ì• ë‹ˆë©”ì´ì…˜ ë²ˆí˜¸ì— í•´ë‹¹í•˜ëŠ” ì• ë‹ˆë©”ì´ì…˜ì„ ê°€ì ¸ì˜´
 				shared_ptr<Animation> animation = m_animationSet->GetAnimations()[track.GetAnimation()];
 
-				// Æ®·¢ÀÇ ¾Ö´Ï¸ŞÀÌ¼Ç Àç»ı À§Ä¡¸¦ °»½ÅÇÏ°í °»½ÅµÈ À§Ä¡¸¦ °¡Á®¿È
+				// íŠ¸ë™ì˜ ì• ë‹ˆë©”ì´ì…˜ ì¬ìƒ ìœ„ì¹˜ë¥¼ ê°±ì‹ í•˜ê³  ê°±ì‹ ëœ ìœ„ì¹˜ë¥¼ ê°€ì ¸ì˜´
 				float position = track.UpdatePosition(track.GetPosition(), timeElapsed, animation->GetLength());
 
-				// ÇöÀç ¾Ö´Ï¸ŞÀÌ¼Ç Á¶ÇÕ¿¡ µî·ÏµÈ »À´ë ÀÌ¸§µéÀ» Å½»ö
+				// í˜„ì¬ ì• ë‹ˆë©”ì´ì…˜ ì¡°í•©ì— ë“±ë¡ëœ ë¼ˆëŒ€ ì´ë¦„ë“¤ì„ íƒìƒ‰
 				for (int j = 0; j < boneFrameCaches.size(); ++j) {
 
-					// ÇØ´ç »À´ëÀÇ º¯È¯Çà·ÄÀ» °¡Á®¿À°í
-					// ¾Ö´Ï¸ŞÀÌ¼Ç¿¡¼­ ÇöÀç Àç»ıÀ§Ä¡¿¡ ÇØ´çÇÏ´Â º¯È¯Çà·ÄÀ» °¡Á®¿È
+					// í•´ë‹¹ ë¼ˆëŒ€ì˜ ë³€í™˜í–‰ë ¬ì„ ê°€ì ¸ì˜¤ê³ 
+					// ì• ë‹ˆë©”ì´ì…˜ì—ì„œ í˜„ì¬ ì¬ìƒìœ„ì¹˜ì— í•´ë‹¹í•˜ëŠ” ë³€í™˜í–‰ë ¬ì„ ê°€ì ¸ì˜´
 					XMFLOAT4X4 transform = boneFrameCaches[j]->GetTransformMatrix();
 					XMFLOAT4X4 animationTransform = animation->GetSRT(j, position);
 

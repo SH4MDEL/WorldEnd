@@ -1,4 +1,4 @@
-#include "loadingScene.h"
+ï»¿#include "loadingScene.h"
 
 LoadingScene::~LoadingScene()
 {
@@ -25,11 +25,11 @@ void LoadingScene::OnProcessingKeyboardMessage(FLOAT timeElapsed) const {}
 
 void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, const ComPtr<ID3D12RootSignature>& rootsignature, FLOAT aspectRatio)
 {
-	// ÇÃ·¹ÀÌ¾î »ı¼º
+	// í”Œë ˆì´ì–´ ìƒì„±
 	//auto playerShader{ make_shared<TextureHierarchyShader>(device, rootsignature) };
 	auto playerShader{ make_shared<SkinnedAnimationShader>(device, rootsignature) };
 
-	// ÁöÇü »ı¼º
+	// ì§€í˜• ìƒì„±
 	auto fieldShader{ make_shared<DetailShader>(device, rootsignature) };
 	auto fieldTexture{ make_shared<Texture>() };
 	fieldTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/Base_Texture.dds"), 2); // BaseTexture
@@ -37,41 +37,58 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	fieldTexture->CreateSrvDescriptorHeap(device);
 	fieldTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
 
-	// Ææ½º »ı¼º
+	// íœìŠ¤ ìƒì„±
 	auto blendingShader{ make_shared<BlendingShader>(device, rootsignature) };
 	auto fenceTexture{ make_shared<Texture>() };
 	fenceTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/Fence.dds"), 2); // BaseTexture
 	fenceTexture->CreateSrvDescriptorHeap(device);
 	fenceTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
 
-	// ½ºÄ«ÀÌ¹Ú½º »ı¼º
+	// ìŠ¤ì¹´ì´ë°•ìŠ¤ ìƒì„±
 	auto skyboxShader{ make_shared<SkyboxShader>(device, rootsignature) };
 	auto skyboxTexture{ make_shared<Texture>() };
 	skyboxTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/SkyBox.dds"), 4);
 	skyboxTexture->CreateSrvDescriptorHeap(device);
 	skyboxTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURECUBE);
 
-	// ÇÃ·¹ÀÌ¾î ¸Ş½¬, ¸ŞÅ×¸®¾ó, ¾Ö´Ï¸ŞÀÌ¼Ç ¼³Á¤
+	// ì²´ë ¥ ë°” ì„¤ì •
+	auto hpBarShader{ make_shared<HpBarShader>(device, rootsignature) };
+	auto hpBarMesh{ make_shared<BillboardMesh>(device, commandlist, XMFLOAT3{ 0.f, 0.f, 0.f }, XMFLOAT2{ 0.75f, 0.15f }) };
+	auto hpBarTexture{ make_shared<Texture>() };
+	hpBarTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/Full_HpBar.dds"), 2); // BaseTexture
+	hpBarTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/Empty_HpBar.dds"), 3); // SubTexture
+	hpBarTexture->CreateSrvDescriptorHeap(device);
+	hpBarTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+
+	// í”Œë ˆì´ì–´ ë©”ì‰¬, ë©”í…Œë¦¬ì–¼, ì• ë‹ˆë©”ì´ì…˜ ì„¤ì •
 	LoadAnimationFromFile(TEXT("./Resource/Animation/WarriorAnimation.bin"), "WarriorAnimation");
 	LoadAnimationFromFile(TEXT("./Resource/Animation/ArcherAnimation.bin"), "ArcherAnimation");
+	LoadAnimationFromFile(TEXT("./Resource/Animation/Undead_WarriorAnimation.bin"), "Undead_WarriorAnimation");
 
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/WarriorMesh.bin"));
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/ArcherMesh.bin"));
+	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/Undead_WarriorMesh.bin"));
+	
 
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/WarriorTexture.bin"));
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/ArcherTexture.bin"));
+	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/Undead_WarriorTexture.bin"));
 
+	// ë©”ì‰¬ ì„¤ì •
+	m_meshs.insert({ "HPBAR", hpBarMesh });
 
-	// ÅØ½ºÃ³ ¼³Á¤
+	// í…ìŠ¤ì²˜ ì„¤ì •
 	m_textures.insert({ "SKYBOX", skyboxTexture });
 	m_textures.insert({ "FIELD", fieldTexture });
 	m_textures.insert({ "FENCE", fenceTexture });
+	m_textures.insert({ "HPBAR", hpBarTexture });
 
-	// ¼ÎÀÌ´õ ¼³Á¤
+	// ì…°ì´ë” ì„¤ì •
 	m_shaders.insert({ "PLAYER", playerShader });
 	m_shaders.insert({ "SKYBOX", skyboxShader });
 	m_shaders.insert({ "FIELD", fieldShader });
 	m_shaders.insert({ "FENCE", blendingShader });
+	m_shaders.insert({ "HPBAR", hpBarShader });
 
 	g_GameFramework.ChangeScene(SCENETAG::TowerScene);
 }
@@ -155,7 +172,7 @@ void LoadingScene::LoadAnimationFromFile(wstring fileName, const string& animati
 
 	auto animationSet = make_shared<AnimationSet>();
 
-	// frameNum = »À´ë °³¼ö
+	// frameNum = ë¼ˆëŒ€ ê°œìˆ˜
 	BYTE strLength{};
 	INT num{}, frameNum{};
 
@@ -167,20 +184,20 @@ void LoadingScene::LoadAnimationFromFile(wstring fileName, const string& animati
 		in.read(&strToken[0], sizeof(char) * strLength);
 
 		if (strToken == "<AnimationSets>:") {
-			// ¾Ö´Ï¸ŞÀÌ¼Ç Á¶ÇÕ¿¡ ¾Ö´Ï¸ŞÀÌ¼Ç °¹¼ö resize
+			// ì• ë‹ˆë©”ì´ì…˜ ì¡°í•©ì— ì• ë‹ˆë©”ì´ì…˜ ê°¯ìˆ˜ resize
 			in.read((char*)(&num), sizeof(INT));
 			animationSet->GetAnimations().resize(num);
 		}
 		else if (strToken == "<FrameNames>:") {
-			// ¾Ö´Ï¸ŞÀÌ¼ÇÀÌ Àû¿ëµÉ »À °³¼ö resize
+			// ì• ë‹ˆë©”ì´ì…˜ì´ ì ìš©ë  ë¼ˆ ê°œìˆ˜ resize
 			in.read((char*)(&frameNum), sizeof(INT));
 			auto& frameNames = animationSet->GetFrameNames();
 			frameNames.resize(frameNum);
 			auto& frameCaches = animationSet->GetBoneFramesCaches();
 			frameCaches.resize(frameNum);
 			
-			// ÇÁ·¹ÀÓÀÌ¸§À» ´ã´Â º¤ÅÍ¿¡
-			// °¢ ÀÌ¸§À» ÀĞ¾î¼­ ³ÖÀ½
+			// í”„ë ˆì„ì´ë¦„ì„ ë‹´ëŠ” ë²¡í„°ì—
+			// ê° ì´ë¦„ì„ ì½ì–´ì„œ ë„£ìŒ
 			for (int i = 0; i < frameNum; ++i) {
 				in.read((char*)(&strLength), sizeof(BYTE));
 				frameNames[i].resize(strLength);
@@ -188,7 +205,7 @@ void LoadingScene::LoadAnimationFromFile(wstring fileName, const string& animati
 			}
 		}
 		else if (strToken == "<AnimationSet>:") {
-			// ¾Ö´Ï¸ŞÀÌ¼Ç ¹øÈ£, ÀÌ¸§, ½Ã°£, ÃÊ´ç ÇÁ·¹ÀÓ, ÃÑ ÇÁ·¹ÀÓ
+			// ì• ë‹ˆë©”ì´ì…˜ ë²ˆí˜¸, ì´ë¦„, ì‹œê°„, ì´ˆë‹¹ í”„ë ˆì„, ì´ í”„ë ˆì„
 			INT animationNum{};
 			in.read((char*)(&animationNum), sizeof(INT));
 
@@ -216,7 +233,7 @@ void LoadingScene::LoadAnimationFromFile(wstring fileName, const string& animati
 				string strToken(strLength, '\0');
 				in.read(&strToken[0], sizeof(char) * strLength);
 
-				// Å°ÇÁ·¹ÀÓ ¹øÈ£, Å°ÇÁ·¹ÀÓ ½Ã°£, Å°ÇÁ·¹ÀÓ Çà·Äµé
+				// í‚¤í”„ë ˆì„ ë²ˆí˜¸, í‚¤í”„ë ˆì„ ì‹œê°„, í‚¤í”„ë ˆì„ í–‰ë ¬ë“¤
 				if (strToken == "<Transforms>:") {
 					INT keyFrameNum{};
 					in.read((char*)(&keyFrameNum), sizeof(INT));
@@ -229,7 +246,7 @@ void LoadingScene::LoadAnimationFromFile(wstring fileName, const string& animati
 				}
 			}
 			
-			// ¾Ö´Ï¸ŞÀÌ¼Ç Á¶ÇÕ¿¡ ÇØ´ç ¾Ö´Ï¸ŞÀÌ¼Ç Ãß°¡
+			// ì• ë‹ˆë©”ì´ì…˜ ì¡°í•©ì— í•´ë‹¹ ì• ë‹ˆë©”ì´ì…˜ ì¶”ê°€
 			animationSet->GetAnimations()[animationCount++] = animation;
 		}
 		else if (strToken == "</AnimationSets>") {

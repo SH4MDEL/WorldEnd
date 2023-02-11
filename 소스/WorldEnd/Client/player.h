@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include "stdafx.h"
 #include "object.h"
 
@@ -13,31 +13,38 @@ public:
 	Player();
 	~Player() = default;
 
+	void OnProcessingKeyboardMessage(FLOAT timeElapsed);
+
 	virtual void Update(FLOAT timeElapsed);
 	virtual void Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw);
 
 	void ApplyFriction(FLOAT deltaTime);
-	void ApplyGravity(FLOAT deltaTime);
 
 	XMFLOAT3 GetVelocity() const { return m_velocity; }
+	FLOAT GetHp() const { return m_hp; }
 
 	void SetVelocity(const XMFLOAT3& velocity) { m_velocity = velocity; }
 	void AddVelocity(const XMFLOAT3& increase);
+	void SetHp(FLOAT hp) { m_hp = hp; }
 	void SetCamera(const shared_ptr<Camera>& camera) { m_camera = camera; }
-	
-	// Ãß°¡
-	void SetId(INT id) { m_id = id; }
+	void SetHpBar(const shared_ptr<HpBar>& hpBar) { m_hpBar = hpBar; }
+	void SetHpBarPosition(const XMFLOAT3& position) { if (m_hpBar) m_hpBar->SetPosition(position); }
 
-	INT GetId() const;
+	
+	// ì¶”ê°€
+	void SetID(INT id) { m_id = id; }
+	INT GetID() const { return m_id; }
 
 private:
-	XMFLOAT3						m_velocity;		// ¼Óµµ
-	FLOAT							m_maxVelocity;	// ÃÖ´ë¼Óµµ
-	FLOAT							m_friction;		// ¸¶Âû·Â
+	XMFLOAT3			m_velocity;		// ì†ë„
+	FLOAT				m_maxVelocity;	// ìµœëŒ€ì†ë„
+	FLOAT				m_friction;		// ë§ˆì°°ë ¥
 
-	// ÇÃ·¹ÀÌ¾î¸¦ id·Î ±¸º°ÇÏ±â À§ÇØ Ãß°¡ÇÔ.
-	INT					m_id;				// ÇÃ·¹ÀÌ¾î °íÀ¯ ¾ÆÀÌµğ
-	BOOL				m_is_multi_player;	// ¸ÖÆ¼ÇÃ·¹ÀÌ¾î ¿©ºÎ
+	FLOAT				m_hp;			// í”Œë ˆì´ì–´ ì²´ë ¥
+	FLOAT				m_maxHp;		// í”Œë ˆì´ì–´ ìµœëŒ€ ì²´ë ¥
 
-	shared_ptr<Camera>				m_camera;		// Ä«¸Ş¶ó
+	shared_ptr<Camera>	m_camera;		// ì¹´ë©”ë¼
+	shared_ptr<HpBar>	m_hpBar;		// HPë°”
+
+	INT					m_id;				// í”Œë ˆì´ì–´ ê³ ìœ  ì•„ì´ë””
 };

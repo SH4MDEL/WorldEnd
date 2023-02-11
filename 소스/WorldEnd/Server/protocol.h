@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include "stdafx.h"
 
 constexpr short SERVER_PORT = 9000;
@@ -9,44 +9,50 @@ constexpr int MAX_USER = 3;
 
 constexpr char CS_PACKET_LOGIN = 1;
 constexpr char CS_PACKET_PLAYER_MOVE = 2;
+constexpr char CS_PACKET_PLAYER_ATTACK = 3;
 
 constexpr char SC_PACKET_LOGIN_OK = 1;
-constexpr char SC_PACKET_UPDATE_CLIENT = 2;
+constexpr char SC_PACKET_ADD_PLAYER = 2;
+constexpr char SC_PACKET_UPDATE_CLIENT = 3;
+constexpr char SC_PACKET_PLAYER_ATTACK = 4;
 
 
-enum class ePlayerType : char {SWORD, BOW};
+constexpr char INPUT_KEY_E = 0b1000;
+
+enum class ePlayerType : char { SWORD, BOW };
 enum class eAttackType : char { NORMAL, SKILL };
-enum class eSceneType : char { LOGIN, LOADING, VILLAGE, PARTY, DUNGEON  };
+enum class eSceneType : char { LOGIN, LOADING, VILLAGE, PARTY, DUNGEON };
 
 #pragma pack(push,1)
 struct PlayerData
 {
-	CHAR				id;				// ÇÃ·¹ÀÌ¾î °íÀ¯ ¹øÈ£
-	bool				active_check;		// À¯È¿ ¿©ºÎ
-	DirectX::XMFLOAT3	pos;			// À§Ä¡
-	DirectX::XMFLOAT3	velocity;		// ¼Óµµ
-	FLOAT				yaw;			// È¸Àü°¢
+	CHAR				id;				// í”Œë ˆì´ì–´ ê³ ìœ  ë²ˆí˜¸
+	bool				active_check;		// ìœ íš¨ ì—¬ë¶€
+	DirectX::XMFLOAT3	pos;			// ìœ„ì¹˜
+	DirectX::XMFLOAT3	velocity;		// ì†ë„
+	FLOAT				yaw;			// íšŒì „ê°
+	INT                 hp;
 };
 
-struct ArrowData    
+struct ArrowData
 {
-	DirectX::XMFLOAT3	pos;		// À§Ä¡
-	DirectX::XMFLOAT3	dir;		// ¹æÇâ
-	INT					damage;		// µ¥¹ÌÁö
-	CHAR				player_id;	// ½ğ »ç¶÷
+	DirectX::XMFLOAT3	pos;		// ìœ„ì¹˜
+	DirectX::XMFLOAT3	dir;		// ë°©í–¥
+	INT					damage;		// ë°ë¯¸ì§€
+	CHAR				player_id;	// ìœ ì‚¬ëŒ
 };
 
 //////////////////////////////////////////////////////
-// Å¬¶ó¿¡¼­ ¼­¹ö·Î
+// í´ë¼ì—ì„œ ì„œë²„ë¡œ
 
-struct CS_LOGIN_PACKET 
+struct CS_LOGIN_PACKET
 {
 	UCHAR size;
 	UCHAR type;
 	CHAR name[NAME_SIZE];
 };
 
-struct CS_LOGOUT_PACKET 
+struct CS_LOGOUT_PACKET
 {
 	UCHAR size;
 	UCHAR type;
@@ -62,23 +68,24 @@ struct CS_PLAYER_MOVE_PACKET
 	FLOAT				yaw;
 };
 
-struct CS_READY_PACKET      // ÆÄÆ¼ ÁØºñ ¿Ï·á¸¦ ¾Ë·ÁÁÖ´Â ÆĞÅ¶
+struct CS_READY_PACKET      // íŒŒí‹° ì¤€ë¹„ ì™„ë£Œë¥¼ ì•Œë ¤ì£¼ëŠ” íŒ¨í‚·
 {
 	UCHAR	size;
 	UCHAR	type;
-	bool	ready_check;   
+	bool	ready_check;
 };
 
-struct CS_ATTACK_PACKET 
+struct CS_ATTACK_PACKET
 {
 	UCHAR size;
 	UCHAR type;
-	ePlayerType player_type; // ±ÙÁ¢ Ä³¸¯ÀÎÁö ¿ø°Å¸® Ä³¸¯ÀÎÁö ±¸º°ÇØÁÖ´Â ¿­°ÅÃ¼ º¯¼ö
-	eAttackType attack_type; // ±âº» °ø°İÀÎÀÌ ½ºÅ³ °ø°İÀÎÁö ±¸º°ÇØÁÖ´Â ¿­°ÅÃ¼ º¯¼ö
+	//ePlayerType player_type; // ê·¼ì ‘ ìºë¦­ì¸ì§€ ì›ê±°ë¦¬ ìºë¦­ì¸ì§€ êµ¬ë³„í•´ì£¼ëŠ” ì—´ê±°ì²´ ë³€ìˆ˜
+	//eAttackType attack_type; // ê¸°ë³¸ ê³µê²©ì¸ì´ ìŠ¤í‚¬ ê³µê²©ì¸ì§€ êµ¬ë³„í•´ì£¼ëŠ” ì—´ê±°ì²´ ë³€ìˆ˜
+	CHAR key;
 };
 
-struct CS_ARROW_PACKET      // °ø°İÅ°¸¦ ´­·¶À»¶§ Åõ»çÃ¼¸¦ »ı¼ºÇØÁÖ´Â ÆĞÅ¶
-{  
+struct CS_ARROW_PACKET      // ê³µê²©í‚¤ë¥¼ ëˆŒë €ì„ë•Œ íˆ¬ì‚¬ì²´ë¥¼ ìƒì„±í•´ì£¼ëŠ” íŒ¨í‚·
+{
 	UCHAR size;
 	UCHAR type;
 	ArrowData arrow_data;
@@ -91,26 +98,34 @@ struct CS_INPUT_KEY_PACKET
 	CHAR  dir;
 };
 ///////////////////////////////////////////////////////////////////////
-// ¼­¹ö¿¡¼­ Å¬¶ó·Î
+// ì„œë²„ì—ì„œ í´ë¼ë¡œ
 
-struct SC_LOGIN_OK_PACKET    // ·Î±×ÀÎ ¼º°øÀ» ¾Ë·ÁÁÖ´Â ÆĞÅ¶
-{  
+struct SC_LOGIN_OK_PACKET    // ë¡œê·¸ì¸ ì„±ê³µì„ ì•Œë ¤ì£¼ëŠ” íŒ¨í‚·
+{
 	UCHAR size;
 	UCHAR type;
 	CHAR  name[NAME_SIZE];
 	PlayerData player_data;
 	ePlayerType player_type;
-	bool		ready_check;
 };
 
-struct SC_LOGIN_FAILL_PACKET  // ·Î±×ÀÎ ½ÇÆĞ¸¦ ¾Ë·ÁÁÖ´Â ÆĞÅ¶
+struct SC_ADD_PLAYER_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+	CHAR  name[NAME_SIZE];
+	PlayerData player_data;
+	ePlayerType player_type;
+};
+
+struct SC_LOGIN_FAILL_PACKET  // ë¡œê·¸ì¸ ì‹¤íŒ¨ë¥¼ ì•Œë ¤ì£¼ëŠ” íŒ¨í‚·
 {
 	UCHAR	size;
 	UCHAR	type;
 	CHAR	id;
 };
 
-struct SC_READY_CHECK_PACKET  // ÆÄÆ¼ ÁØºñ ¿Ï·á¸¦ ¾Ë·ÁÁÖ´Â ÆĞÅ¶
+struct SC_READY_CHECK_PACKET  // íŒŒí‹° ì¤€ë¹„ ì™„ë£Œë¥¼ ì•Œë ¤ì£¼ëŠ” íŒ¨í‚·
 {
 	UCHAR	size;
 	UCHAR	type;
@@ -118,7 +133,7 @@ struct SC_READY_CHECK_PACKET  // ÆÄÆ¼ ÁØºñ ¿Ï·á¸¦ ¾Ë·ÁÁÖ´Â ÆĞÅ¶
 	bool	ready_check;
 };
 
-struct SC_PLAYER_SELECT_PACKET // ÇÃ·¹ÀÌ¾î Á¾·ù ¼±ÅÃ ÆĞÅ¶ 
+struct SC_PLAYER_SELECT_PACKET // í”Œë ˆì´ì–´ ì¢…ë¥˜ ì„ íƒ íŒ¨í‚· 
 {
 	UCHAR size;
 	UCHAR type;
@@ -126,18 +141,18 @@ struct SC_PLAYER_SELECT_PACKET // ÇÃ·¹ÀÌ¾î Á¾·ù ¼±ÅÃ ÆĞÅ¶
 	ePlayerType player_type;
 };
 
-struct SC_ARROW_DATA_PACKET    // Åõ»çÃ¼ Á¤º¸¸¦ º¸³»ÁÖ´Â ÆĞÅ¶
+struct SC_ARROW_DATA_PACKET    // íˆ¬ì‚¬ì²´ ì •ë³´ë¥¼ ë³´ë‚´ì£¼ëŠ” íŒ¨í‚·
 {
 	UCHAR		size;
 	UCHAR		type;
 	ArrowData	arrow_data;
 };
 
-struct SC_SCENE_CHANGE_PACKET    // ¾À º¯°æ ÆĞÅ¶
+struct SC_SCENE_CHANGE_PACKET    // ì”¬ ë³€ê²½ íŒ¨í‚·
 {
 	UCHAR		size;
 	UCHAR		type;
-	eSceneType  scene_type;     // ¾À Á¤º¸¸¦ ´ã°í ÀÖ´Â ¿­°ÅÃ¼ º¯¼ö
+	eSceneType  scene_type;     // ì”¬ ì •ë³´ë¥¼ ë‹´ê³  ìˆëŠ” ì—´ê±°ì²´ ë³€ìˆ˜
 };
 
 struct SC_UPDATE_CLIENT_PACKET
@@ -146,6 +161,14 @@ struct SC_UPDATE_CLIENT_PACKET
 	UCHAR		type;
 	PlayerData	data[MAX_USER];
 };
+
+struct SC_ATTACK_PACKET
+{
+	UCHAR     size;
+	UCHAR     type;
+	CHAR      id;
+};
+
 #pragma pack (pop)
 
 

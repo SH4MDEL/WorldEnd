@@ -1,14 +1,19 @@
-#pragma once
+ï»¿#pragma once
 #include "stdafx.h"
 #include "player.h"
 
-#define MAX_ROLL +20
-#define MIN_ROLL -10
+// ì¹´ë©”ë¼ í´ë˜ìŠ¤ëŠ” ë‘ ì¢…ë¥˜ì˜ ì¤‘ìš”í•œ ì •ë³´ë¥¼ ì €ì¥í•œë‹¤
+// 1. ì¹´ë©”ë¼ ì¢Œí‘œê³„ë¥¼ ì •ì˜í•˜ëŠ” ì†ì„±
+// 2. ì‚¬ì•¼ ì ˆë‘ì²´ë¥¼ ì •ì˜í•˜ëŠ” ì†ì„±
+
+#define MAX_PITCH +20
+#define MIN_PITCH -10
 
 struct CameraInfo
 {
-	XMFLOAT4X4			viewMatrix;	// ºäº¯È¯ Çà·Ä
-	XMFLOAT4X4			projMatrix;	// Åõ¿µº¯È¯ Çà·Ä
+	XMFLOAT4X4			viewMatrix;	// ë·°ë³€í™˜ í–‰ë ¬
+	XMFLOAT4X4			projMatrix;	// íˆ¬ì˜ë³€í™˜ í–‰ë ¬
+	XMFLOAT3			cameraPosition;	// ì¹´ë©”ë¼ ìœ„ì¹˜
 };
 
 class Camera
@@ -45,27 +50,27 @@ public:
 	void SetPlayer(const shared_ptr<Player>& player);
 
 protected:
-	XMFLOAT4X4				m_viewMatrix;	// ºäº¯È¯ Çà·Ä
-	XMFLOAT4X4				m_projMatrix;	// Åõ¿µº¯È¯ Çà·Ä
+	XMFLOAT4X4				m_viewMatrix;	// ë·°ë³€í™˜ í–‰ë ¬
+	XMFLOAT4X4				m_projMatrix;	// íˆ¬ì˜ë³€í™˜ í–‰ë ¬
 
 	ComPtr<ID3D12Resource>	m_cameraBuffer;
 	CameraInfo*				m_cameraBufferPointer;
 
-	XMFLOAT3				m_eye;			// Ä«¸Ş¶ó À§Ä¡
-	XMFLOAT3				m_look;			// Ä«¸Ş¶ó°¡ ¹Ù¶óº¸´Â ¹æÇâ
-	XMFLOAT3				m_up;			// Ä«¸Ş¶ó Upº¤ÅÍ
+	XMFLOAT3				m_eye;			// ì¹´ë©”ë¼ ìœ„ì¹˜
+	XMFLOAT3				m_look;			// ì¹´ë©”ë¼ê°€ ë°”ë¼ë³´ëŠ” ë°©í–¥
+	XMFLOAT3				m_up;			// ì¹´ë©”ë¼ Upë²¡í„°
 
-	XMFLOAT3				m_u;			// ·ÎÄÃ xÃà
-	XMFLOAT3				m_v;			// ·ÎÄÃ yÃà
-	XMFLOAT3				m_n;			// ·ÎÄÃ zÃà
+	XMFLOAT3				m_u;			// ë¡œì»¬ xì¶•
+	XMFLOAT3				m_v;			// ë¡œì»¬ yì¶•
+	XMFLOAT3				m_n;			// ë¡œì»¬ zì¶•
 
-	FLOAT					m_roll;			// xÃà È¸Àü°¢
-	FLOAT					m_pitch;		// yÃà È¸Àü°¢
-	FLOAT					m_yaw;			// zÃà È¸Àü°¢
+	FLOAT					m_roll;			// xì¶• íšŒì „ê°
+	FLOAT					m_pitch;		// yì¶• íšŒì „ê°
+	FLOAT					m_yaw;			// zì¶• íšŒì „ê°
 
-	FLOAT					m_delay;		// ¿òÁ÷ÀÓ µô·¹ÀÌ (0.0 ~ 1.0)
+	FLOAT					m_delay;		// ì›€ì§ì„ ë”œë ˆì´ (0.0 ~ 1.0)
 
-	shared_ptr<Player>		m_player;		// ÇÃ·¹ÀÌ¾î
+	shared_ptr<Player>		m_player;		// í”Œë ˆì´ì–´
 };
 
 class ThirdPersonCamera : public Camera

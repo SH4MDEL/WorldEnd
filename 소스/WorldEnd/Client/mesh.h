@@ -1,11 +1,11 @@
-#pragma once
+ï»¿#pragma once
 #include "stdafx.h"
 #include "texture.h"
 #include "material.h"
 
 #define SKINNED_MESH 1
 #define STANDARD_MESH 2
-#define SKINNED_BONES 128
+#define SKINNED_BONES 256
 
 struct Vertex
 {
@@ -182,9 +182,9 @@ private:
 	UINT								m_nBonesPerVertex;
 
 	vector<string>						m_skinningBoneNames;
-	vector<shared_ptr<GameObject>>		m_skinningBoneFrames;	// ÇØ´ç »À¸¦ ¹Ù·Î Ã£¾Æ°¡±â À§ÇØ ÀúÀåÇÏ´Â º¤ÅÍ
+	vector<shared_ptr<GameObject>>		m_skinningBoneFrames;	// í•´ë‹¹ ë¼ˆë¥¼ ë°”ë¡œ ì°¾ì•„ê°€ê¸° ìœ„í•´ ì €ì¥í•˜ëŠ” ë²¡í„°
 
-	vector<XMFLOAT4X4>					m_bindPoseBoneOffsets;	// ¹ÙÀÎµå Æ÷Áî¿¡¼­ÀÇ »À ¿ÀÇÁ¼Â Çà·Äµé
+	vector<XMFLOAT4X4>					m_bindPoseBoneOffsets;	// ë°”ì¸ë“œ í¬ì¦ˆì—ì„œì˜ ë¼ˆ ì˜¤í”„ì…‹ í–‰ë ¬ë“¤
 
 	ComPtr<ID3D12Resource>				m_bindPoseBoneOffsetBuffers;
 	XMFLOAT4X4*							m_mappedBindPoseBoneOffsets;
@@ -199,18 +199,18 @@ public:
 	FieldMapImage(INT width, INT length, INT height, XMFLOAT3 scale);
 	~FieldMapImage() = default;
 
-	FLOAT GetHeight(FLOAT x, FLOAT z) const;	// (x, z) À§Ä¡ÀÇ ÇÈ¼¿ °ª¿¡ ±â¹İÇÑ ÁöÇü ³ôÀÌ ¹İÈ¯
-	XMFLOAT3 GetNormal(INT x, INT z) const;		// (x, z) À§Ä¡ÀÇ ¹ı¼± º¤ÅÍ ¹İÈ¯
+	FLOAT GetHeight(FLOAT x, FLOAT z) const;	// (x, z) ìœ„ì¹˜ì˜ í”½ì…€ ê°’ì— ê¸°ë°˜í•œ ì§€í˜• ë†’ì´ ë°˜í™˜
+	XMFLOAT3 GetNormal(INT x, INT z) const;		// (x, z) ìœ„ì¹˜ì˜ ë²•ì„  ë²¡í„° ë°˜í™˜
 
 	XMFLOAT3 GetScale() { return m_scale; }
 	BYTE* GetPixels() { return m_pixels.get(); }
 	INT GetWidth() { return m_width; }
 	INT GetLength() { return m_length; }
 private:
-	unique_ptr<BYTE[]>			m_pixels;	// ³ôÀÌ ¸Ê ÀÌ¹ÌÁö ÇÈ¼¿(8-ºñÆ®)µéÀÇ ÀÌÂ÷¿ø ¹è¿­ÀÌ´Ù. °¢ ÇÈ¼¿Àº 0~255ÀÇ °ªÀ» °®´Â´Ù.
-	INT							m_width;	// ³ôÀÌ ¸Ê ÀÌ¹ÌÁöÀÇ °¡·Î¿Í ¼¼·Î Å©±âÀÌ´Ù
+	unique_ptr<BYTE[]>			m_pixels;	// ë†’ì´ ë§µ ì´ë¯¸ì§€ í”½ì…€(8-ë¹„íŠ¸)ë“¤ì˜ ì´ì°¨ì› ë°°ì—´ì´ë‹¤. ê° í”½ì…€ì€ 0~255ì˜ ê°’ì„ ê°–ëŠ”ë‹¤.
+	INT							m_width;	// ë†’ì´ ë§µ ì´ë¯¸ì§€ì˜ ê°€ë¡œì™€ ì„¸ë¡œ í¬ê¸°ì´ë‹¤
 	INT							m_length;
-	XMFLOAT3					m_scale;	// ³ôÀÌ ¸Ê ÀÌ¹ÌÁö¸¦ ½ÇÁ¦·Î ¸î ¹è È®´ëÇÏ¿© »ç¿ëÇÒ °ÍÀÎ°¡¸¦ ³ªÅ¸³»´Â ½ºÄÉÀÏ º¤ÅÍÀÌ´Ù
+	XMFLOAT3					m_scale;	// ë†’ì´ ë§µ ì´ë¯¸ì§€ë¥¼ ì‹¤ì œë¡œ ëª‡ ë°° í™•ëŒ€í•˜ì—¬ ì‚¬ìš©í•  ê²ƒì¸ê°€ë¥¼ ë‚˜íƒ€ë‚´ëŠ” ìŠ¤ì¼€ì¼ ë²¡í„°ì´ë‹¤
 };
 
 class FieldMapGridMesh : public Mesh
@@ -227,14 +227,14 @@ public:
 	INT GetLength() { return(m_length); }
 
 protected:
-	//°İÀÚÀÇ Å©±â(°¡·Î: x-¹æÇâ, ¼¼·Î: z-¹æÇâ)ÀÌ´Ù. 
+	//ê²©ìì˜ í¬ê¸°(ê°€ë¡œ: x-ë°©í–¥, ì„¸ë¡œ: z-ë°©í–¥)ì´ë‹¤. 
 	INT m_width;
 	INT m_length;
 
-	//°İÀÚÀÇ ½ºÄÉÀÏ(°¡·Î: x-¹æÇâ, ¼¼·Î: z-¹æÇâ, ³ôÀÌ: y-¹æÇâ) º¤ÅÍÀÌ´Ù. 
-	//½ÇÁ¦ °İÀÚ ¸Ş½¬ÀÇ °¢ Á¤Á¡ÀÇ x-ÁÂÇ¥, y-ÁÂÇ¥, z-ÁÂÇ¥´Â ½ºÄÉÀÏ º¤ÅÍÀÇ x-ÁÂÇ¥, y-ÁÂÇ¥, z-ÁÂÇ¥·Î °öÇÑ °ªÀ» °®´Â´Ù. 
-	//Áï, ½ÇÁ¦ °İÀÚÀÇ x-Ãà ¹æÇâÀÇ °£°İÀº 1ÀÌ ¾Æ´Ï¶ó ½ºÄÉÀÏ º¤ÅÍÀÇ x-ÁÂÇ¥°¡ µÈ´Ù. 
-	//ÀÌ·¸°Ô ÇÏ¸é ÀÛÀº °İÀÚ(ÀûÀº Á¤Á¡)¸¦ »ç¿ëÇÏ´õ¶óµµ Å« Å©±âÀÇ °İÀÚ(ÁöÇü)¸¦ »ı¼ºÇÒ ¼ö ÀÖ´Ù.
+	//ê²©ìì˜ ìŠ¤ì¼€ì¼(ê°€ë¡œ: x-ë°©í–¥, ì„¸ë¡œ: z-ë°©í–¥, ë†’ì´: y-ë°©í–¥) ë²¡í„°ì´ë‹¤. 
+	//ì‹¤ì œ ê²©ì ë©”ì‰¬ì˜ ê° ì •ì ì˜ x-ì¢Œí‘œ, y-ì¢Œí‘œ, z-ì¢Œí‘œëŠ” ìŠ¤ì¼€ì¼ ë²¡í„°ì˜ x-ì¢Œí‘œ, y-ì¢Œí‘œ, z-ì¢Œí‘œë¡œ ê³±í•œ ê°’ì„ ê°–ëŠ”ë‹¤. 
+	//ì¦‰, ì‹¤ì œ ê²©ìì˜ x-ì¶• ë°©í–¥ì˜ ê°„ê²©ì€ 1ì´ ì•„ë‹ˆë¼ ìŠ¤ì¼€ì¼ ë²¡í„°ì˜ x-ì¢Œí‘œê°€ ëœë‹¤. 
+	//ì´ë ‡ê²Œ í•˜ë©´ ì‘ì€ ê²©ì(ì ì€ ì •ì )ë¥¼ ì‚¬ìš©í•˜ë”ë¼ë„ í° í¬ê¸°ì˜ ê²©ì(ì§€í˜•)ë¥¼ ìƒì„±í•  ìˆ˜ ìˆë‹¤.
 	XMFLOAT3 m_scale;
 };
 
@@ -252,4 +252,12 @@ public:
 	SkyboxMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, 
 		FLOAT width = 20.0f, FLOAT height = 20.0f, FLOAT depth = 20.0f);
 	~SkyboxMesh() = default;
+};
+
+class BillboardMesh : public Mesh
+{
+public:
+	BillboardMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList,
+		XMFLOAT3 position, XMFLOAT2 size);
+	~BillboardMesh() = default;
 };

@@ -1,16 +1,95 @@
-#include "player.h"
+ï»¿#include "player.h"
 #include "camera.h"
 
-Player::Player() : m_velocity{ 0.0f, 0.0f, 0.0f }, m_maxVelocity{ 10.0f }, m_friction{ 0.5f }, m_id{-1}
+Player::Player() : m_velocity{ 0.0f, 0.0f, 0.0f }, m_maxVelocity{ 10.0f }, m_friction{ 0.5f }, m_hp{ 100.f }, m_maxHp{ 100.f }, m_id{ -1 }
 {
 
+}
+
+void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
+{
+	XMFLOAT3 eye = m_camera->GetEye();
+	XMFLOAT3 direction{ Vector3::Normalize(Vector3::Sub(GetPosition(), eye)) };
+	if (GetAsyncKeyState('W') & 0x8000)
+	{
+		XMFLOAT3 front{ Vector3::Normalize(Vector3::Sub(GetPosition(), eye)) };
+		XMFLOAT3 angle{ Vector3::Angle(GetFront(), front) };
+		XMFLOAT3 clockwise{ Vector3::Cross(GetFront(), front) };
+		if (clockwise.y >= 0) {
+			Rotate(0.f, 0.f, timeElapsed * XMConvertToDegrees(angle.y) * 10.f);
+		}
+		else {
+			Rotate(0.f, 0.f, -timeElapsed * XMConvertToDegrees(angle.y) * 10.f);
+		}
+	}
+	if (GetAsyncKeyState('A') & 0x8000)
+	{
+		XMFLOAT3 left{ Vector3::Normalize(Vector3::Cross(direction, GetUp())) };
+		XMFLOAT3 angle{ Vector3::Angle(GetFront(), left) };
+		XMFLOAT3 clockwise{ Vector3::Cross(GetFront(), left) };
+		if (clockwise.y >= 0) {
+			Rotate(0.f, 0.f, timeElapsed * XMConvertToDegrees(angle.y) * 10.f);
+		}
+		else {
+			Rotate(0.f, 0.f, -timeElapsed * XMConvertToDegrees(angle.y) * 10.f);
+		}
+	}
+	if (GetAsyncKeyState('S') & 0x8000)
+	{
+		XMFLOAT3 back{ Vector3::Normalize(Vector3::Sub(eye, GetPosition())) };
+		XMFLOAT3 angle{ Vector3::Angle(GetFront(), back) };
+		XMFLOAT3 clockwise{ Vector3::Cross(GetFront(), back) };
+		if (clockwise.y >= 0) {
+			Rotate(0.f, 0.f, timeElapsed * XMConvertToDegrees(angle.y) * 10.f);
+		}
+		else {
+			Rotate(0.f, 0.f, -timeElapsed * XMConvertToDegrees(angle.y) * 10.f);
+		}
+	}
+	if (GetAsyncKeyState('D') & 0x8000)
+	{
+		XMFLOAT3 right{ Vector3::Normalize(Vector3::Cross(GetUp(), direction)) };
+		XMFLOAT3 angle{ Vector3::Angle(GetFront(), right) };
+		XMFLOAT3 clockwise{ Vector3::Cross(GetFront(), right) };
+		if (clockwise.y >= 0) {
+			Rotate(0.f, 0.f, timeElapsed * XMConvertToDegrees(angle.y) * 10.f);
+		}
+		else {
+			Rotate(0.f, 0.f, -timeElapsed * XMConvertToDegrees(angle.y) * 10.f);
+		}
+	}
+	if (GetAsyncKeyState('W') & 0x8000 || GetAsyncKeyState('A') & 0x8000 ||
+		GetAsyncKeyState('S') & 0x8000 || GetAsyncKeyState('D') & 0x8000)
+	{
+		AddVelocity(Vector3::Mul(GetFront(), timeElapsed * 10.0f));
+
+#ifdef USE_NETWORK
+		CS_PLAYER_MOVE_PACKET move_packet;
+		move_packet.size = sizeof(move_packet);
+		move_packet.type = CS_PACKET_PLAYER_MOVE;
+		move_packet.pos = GetPosition();
+		move_packet.velocity = GetVelocity();
+		move_packet.yaw = GetYaw();
+
+		send(g_socket, reinterpret_cast<char*>(&move_packet), sizeof(move_packet), 0);
+		cout << " x: " << move_packet.pos.x << " y: " << move_packet.pos.y <<
+			" z: " << move_packet.pos.z << endl;
+#endif // USE_NETWORK
+	}
+	if (GetAsyncKeyState(VK_SPACE) & 0x8000)
+	{
+
+	}
+	if (GetAsyncKeyState(VK_SHIFT) & 0x8000)
+	{
+
+	}
 }
 
 void Player::Update(FLOAT timeElapsed)
 {
 	GameObject::Update(timeElapsed);
 
-	Move(m_velocity);
 	if (m_animationController) {
 		float length = fabs(m_velocity.x) + fabs(m_velocity.z);
 		if (length <= FLT_EPSILON) {
@@ -24,26 +103,26 @@ void Player::Update(FLOAT timeElapsed)
 		}
 	}
 
+	if (m_hpBar) {
+		m_hpBar->SetMaxHp(m_maxHp);
+		m_hpBar->SetHp(10.f);
+		XMFLOAT3 hpBarPosition = GetPosition();
+		hpBarPosition.y += 1.8f;
+		m_hpBar->SetPosition(hpBarPosition);
+	}
+
+//#ifndef USE_NETWORK
+	Move(m_velocity);
+//#endif // !USE_NETWORK
+
 	ApplyFriction(timeElapsed);
 }
 
 void Player::Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw)
 {
-	// È¸Àü°¢ Á¦ÇÑ
-	if (m_roll + roll > MAX_ROLL)
-		roll = MAX_ROLL - m_roll;
-	else if (m_roll + roll < MIN_ROLL)
-		roll = MIN_ROLL - m_roll;
+	m_yaw += yaw;
 
-	// È¸Àü°¢ ÇÕ»ê
-	m_roll += roll; m_pitch += pitch; m_yaw += yaw;
-
-	// Ä«¸Þ¶ó´Â x,yÃàÀ¸·Î È¸ÀüÇÒ ¼ö ÀÖ´Ù.
-	// GameObject::Rotate¿¡¼­ ÇÃ·¹ÀÌ¾îÀÇ ·ÎÄÃ x,y,zÃàÀ» º¯°æÇÏ¹Ç·Î ¸ÕÀú È£ÃâÇØ¾ßÇÑ´Ù.
-	m_camera->Rotate(roll, pitch, 0.0f);
-
-	// ÇÃ·¹ÀÌ¾î´Â yÃàÀ¸·Î¸¸ È¸ÀüÇÒ ¼ö ÀÖ´Ù.
-	GameObject::Rotate(0.0f, pitch, 0.0f);
+	GameObject::Rotate(0.f, 0.f, yaw);
 }
 
 void Player::ApplyFriction(FLOAT deltaTime)
@@ -55,16 +134,11 @@ void Player::AddVelocity(const XMFLOAT3& increase)
 {
 	m_velocity = Vector3::Add(m_velocity, increase);
 
-	// ÃÖ´ë ¼Óµµ¿¡ °É¸°´Ù¸é ÇØ´ç ºñÀ²·Î Ãà¼Ò½ÃÅ´
+	// ìµœëŒ€ ì†ë„ì— ê±¸ë¦°ë‹¤ë©´ í•´ë‹¹ ë¹„ìœ¨ë¡œ ì¶•ì†Œì‹œí‚´
 	FLOAT length{ Vector3::Length(m_velocity) };
 	if (length > m_maxVelocity)
 	{
 		FLOAT ratio{ m_maxVelocity / length };
 		m_velocity = Vector3::Mul(m_velocity, ratio);
 	}
-}
-
-INT Player::GetId() const
-{
-	return m_id;
 }

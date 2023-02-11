@@ -1,11 +1,11 @@
-#include "mesh.h"
+ï»¿#include "mesh.h"
 #include "object.h"
 
 Mesh::Mesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, const vector<TextureVertex>& vertices, const vector<UINT>& indices)
 {
 	m_primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
-	// Á¤Á¡ ¹öÆÛ »ı¼º
+	// ì •ì  ë²„í¼ ìƒì„±
 	m_nVertices = (UINT)vertices.size();
 	const UINT vertexBufferSize = (UINT)sizeof(TextureVertex) * (UINT)vertices.size();
 
@@ -25,17 +25,17 @@ Mesh::Mesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsComman
 		NULL,
 		IID_PPV_ARGS(&m_vertexUploadBuffer)));
 
-	// DEFAULT ¹öÆÛ¿¡ UPLOAD ¹öÆÛÀÇ µ¥ÀÌÅÍ º¹»ç
+	// DEFAULT ë²„í¼ì— UPLOAD ë²„í¼ì˜ ë°ì´í„° ë³µì‚¬
 	D3D12_SUBRESOURCE_DATA vertextData{};
 	vertextData.pData = vertices.data();
 	vertextData.RowPitch = vertexBufferSize;
 	vertextData.SlicePitch = vertextData.RowPitch;
 	UpdateSubresources<1>(commandList.Get(), m_vertexBuffer.Get(), m_vertexUploadBuffer.Get(), 0, 0, 1, &vertextData);
 
-	// Á¤Á¡ ¹öÆÛ »óÅÂ º¯°æ
+	// ì •ì  ë²„í¼ ìƒíƒœ ë³€ê²½
 	commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_vertexBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
 
-	// Á¤Á¡ ¹öÆÛ ºä ¼³Á¤
+	// ì •ì  ë²„í¼ ë·° ì„¤ì •
 	m_vertexBufferView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
 	m_vertexBufferView.SizeInBytes = vertexBufferSize;
 	m_vertexBufferView.StrideInBytes = sizeof(TextureVertex);
@@ -477,11 +477,11 @@ FieldMapImage::FieldMapImage(INT width, INT length, INT height, XMFLOAT3 scale) 
 
 FLOAT FieldMapImage::GetHeight(FLOAT x, FLOAT z) const
 {
-	//ÁöÇüÀÇ ÁÂÇ¥(x, z)´Â ÀÌ¹ÌÁö ÁÂÇ¥°èÀÌ´Ù.
-	//³ôÀÌ ¸ÊÀÇ x-ÁÂÇ¥¿Í z-ÁÂÇ¥°¡ ³ôÀÌ ¸ÊÀÇ ¹üÀ§¸¦ ¹ş¾î³ª¸é ÁöÇüÀÇ ³ôÀÌ´Â 0ÀÌ´Ù.
+	//ì§€í˜•ì˜ ì¢Œí‘œ(x, z)ëŠ” ì´ë¯¸ì§€ ì¢Œí‘œê³„ì´ë‹¤.
+	//ë†’ì´ ë§µì˜ x-ì¢Œí‘œì™€ z-ì¢Œí‘œê°€ ë†’ì´ ë§µì˜ ë²”ìœ„ë¥¼ ë²—ì–´ë‚˜ë©´ ì§€í˜•ì˜ ë†’ì´ëŠ” 0ì´ë‹¤.
 	if ((x < 0.0f) || (z < 0.0f) || (x >= m_width) || (z >= m_length)) return 0.0f;
 
-	//³ôÀÌ ¸ÊÀÇ ÁÂÇ¥ÀÇ Á¤¼ö ºÎºĞ°ú ¼Ò¼ö ºÎºĞÀ» °è»êÇÑ´Ù. 
+	//ë†’ì´ ë§µì˜ ì¢Œí‘œì˜ ì •ìˆ˜ ë¶€ë¶„ê³¼ ì†Œìˆ˜ ë¶€ë¶„ì„ ê³„ì‚°í•œë‹¤. 
 	int mx{ (int)x };
 	int mz{ (int)z };
 	float px{ x - mx };
@@ -492,7 +492,7 @@ FLOAT FieldMapImage::GetHeight(FLOAT x, FLOAT z) const
 	float topLeft{ (float)m_pixels[mx + (mz + 1) * m_width] };
 	float topRight{ (float)m_pixels[(mx + 1) + ((mz + 1) * m_width)] };
 
-	//»ç°¢ÇüÀÇ ³× Á¡À» º¸°£ÇÏ¿© ³ôÀÌ(ÇÈ¼¿ °ª)¸¦ °è»êÇÑ´Ù. 
+	//ì‚¬ê°í˜•ì˜ ë„¤ ì ì„ ë³´ê°„í•˜ì—¬ ë†’ì´(í”½ì…€ ê°’)ë¥¼ ê³„ì‚°í•œë‹¤. 
 	float fTopHeight{ topLeft * (1 - px) + topRight * px };
 	float fBottomHeight{ bottomLeft * (1 - px) + bottomRight * px };
 	return fBottomHeight * (1 - pz) + fTopHeight * pz;
@@ -500,33 +500,33 @@ FLOAT FieldMapImage::GetHeight(FLOAT x, FLOAT z) const
 
 XMFLOAT3 FieldMapImage::GetNormal(INT x, INT z) const
 {
-	//x-ÁÂÇ¥¿Í z-ÁÂÇ¥°¡ ³ôÀÌ ¸ÊÀÇ ¹üÀ§¸¦ ¹ş¾î³ª¸é ÁöÇüÀÇ ¹ı¼± º¤ÅÍ´Â y-Ãà ¹æÇâ º¤ÅÍÀÌ´Ù. 
+	//x-ì¢Œí‘œì™€ z-ì¢Œí‘œê°€ ë†’ì´ ë§µì˜ ë²”ìœ„ë¥¼ ë²—ì–´ë‚˜ë©´ ì§€í˜•ì˜ ë²•ì„  ë²¡í„°ëŠ” y-ì¶• ë°©í–¥ ë²¡í„°ì´ë‹¤. 
 	if ((x < 0.0f) || (z < 0.0f) || (x >= m_width) || (z >= m_length))
 		return(XMFLOAT3(0.0f, 1.0f, 0.0f));
 
-	/*³ôÀÌ ¸Ê¿¡¼­ (x, z) ÁÂÇ¥ÀÇ ÇÈ¼¿ °ª°ú ÀÎÁ¢ÇÑ µÎ °³ÀÇ Á¡ (x+1, z), (z, z+1)¿¡ ´ëÇÑ ÇÈ¼¿ °ªÀ» »ç¿ëÇÏ¿© ¹ı¼± º¤ÅÍ¸¦
-	°è»êÇÑ´Ù.*/
+	/*ë†’ì´ ë§µì—ì„œ (x, z) ì¢Œí‘œì˜ í”½ì…€ ê°’ê³¼ ì¸ì ‘í•œ ë‘ ê°œì˜ ì  (x+1, z), (z, z+1)ì— ëŒ€í•œ í”½ì…€ ê°’ì„ ì‚¬ìš©í•˜ì—¬ ë²•ì„  ë²¡í„°ë¥¼
+	ê³„ì‚°í•œë‹¤.*/
 	int heightMapIndex{ x + z * m_width };
 	int xAdd{ x < m_width - 1 ? 1 : -1 };
 	int zAdd{ z < m_length - 1 ? m_width : -m_width };
 
-	//(x, z), (x+1, z), (z, z+1)ÀÇ ÇÈ¼¿¿¡¼­ ÁöÇüÀÇ ³ôÀÌ¸¦ ±¸ÇÑ´Ù. 
+	//(x, z), (x+1, z), (z, z+1)ì˜ í”½ì…€ì—ì„œ ì§€í˜•ì˜ ë†’ì´ë¥¼ êµ¬í•œë‹¤. 
 	float y1{ (float)m_pixels[heightMapIndex] * m_scale.y };
 	float y2{ (float)m_pixels[heightMapIndex + xAdd] * m_scale.y };
 	float y3{ (float)m_pixels[heightMapIndex + zAdd] * m_scale.y };
 
-	//xmf3Edge1Àº (0, y3, m_xmf3Scale.z) - (0, y1, 0) º¤ÅÍÀÌ´Ù. 
+	//xmf3Edge1ì€ (0, y3, m_xmf3Scale.z) - (0, y1, 0) ë²¡í„°ì´ë‹¤. 
 	XMFLOAT3 xmf3Edge1 = XMFLOAT3(0.0f, y3 - y1, m_scale.z);
-	//xmf3Edge2´Â (m_xmf3Scale.x, y2, 0) - (0, y1, 0) º¤ÅÍÀÌ´Ù. 
+	//xmf3Edge2ëŠ” (m_xmf3Scale.x, y2, 0) - (0, y1, 0) ë²¡í„°ì´ë‹¤. 
 	XMFLOAT3 xmf3Edge2 = XMFLOAT3(m_scale.x, y2 - y1, 0.0f);
-	//¹ı¼± º¤ÅÍ´Â xmf3Edge1°ú xmf3Edge2ÀÇ ¿ÜÀûÀ» Á¤±ÔÈ­ÇÏ¸é µÈ´Ù. 
+	//ë²•ì„  ë²¡í„°ëŠ” xmf3Edge1ê³¼ xmf3Edge2ì˜ ì™¸ì ì„ ì •ê·œí™”í•˜ë©´ ëœë‹¤. 
 	return Vector3::Cross(xmf3Edge1, xmf3Edge2);
 }
 
 FieldMapGridMesh::FieldMapGridMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList,
 	INT xStart, INT zStart, INT width, INT length, XMFLOAT3 scale, FieldMapImage* heightMapImage)
 {
-	//°İÀÚ´Â »ï°¢Çü ½ºÆ®¸³À¸·Î ±¸¼ºÇÑ´Ù. 
+	//ê²©ìëŠ” ì‚¼ê°í˜• ìŠ¤íŠ¸ë¦½ìœ¼ë¡œ êµ¬ì„±í•œë‹¤. 
 	m_primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
 	m_width = width;
 	m_length = length;
@@ -534,12 +534,12 @@ FieldMapGridMesh::FieldMapGridMesh(const ComPtr<ID3D12Device>& device, const Com
 
 	vector<DetailVertex> vertices;
 
-	/*xStart¿Í zStart´Â °İÀÚÀÇ ½ÃÀÛ À§Ä¡(x-ÁÂÇ¥¿Í z-ÁÂÇ¥)¸¦ ³ªÅ¸³½´Ù. Ä¿´Ù¶õ ÁöÇüÀº °İÀÚµéÀÇ ÀÌÂ÷¿ø ¹è¿­·Î ¸¸µé ÇÊ
-	¿ä°¡ ÀÖ±â ¶§¹®¿¡ ÀüÃ¼ ÁöÇü¿¡¼­ °¢ °İÀÚÀÇ ½ÃÀÛ À§Ä¡¸¦ ³ªÅ¸³»´Â Á¤º¸°¡ ÇÊ¿äÇÏ´Ù.*/
+	/*xStartì™€ zStartëŠ” ê²©ìì˜ ì‹œì‘ ìœ„ì¹˜(x-ì¢Œí‘œì™€ z-ì¢Œí‘œ)ë¥¼ ë‚˜íƒ€ë‚¸ë‹¤. ì»¤ë‹¤ë€ ì§€í˜•ì€ ê²©ìë“¤ì˜ ì´ì°¨ì› ë°°ì—´ë¡œ ë§Œë“¤ í•„
+	ìš”ê°€ ìˆê¸° ë•Œë¬¸ì— ì „ì²´ ì§€í˜•ì—ì„œ ê° ê²©ìì˜ ì‹œì‘ ìœ„ì¹˜ë¥¼ ë‚˜íƒ€ë‚´ëŠ” ì •ë³´ê°€ í•„ìš”í•˜ë‹¤.*/
 	for (int i = 0, z = zStart; z < (zStart + length); ++z) {
 		for (int x = xStart; x < (xStart + width); ++x, ++i)
 		{
-			//Á¤Á¡ÀÇ ³ôÀÌ¿Í »ö»óÀ» ³ôÀÌ ¸ÊÀ¸·ÎºÎÅÍ ±¸ÇÑ´Ù.
+			//ì •ì ì˜ ë†’ì´ì™€ ìƒ‰ìƒì„ ë†’ì´ ë§µìœ¼ë¡œë¶€í„° êµ¬í•œë‹¤.
 			XMFLOAT3 anormal = Vector3::Add(heightMapImage->GetNormal(x, z), heightMapImage->GetNormal(x + 1, z));
 			anormal = Vector3::Add(heightMapImage->GetNormal(x + 1, z + 1), heightMapImage->GetNormal(x, z + 1));
 			Vector3::Normalize(anormal);
@@ -566,24 +566,24 @@ FieldMapGridMesh::FieldMapGridMesh(const ComPtr<ID3D12Device>& device, const Com
 	{
 		if ((z % 2) == 0)
 		{
-			//È¦¼ö ¹øÂ° ÁÙÀÌ¹Ç·Î(z = 0, 2, 4, ...) ÀÎµ¦½ºÀÇ ³ª¿­ ¼ø¼­´Â ¿ŞÂÊ¿¡¼­ ¿À¸¥ÂÊ ¹æÇâÀÌ´Ù. 
+			//í™€ìˆ˜ ë²ˆì§¸ ì¤„ì´ë¯€ë¡œ(z = 0, 2, 4, ...) ì¸ë±ìŠ¤ì˜ ë‚˜ì—´ ìˆœì„œëŠ” ì™¼ìª½ì—ì„œ ì˜¤ë¥¸ìª½ ë°©í–¥ì´ë‹¤. 
 			for (int x = 0; x < width; x++)
 			{
-				//Ã¹ ¹øÂ° ÁÙÀ» Á¦¿ÜÇÏ°í ÁÙÀÌ ¹Ù²ğ ¶§¸¶´Ù(x == 0) Ã¹ ¹øÂ° ÀÎµ¦½º¸¦ Ãß°¡ÇÑ´Ù. 
+				//ì²« ë²ˆì§¸ ì¤„ì„ ì œì™¸í•˜ê³  ì¤„ì´ ë°”ë€” ë•Œë§ˆë‹¤(x == 0) ì²« ë²ˆì§¸ ì¸ë±ìŠ¤ë¥¼ ì¶”ê°€í•œë‹¤. 
 				if (x == 0 && z > 0) indices.push_back(x + (z * width));
-				//¾Æ·¡(x, z), À§(x, z+1)ÀÇ ¼ø¼­·Î ÀÎµ¦½º¸¦ Ãß°¡ÇÑ´Ù. 
+				//ì•„ë˜(x, z), ìœ„(x, z+1)ì˜ ìˆœì„œë¡œ ì¸ë±ìŠ¤ë¥¼ ì¶”ê°€í•œë‹¤. 
 				indices.push_back(x + (z * width));
 				indices.push_back(x + (z * width) + width);
 			}
 		}
 		else
 		{
-			//Â¦¼ö ¹øÂ° ÁÙÀÌ¹Ç·Î(z = 1, 3, 5, ...) ÀÎµ¦½ºÀÇ ³ª¿­ ¼ø¼­´Â ¿À¸¥ÂÊ¿¡¼­ ¿ŞÂÊ ¹æÇâÀÌ´Ù. 
+			//ì§ìˆ˜ ë²ˆì§¸ ì¤„ì´ë¯€ë¡œ(z = 1, 3, 5, ...) ì¸ë±ìŠ¤ì˜ ë‚˜ì—´ ìˆœì„œëŠ” ì˜¤ë¥¸ìª½ì—ì„œ ì™¼ìª½ ë°©í–¥ì´ë‹¤. 
 			for (int x = width - 1; x >= 0; --x)
 			{
-				//ÁÙÀÌ ¹Ù²ğ ¶§¸¶´Ù(x == (nWidth-1)) Ã¹ ¹øÂ° ÀÎµ¦½º¸¦ Ãß°¡ÇÑ´Ù. 
+				//ì¤„ì´ ë°”ë€” ë•Œë§ˆë‹¤(x == (nWidth-1)) ì²« ë²ˆì§¸ ì¸ë±ìŠ¤ë¥¼ ì¶”ê°€í•œë‹¤. 
 				if (x == width - 1) indices.push_back(x + (z * width));
-				//¾Æ·¡(x, z), À§(x, z+1)ÀÇ ¼ø¼­·Î ÀÎµ¦½º¸¦ Ãß°¡ÇÑ´Ù. 
+				//ì•„ë˜(x, z), ìœ„(x, z+1)ì˜ ìˆœì„œë¡œ ì¸ë±ìŠ¤ë¥¼ ì¶”ê°€í•œë‹¤. 
 				indices.push_back(x + (z * width));
 				indices.push_back(x + (z * width) + width);
 			}
@@ -828,7 +828,7 @@ void SkinnedMesh::LoadSkinnedMesh(const ComPtr<ID3D12Device>& device, const ComP
 		else if (strToken == "<BoneNames>:") {
 			in.read((char*)(&boneNameNum), sizeof(INT));
 
-			m_skinningBoneFrames.resize(boneNameNum);	// ¿ÀºêÁ§Æ® º¤ÅÍ´Â »çÀÌÁî¸¸ ´Ã¸®°í ´çÀåÀº Á¤ÀÇ X
+			m_skinningBoneFrames.resize(boneNameNum);	// ì˜¤ë¸Œì íŠ¸ ë²¡í„°ëŠ” ì‚¬ì´ì¦ˆë§Œ ëŠ˜ë¦¬ê³  ë‹¹ì¥ì€ ì •ì˜ X
 			m_skinningBoneNames.resize(boneNameNum);
 
 			for (int i = 0; i < boneNameNum; ++i) {
@@ -846,8 +846,8 @@ void SkinnedMesh::LoadSkinnedMesh(const ComPtr<ID3D12Device>& device, const ComP
 				for (int i = 0; i < boneOffsetNum; ++i)
 					in.read((char*)(&m_bindPoseBoneOffsets[i]), sizeof(XMFLOAT4X4));
 
-				//¹ÙÀÎµåÆ÷Áî ¿ÀÇÁ¼Â ¹öÆÛ Á¤ÀÇ
-				UINT elementBytes = (((sizeof(XMFLOAT4X4) * SKINNED_BONES) + 255) & ~255);	// XMFLOAT4X4 °¡ ÃÖ´ë »ÀÀÇ °¹¼ö¸¸Å­ ÀÖ´Â°ÍÀ» °¡Á¤ÇÏ¿´À» ¶§ÀÇ 256ÀÇ ¹è¼ö ±¸ÇÏ±â
+				//ë°”ì¸ë“œí¬ì¦ˆ ì˜¤í”„ì…‹ ë²„í¼ ì •ì˜
+				UINT elementBytes = (((sizeof(XMFLOAT4X4) * SKINNED_BONES) + 255) & ~255);	// XMFLOAT4X4 ê°€ ìµœëŒ€ ë¼ˆì˜ ê°¯ìˆ˜ë§Œí¼ ìˆëŠ”ê²ƒì„ ê°€ì •í•˜ì˜€ì„ ë•Œì˜ 256ì˜ ë°°ìˆ˜ êµ¬í•˜ê¸°
 				m_bindPoseBoneOffsetBuffers = CreateBufferResource(device, commandList, nullptr, elementBytes, D3D12_HEAP_TYPE_UPLOAD,
 					D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, ComPtr<ID3D12Resource>());
 				m_bindPoseBoneOffsetBuffers->Map(0, nullptr, (void**)&m_mappedBindPoseBoneOffsets);
@@ -1030,4 +1030,21 @@ void SkinnedMesh::LoadSkinnedMesh(const ComPtr<ID3D12Device>& device, const ComP
 		m_indexBufferView.Format = DXGI_FORMAT_R32_UINT;
 		m_indexBufferView.SizeInBytes = indexBufferSize;
 	}
+}
+
+BillboardMesh::BillboardMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, XMFLOAT3 position, XMFLOAT2 size)
+{
+	m_nIndices = 0;
+	m_primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_POINTLIST;
+
+	TextureVertex vertex{ position, size };
+
+	m_nVertices = 1;
+	m_vertexBuffer = CreateBufferResource(device, commandList, &vertex,
+		sizeof(TextureVertex), D3D12_HEAP_TYPE_DEFAULT,
+		D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, m_vertexUploadBuffer);
+
+	m_vertexBufferView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
+	m_vertexBufferView.SizeInBytes = sizeof(TextureVertex);
+	m_vertexBufferView.StrideInBytes = sizeof(TextureVertex);
 }

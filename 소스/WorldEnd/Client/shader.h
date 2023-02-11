@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "stdafx.h"
 #include "object.h"
 #include "player.h"
@@ -23,6 +23,8 @@ public:
 
 	void SetPlayer(const shared_ptr<Player>& player);
 	void SetCamera(const shared_ptr<Camera>& camera);
+	void SetObject(const shared_ptr<GameObject>& object);
+	void SetMultiPlayer(INT ID, const shared_ptr<Player>& player);
 
 protected:
 	ComPtr<ID3D12PipelineState>			m_pipelineState;
@@ -32,6 +34,8 @@ protected:
 
 	shared_ptr<Player>					m_player;
 	shared_ptr<Camera>					m_camera;
+
+	unordered_map<INT, shared_ptr<Player>>	m_multiPlayers;
 };
 
 class DetailShader : public Shader
@@ -99,6 +103,13 @@ class BlendingShader : public Shader
 public:
 	BlendingShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature);
 	~BlendingShader() = default;
+};
+
+class HpBarShader : public Shader
+{
+public:
+	HpBarShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature);
+	~HpBarShader() = default;
 };
 
 class SkinnedAnimationShader : public Shader

@@ -1,32 +1,7 @@
-#include "towerScene.h"
+Ôªø#include "towerScene.h"
 
-TowerScene::TowerScene() : m_left_other_player_id{-1}, m_right_other_player_id{-1}
+TowerScene::TowerScene()
 {
-#ifdef USE_NETWORK
-
-	wcout.imbue(locale("korean"));
-	WSADATA wsa;
-	if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) {
-		cout << "WSA START ERROR" << endl;
-	}
-
-	// socket ª˝º∫
-	g_socket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, 0, 0, WSA_FLAG_OVERLAPPED);
-	if (g_socket == INVALID_SOCKET) {
-		cout << "SOCKET INIT ERROR!" << endl;
-	}
-
-	// connect
-	SOCKADDR_IN server_address{};
-	ZeroMemory(&server_address, sizeof(server_address));
-	server_address.sin_family = AF_INET;
-	server_address.sin_port = htons(SERVER_PORT);
-	inet_pton(AF_INET, g_serverIP.c_str(), &(server_address.sin_addr.s_addr));
-
-	connect(g_socket, reinterpret_cast<SOCKADDR*>(&server_address), sizeof(server_address));
-
-	g_networkThread = thread{ &TowerScene::RecvPacket, this };
-#endif
 }
 
 TowerScene::~TowerScene()
@@ -53,116 +28,24 @@ void TowerScene::OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FL
 
 	int dx = nextPosition.x - prevPosition.x;
 	int dy = nextPosition.y - prevPosition.y;
-	m_player->Rotate(dy * 5.0f * deltaTime, dx * 5.0f * deltaTime, 0.0f);
+
+	if (m_camera) m_camera->Rotate(0.f, dy * 5.0f * deltaTime, dx * 5.0f * deltaTime);
 	SetCursorPos(prevPosition.x, prevPosition.y);
 }
 
 void TowerScene::OnProcessingKeyboardMessage(FLOAT timeElapsed) const
 {
-#ifdef USE_NETWORK
-	char packet_direction = 0;
-
-	if (GetAsyncKeyState('W') & 0x8000)
-	{
-		m_player->AddVelocity(Vector3::Mul(m_player->GetFront(), timeElapsed * 10.0f));
-		CS_PLAYER_MOVE_PACKET move_packet;
-		move_packet.size = sizeof(move_packet);
-		move_packet.type = CS_PACKET_PLAYER_MOVE;
-		move_packet.pos = m_player->GetPosition();
-		move_packet.velocity = m_player->GetVelocity();
-		//move_packet.yaw = m_yaw;
-		send(g_socket, reinterpret_cast<char*>(&move_packet), sizeof(move_packet), 0);
-		cout << " x: " << m_player->GetPosition().x << " y: " << m_player->GetPosition().y <<  
-			" z: " << m_player->GetPosition().z << endl;
-	}
-	if (GetAsyncKeyState('A') & 0x8000)
-	{
-		m_player->AddVelocity(Vector3::Mul(m_player->GetRight(), timeElapsed * -10.0f));
-		CS_PLAYER_MOVE_PACKET move_packet;
-		move_packet.size = sizeof(move_packet);
-		move_packet.type = CS_PACKET_PLAYER_MOVE;
-		move_packet.pos = m_player->GetPosition();
-		move_packet.velocity = m_player->GetVelocity();
-		//move_packet.yaw = m_yaw;
-		send(g_socket, reinterpret_cast<char*>(&move_packet), sizeof(move_packet), 0);
-		cout << " x: " << m_player->GetPosition().x << " y: " << m_player->GetPosition().y <<
-			" z: " << m_player->GetPosition().z << endl;
-	}
-	if (GetAsyncKeyState('S') & 0x8000)
-	{
-		m_player->AddVelocity(Vector3::Mul(m_player->GetFront(), timeElapsed * -10.0f));
-		CS_PLAYER_MOVE_PACKET move_packet;
-		move_packet.size = sizeof(move_packet);
-		move_packet.type = CS_PACKET_PLAYER_MOVE;
-		move_packet.pos = m_player->GetPosition();
-		move_packet.velocity = m_player->GetVelocity();
-		//move_packet.yaw = m_yaw;
-		send(g_socket, reinterpret_cast<char*>(&move_packet), sizeof(move_packet), 0);
-		cout << " x: " << m_player->GetPosition().x << " y: " << m_player->GetPosition().y <<
-			" z: " << m_player->GetPosition().z << endl;
-	}
-	if (GetAsyncKeyState('D') & 0x8000)
-	{
-	    m_player->AddVelocity(Vector3::Mul(m_player->GetRight(), timeElapsed * 10.0f));
-		CS_PLAYER_MOVE_PACKET move_packet;
-		move_packet.size = sizeof(move_packet);
-		move_packet.type = CS_PACKET_PLAYER_MOVE;
-		move_packet.pos = m_player->GetPosition();
-		move_packet.velocity = m_player->GetVelocity();
-		//move_packet.yaw = m_yaw;
-		send(g_socket, reinterpret_cast<char*>(&move_packet), sizeof(move_packet), 0);
-		cout << " x: " << m_player->GetPosition().x << " y: " << m_player->GetPosition().y <<
-			" z: " << m_player->GetPosition().z << endl;
-	}
-	if (GetAsyncKeyState(VK_SPACE) & 0x8000)
-	{
-		m_player->AddVelocity(Vector3::Mul(m_player->GetUp(), timeElapsed * 10.0f));
-	}
-	if (GetAsyncKeyState(VK_SHIFT) & 0x8000)
-	{
-		m_player->AddVelocity(Vector3::Mul(m_player->GetUp(), timeElapsed * -10.0f));
-	}
-
-
-#endif // USE_NETWORK
-
-	
-#ifndef USE_NETWORK
-	if (GetAsyncKeyState('W') & 0x8000)
-	{
-		m_player->AddVelocity(Vector3::Mul(m_player->GetFront(), timeElapsed * 10.0f));
-	}
-	if (GetAsyncKeyState('A') & 0x8000)
-	{
-		m_player->AddVelocity(Vector3::Mul(m_player->GetRight(), timeElapsed * -10.0f));
-	}
-	if (GetAsyncKeyState('S') & 0x8000)
-	{
-		m_player->AddVelocity(Vector3::Mul(m_player->GetFront(), timeElapsed * -10.0f));
-	}
-	if (GetAsyncKeyState('D') & 0x8000)
-	{
-		m_player->AddVelocity(Vector3::Mul(m_player->GetRight(), timeElapsed * 10.0f));
-	}
-	if (GetAsyncKeyState(VK_SPACE) & 0x8000)
-	{
-		m_player->AddVelocity(Vector3::Mul(m_player->GetUp(), timeElapsed * 10.0f));
-	}
-	if (GetAsyncKeyState(VK_SHIFT) & 0x8000)
-	{
-		m_player->AddVelocity(Vector3::Mul(m_player->GetUp(), timeElapsed * -10.0f));
-	}
-#endif // USE_NETWORK
-
+	m_player->OnProcessingKeyboardMessage(timeElapsed);
 }
 
 void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, const ComPtr<ID3D12RootSignature>& rootsignature, FLOAT aspectRatio)
 {
-	// «√∑π¿ÃæÓ ª˝º∫
-	LoadObjectFromFile(device, commandlist, TEXT("./Resource/Model/Warrior.bin"));
+	// ÌîåÎ†àÏù¥Ïñ¥ ÏÉùÏÑ±
+	m_player = make_shared<Player>();
+	LoadObjectFromFile(TEXT("./Resource/Model/Undead_Warrior.bin"), m_player);
 
 	m_player->CreateAnimationController(device, commandlist, 2);
-	m_player->SetAnimationSet(m_animations["WarriorAnimation"]);
+	m_player->SetAnimationSet(m_animations["Undead_WarriorAnimation"]);
 	m_player->SetAnimationOnTrack(0, 0);
 	m_player->SetAnimationOnTrack(1, 1);
 	m_player->GetAnimationController()->SetTrackEnable(1, false);
@@ -170,12 +53,16 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	m_player->SetPosition(XMFLOAT3{ 0.f, 0.f, 0.f });
 	m_shaders["PLAYER"]->SetPlayer(m_player);
 
-	// ƒ´∏ﬁ∂Û ª˝º∫
+	// Ï≤¥Î†• Î∞î ÏÉùÏÑ±
+	auto hpBar = make_shared<HpBar>();
+	hpBar->SetMesh(m_meshs["HPBAR"]);
+	hpBar->SetTexture(m_textures["HPBAR"]);
+	m_shaders["HPBAR"]->SetObject(hpBar);
+	m_player->SetHpBar(hpBar);
+
+	// Ïπ¥Î©îÎùº ÏÉùÏÑ±
 	m_camera = make_shared<ThirdPersonCamera>();
 	m_camera->CreateShaderVariable(device, commandlist);
-	m_camera->SetEye(XMFLOAT3{ 0.0f, 0.0f, 0.0f });
-	m_camera->SetAt(XMFLOAT3{ 0.0f, 0.0f, 1.0f });
-	m_camera->SetUp(XMFLOAT3{ 0.0f, 1.0f, 0.0f });
 	m_camera->SetPlayer(m_player);
 	m_player->SetCamera(m_camera);
 
@@ -183,26 +70,28 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	XMStoreFloat4x4(&projMatrix, XMMatrixPerspectiveFovLH(0.25f * XM_PI, aspectRatio, 0.1f, 1000.0f));
 	m_camera->SetProjMatrix(projMatrix);
 
-	// ¡ˆ«¸ ª˝º∫
+	// ÏßÄÌòï ÏÉùÏÑ±
 	auto field{ make_shared<Field>(device, commandlist, 51, 51, 0, 51, 51, 0, XMFLOAT3{ 1.f, 1.f, 1.f }) };
 	field->SetPosition(XMFLOAT3{ -25.0f, 0.f, -25.0f });
 	field->SetTexture(m_textures["FIELD"]);
 	static_pointer_cast<DetailShader>(m_shaders["FIELD"])->SetField(field);
 
-	// ∆ÊΩ∫ ª˝º∫
+	// ÌéúÏä§ ÏÉùÏÑ±
 	auto fence{ make_shared<Fence>(device, commandlist, 50, 50, 2, 2) };
 	fence->SetTexture(m_textures["FENCE"]);
 	m_shaders["FENCE"]->GetGameObjects().push_back(fence);
 
-	// Ω∫ƒ´¿Ãπ⁄Ω∫ ª˝º∫
+	// Ïä§Ïπ¥Ïù¥ Î∞ïÏä§ ÏÉùÏÑ±
 	auto skybox{ make_shared<Skybox>(device, commandlist, 20.0f, 20.0f, 20.0f) };
 	skybox->SetTexture(m_textures["SKYBOX"]);
 	m_shaders["SKYBOX"]->GetGameObjects().push_back(skybox);
 
-	// ø¿∫Í¡ß∆Æ º≥¡§	
+	// Ïò§Î∏åÏ†ùÌä∏ ÏÑ§Ï†ï	
 	m_object.push_back(skybox);
 	m_object.push_back(field);
 	m_object.push_back(fence);
+
+	InitServer();
 }
 
 void TowerScene::Update(FLOAT timeElapsed)
@@ -224,7 +113,7 @@ void TowerScene::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) co
 	m_shaders.at("FENCE")->Render(commandList);
 }
 
-void TowerScene::LoadObjectFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, wstring fileName)
+void TowerScene::LoadObjectFromFile(wstring fileName, shared_ptr<GameObject> object)
 {
 	ifstream in{ fileName, std::ios::binary };
 	if (!in) return;
@@ -237,9 +126,7 @@ void TowerScene::LoadObjectFromFile(const ComPtr<ID3D12Device>& device, const Co
 		in.read(&strToken[0], sizeof(char) * strLength);
 
 		if (strToken == "<Hierarchy>:") {
-			auto object = make_shared<Player>();
-			object->LoadObject(device, commandList, in);
-			m_player = object;
+			object->LoadObject(in);
 		}
 		else if (strToken == "</Hierarchy>") {
 			break;
@@ -264,6 +151,44 @@ void TowerScene::CheckBorderLimit()
 	}
 }
 
+void TowerScene::InitServer()
+{
+#ifdef USE_NETWORK
+
+	wcout.imbue(locale("korean"));
+	WSADATA wsa;
+	if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) {
+		cout << "WSA START ERROR" << endl;
+	}
+
+	// socket ÏÉùÏÑ±
+	g_socket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, 0, 0, WSA_FLAG_OVERLAPPED);
+	if (g_socket == INVALID_SOCKET) {
+		cout << "SOCKET INIT ERROR!" << endl;
+	}
+
+	// connectwadw
+	SOCKADDR_IN server_address{};
+	ZeroMemory(&server_address, sizeof(server_address));
+	server_address.sin_family = AF_INET;
+	server_address.sin_port = htons(SERVER_PORT);
+	inet_pton(AF_INET, g_serverIP.c_str(), &(server_address.sin_addr.s_addr));
+
+	connect(g_socket, reinterpret_cast<SOCKADDR*>(&server_address), sizeof(server_address));
+
+	constexpr char name[10] = "HSC\0";
+	CS_LOGIN_PACKET login_packet{};
+	login_packet.size = sizeof(login_packet);
+	login_packet.type = CS_PACKET_LOGIN;
+	memcpy(login_packet.name, name, sizeof(char) * 10);
+	send(g_socket, reinterpret_cast<char*>(&login_packet), sizeof(login_packet), NULL);
+
+	g_networkThread = thread{ &TowerScene::RecvPacket, this };
+	g_networkThread.detach();
+
+#endif
+}
+
 void TowerScene::SendPlayerData()
 {
 #ifdef USE_NETWORK
@@ -279,106 +204,128 @@ void TowerScene::SendPlayerData()
 
 void TowerScene::RecvPacket()
 {
-	constexpr char name[10] = "HSC\0";
-	CS_LOGIN_PACKET login_packet{};
-	login_packet.size = sizeof(login_packet);
-	login_packet.type = CS_PACKET_LOGIN;
-	memcpy(login_packet.name, name, sizeof(char) * 10);
-	send(g_socket, reinterpret_cast<char*>(&login_packet), sizeof(login_packet), NULL);
-	cout << login_packet.name << endl;
-	//while (!m_isReadyToPlay && !m_isLogout)
-	ProcessPacket();
+	while (true) {
+
+		char buf[BUF_SIZE] = { 0 };
+		WSABUF wsabuf{ BUF_SIZE, buf };
+		DWORD recv_byte{ 0 }, recv_flag{ 0 };
+
+		if (WSARecv(g_socket, &wsabuf, 1, &recv_byte, &recv_flag, nullptr, nullptr) == SOCKET_ERROR)
+			ErrorDisplay("RecvSizeType");
+
+		if (recv_byte > 0)
+			PacketReassembly(wsabuf.buf, recv_byte);
+
+	}
 
 }
 
-void TowerScene::ProcessPacket()
+void TowerScene::ProcessPacket(char* ptr)
 {
-	char buf[2]{};
-	WSABUF wsabuf{ sizeof(buf), buf };
-	DWORD recv_byte{ 0 }, recv_flag{ 0 };
-	if (WSARecv(g_socket, &wsabuf, 1, &recv_byte, &recv_flag, nullptr, nullptr) == SOCKET_ERROR)
-		ErrorDisplay("RecvSizeType");
+	cout << "[Process Packet] Packet Type: " << (int)ptr[1] << endl;//test
 
-	UCHAR size{ static_cast<UCHAR>(buf[0]) };
-	UCHAR type{ static_cast<UCHAR>(buf[1]) };
-
-	switch (type)
+	switch (ptr[1])
 	{
 	case SC_PACKET_LOGIN_OK:
-		RecvLoginOkPacket();
+		RecvLoginOkPacket(ptr);
+		break;
+	case SC_PACKET_ADD_PLAYER:
+		RecvAddPlayerPacket(ptr);
 		break;
 	case SC_PACKET_UPDATE_CLIENT:
-		RecvUpdateClient();
+		RecvUpdateClient(ptr);
 		break;
+	}
+}
+
+void TowerScene::PacketReassembly(char* net_buf, size_t io_byte)
+{
+	char* ptr = net_buf;
+	static size_t make_packet_size = 0;
+	static size_t saved_packet_size = 0;
+	static char packet_buffer[BUF_SIZE];
+
+	while (io_byte != 0) {
+		if (make_packet_size == 0)
+			make_packet_size = ptr[0];
+		if (io_byte + saved_packet_size >= make_packet_size) {
+			memcpy(packet_buffer + saved_packet_size, ptr, make_packet_size - saved_packet_size);
+			ProcessPacket(packet_buffer);
+			ZeroMemory(packet_buffer, BUF_SIZE);
+			ptr += make_packet_size - saved_packet_size;
+			io_byte -= make_packet_size - saved_packet_size;
+			cout << "io byte - " << io_byte << endl;
+			make_packet_size = 0;
+			saved_packet_size = 0;
+		}
+		else {
+			memcpy(packet_buffer + saved_packet_size, ptr, io_byte);
+			saved_packet_size += io_byte;
+			io_byte = 0;
+		}
 	}
 
 }
 
-void TowerScene::RecvLoginOkPacket()
+void TowerScene::RecvLoginOkPacket(char* ptr)
 {
+	SC_LOGIN_OK_PACKET* login_packet = reinterpret_cast<SC_LOGIN_OK_PACKET*>(ptr);
+	m_player->SetID(login_packet->player_data.id);
+}
 
-	// «√∑π¿ÃæÓ¡§∫∏ + ¥–≥◊¿” 
-	char buf[sizeof(PlayerData) + NAME_SIZE]{};
-	WSABUF wsabuf{ sizeof(buf), buf };
-	DWORD recv_byte{}, recv_flag{};
-	WSARecv(g_socket, &wsabuf, 1, &recv_byte, &recv_flag, nullptr, nullptr);
+void TowerScene::RecvAddPlayerPacket(char* ptr)
+{
+	SC_ADD_PLAYER_PACKET* add_pl_packet = reinterpret_cast<SC_ADD_PLAYER_PACKET*>(ptr);
 
-	if (!m_player) return;
-	cout << "≥—æÓ ø‘≥™" << endl;
-	PlayerData pl_data{};
-	char name[NAME_SIZE]{};
-	memcpy(&pl_data, buf, sizeof(pl_data));
-	memcpy(&name, &buf[sizeof(PlayerData)], sizeof(name));
+	PlayerData playerData{};
 
-	// ¥Ÿ∏• «√∑π¿ÃæÓ∞° µÈæÓø¿∏È ø∑ø° ¿ßƒ°Ω√≈∞∞‘
-	for (auto& p : m_multiPlayers)
-	{
-		if (p) continue;
-		//p = make_shared<Player>(TRUE);
-		p->SetId(static_cast<int>(pl_data.id));
+	playerData.hp = add_pl_packet->player_data.hp;
+	playerData.id = add_pl_packet->player_data.id;
+	playerData.pos = add_pl_packet->player_data.pos;
 
-		if (m_left_other_player_id == -1)
-		{
-			m_left_other_player_id = static_cast<int>(pl_data.id);
-			//p->LoadGeometry(device, commandlist, TEXT("./Resource/Model/Warrior.bin"));
-			m_shaders["PLAYER"]->SetPlayer(m_player);
-			p->Move(XMFLOAT3{ 3.0f, 0.0f, -3.0f });
-		}
-		else if (m_right_other_player_id == -1)
-		{
-			m_right_other_player_id = static_cast<int>(pl_data.id);
-			//p->LoadGeometry(device, commandlist, TEXT("./Resource/Model/Warrior.bin"));
-			m_shaders["PLAYER"]->SetPlayer(m_player);
-			p->Move(XMFLOAT3{ -3.0f, 0.0f, -3.0f });
-		}
-		break;
-	}
+	auto multiPlayer = make_shared<Player>();
+	LoadObjectFromFile(TEXT("./Resource/Model/Archer.bin"), multiPlayer);
+	multiPlayer->SetPosition(XMFLOAT3{ 0.f, 0.f, 0.f });
+	m_multiPlayers.insert({ playerData.id, multiPlayer });
+
+	auto hpBar = make_shared<HpBar>();
+	hpBar->SetMesh(m_meshs["HPBAR"]);
+	hpBar->SetTexture(m_textures["HPBAR"]);
+	m_shaders["HPBAR"]->SetObject(hpBar);
+	multiPlayer->SetHpBar(hpBar);
+
+	m_shaders["PLAYER"]->SetMultiPlayer(playerData.id, multiPlayer);
+	cout << "add player" << static_cast<int>(playerData.id) << endl;
 
 }
 
-void TowerScene::RecvUpdateClient()
+void TowerScene::RecvUpdateClient(char* ptr)
 {
-	char subBuf[sizeof(PlayerData) * MAX_USER]{};
-	WSABUF wsabuf{ sizeof(subBuf), subBuf };
-	DWORD recvByte{}, recvFlag{};
-	WSARecv(g_socket, &wsabuf, 1, &recvByte, &recvFlag, nullptr, nullptr);
+	SC_UPDATE_CLIENT_PACKET* update_packet = reinterpret_cast<SC_UPDATE_CLIENT_PACKET*>(ptr);
 
-	// ∏µÁ «√∑π¿ÃæÓ¿« µ•¿Ã≈Õ
-	array<PlayerData, MAX_USER> data;
-	memcpy(&data, subBuf, sizeof(PlayerData) * MAX_USER);
-
-	// ∏÷∆º«√∑π¿ÃæÓ æ˜µ•¿Ã∆Æ
 	unique_lock<mutex> lock{ g_mutex };
-	for (auto& p : m_multiPlayers)
-	{
-		if (!p) continue;
-		for (auto& d : data)
-		{
-			if (!d.active_check) continue;
-			if (p->GetId() != d.id) continue;
+	for (int i = 0; i < MAX_USER; ++i) {
+		if (update_packet->data[i].id == -1) {
+			continue;
+		}
+		if (update_packet->data[i].id == m_player->GetID()) {
+			//m_player->SetPosition(update_packet->data[i].pos);
+			continue;
+		}
+		if (update_packet->data[i].active_check) {
+			// towerSceneÏùò multiPlayerÎ•º ÏóÖÎç∞Ïù¥Ìä∏ Ìï¥ÎèÑ shaderÏùò multiPlayerÎèÑ ÏóÖÎç∞Ïù¥Ìä∏ Îê®.
+			XMFLOAT3 playerPosition = update_packet->data[i].pos;
+			m_multiPlayers[update_packet->data[i].id]->SetPosition(playerPosition);
+			playerPosition.y += 1.8f;
+			m_multiPlayers[update_packet->data[i].id]->SetHpBarPosition(playerPosition);
+			m_multiPlayers[update_packet->data[i].id]->SetVelocity(update_packet->data[i].velocity);
+			m_multiPlayers[update_packet->data[i].id]->Rotate(0.f, 0.f, update_packet->data[i].yaw - m_multiPlayers[update_packet->data[i].id]->GetYaw());
+			m_multiPlayers[update_packet->data[i].id]->SetHp(update_packet->data[i].hp);
 		}
 	}
+
 }
+
 
 
 
