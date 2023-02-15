@@ -84,6 +84,22 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 	{
 
 	}
+
+	if (GetAsyncKeyState('E') & 0x8000) {
+		// idle, walk 애니메이션 끄기, attack 애니메이션 켜기
+		m_animationController->SetTrackEnable(0, false);
+		m_animationController->SetTrackEnable(1, false);
+		m_animationController->SetTrackEnable(2, true);
+
+		/*char packet_direction{};
+		packet_direction += INPUT_KEY_E;
+		CS_ATTACK_PACKET attack_packet;
+		attack_packet.size = sizeof(attack_packet);
+		attack_packet.type = CS_PACKET_PLAYER_ATTACK;
+		attack_packet.key = packet_direction;
+
+		send(g_socket, reinterpret_cast<char*>(&attack_packet), sizeof(attack_packet), 0);*/
+	}
 }
 
 void Player::Update(FLOAT timeElapsed)
@@ -92,7 +108,7 @@ void Player::Update(FLOAT timeElapsed)
 
 	if (m_animationController) {
 		float length = fabs(m_velocity.x) + fabs(m_velocity.z);
-		if (length <= FLT_EPSILON) {
+		if (length <= numeric_limits<float>::epsilon()) {
 			m_animationController->SetTrackEnable(0, true);
 			m_animationController->SetTrackEnable(1, false);
 			m_animationController->SetTrackPosition(1, 0.0f);
@@ -141,4 +157,12 @@ void Player::AddVelocity(const XMFLOAT3& increase)
 		FLOAT ratio{ m_maxVelocity / length };
 		m_velocity = Vector3::Mul(m_velocity, ratio);
 	}
+}
+
+// -------------콜백 함수 -----------
+void AttackCallbackHandler::Callback(void* callbackData, float trackPosition)
+{
+	Player* p = static_cast<Player*>(callbackData);
+	p->GetAnimationController()->SetTrackEnable(0, true);
+	p->GetAnimationController()->SetTrackEnable(2, false);
 }

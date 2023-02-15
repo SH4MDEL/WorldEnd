@@ -188,9 +188,9 @@ class AnimationCallbackHandler
 {
 public:
 	AnimationCallbackHandler() {}
-	~AnimationCallbackHandler() {}
+	virtual ~AnimationCallbackHandler() {}
 
-	void Callback(void* callbackData, float trackPosition);
+	virtual void Callback(void* callbackData, float trackPosition);
 };
 
 class Animation		// 애니메이션 행동 정의
@@ -249,6 +249,7 @@ public:
 	void SetSpeed(float speed) { m_speed = speed; }
 	void SetPosition(float position) { m_position = position; }
 	void SetWeight(float weight) { m_weight = weight; }
+	void SetAnimationType(int type) { m_type = type; }
 
 	void SetCallbackKeys(int callbackKeys);
 	void SetCallbackKey(int keyIndex, float time, void* data);

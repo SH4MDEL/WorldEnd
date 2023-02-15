@@ -852,8 +852,10 @@ void SkinnedMesh::LoadSkinnedMesh(const ComPtr<ID3D12Device>& device, const ComP
 					D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, ComPtr<ID3D12Resource>());
 				m_bindPoseBoneOffsetBuffers->Map(0, nullptr, (void**)&m_mappedBindPoseBoneOffsets);
 
-				for(int i = 0; i < boneOffsetNum; ++i)
+				for (int i = 0; i < boneOffsetNum; ++i) {
 					XMStoreFloat4x4(&m_mappedBindPoseBoneOffsets[i], XMMatrixTranspose(XMLoadFloat4x4(&m_bindPoseBoneOffsets[i])));
+				}
+				
 			}
 		}
 		else if (strToken == "<BoneIndices>:") {

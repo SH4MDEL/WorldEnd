@@ -48,3 +48,12 @@ private:
 
 	INT					m_id;				// 플레이어 고유 아이디
 };
+
+class AttackCallbackHandler : public AnimationCallbackHandler
+{
+public:
+	AttackCallbackHandler() = default;
+	~AttackCallbackHandler() = default;
+
+	virtual void Callback(void* callbackData, float trackPosition);
+};

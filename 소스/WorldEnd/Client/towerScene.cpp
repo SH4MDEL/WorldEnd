@@ -42,13 +42,22 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 {
 	// 플레이어 생성
 	m_player = make_shared<Player>();
-	LoadObjectFromFile(TEXT("./Resource/Model/Undead_Warrior.bin"), m_player);
+	LoadObjectFromFile(TEXT("./Resource/Model/Archer.bin"), m_player);
 
-	m_player->CreateAnimationController(device, commandlist, 2);
-	m_player->SetAnimationSet(m_animations["Undead_WarriorAnimation"]);
+	m_player->CreateAnimationController(device, commandlist, 3);
+	m_player->SetAnimationSet(m_animations["ArcherAnimation"]);
 	m_player->SetAnimationOnTrack(0, 0);
 	m_player->SetAnimationOnTrack(1, 1);
+	m_player->SetAnimationOnTrack(2, 2);
 	m_player->GetAnimationController()->SetTrackEnable(1, false);
+	m_player->GetAnimationController()->SetTrackEnable(2, false);
+
+	m_player->GetAnimationController()->SetCallbackKeys(2, 1);
+	m_player->GetAnimationController()->SetCallbackKey(2, 0, 0.f, m_player.get());
+
+	auto callbackHandler = make_shared<AttackCallbackHandler>();
+	m_player->GetAnimationController()->SetAnimationCallbackHandler(2, callbackHandler);
+
 
 	m_player->SetPosition(XMFLOAT3{ 0.f, 0.f, 0.f });
 	m_shaders["PLAYER"]->SetPlayer(m_player);

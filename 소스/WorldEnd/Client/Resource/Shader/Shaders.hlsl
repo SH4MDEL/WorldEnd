@@ -23,6 +23,7 @@ cbuffer cbCamera : register(b1)
 };
 
 #define MAX_BONES					256
+#define EPSILON						1.192092896e-07F
 
 // bone
 cbuffer cbBoneOffsets : register(b2)
@@ -198,10 +199,10 @@ VS_TEXTUREHIERARCHY_OUTPUT VS_SKINNED_ANIMATION_MAIN(VS_SKINNED_STANDARD_INPUT i
 	VS_TEXTUREHIERARCHY_OUTPUT output;
 
 	// 스킨 메쉬
-	if (input.weights[0]) {
+	if (input.weights[0] > 0) {
 		// 정점이 영향을 받는 뼈마다 오프셋 * 애니메이션 변환행렬을 전부 더합
 		float4x4 mat = (float4x4)0.0f;
-		for (int i = 0; i < 4; ++i) {
+		for (int i = 0; i < 2; ++i) {
 			mat += input.weights[i] * mul(boneOffsets[input.indices[i]], boneTransforms[input.indices[i]]);
 		}
 

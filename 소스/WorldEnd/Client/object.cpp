@@ -55,12 +55,10 @@ void GameObject::Move(const XMFLOAT3& shift)
 
 void GameObject::Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw)
 {
-	// 회전
-	XMMATRIX rotate{ XMMatrixRotationRollPitchYaw(XMConvertToRadians(roll), XMConvertToRadians(pitch), XMConvertToRadians(yaw)) };
+	XMMATRIX rotate{ XMMatrixRotationRollPitchYaw(XMConvertToRadians(pitch), XMConvertToRadians(yaw), XMConvertToRadians(roll)) };
 	XMMATRIX transformMatrix{ rotate * XMLoadFloat4x4(&m_transformMatrix) };
 	XMStoreFloat4x4(&m_transformMatrix, transformMatrix);
 
-	// 로컬 x,y,z축 최신화
 	XMStoreFloat3(&m_right, XMVector3TransformNormal(XMLoadFloat3(&m_right), rotate));
 	XMStoreFloat3(&m_up, XMVector3TransformNormal(XMLoadFloat3(&m_up), rotate));
 	XMStoreFloat3(&m_front, XMVector3TransformNormal(XMLoadFloat3(&m_front), rotate));
@@ -545,7 +543,7 @@ float AnimationTrack::UpdatePosition(float trackPosition, float elapsedTime, flo
 	}
 	else if (ANIMATION_TYPE_ONCE == m_type) {
 		m_position = trackPosition + trackElapsedTime;
-		if (m_position > animationLength)
+		if (m_position > animationLength) 
 			m_position = animationLength;
 	}
 
@@ -690,10 +688,13 @@ void AnimationController::SetAnimationCallbackHandler(int animationTrack, const 
 void AnimationController::AdvanceTime(float timeElapsed, GameObject* rootGameObject)
 {
 	m_time += timeElapsed;
-	XMFLOAT3 pos = rootGameObject->GetPosition();
+	//XMFLOAT3 pos = rootGameObject->GetPosition();
+	XMFLOAT4X4 mat = rootGameObject->GetTransformMatrix();
+
 	if (!m_animationTracks.empty()) {
 		auto& boneFrameCaches = m_animationSet->GetBoneFramesCaches();
 
+		// 애니메이션 적용을 위해 일단 비워둠
 		for (size_t i = 0; auto & boneFrame : boneFrameCaches) {
 			boneFrame->SetTransformMatrix(Matrix::Zero());
 		}
@@ -718,15 +719,46 @@ void AnimationController::AdvanceTime(float timeElapsed, GameObject* rootGameObj
 					XMFLOAT4X4 animationTransform = animation->GetSRT(j, position);
 
 					transform = Matrix::Add(transform, Matrix::Scale(animationTransform, track.GetWeight()));
-
+					 
 					boneFrameCaches[j]->SetTransformMatrix(transform);
 				}
 
-
+				track.AnimationCallback();
 			}
 		}
 
+		// 기존 변환을 적용
+		XMFLOAT4X4 result = rootGameObject->GetTransformMatrix();
+		result = Matrix::Mul(result, mat);
+		rootGameObject->SetTransformMatrix(result);
+
 		rootGameObject->UpdateTransform(nullptr);
-		rootGameObject->Move(pos);
 	}
+
+
+	/*m_time += timeElapsed;
+
+
+	if (!m_animationTracks.empty()) {
+
+		for (auto& track : m_animationTracks) {
+			shared_ptr<Animation> animation = m_animationSet->GetAnimations()[track.GetAnimation()];
+			track.UpdatePosition(track.GetPosition(), timeElapsed, animation->GetLength());
+		}
+
+		for (size_t i = 0; i < m_animationSet->GetBoneFramesCaches().size(); ++i) {
+			XMFLOAT4X4 transform = Matrix::Zero();
+			for (int j = 0; j < m_animationTracks.size(); ++j) {
+				if (m_animationTracks[j].GetEnable()) {
+					shared_ptr<Animation> animation = m_animationSet->GetAnimations()[m_animationTracks[j].GetAnimation()];
+					XMFLOAT4X4 animationTransform = animation->GetSRT(i, m_animationTracks[j].GetPosition());
+					transform = Matrix::Add(transform, Matrix::Scale(animationTransform, m_animationTracks[j].GetWeight()));
+				}
+			}
+
+			m_animationSet->GetBoneFramesCaches()[i]->SetTransformMatrix(transform);
+		}
+
+		rootGameObject->UpdateTransform(nullptr);
+	}*/
 }
