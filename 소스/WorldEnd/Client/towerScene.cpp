@@ -1,9 +1,11 @@
 #include "towerScene.h"
 
-TowerScene::TowerScene()
-{
-
-}
+TowerScene::TowerScene() : 
+	m_NDCspace( 0.5f, 0.0f, 0.0f, 0.0f,
+				0.0f, -0.5f, 0.0f, 0.0f,
+				0.0f, 0.0f, 1.0f, 0.0f,
+				0.5f, 0.5f, 0.0f, 1.0f)
+{}
 
 TowerScene::~TowerScene()
 {
@@ -40,8 +42,55 @@ void TowerScene::OnProcessingKeyboardMessage(FLOAT timeElapsed) const
 	m_player->OnProcessingKeyboardMessage(timeElapsed);
 }
 
+void TowerScene::CreateShaderVariable(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList)
+{
+	DX::ThrowIfFailed(device->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Buffer(sizeof(SceneInfo)),
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&m_sceneBuffer)));
+
+	// 카메라 버퍼 포인터
+	m_sceneBuffer->Map(0, nullptr, reinterpret_cast<void**>(&m_sceneBufferPointer));
+}
+
+void TowerScene::UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& commandList)
+{
+	BoundingSphere sceneBounds{ XMFLOAT3{ 0.0f, 0.0f, 0.0f }, 10.f * sqrt(2.0f) };
+
+	// Only the first "main" light casts a shadow.
+	XMVECTOR lightDir = XMLoadFloat3(&m_lightSystem->m_lights[0].m_direction);
+	XMVECTOR lightPos{ -2.0f * sceneBounds.Radius * lightDir };
+	XMVECTOR targetPos = XMLoadFloat3(&sceneBounds.Center);
+	XMVECTOR lightUp = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+	m_lightView = XMMatrixLookAtLH(lightPos, targetPos, lightUp);
+
+	XMFLOAT3 sphereCenterLS;
+	XMStoreFloat3(&sphereCenterLS, XMVector3TransformCoord(targetPos, m_lightView));
+
+	float l = sphereCenterLS.x - sceneBounds.Radius;
+	float b = sphereCenterLS.y - sceneBounds.Radius;
+	float n = sphereCenterLS.z - sceneBounds.Radius;
+	float r = sphereCenterLS.x + sceneBounds.Radius;
+	float t = sphereCenterLS.y + sceneBounds.Radius;
+	float f = sphereCenterLS.z + sceneBounds.Radius;
+
+	m_lightProj = XMMatrixOrthographicOffCenterLH(l, r, b, t, n, f);
+
+	::memcpy(&m_sceneBufferPointer->lightView, &XMMatrixTranspose(m_lightView), sizeof(XMFLOAT4X4));
+	::memcpy(&m_sceneBufferPointer->lightProj, &XMMatrixTranspose(m_lightProj), sizeof(XMFLOAT4X4));
+	::memcpy(&m_sceneBufferPointer->NDCspace, &XMMatrixTranspose(m_NDCspace), sizeof(XMFLOAT4X4));
+
+	D3D12_GPU_VIRTUAL_ADDRESS virtualAddress = m_sceneBuffer->GetGPUVirtualAddress();
+	commandList->SetGraphicsRootConstantBufferView(4, virtualAddress);
+}
+
 void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, const ComPtr<ID3D12RootSignature>& rootsignature, FLOAT aspectRatio)
 {
+	CreateShaderVariable(device, commandlist);
+
 	// 플레이어 생성
 	m_player = make_shared<Player>();
 	LoadObjectFromFile(TEXT("./Resource/Model/Archer.bin"), m_player);
@@ -62,8 +111,11 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	m_player->SetCamera(m_camera);
 
 	XMFLOAT4X4 projMatrix;
-	XMStoreFloat4x4(&projMatrix, XMMatrixPerspectiveFovLH(0.25f * XM_PI, aspectRatio, 0.1f, 1000.0f));
+	XMStoreFloat4x4(&projMatrix, XMMatrixPerspectiveFovLH(0.25f * XM_PI, aspectRatio, 0.1f, 100.0f));
 	m_camera->SetProjMatrix(projMatrix);
+
+	// 그림자 맵 생성
+	m_shadow = make_unique<Shadow>(device, 4096, 4096);
 
 	// 씬 로드
 	LoadSceneFromFile(device, commandlist, TEXT("./Resource/Scene/TowerScene.bin"), TEXT("TowerScene"));
@@ -72,6 +124,11 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	auto skybox{ make_shared<Skybox>(device, commandlist, 20.0f, 20.0f, 20.0f) };
 	skybox->SetTexture(m_textures["SKYBOX"]);
 	m_shaders["SKYBOX"]->SetObject(skybox);
+
+	// 디버그 오브젝트 생성
+	auto debugObject{ make_shared<GameObject>() };
+	debugObject->SetMesh(m_meshs["DEBUG"]);
+	m_shaders["DEBUG"]->SetObject(debugObject);
 
 	// 오브젝트 설정	
 	m_object.push_back(skybox);
@@ -85,14 +142,14 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 void TowerScene::CreateLight(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist)
 {
 	m_lightSystem = make_shared<LightSystem>();
-	m_lightSystem->m_globalAmbient = XMFLOAT4{ 0.0f, 0.0f, 0.0f, 1.f };
+	m_lightSystem->m_globalAmbient = XMFLOAT4{ 0.1f, 0.1f, 0.1f, 1.f };
 	m_lightSystem->m_numLight = 3;
 
 	m_lightSystem->m_lights[0].m_type = DIRECTIONAL_LIGHT;
 	m_lightSystem->m_lights[0].m_ambient = XMFLOAT4{ 0.3f, 0.3f, 0.3f, 1.f };
 	m_lightSystem->m_lights[0].m_diffuse = XMFLOAT4{ 0.7f, 0.7f, 0.7f, 1.f };
 	m_lightSystem->m_lights[0].m_specular = XMFLOAT4{ 0.4f, 0.4f, 0.4f, 0.f };
-	m_lightSystem->m_lights[0].m_direction = XMFLOAT3{ -1.f, 0.f, 0.f };
+	m_lightSystem->m_lights[0].m_direction = XMFLOAT3{ 1.f, -1.f, 1.f };
 	m_lightSystem->m_lights[0].m_enable = true;
 
 	m_lightSystem->m_lights[1].m_type = POINT_LIGHT;
@@ -115,18 +172,18 @@ void TowerScene::CreateLight(const ComPtr<ID3D12Device>& device, const ComPtr<ID
 	m_lightSystem->m_lights[2].m_attenuation = XMFLOAT3(1.0f, 0.001f, 0.0001f);
 	m_lightSystem->m_lights[2].m_enable = true;
 
-	//m_lightSystem->m_lights[2].m_type = SPOT_LIGHT;
-	//m_lightSystem->m_lights[2].m_range = 100.0f;
-	//m_lightSystem->m_lights[2].m_ambient = XMFLOAT4(0.3f, 0.3f, 0.3f, 1.0f);
-	//m_lightSystem->m_lights[2].m_diffuse = XMFLOAT4(0.4f, 0.4f, 0.4f, 1.0f);
-	//m_lightSystem->m_lights[2].m_specular = XMFLOAT4(0.3f, 0.3f, 0.3f, 0.0f);
-	//m_lightSystem->m_lights[2].m_position = XMFLOAT3(0.f, 5.f, 0.f);
-	//m_lightSystem->m_lights[2].m_direction = XMFLOAT3(0.0f, 1.0f, 0.0f);
-	//m_lightSystem->m_lights[2].m_attenuation = XMFLOAT3(1.0f, 0.001f, 0.0001f);
-	//m_lightSystem->m_lights[2].m_falloff = 8.f;
-	//m_lightSystem->m_lights[2].m_phi = (float)cos(XMConvertToRadians(40.0f));
-	//m_lightSystem->m_lights[2].m_theta = (float)cos(XMConvertToRadians(20.0f));
-	//m_lightSystem->m_lights[2].m_enable = true;
+	//m_lightSystem->m_lights[3].m_type = SPOT_LIGHT;
+	//m_lightSystem->m_lights[3].m_range = 100.0f;
+	//m_lightSystem->m_lights[3].m_ambient = XMFLOAT4(0.3f, 0.3f, 0.3f, 1.0f);
+	//m_lightSystem->m_lights[3].m_diffuse = XMFLOAT4(0.4f, 0.4f, 0.4f, 1.0f);
+	//m_lightSystem->m_lights[3].m_specular = XMFLOAT4(0.3f, 0.3f, 0.3f, 0.0f);
+	//m_lightSystem->m_lights[3].m_position = XMFLOAT3(0.f, 5.f, 0.f);
+	//m_lightSystem->m_lights[3].m_direction = XMFLOAT3(0.0f, 1.0f, 0.0f);
+	//m_lightSystem->m_lights[3].m_attenuation = XMFLOAT3(1.0f, 0.001f, 0.0001f);
+	//m_lightSystem->m_lights[3].m_falloff = 8.f;
+	//m_lightSystem->m_lights[3].m_phi = (float)cos(XMConvertToRadians(40.0f));
+	//m_lightSystem->m_lights[3].m_theta = (float)cos(XMConvertToRadians(20.0f));
+	//m_lightSystem->m_lights[3].m_enable = true;
 
 	m_lightSystem->CreateShaderVariable(device, commandlist);
 }
@@ -137,7 +194,6 @@ void TowerScene::Update(FLOAT timeElapsed)
 	if (m_shaders["SKYBOX"]) for (auto& skybox : m_shaders["SKYBOX"]->GetObjects()) skybox->SetPosition(m_camera->GetEye());
 	for (const auto& shader : m_shaders)
 		shader.second->Update(timeElapsed);
-
 	CheckBorderLimit();
 }
 
@@ -148,6 +204,36 @@ void TowerScene::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) co
 	m_shaders.at("PLAYER")->Render(commandList);
 	m_shaders.at("SKYBOX")->Render(commandList);
 	m_shaders.at("HPBAR")->Render(commandList);
+	//m_shaders.at("DEBUG")->Render(commandList);
+}
+
+void TowerScene::RenderShadow(const ComPtr<ID3D12GraphicsCommandList>& commandList)
+{
+	ID3D12DescriptorHeap* ppHeaps[] = { m_shadow->GetSrvDiscriptorHeap().Get() };
+	commandList->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
+	commandList->SetGraphicsRootDescriptorTable(8, m_shadow->GetGpuSrv());
+
+	commandList->RSSetViewports(1, &m_shadow->GetViewport());
+	commandList->RSSetScissorRects(1, &m_shadow->GetScissorRect());
+
+	// DEPTH_WRITE로 바꾼다.
+	commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_shadow->GetShadowMap().Get(),
+		D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_DEPTH_WRITE));
+
+	// 후면 버퍼와 깊이 버퍼를 지운다.
+	commandList->ClearDepthStencilView(m_shadow->GetCpuDsv(),
+		D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.f, 0, 0, nullptr);
+
+	// 장면을 깊이 버퍼에만 렌더링할 것이므로 렌더 타겟은 nullptr로 설정한다.
+	// 이처럼 nullptr 렌더 타겟을 설정하면 색상 쓰기가 비활성화된다.
+	// 반드시 활성 PSO의 렌더 타겟 개수도 0으로 지정해야 함을 주의해야 한다.
+	commandList->OMSetRenderTargets(0, nullptr, false, &m_shadow->GetCpuDsv());
+
+	m_shaders.at("PLAYER")->Render(commandList, m_shaders.at("SHADOW"));
+
+	// 셰이더에서 텍스처를 읽을 수 있도록 다시 GENERIC_READ로 바꾼다.
+	commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_shadow->GetShadowMap().Get(),
+		D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_GENERIC_READ));
 }
 
 void TowerScene::LoadSceneFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, wstring fileName, wstring sceneName)
@@ -188,7 +274,7 @@ void TowerScene::LoadSceneFromFile(const ComPtr<ID3D12Device>& device, const Com
 	}
 }
 
-void TowerScene::LoadObjectFromFile(wstring fileName, shared_ptr<GameObject> object)
+void TowerScene::LoadObjectFromFile(wstring fileName, const shared_ptr<GameObject>& object)
 {
 	ifstream in{ fileName, std::ios::binary };
 	if (!in) return;
@@ -279,7 +365,6 @@ void TowerScene::SendPlayerData()
 
 void TowerScene::RecvPacket()
 {
-
 	while (true) {
 
 		char buf[BUF_SIZE] = {0};
@@ -293,7 +378,6 @@ void TowerScene::RecvPacket()
 			PacketReassembly(wsabuf.buf, recv_byte);
 
 	}
-
 }
 
 

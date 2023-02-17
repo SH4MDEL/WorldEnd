@@ -20,38 +20,47 @@ void LoadingScene::ReleaseUploadBuffer()
 	for (const auto& texture : m_textures) texture.second->ReleaseUploadBuffer();
 }
 
+void LoadingScene::CreateShaderVariable(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList) {}
+void LoadingScene::UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& commandList) {}
 void LoadingScene::OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime) const {}
 void LoadingScene::OnProcessingKeyboardMessage(FLOAT timeElapsed) const {}
 
 void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, const ComPtr<ID3D12RootSignature>& rootsignature, FLOAT aspectRatio)
 {
-	// 플레이어 생성
+	CreateShaderVariable(device, commandlist);
+
+	// 플레이어 로딩
 	auto playerShader{ make_shared<TextureHierarchyShader>(device, rootsignature) };
-
-	// 스카이박스 생성
-	auto skyboxShader{ make_shared<SkyboxShader>(device, rootsignature) };
-	auto skyboxTexture{ make_shared<Texture>() };
-	skyboxTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/SkyBox.dds"), 6);	// Skybox
-	skyboxTexture->CreateSrvDescriptorHeap(device);
-	skyboxTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURECUBE);
-
-	// 체력 바 설정
-	auto hpBarShader{ make_shared<HpBarShader>(device, rootsignature) };
-	auto hpBarMesh{ make_shared<BillboardMesh>(device, commandlist, XMFLOAT3{ 0.f, 0.f, 0.f }, XMFLOAT2{ 0.75f, 0.15f }) };
-	auto hpBarTexture{ make_shared<Texture>() };
-	hpBarTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/Full_HpBar.dds"), 4); // BaseTexture
-	hpBarTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/Empty_HpBar.dds"), 5); // SubTexture
-	hpBarTexture->CreateSrvDescriptorHeap(device);
-	hpBarTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
-
-	// 플레이어 메쉬 설정
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/WarriorMesh.bin"));
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/ArcherMesh.bin"));
 
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/WarriorTexture.bin"));
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/ArcherTexture.bin"));
 
-	// 타워 씬 메쉬 설정
+	// 체력 바 로딩
+	auto hpBarShader{ make_shared<HpBarShader>(device, rootsignature) };
+	auto hpBarMesh{ make_shared<BillboardMesh>(device, commandlist, XMFLOAT3{ 0.f, 0.f, 0.f }, XMFLOAT2{ 0.75f, 0.15f }) };
+	auto hpBarTexture{ make_shared<Texture>() };
+	hpBarTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/Full_HpBar.dds"), 5); // BaseTexture
+	hpBarTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/Empty_HpBar.dds"), 6); // SubTexture
+	hpBarTexture->CreateSrvDescriptorHeap(device);
+	hpBarTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+
+	// 스카이박스 로딩
+	auto skyboxShader{ make_shared<SkyboxShader>(device, rootsignature) };
+	auto skyboxTexture{ make_shared<Texture>() };
+	skyboxTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/SkyBox.dds"), 7);	// Skybox
+	skyboxTexture->CreateSrvDescriptorHeap(device);
+	skyboxTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURECUBE);
+
+	// 그림자 셰이더 로딩
+	auto shadowShader{ make_shared<ShadowShader>(device, rootsignature)};
+
+	// 몬스터 로딩
+	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/Undead_WarriorMesh.bin"));
+	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/Undead_WarriorTexture.bin"));
+
+	// 타워 씬 메쉬 로딩
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/Book_09Mesh.bin"));
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/Bottle_05Mesh.bin"));
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/Box_02Mesh.bin"));
@@ -88,8 +97,13 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/WallDecor_05Texture.bin"));
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/Wood_02Texture.bin"));
 
+	// 디버그용 메쉬와 셰이더
+	auto debugMesh{ make_shared<UIMesh>(device, commandlist) };
+	auto debugShader{ make_shared<UIRenderShader>(device, rootsignature) };
+
 	// 메쉬 설정
 	m_meshs.insert({ "HPBAR", hpBarMesh });
+	m_meshs.insert({ "DEBUG", debugMesh });
 
 	// 텍스처 설정
 	m_textures.insert({ "SKYBOX", skyboxTexture });
@@ -99,6 +113,8 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	m_shaders.insert({ "PLAYER", playerShader });
 	m_shaders.insert({ "SKYBOX", skyboxShader });
 	m_shaders.insert({ "HPBAR", hpBarShader });
+	m_shaders.insert({ "SHADOW", shadowShader });
+	m_shaders.insert({ "DEBUG", debugShader });
 
 	g_GameFramework.ChangeScene(SCENETAG::TowerScene);
 }
@@ -106,12 +122,13 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 void LoadingScene::Update(FLOAT timeElapsed) {}
 
 void LoadingScene::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const {}
+void LoadingScene::RenderShadow(const ComPtr<ID3D12GraphicsCommandList>& commandList) {}
 
 void LoadingScene::LoadMeshFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, wstring fileName)
 {
 	ifstream in{ fileName, std::ios::binary };
 	if (!in) return;
-
+	
 	BYTE strLength;
 	string backup;
 	while (1) {

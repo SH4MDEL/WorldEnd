@@ -245,20 +245,21 @@ void GameFramework::CreateDepthStencilView()
 
 void GameFramework::CreateRootSignature()
 {
-	CD3DX12_DESCRIPTOR_RANGE descriptorRange[10];
+	CD3DX12_DESCRIPTOR_RANGE descriptorRange[11];
 	descriptorRange[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);	// t0
 	descriptorRange[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);	// t1
 	descriptorRange[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2, 0, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);	// t2
-
 	descriptorRange[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3, 0, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);	// t3
+
 	descriptorRange[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4, 0, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);	// t4
 	descriptorRange[5].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 5, 0, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);	// t5
 	descriptorRange[6].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 6, 0, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);	// t6
 	descriptorRange[7].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 7, 0, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);	// t7
 	descriptorRange[8].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 8, 0, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);	// t8
 	descriptorRange[9].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 9, 0, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);	// t9
+	descriptorRange[10].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 10, 0, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);	// t10
 
-	CD3DX12_ROOT_PARAMETER rootParameter[14];
+	CD3DX12_ROOT_PARAMETER rootParameter[16];
 
 	// cbGameObject : 월드 변환 행렬(16) + float hp(1) + float maxHp(1)
 	rootParameter[0].InitAsConstants(18, 0, 0, D3D12_SHADER_VISIBILITY_ALL);
@@ -266,50 +267,48 @@ void GameFramework::CreateRootSignature()
 	rootParameter[1].InitAsConstantBufferView(1, 0, D3D12_SHADER_VISIBILITY_ALL); // cbCamera
 	rootParameter[2].InitAsConstantBufferView(2, 0, D3D12_SHADER_VISIBILITY_ALL); // cbMaterial
 	rootParameter[3].InitAsConstantBufferView(3, 0, D3D12_SHADER_VISIBILITY_ALL); // cbLight
+	rootParameter[4].InitAsConstantBufferView(4, 0, D3D12_SHADER_VISIBILITY_ALL); // cbScene
 
-	rootParameter[4].InitAsDescriptorTable(1, &descriptorRange[0], D3D12_SHADER_VISIBILITY_PIXEL);
-	rootParameter[5].InitAsDescriptorTable(1, &descriptorRange[1], D3D12_SHADER_VISIBILITY_PIXEL);
-	rootParameter[6].InitAsDescriptorTable(1, &descriptorRange[2], D3D12_SHADER_VISIBILITY_PIXEL);
-	
-	rootParameter[7].InitAsDescriptorTable(1, &descriptorRange[3], D3D12_SHADER_VISIBILITY_PIXEL);
-	rootParameter[8].InitAsDescriptorTable(1, &descriptorRange[4], D3D12_SHADER_VISIBILITY_PIXEL);
-	rootParameter[9].InitAsDescriptorTable(1, &descriptorRange[5], D3D12_SHADER_VISIBILITY_PIXEL);
-	rootParameter[10].InitAsDescriptorTable(1, &descriptorRange[6], D3D12_SHADER_VISIBILITY_PIXEL);
-	rootParameter[11].InitAsDescriptorTable(1, &descriptorRange[7], D3D12_SHADER_VISIBILITY_PIXEL);
-	rootParameter[12].InitAsDescriptorTable(1, &descriptorRange[8], D3D12_SHADER_VISIBILITY_PIXEL);
-	rootParameter[13].InitAsDescriptorTable(1, &descriptorRange[9], D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameter[5].InitAsDescriptorTable(1, &descriptorRange[0], D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameter[6].InitAsDescriptorTable(1, &descriptorRange[1], D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameter[7].InitAsDescriptorTable(1, &descriptorRange[2], D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameter[8].InitAsDescriptorTable(1, &descriptorRange[3], D3D12_SHADER_VISIBILITY_PIXEL);
+
+	rootParameter[9].InitAsDescriptorTable(1, &descriptorRange[4], D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameter[10].InitAsDescriptorTable(1, &descriptorRange[5], D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameter[11].InitAsDescriptorTable(1, &descriptorRange[6], D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameter[12].InitAsDescriptorTable(1, &descriptorRange[7], D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameter[13].InitAsDescriptorTable(1, &descriptorRange[8], D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameter[14].InitAsDescriptorTable(1, &descriptorRange[9], D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameter[15].InitAsDescriptorTable(1, &descriptorRange[10], D3D12_SHADER_VISIBILITY_PIXEL);
 	
 	CD3DX12_STATIC_SAMPLER_DESC samplerDesc[2];
-	samplerDesc[0].Init(								// s0
-		0,								 				// ShaderRegister
-		D3D12_FILTER_MIN_MAG_MIP_LINEAR, 				// filter
-		D3D12_TEXTURE_ADDRESS_MODE_WRAP, 				// addressU
-		D3D12_TEXTURE_ADDRESS_MODE_WRAP, 				// addressV
-		D3D12_TEXTURE_ADDRESS_MODE_WRAP, 				// addressW
-		0.0f,											// mipLODBias
-		1,												// maxAnisotropy
-		D3D12_COMPARISON_FUNC_ALWAYS,					// comparisonFunc
-		D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK,	// borderColor
-		0.0f,											// minLOD
-		D3D12_FLOAT32_MAX,								// maxLOD
-		D3D12_SHADER_VISIBILITY_PIXEL,					// shaderVisibility
-		0												// registerSpace
+	samplerDesc[0].Init(									// s0
+		0,								 					// ShaderRegister
+		D3D12_FILTER_MIN_MAG_MIP_LINEAR, 					// filter
+		D3D12_TEXTURE_ADDRESS_MODE_WRAP, 					// addressU
+		D3D12_TEXTURE_ADDRESS_MODE_WRAP, 					// addressV
+		D3D12_TEXTURE_ADDRESS_MODE_WRAP, 					// addressW
+		0.0f,												// mipLODBias
+		1,													// maxAnisotropy
+		D3D12_COMPARISON_FUNC_ALWAYS,						// comparisonFunc
+		D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK,		// borderColor
+		0.0f,												// minLOD
+		D3D12_FLOAT32_MAX,									// maxLOD
+		D3D12_SHADER_VISIBILITY_PIXEL,						// shaderVisibility
+		0													// registerSpace
 	);
 
-	samplerDesc[1].Init(								// s1
-		1,								 				// ShaderRegister
-		D3D12_FILTER_MIN_MAG_MIP_LINEAR, 				// filter
-		D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 				// addressU
-		D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 				// addressV
-		D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 				// addressW
-		0.0f,											// mipLODBias
-		1,												// maxAnisotropy
-		D3D12_COMPARISON_FUNC_ALWAYS,					// comparisonFunc
-		D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK,	// borderColor
-		0.0f,											// minLOD
-		D3D12_FLOAT32_MAX,								// maxLOD
-		D3D12_SHADER_VISIBILITY_PIXEL,					// shaderVisibility
-		0												// registerSpace
+	samplerDesc[1].Init(									// s1
+		1,								 					// ShaderRegister
+		D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT, 	// filter
+		D3D12_TEXTURE_ADDRESS_MODE_BORDER, 					// addressU
+		D3D12_TEXTURE_ADDRESS_MODE_BORDER, 					// addressV
+		D3D12_TEXTURE_ADDRESS_MODE_BORDER, 					// addressW
+		0.0f,												// mipLODBias
+		16,													// maxAnisotropy
+		D3D12_COMPARISON_FUNC_LESS_EQUAL,					// comparisonFunc
+		D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK			// borderColor
 	);
 
 	CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc;
@@ -392,11 +391,16 @@ void GameFramework::Render()
 	DX::ThrowIfFailed(m_commandAllocator->Reset());
 	DX::ThrowIfFailed(m_commandList->Reset(m_commandAllocator.Get(), nullptr));
 
+	m_commandList->SetGraphicsRootSignature(m_rootSignature.Get());
+	if (m_scenes[m_sceneIndex]) {
+		m_scenes[m_sceneIndex]->UpdateShaderVariable(m_commandList);
+		m_scenes[m_sceneIndex]->RenderShadow(m_commandList);
+	}
+
 	// 자원 용도와 관련된 상태 전이를 Direct3D에 통지한다.
 	m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_frameIndex].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
 
 	//뷰포트와 씨저 사각형을 설정한다. 
-	m_commandList->SetGraphicsRootSignature(m_rootSignature.Get());
 	m_commandList->RSSetViewports(1, &m_viewport);
 	m_commandList->RSSetScissorRects(1, &m_scissorRect);
 
@@ -411,7 +415,9 @@ void GameFramework::Render()
 	m_commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, NULL);
 
 	// Scene을 Render한다.
-	if (m_scenes[m_sceneIndex]) m_scenes[m_sceneIndex]->Render(m_commandList);
+	if (m_scenes[m_sceneIndex]) {
+		m_scenes[m_sceneIndex]->Render(m_commandList);
+	}
 
 	// 자원 용도와 관련된 상태 전이를 Direct3D에 통지한다.
 	m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_frameIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));

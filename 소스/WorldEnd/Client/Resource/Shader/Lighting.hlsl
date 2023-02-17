@@ -97,7 +97,7 @@ float4 SpotLight(int index, float3 position, float3 normal, float3 toCamera, Pho
 	
 }
 
-float4 Lighting(float3 position, float3 normal, PhongMaterial material)
+float4 Lighting(float3 position, float3 normal, PhongMaterial material, float shadowFactor)
 {
 	float3 toCamera = normalize(cameraPosition - position);
 
@@ -107,7 +107,7 @@ float4 Lighting(float3 position, float3 normal, PhongMaterial material)
 		if (lights[i].m_enable) {
 			if (lights[i].m_type == DIRECTIONAL_LIGHT)
 			{
-				color += DirectionalLight(i, normal, toCamera, material);
+				color += DirectionalLight(i, normal, toCamera, material) * shadowFactor;
 			}
 			else if (lights[i].m_type == POINT_LIGHT)
 			{
