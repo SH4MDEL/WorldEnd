@@ -34,7 +34,7 @@ void GameObject::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) co
 
 	if (m_texture) { m_texture->UpdateShaderVariable(commandList); }
 	if (m_materials) {
-		for (size_t i = 0; const auto & material : m_materials->m_materials) {
+		for (size_t i = 0; const auto& material : m_materials->m_materials) {
 			material.UpdateShaderVariable(commandList);
 			m_mesh->Render(commandList, i);
 			++i;
@@ -136,7 +136,7 @@ void GameObject::ReleaseUploadBuffer() const
 void GameObject::SetChild(const shared_ptr<GameObject>& child)
 {
 	if (child) {
-		child->m_parent = (shared_ptr<GameObject>)this;
+		child->m_parent = shared_from_this();
 	}
 	if (m_child) {
 		if (child) child->m_sibling = m_child->m_sibling;
@@ -155,7 +155,7 @@ void GameObject::SetFrameName(string&& frameName) noexcept
 shared_ptr<GameObject> GameObject::FindFrame(string frameName)
 {
 	shared_ptr<GameObject> frame;
-	if (m_frameName == frameName) return (shared_ptr<GameObject>)this;
+	if (m_frameName == frameName) return shared_from_this();
 
 	if (m_sibling) if (frame = m_sibling->FindFrame(frameName)) return frame;
 	if (m_child) if (frame = m_child->FindFrame(frameName)) return frame;
@@ -172,7 +172,7 @@ void GameObject::LoadObject(ifstream& in)
 		in.read((char*)(&strLength), sizeof(BYTE));
 		string strToken(strLength, '\0');
 		in.read((&strToken[0]), sizeof(char) * strLength);
-
+		
 		if (strToken == "<Frame>:") {
 			in.read((char*)(&frame), sizeof(INT));
 			in.read((char*)(&texture), sizeof(INT));
@@ -436,8 +436,8 @@ HpBar::HpBar() {}
 
 void HpBar::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const
 {
-	commandList->SetGraphicsRoot32BitConstants(0, 1, &(m_hp), 33);
-	commandList->SetGraphicsRoot32BitConstants(0, 1, &(m_maxHp), 34);
+	commandList->SetGraphicsRoot32BitConstants(0, 1, &(m_hp), 16);
+	commandList->SetGraphicsRoot32BitConstants(0, 1, &(m_maxHp), 17);
 
 	GameObject::Render(commandList);
 }
@@ -734,31 +734,4 @@ void AnimationController::AdvanceTime(float timeElapsed, GameObject* rootGameObj
 
 		rootGameObject->UpdateTransform(nullptr);
 	}
-
-
-	/*m_time += timeElapsed;
-
-
-	if (!m_animationTracks.empty()) {
-
-		for (auto& track : m_animationTracks) {
-			shared_ptr<Animation> animation = m_animationSet->GetAnimations()[track.GetAnimation()];
-			track.UpdatePosition(track.GetPosition(), timeElapsed, animation->GetLength());
-		}
-
-		for (size_t i = 0; i < m_animationSet->GetBoneFramesCaches().size(); ++i) {
-			XMFLOAT4X4 transform = Matrix::Zero();
-			for (int j = 0; j < m_animationTracks.size(); ++j) {
-				if (m_animationTracks[j].GetEnable()) {
-					shared_ptr<Animation> animation = m_animationSet->GetAnimations()[m_animationTracks[j].GetAnimation()];
-					XMFLOAT4X4 animationTransform = animation->GetSRT(i, m_animationTracks[j].GetPosition());
-					transform = Matrix::Add(transform, Matrix::Scale(animationTransform, m_animationTracks[j].GetWeight()));
-				}
-			}
-
-			m_animationSet->GetBoneFramesCaches()[i]->SetTransformMatrix(transform);
-		}
-
-		rootGameObject->UpdateTransform(nullptr);
-	}*/
 }

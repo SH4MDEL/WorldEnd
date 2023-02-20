@@ -1,7 +1,7 @@
 ﻿#include "player.h"
 #include "camera.h"
 
-Player::Player() : m_velocity{ 0.0f, 0.0f, 0.0f }, m_maxVelocity{ 10.0f }, m_friction{ 0.5f }, m_hp{ 100.f }, m_maxHp{ 100.f }, m_id{ -1 }
+Player::Player() : m_velocity{ 0.0f, 0.0f, 0.0f }, m_maxVelocity{ 10.0f }, m_friction{ 0.5f }, m_hp{ 100.f }, m_maxHp{ 100.f }, m_id { -1 }
 {
 
 }
@@ -50,7 +50,7 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 	{
 		XMFLOAT3 right{ Vector3::Normalize(Vector3::Cross(GetUp(), direction)) };
 		XMFLOAT3 angle{ Vector3::Angle(GetFront(), right) };
-		XMFLOAT3 clockwise{ Vector3::Cross(GetFront(), right) };
+		XMFLOAT3 clockwise{ Vector3::Cross(GetFront(), right)};
 		if (clockwise.y >= 0) {
 			Rotate(0.f, 0.f, timeElapsed * XMConvertToDegrees(angle.y) * 10.f);
 		}
@@ -84,21 +84,21 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 	{
 
 	}
-
+	
 	if (GetAsyncKeyState('E') & 0x8000) {
 		// idle, walk 애니메이션 끄기, attack 애니메이션 켜기
 		m_animationController->SetTrackEnable(0, false);
 		m_animationController->SetTrackEnable(1, false);
 		m_animationController->SetTrackEnable(2, true);
 
-		/*char packet_direction{};
+		char packet_direction{};
 		packet_direction += INPUT_KEY_E;
 		CS_ATTACK_PACKET attack_packet;
 		attack_packet.size = sizeof(attack_packet);
 		attack_packet.type = CS_PACKET_PLAYER_ATTACK;
 		attack_packet.key = packet_direction;
 
-		send(g_socket, reinterpret_cast<char*>(&attack_packet), sizeof(attack_packet), 0);*/
+		send(g_socket, reinterpret_cast<char*>(&attack_packet), sizeof(attack_packet), 0);
 	}
 }
 
@@ -118,10 +118,17 @@ void Player::Update(FLOAT timeElapsed)
 			m_animationController->SetTrackEnable(1, true);
 		}
 	}
+	static FLOAT dummy = 50.f;
+	if (dummy > 100.f) {
+		dummy -= 100.f;
+	}
+	else {
+		dummy += timeElapsed * 10.f;
+	}
 
 	if (m_hpBar) {
 		m_hpBar->SetMaxHp(m_maxHp);
-		m_hpBar->SetHp(10.f);
+		m_hpBar->SetHp(dummy);
 		XMFLOAT3 hpBarPosition = GetPosition();
 		hpBarPosition.y += 1.8f;
 		m_hpBar->SetPosition(hpBarPosition);
@@ -144,6 +151,17 @@ void Player::Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw)
 void Player::ApplyFriction(FLOAT deltaTime)
 {
 	m_velocity = Vector3::Mul(m_velocity, 1 / m_friction * deltaTime);
+}
+
+void Player::SetPosition(const XMFLOAT3& position)
+{
+	GameObject::SetPosition(position);
+	
+	if (m_hpBar) {
+		XMFLOAT3 hpBarPosition = position;
+		hpBarPosition.y += 1.8f;
+		m_hpBar->SetPosition(hpBarPosition);
+	}
 }
 
 void Player::AddVelocity(const XMFLOAT3& increase)

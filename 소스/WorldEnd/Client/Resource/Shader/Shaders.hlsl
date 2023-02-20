@@ -1,67 +1,4 @@
-struct MATERIAL
-{
-	float4					diffuse;
-	float4					emissive;
-	float4					specular; //a = power
-	float4					ambient;
-};
-
-cbuffer cbGameObject : register(b0)
-{
-	matrix worldMatrix : packoffset(c0);
-	MATERIAL material : packoffset(c4);
-	uint textureMask : packoffset(c8);
-	float hp : packoffset(c8.y);
-	float maxHp : packoffset(c8.z);
-};
-
-cbuffer cbCamera : register(b1)
-{
-	matrix viewMatrix : packoffset(c0);
-	matrix projMatrix : packoffset(c4);
-	float3 cameraPosition : packoffset(c8);
-};
-
-#define MAX_BONES					256
-#define EPSILON						1.192092896e-07F
-
-// bone
-cbuffer cbBoneOffsets : register(b2)
-{
-	float4x4 boneOffsets[MAX_BONES];
-};
-
-cbuffer cbBoneTransforms : register(b3)
-{
-	float4x4 boneTransforms[MAX_BONES];
-};
-// ------------------------------
-
-
-SamplerState g_samplerWrap : register(s0);
-SamplerState g_samplerClamp : register(s1);
-
-Texture2D g_baseTexture : register(t0);
-Texture2D g_subTexture : register(t1);
-TextureCube g_skyboxTexture : register(t2);
-Texture2D g_riverTexture : register(t3);
-
-Texture2D g_albedoTexture : register(t4);
-Texture2D g_specularTexture : register(t5);
-Texture2D g_normalTexture : register(t6);
-Texture2D g_metallicTexture : register(t7);
-Texture2D g_emissionTexture : register(t8);
-Texture2D g_detailAlbedoTexture : register(t9);
-Texture2D g_detailNormalTexture : register(t10);
-
-#define MATERIAL_ALBEDO_MAP			0x01
-#define MATERIAL_SPECULAR_MAP		0x02
-#define MATERIAL_NORMAL_MAP			0x04
-#define MATERIAL_METALLIC_MAP		0x08
-#define MATERIAL_EMISSION_MAP		0x10
-#define MATERIAL_DETAIL_ALBEDO_MAP	0x20
-#define MATERIAL_DETAIL_NORMAL_MAP	0x40
-
+#include "Buffer.hlsl"
 
 /*
  *  STANDARD_SHADER
@@ -141,6 +78,8 @@ struct VS_TEXTUREHIERARCHY_INPUT
 struct VS_TEXTUREHIERARCHY_OUTPUT
 {
 	float4 position : SV_POSITION;
+	float4 shadowPosition : POSITION0;
+	float3 positionW : POSITION1;
 	float3 normal : NORMAL;
 	float3 tangent : TANGENT;
 	float3 biTangent : BITANGENT;
@@ -151,8 +90,12 @@ VS_TEXTUREHIERARCHY_OUTPUT VS_TEXTUREHIERARCHY_MAIN(VS_TEXTUREHIERARCHY_INPUT in
 {
 	VS_TEXTUREHIERARCHY_OUTPUT output;
 	output.position = mul(float4(input.position, 1.0f), worldMatrix);
+	output.positionW = output.position.xyz;
 	output.position = mul(output.position, viewMatrix);
 	output.position = mul(output.position, projMatrix);
+	output.shadowPosition = mul(float4(output.positionW, 1.0f), lightView);
+	output.shadowPosition = mul(output.shadowPosition, lightProj);
+	output.shadowPosition = mul(output.shadowPosition, NDCspace);
 	output.normal = mul(input.normal, (float3x3)worldMatrix);
 	output.tangent = mul(input.tangent, (float3x3)worldMatrix);
 	output.biTangent = mul(input.biTangent, (float3x3)worldMatrix);
@@ -163,20 +106,30 @@ VS_TEXTUREHIERARCHY_OUTPUT VS_TEXTUREHIERARCHY_MAIN(VS_TEXTUREHIERARCHY_INPUT in
 [earlydepthstencil]
 float4 PS_TEXTUREHIERARCHY_MAIN(VS_TEXTUREHIERARCHY_OUTPUT input) : SV_TARGET
 {
-	float4 albedoColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
-	float4 specularColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
-	float4 normalColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
-	float4 metallicColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
-	float4 emissionColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
+	PhongMaterial material;
+	material.m_ambient = float4(0.1f, 0.1f, 0.1f, 1.0f);
+	material.m_diffuse = float4(1.0f, 1.0f, 1.0f, 1.0f);
+	material.m_specular = float4(0.1f, 0.1f, 0.1f, 0.0f);
 
-	if (textureMask & MATERIAL_ALBEDO_MAP) albedoColor = g_albedoTexture.Sample(g_samplerWrap, input.uv);
-	if (textureMask & MATERIAL_SPECULAR_MAP) specularColor = g_specularTexture.Sample(g_samplerWrap, input.uv);
+	float4 normalColor = float4(0.0f, 0.0f, 0.0f, 1.0f);		// 노말
+	float4 metallicColor = float4(0.0f, 0.0f, 0.0f, 0.0f);		// 
+	float4 emissionColor = float4(0.0f, 0.0f, 0.0f, 0.0f);		// 발산광
+
+	if (textureMask & MATERIAL_ALBEDO_MAP) material.m_diffuse = g_albedoTexture.Sample(g_samplerWrap, input.uv);
+	if (textureMask & MATERIAL_SPECULAR_MAP) material.m_specular = g_specularTexture.Sample(g_samplerWrap, input.uv);
 	if (textureMask & MATERIAL_NORMAL_MAP) normalColor = g_normalTexture.Sample(g_samplerWrap, input.uv);
+	else normalColor = float4(input.normal, 1.f);
 	if (textureMask & MATERIAL_METALLIC_MAP) metallicColor = g_metallicTexture.Sample(g_samplerWrap, input.uv);
 	if (textureMask & MATERIAL_EMISSION_MAP) emissionColor = g_emissionTexture.Sample(g_samplerWrap, input.uv);
 
-	float4 color = albedoColor + specularColor + emissionColor;
-
+	float3 normal = normalColor.rgb;
+	float4 color = material.m_diffuse + material.m_specular + emissionColor;
+	//float3x3 TBN = float3x3(normalize(input.tangent), normalize(input.biTangent), normalize(normal));
+	//float3 vNormal = normalize(normal * 2.0f - 1.0f); //[0, 1] → [-1, 1]
+	//normal = normalize(mul(vNormal, TBN));
+	float shadowFactor = CalcShadowFactor(input.shadowPosition);
+	float4 light = Lighting(input.positionW, normal, material, shadowFactor);
+	color = lerp(color, light, 0.5);
 	return color;
 }
 
@@ -207,8 +160,12 @@ VS_TEXTUREHIERARCHY_OUTPUT VS_SKINNED_ANIMATION_MAIN(VS_SKINNED_STANDARD_INPUT i
 		}
 
 		output.position = mul(float4(input.position, 1.0f), mat);
+		output.positionW = output.position.xyz;
 		output.position = mul(output.position, viewMatrix);
 		output.position = mul(output.position, projMatrix);
+		output.shadowPosition = mul(float4(output.positionW, 1.0f), lightView);
+		output.shadowPosition = mul(output.shadowPosition, lightProj);
+		output.shadowPosition = mul(output.shadowPosition, NDCspace);
 		output.normal = mul(input.normal, (float3x3)mat);
 		output.tangent = mul(input.tangent, (float3x3)mat);
 		output.biTangent = mul(input.biTangent, (float3x3)mat);
@@ -217,8 +174,12 @@ VS_TEXTUREHIERARCHY_OUTPUT VS_SKINNED_ANIMATION_MAIN(VS_SKINNED_STANDARD_INPUT i
 	// 일반 메쉬
 	else {
 		output.position = mul(float4(input.position, 1.0f), worldMatrix);
+		output.positionW = output.position.xyz;
 		output.position = mul(output.position, viewMatrix);
 		output.position = mul(output.position, projMatrix);
+		output.shadowPosition = mul(float4(output.positionW, 1.0f), lightView);
+		output.shadowPosition = mul(output.shadowPosition, lightProj);
+		output.shadowPosition = mul(output.shadowPosition, NDCspace);
 		output.normal = mul(input.normal, (float3x3)worldMatrix);
 		output.tangent = mul(input.tangent, (float3x3)worldMatrix);
 		output.biTangent = mul(input.biTangent, (float3x3)worldMatrix);
@@ -262,9 +223,11 @@ VS_TERRAIN_OUTPUT VS_TERRAIN_MAIN(VS_TERRAIN_INPUT input)
 float4 PS_TERRAIN_MAIN(VS_TERRAIN_OUTPUT input) : SV_TARGET
 {
 	float4 baseTexColor = g_baseTexture.Sample(g_samplerWrap, input.uv0);
-	float4 detailTexColor = g_subTexture.Sample(g_samplerWrap, input.uv1);
+	float4 subTexColor = g_subTexture.Sample(g_samplerWrap, input.uv1);
 
-	return saturate((baseTexColor * 0.7f) + (detailTexColor * 0.3f));
+	float4 color = saturate((baseTexColor * 0.7f) + (subTexColor * 0.3f));
+
+	return color;
 }
 
 /*
@@ -296,7 +259,7 @@ VS_SKYBOX_OUTPUT VS_SKYBOX_MAIN(VS_SKYBOX_INPUT input)
 [earlydepthstencil]
 float4 PS_SKYBOX_MAIN(VS_SKYBOX_OUTPUT input) : SV_TARGET
 {
-	float4 color = g_skyboxTexture.Sample(g_samplerClamp, input.positionL);
+	float4 color = g_skyboxTexture.Sample(g_samplerWrap, input.positionL);
 	return color;
 }
 
@@ -304,7 +267,7 @@ float4 PS_SKYBOX_MAIN(VS_SKYBOX_OUTPUT input) : SV_TARGET
  *  BLENDING_SHADER
  */
 
-	struct VS_BLENDING_INPUT
+struct VS_BLENDING_INPUT
 {
 	float3 position : POSITION;
 	float2 uv : TEXCOORD;
@@ -333,12 +296,11 @@ float4 PS_BLENDING_MAIN(VS_BLENDING_OUTPUT input) : SV_TARGET
 	return g_baseTexture.Sample(g_samplerWrap, input.uv);
 }
 
-
 /*
  *  HPBAR_SHADER
  */
 
-	struct VS_HPBAR_INPUT
+struct VS_HPBAR_INPUT
 {
 	float3 position : POSITION;
 	float2 size : SIZE;
@@ -402,4 +364,33 @@ float4 PS_HPBAR_MAIN(GS_HPBAR_OUTPUT input) : SV_TARGET
 		return g_baseTexture.Sample(g_samplerWrap, input.uv0);
 	}
 	return g_subTexture.Sample(g_samplerWrap, input.uv1);
+}
+
+/*
+ *  UI_SHADER
+ */
+
+struct VS_UI_INPUT
+{
+	float3 position : POSITION;
+	float2 uv : TEXCOORD;
+};
+
+struct VS_UI_OUTPUT
+{
+	float4 position : SV_POSITION;
+	float2 uv : TEXCOORD;
+};
+
+VS_UI_OUTPUT VS_UI_MAIN(VS_UI_INPUT input)
+{
+	VS_UI_OUTPUT output;
+	output.position = float4(input.position, 1.0f);
+	output.uv = input.uv;
+	return output;
+}
+
+float4 PS_UI_MAIN(VS_UI_OUTPUT input) : SV_TARGET
+{
+	return g_shadowMap.Sample(g_samplerWrap, input.uv);
 }

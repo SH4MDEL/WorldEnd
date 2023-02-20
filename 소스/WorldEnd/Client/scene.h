@@ -7,6 +7,15 @@
 #include "mesh.h"
 #include "texture.h"
 #include "material.h"
+#include "light.h"
+#include "shadow.h"
+
+struct SceneInfo
+{
+	XMFLOAT4X4			lightView;	// 뷰변환 행렬
+	XMFLOAT4X4			lightProj;	// 투영변환 행렬
+	XMFLOAT4X4			NDCspace;	// 카메라 위치
+};
 
 enum class SCENETAG : INT;
 
@@ -21,6 +30,9 @@ public:
 
 	virtual void ReleaseUploadBuffer() = 0;
 
+	virtual void CreateShaderVariable(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList) = 0;
+	virtual void UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& commandList) = 0;
+
 	virtual void BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, const ComPtr<ID3D12RootSignature>& rootsignature, FLOAT	aspectRatio) = 0;
 
 	virtual void OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime) const = 0;
@@ -28,6 +40,7 @@ public:
 
 	virtual void Update(FLOAT timeElapsed) = 0;
 	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const = 0;
+	virtual void RenderShadow(const ComPtr<ID3D12GraphicsCommandList>& commandList) = 0;
 
 	static unordered_map<string, shared_ptr<Mesh>>			m_meshs;
 	static unordered_map<string, shared_ptr<Texture>>		m_textures;

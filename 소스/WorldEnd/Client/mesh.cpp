@@ -148,178 +148,7 @@ void MeshFromFile::LoadFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3
 	ifstream in{ fileName, std::ios::binary };
 	if (!in) return;
 
-	LoadFileMesh(device, commandList, in);
-}
-
-void MeshFromFile::LoadFileMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, ifstream& in)
-{
-	m_primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-	m_nIndices = 0;
-
-	vector<TextureHierarchyVertex> vertices;
-	vector<UINT> indices;
-
-	BYTE strLength;
-
-	INT positionNum, colorNum, texcoord0Num, texcoord1Num, normalNum, tangentNum, biTangentNum;
-
-
-	while (1) {
-		in.read((char*)(&strLength), sizeof(BYTE));
-		string strToken(strLength, '\0');
-		in.read(&strToken[0], sizeof(char) * strLength);
-
-		if (strToken == "<BoundingBox>:") {
-			in.read((char*)(&m_boundingBox.Center), sizeof(XMFLOAT3));
-			in.read((char*)(&m_boundingBox.Extents), sizeof(XMFLOAT3));
-		}
-		else if (strToken == "<Vertices>:") {
-			in.read((char*)(&positionNum), sizeof(INT));
-			if (vertices.size() < positionNum) {
-				m_nVertices = positionNum;
-				vertices.resize(positionNum);
-			}
-			for (int i = 0; i < positionNum; ++i) {
-				in.read((char*)(&vertices[i].position), sizeof(XMFLOAT3));
-			}
-		}
-		else if (strToken == "<Colors>:") {
-			XMFLOAT4 dummy;
-			in.read((char*)(&colorNum), sizeof(INT));
-			for (int i = 0; i < colorNum; ++i) {
-				in.read((char*)(&dummy), sizeof(XMFLOAT4));
-			}
-		}
-		else if (strToken == "<TextureCoords0>:") {
-			in.read((char*)(&texcoord0Num), sizeof(INT));
-			if (vertices.size() < texcoord0Num) {
-				m_nVertices = texcoord0Num;
-				vertices.resize(texcoord0Num);
-			}
-			for (int i = 0; i < texcoord0Num; ++i) {
-				in.read((char*)(&vertices[i].uv0), sizeof(XMFLOAT2));
-			}
-		}
-		else if (strToken == "<TextureCoords1>:") {
-			XMFLOAT2 dummy;
-			in.read((char*)(&texcoord1Num), sizeof(INT));
-			for (int i = 0; i < texcoord1Num; ++i) {
-				in.read((char*)(&dummy), sizeof(XMFLOAT2));
-			}
-		}
-		else if (strToken == "<Normals>:") {
-			in.read((char*)(&normalNum), sizeof(INT));
-			if (vertices.size() < normalNum) {
-				m_nVertices = normalNum;
-				vertices.resize(normalNum);
-			}
-			for (int i = 0; i < normalNum; ++i) {
-				in.read((char*)(&vertices[i].normal), sizeof(XMFLOAT3));
-			}
-		}
-		else if (strToken == "<Tangents>:") {
-			in.read((char*)(&tangentNum), sizeof(INT));
-			if (vertices.size() < tangentNum) {
-				m_nVertices = tangentNum;
-				vertices.resize(tangentNum);
-			}
-			for (int i = 0; i < tangentNum; ++i) {
-				in.read((char*)(&vertices[i].tangent), sizeof(XMFLOAT3));
-			}
-		}
-		else if (strToken == "<BiTangents>:") {
-			in.read((char*)(&biTangentNum), sizeof(INT));
-			if (vertices.size() < biTangentNum) {
-				m_nVertices = biTangentNum;
-				vertices.resize(biTangentNum);
-			}
-			for (int i = 0; i < biTangentNum; ++i) {
-				in.read((char*)(&vertices[i].biTangent), sizeof(XMFLOAT3));
-			}
-		}
-		else if (strToken == "<Indices>:") {
-			in.read((char*)(&m_nIndices), sizeof(INT));
-			indices.resize(m_nIndices);
-			for (int i = 0; i < m_nIndices; ++i) {
-				in.read((char*)(&indices[i]), sizeof(UINT));
-			}
-		}
-		else if (strToken == "<SubMeshes>:") {
-			in.read((char*)(&m_nSubMeshes), sizeof(UINT));
-			if (m_nSubMeshes > 0) {
-				m_vSubsetIndices.resize(m_nSubMeshes);
-				m_vvSubsetIndices.resize(m_nSubMeshes);
-				m_subsetIndexBuffers.resize(m_nSubMeshes);
-				m_subsetIndexUploadBuffers.resize(m_nSubMeshes);
-				m_subsetIndexBufferViews.resize(m_nSubMeshes);
-
-				for (UINT i = 0; i < m_nSubMeshes; ++i) {
-					int index;
-					in.read((char*)(&index), sizeof(UINT));
-					in.read((char*)(&m_vSubsetIndices[i]), sizeof(UINT));
-					in.read((char*)(&m_nIndices), sizeof(INT));
-					if (m_vSubsetIndices[i] > 0) {
-						m_vvSubsetIndices[i].resize(m_vSubsetIndices[i]);
-						in.read((char*)(&m_vvSubsetIndices[i][0]), sizeof(UINT) * m_vSubsetIndices[i]);
-
-						m_subsetIndexBuffers[i] = CreateBufferResource(device, commandList, m_vvSubsetIndices[i].data(),
-							sizeof(UINT) * m_vSubsetIndices[i], D3D12_HEAP_TYPE_DEFAULT,
-							D3D12_RESOURCE_STATE_INDEX_BUFFER, m_subsetIndexUploadBuffers[i]);
-
-						m_subsetIndexBufferViews[i].BufferLocation = m_subsetIndexBuffers[i]->GetGPUVirtualAddress();
-						m_subsetIndexBufferViews[i].Format = DXGI_FORMAT_R32_UINT;
-						m_subsetIndexBufferViews[i].SizeInBytes = sizeof(UINT) * m_vSubsetIndices[i];
-					}
-				}
-			}
-			break;
-		}
-		else if (strToken == "</Mesh>") {
-			break;
-		}
-	}
-
-	m_nVertices = (UINT)vertices.size();
-	m_vertexBuffer = CreateBufferResource(device, commandList, vertices.data(),
-		sizeof(TextureHierarchyVertex) * vertices.size(), D3D12_HEAP_TYPE_DEFAULT,
-		D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, m_vertexUploadBuffer);
-
-	m_vertexBufferView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
-	m_vertexBufferView.StrideInBytes = sizeof(TextureHierarchyVertex);
-	m_vertexBufferView.SizeInBytes = sizeof(TextureHierarchyVertex) * vertices.size();
-
-	m_nIndices = (UINT)indices.size();
-	if (m_nIndices) {
-		const UINT indexBufferSize = (UINT)sizeof(UINT) * (UINT)indices.size();
-
-		DX::ThrowIfFailed(device->CreateCommittedResource(
-			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
-			D3D12_HEAP_FLAG_NONE,
-			&CD3DX12_RESOURCE_DESC::Buffer(indexBufferSize),
-			D3D12_RESOURCE_STATE_COPY_DEST,
-			NULL,
-			IID_PPV_ARGS(&m_indexBuffer)));
-
-		DX::ThrowIfFailed(device->CreateCommittedResource(
-			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
-			D3D12_HEAP_FLAG_NONE,
-			&CD3DX12_RESOURCE_DESC::Buffer(indexBufferSize),
-			D3D12_RESOURCE_STATE_GENERIC_READ,
-			NULL,
-			IID_PPV_ARGS(&m_indexUploadBuffer)));
-
-		D3D12_SUBRESOURCE_DATA indexData{};
-		indexData.pData = indices.data();
-		indexData.RowPitch = indexBufferSize;
-		indexData.SlicePitch = indexData.RowPitch;
-		UpdateSubresources<1>(commandList.Get(), m_indexBuffer.Get(), m_indexUploadBuffer.Get(), 0, 0, 1, &indexData);
-
-		commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_indexBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_INDEX_BUFFER));
-
-		m_indexBufferView.BufferLocation = m_indexBuffer->GetGPUVirtualAddress();
-		m_indexBufferView.Format = DXGI_FORMAT_R32_UINT;
-		m_indexBufferView.SizeInBytes = indexBufferSize;
-	}
+	LoadMesh(device, commandList, in);
 }
 
 void MeshFromFile::LoadMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, ifstream& in)
@@ -332,7 +161,9 @@ void MeshFromFile::LoadMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3
 
 	BYTE strLength;
 
-	INT positionNum, colorNum, texcoord0Num, texcoord1Num, normalNum, tangentNum, biTangentNum;
+	UINT positionNum, colorNum, texcoord0Num, texcoord1Num, normalNum, tangentNum, biTangentNum;
+
+	in.read((char*)(&m_nVertices), sizeof(INT));
 
 	in.read((char*)(&strLength), sizeof(BYTE));
 	m_meshName.resize(strLength, '\0');
@@ -353,14 +184,14 @@ void MeshFromFile::LoadMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3
 				m_nVertices = positionNum;
 				vertices.resize(positionNum);
 			}
-			for (int i = 0; i < positionNum; ++i) {
+			for (UINT i = 0; i < positionNum; ++i) {
 				in.read((char*)(&vertices[i].position), sizeof(XMFLOAT3));
 			}
 		}
 		else if (strToken == "<Colors>:") {
 			XMFLOAT4 dummy;
 			in.read((char*)(&colorNum), sizeof(INT));
-			for (int i = 0; i < colorNum; ++i) {
+			for (UINT i = 0; i < colorNum; ++i) {
 				in.read((char*)(&dummy), sizeof(XMFLOAT4));
 			}
 		}
@@ -370,14 +201,14 @@ void MeshFromFile::LoadMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3
 				m_nVertices = texcoord0Num;
 				vertices.resize(texcoord0Num);
 			}
-			for (int i = 0; i < texcoord0Num; ++i) {
+			for (UINT i = 0; i < texcoord0Num; ++i) {
 				in.read((char*)(&vertices[i].uv0), sizeof(XMFLOAT2));
 			}
 		}
 		else if (strToken == "<TextureCoords1>:") {
 			XMFLOAT2 dummy;
 			in.read((char*)(&texcoord1Num), sizeof(INT));
-			for (int i = 0; i < texcoord1Num; ++i) {
+			for (UINT i = 0; i < texcoord1Num; ++i) {
 				in.read((char*)(&dummy), sizeof(XMFLOAT2));
 			}
 		}
@@ -387,7 +218,7 @@ void MeshFromFile::LoadMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3
 				m_nVertices = normalNum;
 				vertices.resize(normalNum);
 			}
-			for (int i = 0; i < normalNum; ++i) {
+			for (UINT i = 0; i < normalNum; ++i) {
 				in.read((char*)(&vertices[i].normal), sizeof(XMFLOAT3));
 			}
 		}
@@ -397,7 +228,7 @@ void MeshFromFile::LoadMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3
 				m_nVertices = tangentNum;
 				vertices.resize(tangentNum);
 			}
-			for (int i = 0; i < tangentNum; ++i) {
+			for (UINT i = 0; i < tangentNum; ++i) {
 				in.read((char*)(&vertices[i].tangent), sizeof(XMFLOAT3));
 			}
 		}
@@ -407,7 +238,7 @@ void MeshFromFile::LoadMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3
 				m_nVertices = biTangentNum;
 				vertices.resize(biTangentNum);
 			}
-			for (int i = 0; i < biTangentNum; ++i) {
+			for (UINT i = 0; i < biTangentNum; ++i) {
 				in.read((char*)(&vertices[i].biTangent), sizeof(XMFLOAT3));
 			}
 		}
@@ -515,7 +346,7 @@ XMFLOAT3 FieldMapImage::GetNormal(INT x, INT z) const
 	float y2{ (float)m_pixels[heightMapIndex + xAdd] * m_scale.y };
 	float y3{ (float)m_pixels[heightMapIndex + zAdd] * m_scale.y };
 
-	//xmf3Edge1은 (0, y3, m_xmf3Scale.z) - (0, y1, 0) 벡터이다. 
+	//xmf3Edge1은 (0, y3, m_xmf3Scale.z) - (0, y1, 0) 벡터이다.  
 	XMFLOAT3 xmf3Edge1 = XMFLOAT3(0.0f, y3 - y1, m_scale.z);
 	//xmf3Edge2는 (m_xmf3Scale.x, y2, 0) - (0, y1, 0) 벡터이다. 
 	XMFLOAT3 xmf3Edge2 = XMFLOAT3(m_scale.x, y2 - y1, 0.0f);
@@ -526,7 +357,7 @@ XMFLOAT3 FieldMapImage::GetNormal(INT x, INT z) const
 FieldMapGridMesh::FieldMapGridMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList,
 	INT xStart, INT zStart, INT width, INT length, XMFLOAT3 scale, FieldMapImage* heightMapImage)
 {
-	//격자는 삼각형 스트립으로 구성한다. 
+	//격자는 삼각형 스트립으로 구성한다. . 
 	m_primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
 	m_width = width;
 	m_length = length;
@@ -773,11 +604,11 @@ void SkinnedMesh::UpdateShaderVariables(const ComPtr<ID3D12GraphicsCommandList>&
 {
 	if (m_bindPoseBoneOffsetBuffers) {
 		D3D12_GPU_VIRTUAL_ADDRESS virtualAddress = m_bindPoseBoneOffsetBuffers->GetGPUVirtualAddress();
-		commandList->SetGraphicsRootConstantBufferView(13, virtualAddress);
+		commandList->SetGraphicsRootConstantBufferView(16, virtualAddress);
 	}
 	if (m_skinningBoneTransformBuffers) {
 		D3D12_GPU_VIRTUAL_ADDRESS virtualAddress = m_skinningBoneTransformBuffers->GetGPUVirtualAddress();
-		commandList->SetGraphicsRootConstantBufferView(14, virtualAddress);
+		commandList->SetGraphicsRootConstantBufferView(17, virtualAddress);
 
 		for (int i = 0; i < m_skinningBoneFrames.size(); ++i) {
 			XMStoreFloat4x4(&m_mappedSkinningBoneTransforms[i], XMMatrixTranspose(XMLoadFloat4x4(&m_skinningBoneFrames[i]->GetWorldMatrix())));
@@ -847,7 +678,7 @@ void SkinnedMesh::LoadSkinnedMesh(const ComPtr<ID3D12Device>& device, const ComP
 					in.read((char*)(&m_bindPoseBoneOffsets[i]), sizeof(XMFLOAT4X4));
 
 				//바인드포즈 오프셋 버퍼 정의
-				UINT elementBytes = (((sizeof(XMFLOAT4X4) * SKINNED_BONES) + 255) & ~255);	// XMFLOAT4X4 가 최대 뼈의 갯수만큼 있는것을 가정하였을 때의 256의 배수 구하기
+				UINT elementBytes = (((sizeof(XMFLOAT4X4) * SKINNED_BONES) + 255) & ~255);	// // XMFLOAT4X4 가 최대 뼈의 갯수만큼 있는것을 가정하였을 때의 256의 배수 구하기
 				m_bindPoseBoneOffsetBuffers = CreateBufferResource(device, commandList, nullptr, elementBytes, D3D12_HEAP_TYPE_UPLOAD,
 					D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, ComPtr<ID3D12Resource>());
 				m_bindPoseBoneOffsetBuffers->Map(0, nullptr, (void**)&m_mappedBindPoseBoneOffsets);
@@ -1034,6 +865,7 @@ void SkinnedMesh::LoadSkinnedMesh(const ComPtr<ID3D12Device>& device, const ComP
 	}
 }
 
+
 BillboardMesh::BillboardMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, XMFLOAT3 position, XMFLOAT2 size)
 {
 	m_nIndices = 0;
@@ -1049,4 +881,29 @@ BillboardMesh::BillboardMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID
 	m_vertexBufferView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
 	m_vertexBufferView.SizeInBytes = sizeof(TextureVertex);
 	m_vertexBufferView.StrideInBytes = sizeof(TextureVertex);
+}
+
+UIMesh::UIMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList)
+{
+	m_primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	m_nVertices = 6;
+	m_nIndices = 0;
+
+	vector<TextureVertex> vertices;
+
+	vertices.emplace_back(XMFLOAT3(-1.f, -1.f, +0.f), XMFLOAT2(0.f, 1.f));
+	vertices.emplace_back(XMFLOAT3(-1.f, +1.f, +0.f), XMFLOAT2(0.f, 0.f));
+	vertices.emplace_back(XMFLOAT3(+1.f, -1.f, +0.f), XMFLOAT2(1.f, 1.f));
+	vertices.emplace_back(XMFLOAT3(+1.f, -1.f, +0.f), XMFLOAT2(1.f, 1.f));
+	vertices.emplace_back(XMFLOAT3(-1.f, +1.f, +0.f), XMFLOAT2(0.f, 0.f));
+	vertices.emplace_back(XMFLOAT3(+1.f, +1.f, +0.f), XMFLOAT2(1.f, 0.f));
+
+	m_nVertices = vertices.size();
+	m_vertexBuffer = CreateBufferResource(device, commandList, vertices.data(),
+		sizeof(TextureVertex) * vertices.size(), D3D12_HEAP_TYPE_DEFAULT,
+		D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, m_vertexUploadBuffer);
+
+	m_vertexBufferView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
+	m_vertexBufferView.StrideInBytes = sizeof(TextureVertex);
+	m_vertexBufferView.SizeInBytes = sizeof(TextureVertex) * vertices.size();
 }

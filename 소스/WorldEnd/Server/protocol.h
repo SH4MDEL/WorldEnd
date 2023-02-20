@@ -19,7 +19,7 @@ constexpr char SC_PACKET_PLAYER_ATTACK = 4;
 
 constexpr char INPUT_KEY_E = 0b1000;
 
-enum class ePlayerType : char { SWORD, BOW };
+enum class ePlayerType : char {SWORD, BOW};
 enum class eAttackType : char { NORMAL, SKILL };
 enum class eSceneType : char { LOGIN, LOADING, VILLAGE, PARTY, DUNGEON };
 
@@ -125,7 +125,7 @@ struct SC_LOGIN_FAILL_PACKET  // 로그인 실패를 알려주는 패킷
 	CHAR	id;
 };
 
-struct SC_READY_CHECK_PACKET  // 파티 준비 완료를 알려주는 패킷
+struct SC_READY_CHECK_PACKET   // 파티 준비 완료를 알려주는 패킷
 {
 	UCHAR	size;
 	UCHAR	type;
@@ -133,7 +133,7 @@ struct SC_READY_CHECK_PACKET  // 파티 준비 완료를 알려주는 패킷
 	bool	ready_check;
 };
 
-struct SC_PLAYER_SELECT_PACKET // 플레이어 종류 선택 패킷 
+struct SC_PLAYER_SELECT_PACKET  // 플레이어 종류 선택 패킷 
 {
 	UCHAR size;
 	UCHAR type;

@@ -1,7 +1,7 @@
 ﻿#include "camera.h"
 
 Camera::Camera() :
-	m_eye{ 0.0f, 0.0f, 0.0f }, m_right{ 1.f, 0.f, 0.f }, m_up{ 0.0f, 1.0f, 0.0f }, m_look{ 0.0f, 0.0f, 1.0f },
+	m_eye{ 0.0f, 0.0f, 0.0f }, m_right{ 1.f, 0.f, 0.f }, m_up { 0.0f, 1.0f, 0.0f}, m_look{ 0.0f, 0.0f, 1.0f },
 	m_roll{ 0.f }, m_pitch{ 0.f }, m_yaw{ 0.f }, m_delay{ 0.0f }
 {
 	XMStoreFloat4x4(&m_viewMatrix, XMMatrixIdentity());

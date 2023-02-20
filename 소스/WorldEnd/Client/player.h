@@ -2,9 +2,6 @@
 #include "stdafx.h"
 #include "object.h"
 
-#define ROLL_MAX +20
-#define ROLL_MIN -10
-
 class Camera;
 
 class Player : public GameObject
@@ -15,21 +12,20 @@ public:
 
 	void OnProcessingKeyboardMessage(FLOAT timeElapsed);
 
-	virtual void Update(FLOAT timeElapsed);
-	virtual void Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw);
+	void Update(FLOAT timeElapsed) override;
+	void Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw) override;
 
 	void ApplyFriction(FLOAT deltaTime);
 
-	XMFLOAT3 GetVelocity() const { return m_velocity; }
-	FLOAT GetHp() const { return m_hp; }
-
+	void SetPosition(const XMFLOAT3& position) override;
 	void SetVelocity(const XMFLOAT3& velocity) { m_velocity = velocity; }
 	void AddVelocity(const XMFLOAT3& increase);
 	void SetHp(FLOAT hp) { m_hp = hp; }
 	void SetCamera(const shared_ptr<Camera>& camera) { m_camera = camera; }
 	void SetHpBar(const shared_ptr<HpBar>& hpBar) { m_hpBar = hpBar; }
-	void SetHpBarPosition(const XMFLOAT3& position) { if (m_hpBar) m_hpBar->SetPosition(position); }
 
+	XMFLOAT3 GetVelocity() const { return m_velocity; }
+	FLOAT GetHp() const { return m_hp; }
 	
 	// 추가
 	void SetID(INT id) { m_id = id; }

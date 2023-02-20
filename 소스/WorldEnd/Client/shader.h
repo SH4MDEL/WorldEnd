@@ -15,10 +15,11 @@ public:
 
 	virtual void Update(FLOAT timeElapsed);
 	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const;
+	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, const shared_ptr<Shader>& shader) const;
 
 	shared_ptr<Player> GetPlayer() const { return m_player; }
 	shared_ptr<Camera> GetCamera() const { return m_camera; }
-	vector<shared_ptr<GameObject>>& GetGameObjects() { return m_gameObjects; }
+	const vector<shared_ptr<GameObject>>& GetObjects() const { return m_gameObjects; }
 	ComPtr<ID3D12PipelineState> GetPipelineState() const { return m_pipelineState; }
 
 	void SetPlayer(const shared_ptr<Player>& player);
@@ -27,13 +28,13 @@ public:
 	void SetMultiPlayer(INT ID, const shared_ptr<Player>& player);
 
 protected:
-	ComPtr<ID3D12PipelineState>			m_pipelineState;
-	vector<D3D12_INPUT_ELEMENT_DESC>	m_inputLayout;
+	ComPtr<ID3D12PipelineState>				m_pipelineState;
+	vector<D3D12_INPUT_ELEMENT_DESC>		m_inputLayout;
 
-	vector<shared_ptr<GameObject>>		m_gameObjects;
+	vector<shared_ptr<GameObject>>			m_gameObjects;
 
-	shared_ptr<Player>					m_player;
-	shared_ptr<Camera>					m_camera;
+	shared_ptr<Player>						m_player;
+	shared_ptr<Camera>						m_camera;
 
 	unordered_map<INT, shared_ptr<Player>>	m_multiPlayers;
 };
@@ -110,6 +111,20 @@ class HpBarShader : public Shader
 public:
 	HpBarShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature);
 	~HpBarShader() = default;
+};
+
+class ShadowShader : public Shader
+{
+public:
+	ShadowShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature);
+	~ShadowShader() = default;
+};
+
+class UIRenderShader : public Shader
+{
+public:
+	UIRenderShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature);
+	~UIRenderShader() = default;
 };
 
 class SkinnedAnimationShader : public Shader

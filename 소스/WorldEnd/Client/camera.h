@@ -51,16 +51,16 @@ protected:
 	XMFLOAT4X4				m_projMatrix;	// 투영변환 행렬
 
 	ComPtr<ID3D12Resource>	m_cameraBuffer;
-	CameraInfo* m_cameraBufferPointer;
+	CameraInfo*				m_cameraBufferPointer;
 
 	XMFLOAT3				m_eye;
 	XMFLOAT3				m_right;
 	XMFLOAT3				m_up;
 	XMFLOAT3				m_look;
 
-	FLOAT					m_roll;
-	FLOAT					m_pitch;
-	FLOAT					m_yaw;
+	FLOAT					m_roll;			
+	FLOAT					m_pitch;		
+	FLOAT					m_yaw;			
 
 	FLOAT					m_delay;
 

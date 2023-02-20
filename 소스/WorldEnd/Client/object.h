@@ -29,7 +29,7 @@ public:
 	void SetMaterials(const shared_ptr<Materials>& materials);
 	void SetAnimationSet(const shared_ptr<AnimationSet>& animations);
 
-	void SetPosition(const XMFLOAT3& position);
+	virtual void SetPosition(const XMFLOAT3& position);
 	void SetScale(FLOAT x, FLOAT y, FLOAT z);
 	void SetWorldMatrix(const XMFLOAT4X4& worldMatrix);
 
@@ -79,9 +79,9 @@ protected:
 	XMFLOAT3					m_up;			// 로컬 y축
 	XMFLOAT3					m_front;		// 로컬 z축
 
-	FLOAT						m_roll;			// x축 회전각
-	FLOAT						m_pitch;		// y축 회전각
-	FLOAT						m_yaw;			// z축 회전각
+	FLOAT						m_roll;			
+	FLOAT						m_pitch;		
+	FLOAT						m_yaw;			
 
 	shared_ptr<Mesh>			m_mesh;			// 메쉬
 	shared_ptr<Texture>			m_texture;		// 텍스처
@@ -108,7 +108,7 @@ public:
 	virtual void Move(const XMFLOAT3& shift);
 	virtual void Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw);
 
-	void SetPosition(const XMFLOAT3& position);
+	void SetPosition(const XMFLOAT3& position) override;
 
 	XMFLOAT3 GetPosition() const { return m_blocks.front()->GetPosition(); }
 	INT GetWidth() const { return m_width; }
@@ -137,7 +137,7 @@ public:
 	virtual void Move(const XMFLOAT3 & shift);
 	virtual void Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw);
 
-	void SetPosition(const XMFLOAT3 & position);
+	void SetPosition(const XMFLOAT3 & position) override;
 
 	XMFLOAT3 GetPosition() const { return m_blocks.front()->GetPosition(); }
 	INT GetWidth() const { return m_width; }
@@ -150,7 +150,6 @@ private:
 	INT								m_width;			// 이미지의 가로 길이
 	INT								m_length;			// 이미지의 세로 길이
 };
-
 
 class Skybox : public GameObject
 {

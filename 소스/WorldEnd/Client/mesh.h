@@ -132,7 +132,6 @@ public:
 	void ReleaseUploadBuffer() override;
 
 	void LoadFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, const wstring& fileName);
-	void LoadFileMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, ifstream& in);
 	void LoadMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, ifstream& in);
 
 	string GetMeshName() const { return m_meshName; }
@@ -260,4 +259,11 @@ public:
 	BillboardMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList,
 		XMFLOAT3 position, XMFLOAT2 size);
 	~BillboardMesh() = default;
+};
+
+class UIMesh : public Mesh
+{
+public:
+	UIMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList);
+	~UIMesh() = default;
 };
