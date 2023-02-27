@@ -334,7 +334,7 @@ void MeshFromFile::LoadMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3
 
 	UINT positionNum, colorNum, texcoord0Num, texcoord1Num, normalNum, tangentNum, biTangentNum;
 
-	in.read((char*)(&m_nVertices), sizeof(INT));
+	//in.read((char*)(&m_nVertices), sizeof(INT));
 
 	in.read((char*)(&strLength), sizeof(BYTE));
 	m_meshName.resize(strLength, '\0');

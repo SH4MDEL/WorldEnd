@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include "session.h"
 #include "monster.h"
 
@@ -21,12 +21,12 @@ private:
 	array<Session, MAX_USER>				m_clients;
 	vector<std::unique_ptr<Monster>>		m_monsters;			
 
-	// Åë½Å °ü·Ã º¯¼ö
+	// í†µì‹  ê´€ë ¨ ë³€ìˆ˜
 	vector <thread>                         m_worker_threads;
-	int 									m_disconnect_cnt;	// ¿¬°á ²÷±ä ÀÎ¿ø ¼ö
+	int 									m_disconnect_cnt;	// ì—°ê²° ëŠê¸´ ì¸ì› ìˆ˜
 	bool									m_accept;
 
-	// °ÔÀÓ °ü·Ã
+	// ê²Œì„ ê´€ë ¨
 	int                                     m_round;
 	char                                    m_next_monster_id;
 
@@ -53,11 +53,19 @@ public:
 	void SendPlayerAttackPacket(int pl_id);
 	void SendMonsterDataPacket();
 
-	void PlayerCollisionCheck (Session& player, const int id);
+	void PlayerCollisionCheck(Session& player, const int id);
 	void Update();
 	void CreateMosnters();
 
 	void Timer();
 
 	CHAR GetNewId() const;
+
+
+	// í”Œë ˆì´ì–´ ì²˜ë¦¬
+	void MovePlayer(Session& player, XMFLOAT3 velocity);
+	void RotatePlayer(Session& player, FLOAT yaw);
+
+	void CollideByStatic(Session& player1, DirectX::BoundingOrientedBox obb);
+	void CollideByMoveMent(Session& player1, Session& player2);
 };

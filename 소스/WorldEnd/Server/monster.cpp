@@ -19,7 +19,7 @@ void Monster::SetMonsterPosition()
 		{ 0.0f,	0.0f, 5.0f }, { 2.0f, 0.0f, -6.0f },{ 4.0f,  0.0f, 0.0f },	{ -3.0f, 0.0f, 0.0f },
 		{ 5.0f, 0.0f, 7.0f }, { -10.0f, 0.0f,  15.0f },	{ 15.0f, 0.0f, 16.0f }, {  14.0f, 0.0f, -17.0f }
 	};
-	const std::uniform_int_distribution<int> area_distribution{ 0, static_cast<int>(std::size(monster_create_area) - 1) };
+	std::uniform_int_distribution<int> area_distribution{ 0, static_cast<int>(std::size(monster_create_area) - 1) };
 	SetPosition(monster_create_area[area_distribution(g_random_engine)]);
 }
 

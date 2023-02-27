@@ -35,10 +35,29 @@ void Session::DoSend()
 {
 }
 
+void Session::SetPlayerType(PlayerType type)
+{
+	m_player_type = type;
+	SetBoundingBox(type);
+}
+
+void Session::SetBoundingBox(PlayerType type)
+{
+	switch (type) {
+	case PlayerType::BOW:
+		// 바운드 박스는 현재 궁수의 몸통을 기준으로 생성함
+		m_bounding_box = BoundingOrientedBox{ XMFLOAT3{0.f, 0.f, 0.f}, XMFLOAT3{0.65f, 0.37f, 0.65f}, XMFLOAT4{0.0f, 0.0f, 0.0f, 1.0f} };
+		m_weopon_bounding_box = BoundingOrientedBox{ XMFLOAT3{0.f, 0.f, 0.f}, XMFLOAT3{0.18f, 0.04f, 0.68f}, XMFLOAT4{0.0f, 0.0f, 0.0f, 1.0f} };
+		break;
+
+	case PlayerType::SWORD:
+		m_bounding_box = BoundingOrientedBox{ XMFLOAT3{0.f, 0.f, 0.f}, XMFLOAT3{0.65f, 0.17f, 0.7f}, XMFLOAT4{0.0f, 0.0f, 0.0f, 1.0f} };
+		m_weopon_bounding_box = BoundingOrientedBox{ XMFLOAT3{0.f, 0.f, 0.f}, XMFLOAT3{0.13f, 0.03f, 0.68f}, XMFLOAT4{0.0f, 0.0f, 0.0f, 1.0f} };
+		break;
+	}
+}
+
 DirectX::BoundingOrientedBox Session::GetBoundingBox() const
 {
-	BoundingOrientedBox result{};
-	m_boundingbox.Transform(result, XMLoadFloat4x4(&m_worldMatrix));
-	return result;
-	return DirectX::BoundingOrientedBox();
+	return m_bounding_box;
 }

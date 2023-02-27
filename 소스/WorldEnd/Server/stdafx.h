@@ -1,4 +1,4 @@
-// d3d12 Çì´õ ÆÄÀÏÀÔ´Ï´Ù.
+ï»¿// d3d12 í—¤ë” íŒŒì¼ì…ë‹ˆë‹¤.
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
 #include <iostream>
@@ -41,5 +41,4 @@ extern std::mt19937		g_random_engine;
 
 void ErrorDisplay(const char* msg);
 void ErrorDisplay(int err_no);
-
 

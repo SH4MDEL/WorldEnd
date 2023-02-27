@@ -90,8 +90,8 @@ struct CS_ATTACK_PACKET
 {
 	UCHAR size;
 	UCHAR type;
-	//ePlayerType player_type; // 근접 캐릭인지 원거리 캐릭인지 구별해주는 열거체 변수
-	//eAttackType attack_type; // 기본 공격인이 스킬 공격인지 구별해주는 열거체 변수
+	//PlayerType player_type; // 근접 캐릭인지 원거리 캐릭인지 구별해주는 열거체 변수
+	//AttackType attack_type; // 기본 공격인이 스킬 공격인지 구별해주는 열거체 변수
 	CHAR key;
 };
 

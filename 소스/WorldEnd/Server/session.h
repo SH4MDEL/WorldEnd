@@ -40,8 +40,10 @@ public:
 	PlayerData			m_player_data;	    // 클라이언트로 보낼 데이터 구조체
 	CHAR				m_name[NAME_SIZE];	// 닉네임
 	bool                m_ready_check;      // 로비에서 준비 
+
 	PlayerType         m_player_type;      // 플레이어 종류
-	BoundingOrientedBox                     m_boundingbox;
+	BoundingOrientedBox                     m_bounding_box;
+	BoundingOrientedBox						m_weopon_bounding_box;
 	XMFLOAT4X4				                m_worldMatrix;	
 public:
 	Session();
@@ -50,6 +52,8 @@ public:
 	void DoRecv();
 	void DoSend();
 
+	void SetPlayerType(PlayerType type);
+	void SetBoundingBox(PlayerType type);
 	DirectX::BoundingOrientedBox GetBoundingBox() const;
 };
 
