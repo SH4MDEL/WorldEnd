@@ -16,14 +16,19 @@ struct TimerEvent {
 
 class Server
 {
-	// 통신 관련 변수
+
 private:
 	array<Session, MAX_USER>				m_clients;
 	vector<std::unique_ptr<Monster>>		m_monsters;			
 
+	// 통신 관련 변수
 	vector <thread>                         m_worker_threads;
+	int 									m_disconnect_cnt;	// 연결 끊긴 인원 수
+	bool									m_accept;
 
-	INT									    m_disconnect_cnt;	// 연결 끊긴 인원 수
+	// 게임 관련
+	int                                     m_round;
+	char                                    m_next_monster_id;
 
 	int                                     m_start_cool_time;
 	int                                     m_end_cool_time = 5;
@@ -49,6 +54,8 @@ public:
 	void SendMonsterDataPacket();
 
 	void PlayerCollisionCheck (Session& player, const int id);
+	void Update();
+	void CreateMosnters();
 
 	void Timer();
 

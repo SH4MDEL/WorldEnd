@@ -340,15 +340,19 @@ void TowerScene::RecvAttackPacket(char* ptr)
 
 void TowerScene::RecvUpdateMonster(char* ptr)
 {
+
 	SC_MONSTER_UPDATE_PACKET* monster_packet = reinterpret_cast<SC_MONSTER_UPDATE_PACKET*>(ptr);
 
-	MonsterData monster_data{};
+	
+		if (monster_packet->data.id < 0) return;
 
-	monster_data.id = monster_packet->data->id;
-	monster_data.pos = monster_packet->data->pos;
+		m_monsters[monster_packet->data.id].id = monster_packet->data.id;
+		m_monsters[monster_packet->data.id].pos = monster_packet->data.pos;
 
-	cout << "monster id - " << (int)monster_data.id << endl;
-	cout << "monster pos (x: " << monster_data.pos.x << " y: " << monster_data.pos.y << " z: " << monster_data.pos.z << ")" << endl;
+		cout << "monster id - " << (int)m_monsters[monster_packet->data.id].id << endl;
+		cout << "monster pos (x: " << m_monsters[monster_packet->data.id].pos.x << 
+			" y: " << m_monsters[monster_packet->data.id].pos.y << 
+			" z: " << m_monsters[monster_packet->data.id].pos.z << ")" << endl;
 	
 
 }

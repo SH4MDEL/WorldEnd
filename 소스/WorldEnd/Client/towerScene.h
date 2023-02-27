@@ -35,6 +35,7 @@ public:
 	void RecvUpdateClient(char* ptr);
 	void RecvAttackPacket(char* ptr);
 	void RecvUpdateMonster(char* ptr);
+
 protected:
 	vector<shared_ptr<GameObject>>			m_object;
 
@@ -42,7 +43,7 @@ protected:
 	shared_ptr<Camera>						m_camera;
 
 	// 서버 추가 코드
-	unordered_map<INT, shared_ptr<Player>>	m_multiPlayers;
-
+	unordered_map<INT, shared_ptr<Player>>	            m_multiPlayers;
+	unordered_map<INT, MonsterData>                     m_monsters;
 };
 

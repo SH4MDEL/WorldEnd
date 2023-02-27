@@ -37,6 +37,7 @@ class Server;
 extern Server           g_server;
 extern SOCKET			g_socket;
 extern HANDLE           g_h_iocp;
+extern std::mt19937		g_random_engine;
 
 void ErrorDisplay(const char* msg);
 void ErrorDisplay(int err_no);

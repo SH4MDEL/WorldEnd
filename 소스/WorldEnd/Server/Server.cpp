@@ -1,7 +1,7 @@
 #include "Server.h"
 #include "stdafx.h"
 
-Server::Server() : m_disconnect_cnt{ 0 }
+Server::Server() : m_disconnect_cnt{ 0 }, m_round{1}, m_next_monster_id {0}
 {
 }
 
@@ -44,9 +44,39 @@ int Server::Network()
 	for (int i = 0; i < 6; ++i)
 		m_worker_threads.emplace_back(&Server::WorkerThreads, this);
 
-	thread1.join();
+	thread1.detach();
 	for (auto& th : m_worker_threads)
-		th.join();
+		th.detach();
+
+	using frame = std::chrono::duration<int32_t, std::ratio<1, 60>>;
+	std::chrono::time_point<std::chrono::steady_clock> fps_timer{ std::chrono::steady_clock::now() };
+
+	frame fps{}, frame_count{};
+	while (true) {
+
+		// 아무도 서버에 접속하지 않았으면 패스
+		//if (!m_accept)
+		//{
+		//	// 이 부분이 없다면 첫 프레임 때 deltaTime이 '클라에서 처음 접속한 시각 - 서버를 켠 시각' 이 된다.
+		//	fps_timer = std::chrono::steady_clock::now();
+		//	continue;
+		//}
+
+		// 이전 사이클에 얼마나 시간이 걸렸는지 계산
+		fps = duration_cast<frame>(std::chrono::steady_clock::now() - fps_timer);
+
+		// 아직 1/60초가 안지났으면 패스
+		if (fps.count() < 1) continue;
+
+		if (frame_count.count() & 1) {
+
+		}
+		else {
+			//SendMonsterDataPacket();
+		}
+
+		Update();
+	}
 
 
 
@@ -88,7 +118,7 @@ void Server::WorkerThreads()
 				cl.m_ready_check = false;
 				constexpr char dummy_name[10] = "dummy\0";
 				strcpy_s(cl.m_name, sizeof(dummy_name), dummy_name);
-				cl.m_player_type = ePlayerType::SWORD;
+				cl.m_player_type = PlayerType::SWORD;
 				cl.m_prev_size = 0;
 				cl.m_recv_over._comp_type = OP_RECV;
 				cl.m_recv_over._wsa_buf.buf = reinterpret_cast<char*>(cl.m_recv_over._send_buf);
@@ -115,7 +145,6 @@ void Server::WorkerThreads()
 			int remain_data = num_bytes + cl.m_prev_size;
 			char* packet_start = exp_over->_send_buf;
 			int packet_size = packet_start[0];
-
 			while (packet_size <= remain_data) {
 				ProcessPacket(static_cast<int>(key), packet_start);
 				remain_data -= packet_size;
@@ -336,23 +365,63 @@ void Server::PlayerCollisionCheck(Session& player , const int id )
 	for (auto& p : m_clients) {
 		p.m_boundingbox = BoundingOrientedBox{ p.m_player_data.pos, XMFLOAT3{ 4.0f, 4.0f, 10.0f }, XMFLOAT4{ 0.0f, 0.0f, 0.0f, 1.0f }};
 
-		if (p.m_boundingbox.Intersects(p.m_boundingbox)) {
+	/*	if (p.m_boundingbox.Intersects(p.m_boundingbox)) {
 			player.m_player_data.pos.z -= 3.0f;
-		}
+		}*/
 	}
+}
+
+void Server::Update()
+{
+
+	if (m_monsters.size() < MAX_MONSTER) 
+		CreateMosnters();
+	
+
+	for (auto& m : m_monsters)
+		m->CreateMonster();
+
+
+}
+
+void Server::CreateMosnters()
+{
+	unique_ptr<Monster> monsters;
+
+	switch (m_round)
+	{
+	case 1:
+		monsters = make_unique<WarriorMonster>();
+		monsters->SetMonsterPosition();
+		break;
+	default:
+		break;
+	}
+	monsters->SetId(m_next_monster_id++);
+	
+	cout << "Monster id - " << (int)monsters->GetId() << " is created" << " / pos (x: " << monsters->GetPosition().x << " y: " << monsters->GetPosition().y
+		<< " z: " << monsters->GetPosition().z << ")" << endl;
+	cout << "capacity:" << m_monsters.size() << " / " << MAX_MONSTER << std::endl;
+
+	m_monsters.push_back(move(monsters));
+
+	
+
 }
 
 void Server::SendMonsterDataPacket()
 {
-	
-	for (size_t i = 0; i < m_monsters.size(); ++i)
-		m_monsters[i]->SetPosition(XMFLOAT3(0.0f, 0.0f, 0.0f));
+	//cout << "크기 - " << m_monsters.size() << endl;
 
-	SC_MONSTER_UPDATE_PACKET monster_packet{};
-	monster_packet.size = static_cast<UCHAR>(sizeof(monster_packet));
-	monster_packet.type = SC_PACKET_UPDATE_MONSTER;
-	for (size_t i = 0; i < m_monsters.size(); ++i)
-		monster_packet.data[i] = m_monsters[i]->GetData();
+	SC_MONSTER_UPDATE_PACKET monster_packet[10];
+	
+	for (size_t i = 0; i < m_monsters.size(); ++i) {
+		monster_packet[i].size = static_cast<UCHAR>(sizeof(SC_MONSTER_UPDATE_PACKET));
+		monster_packet[i].type = SC_PACKET_UPDATE_MONSTER;
+		monster_packet[i].data = m_monsters[i]->GetData();
+	}
+	for (size_t i = m_monsters.size(); i < MAX_MONSTER; ++i)
+		monster_packet[i].data = MonsterData{.id = -1};
 
 	char buf[sizeof(monster_packet)];
 	memcpy(buf, reinterpret_cast<char*>(&monster_packet), sizeof(monster_packet));
@@ -413,6 +482,8 @@ void Server::Timer()
 			}
 		}
 }
+
+
 
 
 

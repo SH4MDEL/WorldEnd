@@ -6,7 +6,7 @@ constexpr short SERVER_PORT = 9000;
 constexpr int BUF_SIZE = 1600;
 constexpr int NAME_SIZE = 20;
 constexpr int MAX_USER = 3;
-constexpr int MAX_MONSTER = 1;
+constexpr int MAX_MONSTER = 10;
 
 constexpr char CS_PACKET_LOGIN = 1;
 constexpr char CS_PACKET_PLAYER_MOVE = 2;
@@ -20,9 +20,10 @@ constexpr char SC_PACKET_UPDATE_MONSTER = 5;
 
 constexpr char INPUT_KEY_E = 0b1000;
 
-enum class ePlayerType : char {SWORD, BOW};
-enum class eAttackType : char { NORMAL, SKILL };
-enum class eSceneType : char { LOGIN, LOADING, VILLAGE, PARTY, DUNGEON  };
+enum class PlayerType : char {SWORD, BOW};
+enum class AttackType : char { NORMAL, SKILL };
+enum class SceneType : char { LOGIN, LOADING, VILLAGE, PARTY, DUNGEON  };
+enum class MonsterType : char {WARRIOR, ARCHER, WIZARD};
 
 enum eEventType : char { EVENT_PLAYER_ATTACK };
 
@@ -47,7 +48,7 @@ struct ArrowData
 
 struct MonsterData
 {
-	CHAR				id = -1;			// 몬스터 고유 번호
+	CHAR				id;			// 몬스터 고유 번호
 	DirectX::XMFLOAT3	pos;		// 위치
 	DirectX::XMFLOAT3	velocity;	// 속도
 	FLOAT				yaw;		// 회전각
@@ -72,7 +73,7 @@ struct CS_LOGOUT_PACKET
 struct CS_PLAYER_MOVE_PACKET
 {
 	UCHAR size;
-	CHAR type;
+	UCHAR type;
 	DirectX::XMFLOAT3	pos;
 	DirectX::XMFLOAT3	velocity;
 	FLOAT				yaw;
@@ -116,7 +117,7 @@ struct SC_LOGIN_OK_PACKET    // 로그인 성공을 알려주는 패킷
 	UCHAR type;
 	CHAR  name[NAME_SIZE];
 	PlayerData player_data;
-	ePlayerType player_type;
+	PlayerType player_type;
 };
 
 struct SC_ADD_PLAYER_PACKET
@@ -125,7 +126,7 @@ struct SC_ADD_PLAYER_PACKET
 	UCHAR type;
 	CHAR  name[NAME_SIZE];
 	PlayerData player_data;
-	ePlayerType player_type;
+	PlayerType player_type;
 };
 
 struct SC_LOGIN_FAILL_PACKET  // 로그인 실패를 알려주는 패킷
@@ -148,7 +149,7 @@ struct SC_PLAYER_SELECT_PACKET // 플레이어 종류 선택 패킷
 	UCHAR size;
 	UCHAR type;
 	CHAR  id;
-	ePlayerType player_type;
+	PlayerType player_type;
 };
 
 struct SC_ARROW_DATA_PACKET    // 투사체 정보를 보내주는 패킷
@@ -162,7 +163,7 @@ struct SC_SCENE_CHANGE_PACKET    // 씬 변경 패킷
 {
 	UCHAR		size;
 	UCHAR		type;
-	eSceneType  scene_type;     // 씬 정보를 담고 있는 열거체 변수
+	SceneType  scene_type;     // 씬 정보를 담고 있는 열거체 변수
 };
 
 struct SC_UPDATE_CLIENT_PACKET
@@ -184,7 +185,7 @@ struct SC_MONSTER_UPDATE_PACKET
 {
 	UCHAR		size;
 	UCHAR		type;
-	MonsterData	data[MAX_MONSTER];
+	MonsterData	data;
 };
 
 #pragma pack (pop)

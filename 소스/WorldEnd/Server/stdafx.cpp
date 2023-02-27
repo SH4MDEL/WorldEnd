@@ -4,6 +4,7 @@
 Server              g_server{};
 SOCKET				g_socket{};
 HANDLE				g_h_iocp{};
+std::mt19937		g_random_engine{ std::random_device{}() };
 
 void ErrorDisplay(const char* msg)
 {
