@@ -39,6 +39,8 @@ public:
 	void RecvLoginOkPacket(char* ptr);
 	void RecvAddPlayerPacket(char* ptr);
 	void RecvUpdateClient(char* ptr);
+	void RecvAttackPacket(char* ptr);
+	void RecvUpdateMonster(char* ptr);
 
 protected:
 	ComPtr<ID3D12Resource>					m_sceneBuffer;
@@ -57,6 +59,7 @@ protected:
 	unique_ptr<Shadow>						m_shadow;
 
 	// 서버 추가 코드
-	unordered_map<INT, shared_ptr<Player>>	m_multiPlayers;
+	unordered_map<INT, shared_ptr<Player>>	            m_multiPlayers;
+	unordered_map<INT, MonsterData>                     m_monsters;
 };
 

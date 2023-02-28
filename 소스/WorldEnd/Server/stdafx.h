@@ -1,4 +1,4 @@
-// d3d12 Çì´õ ÆÄÀÏÀÔ´Ï´Ù.
+ï»¿// d3d12 í—¤ë” íŒŒì¼ì…ë‹ˆë‹¤.
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
 #include <iostream>
@@ -9,6 +9,9 @@
 #include <vector>
 #include <mutex>
 #include <random>
+#include <concurrent_queue.h>
+#include<concurrent_priority_queue.h>
+#include<concurrent_unordered_set.h>
 #include "protocol.h"
 
 #pragma comment (lib, "opengl32.lib")
@@ -34,8 +37,8 @@ class Server;
 extern Server           g_server;
 extern SOCKET			g_socket;
 extern HANDLE           g_h_iocp;
+extern std::mt19937		g_random_engine;
 
 void ErrorDisplay(const char* msg);
 void ErrorDisplay(int err_no);
-
 

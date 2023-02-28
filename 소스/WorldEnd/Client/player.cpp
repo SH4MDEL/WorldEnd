@@ -91,14 +91,13 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 		m_animationController->SetTrackEnable(1, false);
 		m_animationController->SetTrackEnable(2, true);
 
-		char packet_direction{};
-		packet_direction += INPUT_KEY_E;
 		CS_ATTACK_PACKET attack_packet;
 		attack_packet.size = sizeof(attack_packet);
 		attack_packet.type = CS_PACKET_PLAYER_ATTACK;
-		attack_packet.key = packet_direction;
-
+		attack_packet.key = m_key;
+		m_key = 0;
 		send(g_socket, reinterpret_cast<char*>(&attack_packet), sizeof(attack_packet), 0);
+
 	}
 }
 
@@ -168,7 +167,7 @@ void Player::AddVelocity(const XMFLOAT3& increase)
 {
 	m_velocity = Vector3::Add(m_velocity, increase);
 
-	// 최대 속도에 걸린다면 해당 비율로 축소시킴
+	// �ִ� �ӵ��� �ɸ��ٸ� �ش� ������ ��ҽ�Ŵ
 	FLOAT length{ Vector3::Length(m_velocity) };
 	if (length > m_maxVelocity)
 	{
@@ -177,7 +176,7 @@ void Player::AddVelocity(const XMFLOAT3& increase)
 	}
 }
 
-// -------------콜백 함수 -----------
+// -------------�ݹ� �Լ� -----------
 void AttackCallbackHandler::Callback(void* callbackData, float trackPosition)
 {
 	Player* p = static_cast<Player*>(callbackData);
