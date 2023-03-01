@@ -133,7 +133,7 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	m_shadow = make_unique<Shadow>(device, 4096, 4096);
 
 	// 씬 로드
-	//LoadSceneFromFile(device, commandlist, TEXT("./Resource/Scene/TowerScene.bin"), TEXT("TowerScene"));
+	LoadSceneFromFile(device, commandlist, TEXT("./Resource/Scene/TowerScene.bin"), TEXT("TowerScene"));
 
 	// 스카이 박스 생성
 	auto skybox{ make_shared<Skybox>(device, commandlist, 20.0f, 20.0f, 20.0f) };
@@ -217,6 +217,7 @@ void TowerScene::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) co
 	if (m_camera) m_camera->UpdateShaderVariable(commandList);
 	if (m_lightSystem) m_lightSystem->UpdateShaderVariable(commandList);
 	m_shaders.at("PLAYER")->Render(commandList);
+	m_shaders.at("OBJECT")->Render(commandList);
 	m_shaders.at("SKYBOX")->Render(commandList);
 	m_shaders.at("HPBAR")->Render(commandList);
 	//m_shaders.at("DEBUG")->Render(commandList);
@@ -244,7 +245,8 @@ void TowerScene::RenderShadow(const ComPtr<ID3D12GraphicsCommandList>& commandLi
 	// 반드시 활성 PSO의 렌더 타겟 개수도 0으로 지정해야 함을 주의해야 한다.
 	commandList->OMSetRenderTargets(0, nullptr, false, &m_shadow->GetCpuDsv());
 
-	m_shaders.at("PLAYER")->Render(commandList, m_shaders.at("SHADOW"));
+	m_shaders.at("PLAYER")->Render(commandList, m_shaders.at("ANIMATIONSHADOW"));
+	m_shaders.at("OBJECT")->Render(commandList, m_shaders.at("SHADOW"));
 
 	// 셰이더에서 텍스처를 읽을 수 있도록 다시 GENERIC_READ로 바꾼다.
 	commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_shadow->GetShadowMap().Get(),
@@ -285,7 +287,7 @@ void TowerScene::LoadSceneFromFile(const ComPtr<ID3D12Device>& device, const Com
 		object->SetWorldMatrix(worldMetrix);
 
 		m_object.push_back(object);
-		m_shaders["PLAYER"]->SetObject(object);
+		m_shaders["OBJECT"]->SetObject(object);
 	}
 }
 

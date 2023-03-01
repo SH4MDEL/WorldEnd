@@ -443,7 +443,7 @@ HpBarShader::HpBarShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 	DX::ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
 }
 
-SkinnedAnimationShader::SkinnedAnimationShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature)
+AnimationShader::AnimationShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature)
 {
 	ComPtr<ID3DBlob> mvsByteCode;
 	ComPtr<ID3DBlob> mpsByteCode;
@@ -453,8 +453,8 @@ SkinnedAnimationShader::SkinnedAnimationShader(const ComPtr<ID3D12Device>& devic
 #else
 	UINT compileFlags = 0;
 #endif
-	DX::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/Shaders.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "VS_SKINNED_ANIMATION_MAIN", "vs_5_1", compileFlags, 0, &mvsByteCode, nullptr));
-	DX::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/Shaders.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "PS_TEXTUREHIERARCHY_MAIN", "ps_5_1", compileFlags, 0, &mpsByteCode, nullptr));
+	DX::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/Shaders.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "VS_ANIMATION_MAIN", "vs_5_1", compileFlags, 0, &mvsByteCode, nullptr));
+	DX::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/Shaders.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "PS_ANIMATION_MAIN", "ps_5_1", compileFlags, 0, &mpsByteCode, nullptr));
 
 	m_inputLayout =
 	{
@@ -476,7 +476,7 @@ SkinnedAnimationShader::SkinnedAnimationShader(const ComPtr<ID3D12Device>& devic
 	psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
 	psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 	psoDesc.SampleMask = UINT_MAX;
-	psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
+	psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 	psoDesc.NumRenderTargets = 1;
 	psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 	psoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
@@ -504,6 +504,50 @@ ShadowShader::ShadowShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D
 		{ "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 		{ "BITANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 36, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 48, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+	};
+
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc{};
+	psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+	psoDesc.RasterizerState.DepthBias = 100000;
+	psoDesc.RasterizerState.DepthBiasClamp = 0.0f;
+	psoDesc.RasterizerState.SlopeScaledDepthBias = 1.0f;
+
+	psoDesc.InputLayout = { m_inputLayout.data(), (UINT)m_inputLayout.size() };
+	psoDesc.pRootSignature = rootSignature.Get();
+	psoDesc.VS = CD3DX12_SHADER_BYTECODE(mvsByteCode.Get());
+	psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+	psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+	psoDesc.SampleMask = UINT_MAX;
+	psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	psoDesc.NumRenderTargets = 0;
+	psoDesc.RTVFormats[0] = DXGI_FORMAT_UNKNOWN;
+	psoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	psoDesc.SampleDesc.Count = 1;
+	psoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
+	DX::ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
+}
+
+AnimationShadowShader::AnimationShadowShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature)
+{
+	ComPtr<ID3DBlob> mvsByteCode;
+
+#if defined(_DEBUG)
+	UINT compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+#else
+	UINT compileFlags = 0;
+#endif
+
+	DX::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/Shadow.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "VS_ANIMATION_SHADOW_MAIN", "vs_5_1", compileFlags, 0, &mvsByteCode, nullptr));
+
+	m_inputLayout =
+	{
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+		{ "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+		{ "BITANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 36, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 48, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+		{ "BONEINDEX", 0, DXGI_FORMAT_R32G32B32A32_SINT, 0, 56, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+		{ "BONEWEIGHT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 72, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
 	};
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc{};

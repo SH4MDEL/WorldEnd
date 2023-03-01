@@ -113,6 +113,13 @@ public:
 	~HpBarShader() = default;
 };
 
+class AnimationShader : public Shader
+{
+public:
+	AnimationShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature);
+	~AnimationShader() = default;
+};
+
 class ShadowShader : public Shader
 {
 public:
@@ -120,16 +127,16 @@ public:
 	~ShadowShader() = default;
 };
 
+class AnimationShadowShader : public Shader
+{
+public:
+	AnimationShadowShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature);
+	~AnimationShadowShader() = default;
+};
+
 class UIRenderShader : public Shader
 {
 public:
 	UIRenderShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature);
 	~UIRenderShader() = default;
-};
-
-class SkinnedAnimationShader : public Shader
-{
-public:
-	SkinnedAnimationShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature);
-	~SkinnedAnimationShader() = default;
 };

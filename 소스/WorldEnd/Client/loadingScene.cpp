@@ -30,7 +30,7 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	CreateShaderVariable(device, commandlist);
 
 	// 플레이어 로딩
-	auto playerShader{ make_shared<SkinnedAnimationShader>(device, rootsignature) };
+	auto playerShader{ make_shared<AnimationShader>(device, rootsignature) };
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/WarriorMesh.bin"));
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/ArcherMesh.bin"));
 
@@ -39,6 +39,8 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/WarriorTexture.bin"));
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/ArcherTexture.bin"));
+
+	auto objectShader{ make_shared<TextureHierarchyShader>(device, rootsignature) };
 
 	// 체력 바 로딩
 	auto hpBarShader{ make_shared<HpBarShader>(device, rootsignature) };
@@ -57,14 +59,15 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	skyboxTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURECUBE);
 
 	// 그림자 셰이더 로딩
-	auto shadowShader{ make_shared<ShadowShader>(device, rootsignature)};
+	auto shadowShader{ make_shared<ShadowShader>(device, rootsignature) };
+	auto animationShadowShader{ make_shared<AnimationShadowShader>(device, rootsignature) };
 
 	// 몬스터 로딩
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/Undead_WarriorMesh.bin"));
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/Undead_WarriorTexture.bin"));
 
 	// 타워 씬 메쉬 로딩
-	/*LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/Book_09Mesh.bin"));
+	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/Book_09Mesh.bin"));
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/Bottle_05Mesh.bin"));
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/Box_02Mesh.bin"));
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/Candle_01Mesh.bin"));
@@ -98,7 +101,7 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/Table_01Texture.bin"));
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/Wall_27Texture.bin"));
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/WallDecor_05Texture.bin"));
-	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/Wood_02Texture.bin"));*/
+	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/Wood_02Texture.bin"));
 
 	// 디버그용 메쉬와 셰이더
 	auto debugMesh{ make_shared<UIMesh>(device, commandlist) };
@@ -114,9 +117,11 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 
 	// 셰이더 설정
 	m_shaders.insert({ "PLAYER", playerShader });
+	m_shaders.insert({ "OBJECT", objectShader });
 	m_shaders.insert({ "SKYBOX", skyboxShader });
 	m_shaders.insert({ "HPBAR", hpBarShader });
 	m_shaders.insert({ "SHADOW", shadowShader });
+	m_shaders.insert({ "ANIMATIONSHADOW", animationShadowShader });
 	m_shaders.insert({ "DEBUG", debugShader });
 
 	g_GameFramework.ChangeScene(SCENETAG::TowerScene);

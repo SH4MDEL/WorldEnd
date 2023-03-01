@@ -134,9 +134,9 @@ float4 PS_TEXTUREHIERARCHY_MAIN(VS_TEXTUREHIERARCHY_OUTPUT input) : SV_TARGET
 }
 
 /*
- *  SKIN_ANIMATION_SHADER
+ *  ANIMATION_SHADER
  */
-struct VS_SKINNED_STANDARD_INPUT
+struct VS_ANIMATION_INPUT
 {
 	float3 position : POSITION;
 	float3 normal : NORMAL;
@@ -147,9 +147,20 @@ struct VS_SKINNED_STANDARD_INPUT
 	float4 weights : BONEWEIGHT;
 };
 
-VS_TEXTUREHIERARCHY_OUTPUT VS_SKINNED_ANIMATION_MAIN(VS_SKINNED_STANDARD_INPUT input)
+struct VS_ANIMATION_OUTPUT
 {
-	VS_TEXTUREHIERARCHY_OUTPUT output;
+	float4 position : SV_POSITION;
+	float4 shadowPosition : POSITION0;
+	float3 positionW : POSITION1;
+	float3 normal : NORMAL;
+	float3 tangent : TANGENT;
+	float3 biTangent : BITANGENT;
+	float2 uv : TEXCOORD;
+};
+
+VS_ANIMATION_OUTPUT VS_ANIMATION_MAIN(VS_ANIMATION_INPUT input)
+{
+	VS_ANIMATION_OUTPUT output;
 
 	// 스킨 메쉬
 	if (input.weights[0] > 0) {
@@ -189,11 +200,41 @@ VS_TEXTUREHIERARCHY_OUTPUT VS_SKINNED_ANIMATION_MAIN(VS_SKINNED_STANDARD_INPUT i
 	return output;
 }
 
+[earlydepthstencil]
+float4 PS_ANIMATION_MAIN(VS_ANIMATION_OUTPUT input) : SV_TARGET
+{
+	PhongMaterial material;
+	material.m_ambient = float4(0.1f, 0.1f, 0.1f, 1.0f);
+	material.m_diffuse = float4(1.0f, 1.0f, 1.0f, 1.0f);
+	material.m_specular = float4(0.1f, 0.1f, 0.1f, 0.0f);
+
+	float4 normalColor = float4(0.0f, 0.0f, 0.0f, 1.0f);		// 노말
+	float4 metallicColor = float4(0.0f, 0.0f, 0.0f, 0.0f);		// 
+	float4 emissionColor = float4(0.0f, 0.0f, 0.0f, 0.0f);		// 발산광
+
+	if (textureMask & MATERIAL_ALBEDO_MAP) material.m_diffuse = g_albedoTexture.Sample(g_samplerWrap, input.uv);
+	if (textureMask & MATERIAL_SPECULAR_MAP) material.m_specular = g_specularTexture.Sample(g_samplerWrap, input.uv);
+	if (textureMask & MATERIAL_NORMAL_MAP) normalColor = g_normalTexture.Sample(g_samplerWrap, input.uv);
+	else normalColor = float4(input.normal, 1.f);
+	if (textureMask & MATERIAL_METALLIC_MAP) metallicColor = g_metallicTexture.Sample(g_samplerWrap, input.uv);
+	if (textureMask & MATERIAL_EMISSION_MAP) emissionColor = g_emissionTexture.Sample(g_samplerWrap, input.uv);
+
+	float3 normal = normalColor.rgb;
+	float4 color = material.m_diffuse + material.m_specular + emissionColor;
+	//float3x3 TBN = float3x3(normalize(input.tangent), normalize(input.biTangent), normalize(normal));
+	//float3 vNormal = normalize(normal * 2.0f - 1.0f); //[0, 1] → [-1, 1]
+	//normal = normalize(mul(vNormal, TBN));
+	float shadowFactor = CalcShadowFactor(input.shadowPosition);
+	float4 light = Lighting(input.positionW, normal, material, shadowFactor);
+	color = lerp(color, light, 0.5);
+	return color;
+}
+
 /*
  *  DETAIL_SHADER
  */
 
-	struct VS_TERRAIN_INPUT
+struct VS_TERRAIN_INPUT
 {
 	float3 position : POSITION;
 	float2 uv0 : TEXCOORD0;

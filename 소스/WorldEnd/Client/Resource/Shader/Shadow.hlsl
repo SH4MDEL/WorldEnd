@@ -21,7 +21,6 @@ VS_SHADOW_OUTPUT VS_SHADOW_MAIN(VS_SHADOW_INPUT input)
 	output.position = mul(float4(input.position, 1.0f), worldMatrix);
 	output.position = mul(output.position, lightView);
 	output.position = mul(output.position, lightProj);
-	//output.position = mul(output.position, NDCspace);
 
 	return output;
 }
@@ -44,3 +43,43 @@ VS_SHADOW_OUTPUT VS_SHADOW_MAIN(VS_SHADOW_INPUT input)
 //	// 셰이더의 나머지 코드의 실행을 생략할 수 있으므로 효율적이다.
 //	clip(diffuseAlbedo.a - 0.1f);
 //}
+
+struct VS_ANIMATION_SHADOW_INPUT
+{
+	float3 position : POSITION;
+	float3 normal : NORMAL;
+	float3 tangent : TANGENT;
+	float3 biTangent : BITANGENT;
+	float2 uv : TEXCOORD;
+	int4 indices : BONEINDEX;
+	float4 weights : BONEWEIGHT;
+};
+
+struct VS_ANIMATION_SHADOW_OUTPUT
+{
+	float4 position : SV_POSITION;
+};
+
+VS_ANIMATION_SHADOW_OUTPUT VS_ANIMATION_SHADOW_MAIN(VS_ANIMATION_SHADOW_INPUT input)
+{
+	VS_ANIMATION_SHADOW_OUTPUT output;
+
+	if (input.weights[0] > 0) {
+		// 정점이 영향을 받는 뼈마다 오프셋 * 애니메이션 변환행렬을 전부 더합
+		float4x4 mat = (float4x4)0.0f;
+		for (int i = 0; i < 2; ++i) {
+			mat += input.weights[i] * mul(boneOffsets[input.indices[i]], boneTransforms[input.indices[i]]);
+		}
+
+		output.position = mul(float4(input.position, 1.0f), mat);
+		output.position = mul(output.position, lightView);
+		output.position = mul(output.position, lightProj);
+	}
+	else {
+		output.position = mul(float4(input.position, 1.0f), worldMatrix);
+		output.position = mul(output.position, lightView);
+		output.position = mul(output.position, lightProj);
+	}
+
+	return output;
+}
