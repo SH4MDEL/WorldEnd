@@ -29,7 +29,8 @@
 #include <wrl.h>
 #include <algorithm>
 #include <array>
-
+#include <thread>
+#include <mutex>
 
 // d3d12 헤더 파일입니다.
 #pragma comment(lib, "d3d12.lib")
@@ -48,6 +49,8 @@ using Microsoft::WRL::ComPtr;
 using namespace std;
 
 #include "../Server/protocol.h"
+#include <WS2tcpip.h>
+#include <MSWSock.h>
 
 class GameFramework;
 

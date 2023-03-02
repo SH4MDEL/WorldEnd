@@ -1,5 +1,5 @@
 #pragma once
-#include "stdafx.h"
+#include <DirectXMath.h>
 
 constexpr short SERVER_PORT = 9000;
 

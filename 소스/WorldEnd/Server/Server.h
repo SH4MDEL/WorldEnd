@@ -18,7 +18,6 @@ class Server
 {
 
 private:
-	array<Session, MAX_USER>				m_clients;
 	vector<std::unique_ptr<Monster>>		m_monsters;			
 
 	// 통신 관련 변수
@@ -35,6 +34,11 @@ private:
 	int                                     m_remain_cool_time;
 
 	bool                                    m_attack_check = false;
+
+	// 플레이어 관련
+
+	UCHAR                                   m_target_id;
+	float                                   m_length{ FLT_MAX };
 
 	concurrency::concurrent_priority_queue<TimerEvent> m_timer_queue;
 	concurrency::concurrent_queue<ExpOver*>            m_exp_over;
@@ -54,11 +58,12 @@ public:
 	void SendMonsterDataPacket();
 
 	void PlayerCollisionCheck(Session& player, const int id);
-	void Update();
-	void CreateMosnters();
+	void Update(float taketime);
+	void CreateMonsters();
 
 	void Timer();
 
+	UCHAR RecognizePlayer(const XMFLOAT3& mon_pos);
 	CHAR GetNewId() const;
 
 
@@ -68,4 +73,6 @@ public:
 
 	void CollideByStatic(Session& player1, DirectX::BoundingOrientedBox obb);
 	void CollideByMoveMent(Session& player1, Session& player2);
+
+	array<Session, MAX_USER>				m_clients;
 };

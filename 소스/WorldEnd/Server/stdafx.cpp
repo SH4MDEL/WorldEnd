@@ -30,3 +30,4 @@ void ErrorDisplay(int err_no)
 	std::wcout << lpMsgBuf << std::endl;
 	LocalFree(lpMsgBuf);
 }
+

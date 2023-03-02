@@ -2,7 +2,7 @@
 #include "stdafx.h"
 
 Session::Session() : m_socket{}, m_player_data{ 0, false , {},{},{} , 100}, m_ready_check{FALSE},
-m_player_type{ PlayerType::SWORD }, m_state{ STATE::ST_FREE }, m_prev_size{ 0 }
+m_player_type{ PlayerType::SWORD }, m_state{ STATE::ST_FREE }, m_prev_size{ 0 }, m_exist_check{TRUE}
 {
 	strcpy_s(m_name, "Player\0");
 }
