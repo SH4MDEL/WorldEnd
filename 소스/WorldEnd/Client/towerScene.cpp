@@ -58,7 +58,7 @@ void TowerScene::CreateShaderVariable(const ComPtr<ID3D12Device>& device, const 
 
 void TowerScene::UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& commandList)
 {
-	BoundingSphere sceneBounds{ XMFLOAT3{ 0.0f, 0.0f, 0.0f }, 10.f * sqrt(2.0f) };
+	BoundingSphere sceneBounds{ XMFLOAT3{ 0.0f, 0.0f, 0.0f }, 100.f * sqrt(2.0f) };
 
 	// Only the first "main" light casts a shadow.
 	XMVECTOR lightDir = XMLoadFloat3(&m_lightSystem->m_lights[0].m_direction);
@@ -282,9 +282,9 @@ void TowerScene::LoadSceneFromFile(const ComPtr<ID3D12Device>& device, const Com
 
 		LoadObjectFromFile(strPath, object);
 
-		XMFLOAT4X4 worldMetrix;
-		in.read((CHAR*)(&worldMetrix), sizeof(XMFLOAT4X4));
-		object->SetWorldMatrix(worldMetrix);
+		XMFLOAT4X4 worldMatrix;
+		in.read((CHAR*)(&worldMatrix), sizeof(XMFLOAT4X4));
+		object->SetWorldMatrix(worldMatrix);
 
 		m_object.push_back(object);
 		m_shaders["OBJECT"]->SetObject(object);

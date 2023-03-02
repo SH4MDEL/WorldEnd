@@ -52,6 +52,7 @@ struct MonsterData
 	DirectX::XMFLOAT3	pos;		// ��ġ
 	DirectX::XMFLOAT3	velocity;	// �ӵ�
 	FLOAT				yaw;		// ȸ����
+	INT					hp;
 };
 //////////////////////////////////////////////////////
 // 클라에서 서버로
