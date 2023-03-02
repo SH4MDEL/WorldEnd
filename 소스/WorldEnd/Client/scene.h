@@ -3,6 +3,7 @@
 #include "shader.h"
 #include "object.h"
 #include "player.h"
+#include "monster.h"
 #include "camera.h"
 #include "mesh.h"
 #include "texture.h"

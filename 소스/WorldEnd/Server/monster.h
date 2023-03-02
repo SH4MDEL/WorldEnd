@@ -25,6 +25,7 @@ public:
 	CHAR GetId() const;
 	DirectX::XMFLOAT3 GetPosition() const;
 	MonsterData GetData() const;
+	MonsterType GetType() const;
 };
 
 class WarriorMonster : public Monster

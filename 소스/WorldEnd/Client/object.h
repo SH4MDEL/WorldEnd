@@ -53,10 +53,6 @@ public:
 	void UpdateBoundingBox();
 	void SetBoundingBox(const BoundingOrientedBox& boundingBox);
 
-	//XMFLOAT3 GetPositionX(return XMFLOAT3{ m_worldMatrix._41 };)
-
-
-
 	XMFLOAT4X4 GetTransformMatrix() const { return m_transformMatrix; }
 	void SetTransformMatrix(XMFLOAT4X4 mat) { m_transformMatrix = mat; }
 

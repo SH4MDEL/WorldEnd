@@ -51,6 +51,7 @@ public:
 	void SendLoginOkPacket(const Session& player) const;
 	void SendPlayerDataPacket();
 	void SendPlayerAttackPacket(int pl_id);
+	void SendMonsterAddPacket();
 	void SendMonsterDataPacket();
 
 	void PlayerCollisionCheck(Session& player, const int id);

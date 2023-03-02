@@ -110,7 +110,7 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	m_player->GetAnimationController()->SetAnimationCallbackHandler(2, callbackHandler);
 
 	m_player->SetPosition(XMFLOAT3{ 0.f, 0.f, 0.f });
-	m_shaders["PLAYER"]->SetPlayer(m_player);
+	m_shaders["ANIMATION"]->SetPlayer(m_player);
 
 	// 체력 바 생성
 	auto hpBar = make_shared<HpBar>();
@@ -216,7 +216,7 @@ void TowerScene::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) co
 {
 	if (m_camera) m_camera->UpdateShaderVariable(commandList);
 	if (m_lightSystem) m_lightSystem->UpdateShaderVariable(commandList);
-	m_shaders.at("PLAYER")->Render(commandList);
+	m_shaders.at("ANIMATION")->Render(commandList);
 	m_shaders.at("OBJECT")->Render(commandList);
 	m_shaders.at("SKYBOX")->Render(commandList);
 	m_shaders.at("HPBAR")->Render(commandList);
@@ -245,7 +245,7 @@ void TowerScene::RenderShadow(const ComPtr<ID3D12GraphicsCommandList>& commandLi
 	// 반드시 활성 PSO의 렌더 타겟 개수도 0으로 지정해야 함을 주의해야 한다.
 	commandList->OMSetRenderTargets(0, nullptr, false, &m_shadow->GetCpuDsv());
 
-	m_shaders.at("PLAYER")->Render(commandList, m_shaders.at("ANIMATIONSHADOW"));
+	m_shaders.at("ANIMATION")->Render(commandList, m_shaders.at("ANIMATIONSHADOW"));
 	m_shaders.at("OBJECT")->Render(commandList, m_shaders.at("SHADOW"));
 
 	// 셰이더에서 텍스처를 읽을 수 있도록 다시 GENERIC_READ로 바꾼다.
@@ -397,7 +397,6 @@ void TowerScene::RecvPacket()
 	}
 }
 
-
 void TowerScene::ProcessPacket(char* ptr)
 {
 	cout << "[Process Packet] Packet Type: " << (int)ptr[1] << endl;//test
@@ -416,13 +415,13 @@ void TowerScene::ProcessPacket(char* ptr)
 	case SC_PACKET_PLAYER_ATTACK:
 		RecvAttackPacket(ptr);
 		break;
+	case SC_PACKET_ADD_MONSTER:
+		RecvAddMonsterPacket(ptr);
 	case SC_PACKET_UPDATE_MONSTER:
 		RecvUpdateMonster(ptr);
 		break;
 	}
 }
-
-
 
 void TowerScene::PacketReassembly(char* net_buf, size_t io_byte)
 {
@@ -450,7 +449,6 @@ void TowerScene::PacketReassembly(char* net_buf, size_t io_byte)
 			io_byte = 0;
 		}
 	}
-
 }
 
 void TowerScene::RecvLoginOkPacket(char* ptr)
@@ -480,7 +478,7 @@ void TowerScene::RecvAddPlayerPacket(char* ptr)
 	m_shaders["HPBAR"]->SetObject(hpBar);
 	multiPlayer->SetHpBar(hpBar);
 
-	m_shaders["PLAYER"]->SetMultiPlayer(player_data.id, multiPlayer);
+	m_shaders["ANIMATION"]->SetMultiPlayer(player_data.id, multiPlayer);
 	cout << "add player" << static_cast<int>(player_data.id) << endl;
 
 }
@@ -495,7 +493,7 @@ void TowerScene::RecvUpdateClient(char* ptr)
 			continue;
 		}
 		if (update_packet->data[i].id == m_player->GetID()) {
-			//m_player->SetPosition(update_packet->data[i].pos);
+			m_player->SetPosition(update_packet->data[i].pos);
 			continue;
 		}
 		if (update_packet->data[i].active_check) {
@@ -515,23 +513,54 @@ void TowerScene::RecvAttackPacket(char* ptr)
 	m_player->SetKey(attack_packet->key);
 }
 
+void TowerScene::RecvAddMonsterPacket(char* ptr)
+{
+	SC_ADD_MONSTER_PACKET* add_monster_packet = reinterpret_cast<SC_ADD_MONSTER_PACKET*>(ptr);
+
+	MonsterData monster_data{};
+
+	//monster_data.hp = add_monster_packet->monster_data.hp;
+	monster_data.id = add_monster_packet->monster_data.id;
+	monster_data.pos = add_monster_packet->monster_data.pos;
+
+	auto monster = make_shared<Monster>();
+	switch (add_monster_packet->monster_type)
+	{
+	case MonsterType::WARRIOR:
+		LoadObjectFromFile(TEXT("./Resource/Model/Undead_Warrior.bin"), monster);
+		break;
+	case MonsterType::ARCHER:
+		LoadObjectFromFile(TEXT("./Resource/Model/Undead_Archer.bin"), monster);
+		break;
+	case MonsterType::WIZARD:
+		LoadObjectFromFile(TEXT("./Resource/Model/Undead_Wizard.bin"), monster);
+		break;
+	}
+	monster->SetPosition(XMFLOAT3{ 0.f, 0.f, 0.f });
+	m_monsters.insert({ monster_data.id, monster });
+
+	auto hpBar = make_shared<HpBar>();
+	hpBar->SetMesh(m_meshs["HPBAR"]);
+	hpBar->SetTexture(m_textures["HPBAR"]);
+	m_shaders["HPBAR"]->SetObject(hpBar);
+	monster->SetHpBar(hpBar);
+
+	m_shaders["OBJECT"]->SetObject(monster);
+	cout << "add monster" << static_cast<int>(monster_data.id) << endl;
+}
+
 void TowerScene::RecvUpdateMonster(char* ptr)
 {
-
 	SC_MONSTER_UPDATE_PACKET* monster_packet = reinterpret_cast<SC_MONSTER_UPDATE_PACKET*>(ptr);
 
-	
-		if (monster_packet->data.id < 0) return;
+	if (monster_packet->monster_data.id < 0) return;
 
-		m_monsters[monster_packet->data.id].id = monster_packet->data.id;
-		m_monsters[monster_packet->data.id].pos = monster_packet->data.pos;
+	m_monsters[monster_packet->monster_data.id]->SetPosition(monster_packet->monster_data.pos);
 
-		cout << "monster id - " << (int)m_monsters[monster_packet->data.id].id << endl;
-		cout << "monster pos (x: " << m_monsters[monster_packet->data.id].pos.x << 
-			" y: " << m_monsters[monster_packet->data.id].pos.y << 
-			" z: " << m_monsters[monster_packet->data.id].pos.z << ")" << endl;
-	
-
+	cout << "monster id - " << (int)monster_packet->monster_data.id << endl;
+	cout << "monster pos (x: " << monster_packet->monster_data.pos.x <<
+			" y: " << monster_packet->monster_data.pos.y <<
+			" z: " << monster_packet->monster_data.pos.z << ")" << endl;
 }
 
 

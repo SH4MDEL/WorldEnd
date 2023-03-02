@@ -38,6 +38,11 @@ MonsterData Monster::GetData() const
 	return MonsterData{ m_id, m_position, m_velocity, m_yaw };
 }
 
+MonsterType Monster::GetType() const
+{
+	return m_monster_type;
+}
+
 WarriorMonster::WarriorMonster()
 {
 	m_monster_type = MonsterType::WARRIOR;

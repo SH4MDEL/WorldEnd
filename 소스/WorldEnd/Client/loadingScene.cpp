@@ -30,7 +30,7 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	CreateShaderVariable(device, commandlist);
 
 	// 플레이어 로딩
-	auto playerShader{ make_shared<AnimationShader>(device, rootsignature) };
+	auto animationShader{ make_shared<AnimationShader>(device, rootsignature) };
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/WarriorMesh.bin"));
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/ArcherMesh.bin"));
 
@@ -64,6 +64,7 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 
 	// 몬스터 로딩
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/Undead_WarriorMesh.bin"));
+	LoadAnimationFromFile(TEXT("./Resource/Animation/Undead_WarriorAnimation.bin"), "Undead_WarriorAnimation");
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/Undead_WarriorTexture.bin"));
 
 	// 타워 씬 메쉬 로딩
@@ -116,7 +117,7 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	m_textures.insert({ "HPBAR", hpBarTexture });
 
 	// 셰이더 설정
-	m_shaders.insert({ "PLAYER", playerShader });
+	m_shaders.insert({ "ANIMATION", animationShader });
 	m_shaders.insert({ "OBJECT", objectShader });
 	m_shaders.insert({ "SKYBOX", skyboxShader });
 	m_shaders.insert({ "HPBAR", hpBarShader });

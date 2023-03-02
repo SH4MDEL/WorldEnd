@@ -173,7 +173,7 @@ public:
 	vector<string>& GetSkinningBoneNames() { return m_skinningBoneNames; }
 	vector<shared_ptr<GameObject>>& GetSkinningBoneFrames() { return m_skinningBoneFrames; }
 
-	UINT GetSkinningBoneNum() const { return m_skinningBoneFrames.size(); }
+	UINT GetSkinningBoneNum() const { return (UINT)m_skinningBoneFrames.size(); }
 	string GetSkinnedMeshName() const { return m_skinnedMeshName; }
 private:
 	string								m_skinnedMeshName;

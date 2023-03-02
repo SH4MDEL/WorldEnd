@@ -1,6 +1,5 @@
 ﻿#pragma once
-#include "stdafx.h"
-
+#include <DirectXMath.h>
 constexpr short SERVER_PORT = 9000;
 
 constexpr int BUF_SIZE = 1600;
@@ -16,7 +15,8 @@ constexpr char SC_PACKET_LOGIN_OK = 1;
 constexpr char SC_PACKET_ADD_PLAYER = 2;
 constexpr char SC_PACKET_UPDATE_CLIENT = 3;
 constexpr char SC_PACKET_PLAYER_ATTACK = 4;
-constexpr char SC_PACKET_UPDATE_MONSTER = 5;
+constexpr char SC_PACKET_ADD_MONSTER = 5;
+constexpr char SC_PACKET_UPDATE_MONSTER = 6;
 
 constexpr char INPUT_KEY_E = 0b1000;
 
@@ -181,11 +181,19 @@ struct SC_ATTACK_PACKET
 	CHAR      key;
 };
 
+struct SC_ADD_MONSTER_PACKET
+{
+	UCHAR		size;
+	UCHAR		type;
+	MonsterData	monster_data;
+	MonsterType monster_type;
+};
+
 struct SC_MONSTER_UPDATE_PACKET
 {
 	UCHAR		size;
 	UCHAR		type;
-	MonsterData	data;
+	MonsterData	monster_data;
 };
 
 #pragma pack (pop)

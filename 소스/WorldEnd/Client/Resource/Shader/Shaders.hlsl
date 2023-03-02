@@ -164,7 +164,7 @@ VS_ANIMATION_OUTPUT VS_ANIMATION_MAIN(VS_ANIMATION_INPUT input)
 
 	// 스킨 메쉬
 	if (input.weights[0] > 0) {
-		// 정점이 영향을 받는 뼈마다 오프셋 * 애니메이션 변환행렬을 전부 더합
+		// 정점이 영향을 받는 뼈마다 오프셋 * 애니메이션 변환행렬을 전부 더함
 		float4x4 mat = (float4x4)0.0f;
 		for (int i = 0; i < 2; ++i) {
 			mat += input.weights[i] * mul(boneOffsets[input.indices[i]], boneTransforms[input.indices[i]]);

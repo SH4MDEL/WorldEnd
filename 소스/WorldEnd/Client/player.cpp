@@ -133,9 +133,9 @@ void Player::Update(FLOAT timeElapsed)
 		m_hpBar->SetPosition(hpBarPosition);
 	}
 
-//#ifndef USE_NETWORK
+#ifndef USE_NETWORK
 	Move(m_velocity);
-//#endif // !USE_NETWORK
+#endif // !USE_NETWORK
 
 	ApplyFriction(timeElapsed);
 }

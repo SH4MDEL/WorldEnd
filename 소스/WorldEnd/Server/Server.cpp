@@ -192,7 +192,7 @@ void Server::ProcessPacket(const int id, char* p)
 		// 재접속 시 disconnectCount를 감소시켜야함
 		// disconnect_cnt = max(0, disconnect_cnt - 1);
 		SendPlayerDataPacket();
-		SendMonsterDataPacket();
+		SendMonsterAddPacket();
 		break;
 	}
 	case CS_PACKET_PLAYER_MOVE:
@@ -426,19 +426,20 @@ void Server::CreateMosnters()
 	m_monsters.push_back(move(monsters));
 }
 
-void Server::SendMonsterDataPacket()
+void Server::SendMonsterAddPacket()
 {
 	//cout << "크기 - " << m_monsters.size() << endl;
 
-	SC_MONSTER_UPDATE_PACKET monster_packet[10];
-	
+	SC_ADD_MONSTER_PACKET monster_packet[MAX_MONSTER];
+
 	for (size_t i = 0; i < m_monsters.size(); ++i) {
-		monster_packet[i].size = static_cast<UCHAR>(sizeof(SC_MONSTER_UPDATE_PACKET));
-		monster_packet[i].type = SC_PACKET_UPDATE_MONSTER;
-		monster_packet[i].data = m_monsters[i]->GetData();
+		monster_packet[i].size = static_cast<UCHAR>(sizeof(SC_ADD_MONSTER_PACKET));
+		monster_packet[i].type = SC_PACKET_ADD_MONSTER;
+		monster_packet[i].monster_data = m_monsters[i]->GetData();
+		monster_packet[i].monster_type = m_monsters[i]->GetType();
 	}
 	for (size_t i = m_monsters.size(); i < MAX_MONSTER; ++i)
-		monster_packet[i].data = MonsterData{.id = -1};
+		monster_packet[i].monster_data = MonsterData{ .id = -1 };
 
 	char buf[sizeof(monster_packet)];
 	memcpy(buf, reinterpret_cast<char*>(&monster_packet), sizeof(monster_packet));
@@ -448,7 +449,40 @@ void Server::SendMonsterDataPacket()
 	for (const auto& cl : m_clients)
 	{
 		if (!cl.m_player_data.active_check) continue;
-		const int retVal = WSASend(cl.m_socket , &wsa_buf, 1, &sent_byte, 0, nullptr, nullptr);
+		const int retVal = WSASend(cl.m_socket, &wsa_buf, 1, &sent_byte, 0, nullptr, nullptr);
+		if (retVal == SOCKET_ERROR)
+		{
+			if (WSAGetLastError() == WSAECONNRESET)
+				std::cout << "[" << static_cast<int>(cl.m_player_data.id) << " Session] Disconnect" << std::endl;
+			else ErrorDisplay("Send(SC_PACKET_ADD_MONSTER)");
+		}
+	}
+}
+
+
+void Server::SendMonsterDataPacket()
+{
+	//cout << "크기 - " << m_monsters.size() << endl;
+
+	SC_MONSTER_UPDATE_PACKET monster_packet[MAX_MONSTER];
+
+	for (size_t i = 0; i < m_monsters.size(); ++i) {
+		monster_packet[i].size = static_cast<UCHAR>(sizeof(SC_MONSTER_UPDATE_PACKET));
+		monster_packet[i].type = SC_PACKET_UPDATE_MONSTER;
+		monster_packet[i].monster_data = m_monsters[i]->GetData();
+	}
+	for (size_t i = m_monsters.size(); i < MAX_MONSTER; ++i)
+		monster_packet[i].monster_data = MonsterData{ .id = -1 };
+
+	char buf[sizeof(monster_packet)];
+	memcpy(buf, reinterpret_cast<char*>(&monster_packet), sizeof(monster_packet));
+	WSABUF wsa_buf{ sizeof(buf), buf };
+	DWORD sent_byte;
+
+	for (const auto& cl : m_clients)
+	{
+		if (!cl.m_player_data.active_check) continue;
+		const int retVal = WSASend(cl.m_socket, &wsa_buf, 1, &sent_byte, 0, nullptr, nullptr);
 		if (retVal == SOCKET_ERROR)
 		{
 			if (WSAGetLastError() == WSAECONNRESET)
@@ -456,9 +490,6 @@ void Server::SendMonsterDataPacket()
 			else ErrorDisplay("Send(SC_PACKET_UPDATE_MONSTER)");
 		}
 	}
-
-	
-
 }
 
 CHAR Server::GetNewId() const

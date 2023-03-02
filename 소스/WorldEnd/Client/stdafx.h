@@ -17,6 +17,7 @@
 
 // C/C++ 런타임 헤더 파일입니다.
 #include <iostream>
+#include <mutex>
 #include <fstream>
 #include <unordered_map>
 #include <vector>
@@ -48,6 +49,9 @@ using Microsoft::WRL::ComPtr;
 using namespace std;
 
 #include "../Server/protocol.h"
+#include <WS2tcpip.h>
+#include <MSWSock.h>
+#include <thread>
 
 class GameFramework;
 

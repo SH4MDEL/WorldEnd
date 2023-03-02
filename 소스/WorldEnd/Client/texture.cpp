@@ -25,13 +25,10 @@ void Texture::LoadTextureFile(const ComPtr<ID3D12Device>& device, const ComPtr<I
 		IID_PPV_ARGS(&textureUploadHeap)
 	));
 
-	// subresources에 있는 데이터를 textureBuffer로 복사
 	UpdateSubresources(commandList.Get(), textureBuffer.Get(), textureUploadHeap.Get(), 0, 0, nSubresources, subresources.data());
 
-	// 리소스 베리어 설정
 	commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(textureBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_GENERIC_READ));
 
-	// 저장
 	m_textures.push_back(make_pair(textureBuffer, rootParameterIndex));
 	m_textureUploadHeap.push_back(textureUploadHeap);
 }
@@ -40,7 +37,7 @@ void Texture::CreateSrvDescriptorHeap(const ComPtr<ID3D12Device>& device)
 {
 	// SRV를 생성하기 위한 SRV 서술자 힙을 생성한다.
 	D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
-	srvHeapDesc.NumDescriptors = m_textures.size();
+	srvHeapDesc.NumDescriptors = (UINT)m_textures.size();
 	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	DX::ThrowIfFailed(device->CreateDescriptorHeap(
