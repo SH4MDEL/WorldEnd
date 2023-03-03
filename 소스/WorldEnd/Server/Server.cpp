@@ -1,7 +1,7 @@
 ﻿#include "Server.h"
 #include "stdafx.h"
 
-Server::Server() : m_disconnect_cnt{ 0 }, m_round{1}, m_next_monster_id {0}
+Server::Server() : m_disconnect_cnt{ 0 }, m_round{1}, m_next_monster_id {0}, m_accept {false}
 {
 }
 
@@ -49,18 +49,19 @@ int Server::Network()
 		th.detach();
 
 	using frame = std::chrono::duration<int32_t, std::ratio<1, 60>>;
+	using ms = std::chrono::duration<float, std::milli>;
 	std::chrono::time_point<std::chrono::steady_clock> fps_timer{ std::chrono::steady_clock::now() };
 
 	frame fps{}, frame_count{};
 	while (true) {
 
 		// 아무도 서버에 접속하지 않았으면 패스
-		//if (!m_accept)
-		//{
-		//	// 이 부분이 없다면 첫 프레임 때 deltaTime이 '클라에서 처음 접속한 시각 - 서버를 켠 시각' 이 된다.
-		//	fps_timer = std::chrono::steady_clock::now();
-		//	continue;
-		//}
+		if (m_accept)
+		{
+			// 이 부분이 없다면 첫 프레임 때 deltaTime이 '클라에서 처음 접속한 시각 - 서버를 켠 시각' 이 된다.
+			fps_timer = std::chrono::steady_clock::now();
+			continue;
+		}
 
 		// 이전 사이클에 얼마나 시간이 걸렸는지 계산
 		fps = duration_cast<frame>(std::chrono::steady_clock::now() - fps_timer);
@@ -75,7 +76,8 @@ int Server::Network()
 			//SendMonsterDataPacket();
 		}
 
-		Update();
+		Update(duration_cast<ms>(fps).count() / 1000.0f);
+		fps_timer = std::chrono::steady_clock::now();
 	}
 
 
@@ -209,6 +211,9 @@ void Server::ProcessPacket(const int id, char* p)
 		MovePlayer(cl, pos);
 		RotatePlayer(cl, move_packet->yaw);
 
+		cout << "Monster1 move id - " << (int)m_monsters[0]->GetId() << " / pos - " << m_monsters[0]->GetPosition().x << ", "
+			<< m_monsters[0]->GetPosition().y << ", " << m_monsters[0]->GetPosition().z << endl;
+
 		//cl.m_player_data.pos = move_packet->pos;
 		//cl.m_player_data.velocity = move_packet->velocity;
 		//cl.m_player_data.yaw = move_packet->yaw;
@@ -219,7 +224,6 @@ void Server::ProcessPacket(const int id, char* p)
 
 		//cout << "x: " << cl.m_player_data.pos .x << " y: " << cl.m_player_data.pos.y <<
 		//	" z: " << cl.m_player_data.pos.z << endl;
-
 
 		PlayerCollisionCheck(cl, id);
 		SendPlayerDataPacket();
@@ -391,20 +395,36 @@ void Server::PlayerCollisionCheck(Session& player, const int id)
 	}
 }
 
-void Server::Update()
+void Server::Update(const float taketime)
 {
 
 	if (m_monsters.size() < MAX_MONSTER)
-		CreateMosnters();
+		CreateMonsters();
 
 
 	for (auto& m : m_monsters)
-		m->CreateMonster();
+		m->CreateMonster(taketime);
 
 
 }
 
-void Server::CreateMosnters()
+UCHAR Server::RecognizePlayer(const XMFLOAT3& mon_pos)
+{
+	for (const auto& pl : m_clients)
+	{
+		if (!pl.m_exist_check) continue;
+		const float  myself{ Vector3::Length(Vector3::Sub(pl.m_player_data.pos, mon_pos)) };
+		cout << "pl - mon: " <<  myself << endl;
+		if (myself < m_length)
+		{
+			m_length = myself;
+			m_target_id = pl.m_player_data.id;
+		}
+	}
+	return m_target_id;
+}
+
+void Server::CreateMonsters()
 {
 	unique_ptr<Monster> monsters;
 
@@ -418,12 +438,15 @@ void Server::CreateMosnters()
 		break;
 	}
 	monsters->SetId(m_next_monster_id++);
-
+	monsters->SetTargetId(RecognizePlayer(monsters->GetPosition()));
 	cout << "Monster id - " << (int)monsters->GetId() << " is created" << " / pos (x: " << monsters->GetPosition().x << " y: " << monsters->GetPosition().y
 		<< " z: " << monsters->GetPosition().z << ")" << endl;
 	cout << "capacity:" << m_monsters.size() << " / " << MAX_MONSTER << std::endl;
 
+
 	m_monsters.push_back(move(monsters));
+
+	//m_monsters[0]->GetPosition() = XMFLOAT3(17.0f, 17.0f, 17.0f);
 }
 
 void Server::SendMonsterAddPacket()
