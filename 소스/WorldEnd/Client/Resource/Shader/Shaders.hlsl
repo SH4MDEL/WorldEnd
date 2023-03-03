@@ -152,27 +152,62 @@ VS_TEXTUREHIERARCHY_OUTPUT VS_SKINNED_ANIMATION_MAIN(VS_SKINNED_STANDARD_INPUT i
 	VS_TEXTUREHIERARCHY_OUTPUT output;
 
 	// 스킨 메쉬
+
+	//// 가중치 * 뼈대 오프셋 * 애니메이션 변환 행렬
+	// mat += input.weights[i] * mul(boneOffsets[input.indices[i]], boneTransforms[input.indices[i]]);
+	
+	//// 최종 변환 행렬은 위에서 구한 변환행렬에 해당 오브젝트의 월드변환 값이 될 것
+	// mat = mul(mat, worldMatrix);
+
+	// 기존의 애니메이션은 worldMatrix를 사용하지 않고 boneTransform 에 오브젝트의 월드변환을 가져오는 방식으로 처리했기 때문에
+	// 애니메이션 변환과 모델의 이동/회전을 분리하지 못해서 오류가 발생함
+	// 따라서 이를 분리하여 문제를 해결할 수 있을 것
+
+
+	//if (input.weights[0] > 0) {
+	//	// 정점이 영향을 받는 뼈마다 오프셋 * 애니메이션 변환행렬을 전부 더합
+	//	float4x4 mat = (float4x4)0.0f;
+	//	for (int i = 0; i < 2; ++i) {
+	//		mat += input.weights[i] * mul(boneOffsets[input.indices[i]], boneTransforms[input.indices[i]]);
+	//	}
+
+	//	output.position = mul(float4(input.position, 1.0f), mat);
+	//	output.positionW = output.position.xyz;
+	//	output.position = mul(output.position, viewMatrix);
+	//	output.position = mul(output.position, projMatrix);
+	//	output.shadowPosition = mul(float4(output.positionW, 1.0f), lightView);
+	//	output.shadowPosition = mul(output.shadowPosition, lightProj);
+	//	output.shadowPosition = mul(output.shadowPosition, NDCspace);
+	//	output.normal = mul(input.normal, (float3x3)mat);
+	//	output.tangent = mul(input.tangent, (float3x3)mat);
+	//	output.biTangent = mul(input.biTangent, (float3x3)mat);
+	//	output.uv = input.uv;
+	//}
+
 	if (input.weights[0] > 0) {
-		// 정점이 영향을 받는 뼈마다 오프셋 * 애니메이션 변환행렬을 전부 더합
 		float4x4 mat = (float4x4)0.0f;
 		for (int i = 0; i < 2; ++i) {
 			mat += input.weights[i] * mul(boneOffsets[input.indices[i]], boneTransforms[input.indices[i]]);
+			//mat += input.weights[i] * boneTransforms[input.indices[i]];
 		}
 
-		output.position = mul(float4(input.position, 1.0f), mat);
+		output.position = mul(mul(float4(input.position, 1.0f), mat), worldMatrix);
+		//output.position = mul(float4(input.position, 1.0f), worldMatrix);
+		//output.position = mul(float4(input.position, 1.0f), mat);
 		output.positionW = output.position.xyz;
 		output.position = mul(output.position, viewMatrix);
 		output.position = mul(output.position, projMatrix);
 		output.shadowPosition = mul(float4(output.positionW, 1.0f), lightView);
 		output.shadowPosition = mul(output.shadowPosition, lightProj);
 		output.shadowPosition = mul(output.shadowPosition, NDCspace);
-		output.normal = mul(input.normal, (float3x3)mat);
-		output.tangent = mul(input.tangent, (float3x3)mat);
-		output.biTangent = mul(input.biTangent, (float3x3)mat);
+		output.normal = mul(mul(input.normal, (float3x3)mat), (float3x3)worldMatrix);
+		output.tangent = mul(mul(input.tangent, (float3x3)mat), (float3x3)worldMatrix);
+		output.biTangent = mul(mul(input.biTangent, (float3x3)mat), (float3x3)worldMatrix);
 		output.uv = input.uv;
 	}
 	// 일반 메쉬
 	else {
+
 		output.position = mul(float4(input.position, 1.0f), worldMatrix);
 		output.positionW = output.position.xyz;
 		output.position = mul(output.position, viewMatrix);

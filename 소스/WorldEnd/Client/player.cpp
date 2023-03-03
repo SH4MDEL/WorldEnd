@@ -103,7 +103,7 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 
 void Player::Update(FLOAT timeElapsed)
 {
-	GameObject::Update(timeElapsed);
+	AnimationObject::Update(timeElapsed);
 
 	if (m_animationController) {
 		float length = fabs(m_velocity.x) + fabs(m_velocity.z);
@@ -176,7 +176,7 @@ void Player::AddVelocity(const XMFLOAT3& increase)
 	}
 }
 
-// -------------�ݹ� �Լ� -----------
+// ------------- 콜백 함수 -----------
 void AttackCallbackHandler::Callback(void* callbackData, float trackPosition)
 {
 	Player* p = static_cast<Player*>(callbackData);

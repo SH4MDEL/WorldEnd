@@ -27,6 +27,34 @@ enum class MonsterType : char {WARRIOR, ARCHER, WIZARD};
 
 enum eEventType : char { EVENT_PLAYER_ATTACK };
 
+// ----- 애니메이션 enum 클래스 -----
+// 애니메이션이 100개 이하로 떨어질 것이라 생각하여 100을 단위로 잡음
+class ObjectAnimation
+{
+public:
+	enum {
+		IDLE, WALK, RUN, ATTACK,
+		END
+	};
+};
+
+class WarriorAnimation : public ObjectAnimation
+{
+public:
+	enum {
+		GUARD = ObjectAnimation::END + 100
+	};
+};
+
+class ArcherAnimation : public ObjectAnimation
+{
+public:
+	enum {
+		AIM = ObjectAnimation::END + 200
+	};
+};
+// ----------------------------------
+
 #pragma pack(push,1)
 struct PlayerData
 {

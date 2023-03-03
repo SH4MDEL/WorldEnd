@@ -9,6 +9,8 @@
 
 #define ANIMATION_EPSILON		0.00165f
 
+enum class AnimationBlending{ NORMAL, BLENDING };
+
 class AnimationController;
 class AnimationSet;
 
@@ -20,6 +22,7 @@ public:
 
 	virtual void Update(FLOAT timeElapsed);
 	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const;
+	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, const GameObject* rootObject) const;
 	virtual void Move(const XMFLOAT3& shift);
 	virtual void Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw);
 	virtual void UpdateTransform(XMFLOAT4X4* parentMatrix = nullptr);
@@ -27,7 +30,6 @@ public:
 	void SetMesh(const shared_ptr<Mesh>& mesh);
 	void SetTexture(const shared_ptr<Texture>& texture);
 	void SetMaterials(const shared_ptr<Materials>& materials);
-	void SetAnimationSet(const shared_ptr<AnimationSet>& animations);
 
 	virtual void SetPosition(const XMFLOAT3& position);
 	void SetScale(FLOAT x, FLOAT y, FLOAT z);
@@ -55,21 +57,12 @@ public:
 
 	//XMFLOAT3 GetPositionX(return XMFLOAT3{ m_worldMatrix._41 };)
 
-
+	string GetFrameName() const { return m_frameName; }
 
 	XMFLOAT4X4 GetTransformMatrix() const { return m_transformMatrix; }
 	void SetTransformMatrix(XMFLOAT4X4 mat) { m_transformMatrix = mat; }
 
-	// 오브젝트에서 애니메이션파일 읽기, 스킨메쉬 찾기, 애니메이션 설정 함수 추가
-	void CreateAnimationController(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, int trackNum);
-
-	shared_ptr<SkinnedMesh> FindSkinnedMesh(string meshName);
-	void FindAndSetSkinnedMesh(vector<SkinnedMesh*>& skinnedMeshes);
-
-	void SetAnimationOnTrack(int animationTrackNumber, int animation);
-	void SetAnimationPositionOnTrack(int animationTrackNumber, float position);
-
-	AnimationController* GetAnimationController() const { return m_animationController.get(); }
+	virtual AnimationController* GetAnimationController() const { return nullptr; }
 
 protected:
 	XMFLOAT4X4					m_transformMatrix;
@@ -93,9 +86,8 @@ protected:
 	shared_ptr<GameObject>		m_child;
 
 	BoundingOrientedBox			m_boundingBox;	
-
-	shared_ptr<AnimationController>		m_animationController;
 };
+
 
 class Field : public GameObject
 {
@@ -183,6 +175,27 @@ struct CALLBACKKEY
 	void*	m_callbackData = nullptr;
 };
 
+class AnimationObject : public GameObject
+{
+public:
+	AnimationObject();
+	virtual ~AnimationObject() = default;
+
+	virtual AnimationController* GetAnimationController() const { return m_animationController.get(); }
+
+	void ChangeAnimation(int animation);
+
+
+	virtual void Update(FLOAT timeElapsed);
+	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const;
+
+	void SetAnimationSet(const shared_ptr<AnimationSet>& animations);
+	void SetAnimationOnTrack(int animationTrackNumber, int animation);
+
+protected:
+	unique_ptr<AnimationController>		m_animationController;
+};
+
 class AnimationCallbackHandler
 {
 public:
@@ -202,8 +215,7 @@ public:
 	float GetLength() const { return m_length; }
 	vector<float>& GetKeyFrameTimes() { return m_keyFrameTimes; }
 	vector<vector<XMFLOAT4X4>>& GetKeyFrameTransforms() { return m_keyFrameTransforms; }
-	XMFLOAT4X4 GetSRT(int boneNumber, float position);
-
+	XMFLOAT4X4 GetTransform(int boneNumber, float position);
 
 	void SetName(const string_view s) { m_animationName = s; }
 	void SetLength(float length) { m_length = length; }
@@ -227,14 +239,11 @@ public:
 	~AnimationSet() = default;
 
 	vector<shared_ptr<Animation>>& GetAnimations() { return m_animations; }
-	vector<shared_ptr<GameObject>>& GetBoneFramesCaches() { return m_animatedBoneFramesCaches; }
 	vector<string>& GetFrameNames() { return m_frameNames; }
 
 private:
 	vector<shared_ptr<Animation>>		m_animations;
 	vector<string>						m_frameNames;
-
-	vector<shared_ptr<GameObject>>		m_animatedBoneFramesCaches;
 };
 
 class AnimationTrack		// 애니메이션 제어 클래스
@@ -289,10 +298,7 @@ public:
 	AnimationController(int animationTracks);
 	~AnimationController();
 
-	void UpdateShaderVariables(const ComPtr<ID3D12GraphicsCommandList>& commandList);
-
-	void SetAnimationSet(const shared_ptr<AnimationSet>& animationSet, GameObject* rootObject);
-	void SetSkinnedMeshes(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, GameObject& rootObject);
+	void SetAnimationSet(const shared_ptr<AnimationSet>& animationSet);
 
 	void SetTrackAnimation(int animationTrack, int animations);
 	void SetTrackEnable(int animationTrack, bool enable);
@@ -307,7 +313,12 @@ public:
 	AnimationTrack& GetAnimationTrack(int index) { return m_animationTracks[index]; }
 	AnimationSet* GetAnimationSet() const { return m_animationSet.get(); }
 
-	void AdvanceTime(float timeElapsed, GameObject* rootGameObject);
+	void Update(float timeElapsed);
+
+	void SetBlendingMode(AnimationBlending blendingMode) { m_blendingMode = blendingMode; }
+	AnimationBlending GetBlendingMode() const { return m_blendingMode; }
+
+	array<XMFLOAT4X4, AnimationSetting::MAX_BONE>& GetAnimationTransform() { return m_animationTransform; }
 
 private:
 	float									m_time;
@@ -315,8 +326,8 @@ private:
 
 	shared_ptr<AnimationSet>				m_animationSet;		// 등록된 애니메이션 조합
 
-	vector<SkinnedMesh*>					m_skinnedMeshes;
+	AnimationBlending						m_blendingMode;
 
-	vector<ComPtr<ID3D12Resource>>			m_skinningBoneTransform;
-	vector<XMFLOAT4X4*>						m_mappedSkinningBoneTransforms;	// skinmesh 별 뼈대 변환행렬
+	array<XMFLOAT4X4, AnimationSetting::MAX_BONE> m_animationTransform;
+
 };

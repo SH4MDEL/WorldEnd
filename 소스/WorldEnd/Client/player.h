@@ -4,7 +4,7 @@
 
 class Camera;
 
-class Player : public GameObject
+class Player : public AnimationObject
 {
 public:
 	Player();

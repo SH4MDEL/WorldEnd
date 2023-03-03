@@ -93,10 +93,9 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 
 	// 플레이어 생성
 	m_player = make_shared<Player>();
-	LoadObjectFromFile(TEXT("./Resource/Model/Archer.bin"), m_player);
-
-	m_player->CreateAnimationController(device, commandlist, 3);
-	m_player->SetAnimationSet(m_animations["ArcherAnimation"]);
+	LoadObjectFromFile(TEXT("./Resource/Model/Warrior.bin"), m_player);
+	
+	m_player->SetAnimationSet(m_animations["WarriorAnimation"]);
 	m_player->SetAnimationOnTrack(0, 0);
 	m_player->SetAnimationOnTrack(1, 1);
 	m_player->SetAnimationOnTrack(2, 2);

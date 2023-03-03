@@ -63,6 +63,8 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/Undead_WarriorMesh.bin"));
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/Undead_WarriorTexture.bin"));
 
+	LoadAnimationFromFile(TEXT("./Resource/Animation/Undead_WarriorAnimation.bin"), "Undead_WarriorAnimation");
+
 	// 타워 씬 메쉬 로딩
 	/*LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/Book_09Mesh.bin"));
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/Bottle_05Mesh.bin"));
@@ -141,18 +143,18 @@ void LoadingScene::LoadMeshFromFile(const ComPtr<ID3D12Device>& device, const Co
 
 		if (strToken == "<Hierarchy>:") {}
 		else if (strToken == "<SkinningInfo>:") {
-			auto skinnedMesh = make_shared<SkinnedMesh>();
-			skinnedMesh->LoadSkinnedMesh(device, commandList, in);
-			skinnedMesh->SetMeshType(SKINNED_MESH);
+			auto animationMesh = make_shared<AnimationMesh>();
+			animationMesh->LoadAnimationMesh(device, commandList, in);
+			animationMesh->SetType(AnimationSetting::ANIMATION_MESH);
 
-			m_meshs.insert({ skinnedMesh->GetSkinnedMeshName(), skinnedMesh });
+			m_meshs.insert({ animationMesh->GetAnimationMeshName(), animationMesh });
 		}
 		else if (strToken == "<Mesh>:") {
-			auto mesh = make_shared<SkinnedMesh>();
-			mesh->LoadSkinnedMesh(device, commandList, in);
-			mesh->SetMeshType(STANDARD_MESH);
+			auto mesh = make_shared<AnimationMesh>();
+			mesh->LoadAnimationMesh(device, commandList, in);
+			mesh->SetType(AnimationSetting::STANDARD_MESH);
 
-			m_meshs.insert({ mesh->GetSkinnedMeshName(), mesh });
+			m_meshs.insert({ mesh->GetAnimationMeshName(), mesh });
 		}
 		else if (strToken == "</Hierarchy>") {
 			break;
@@ -224,8 +226,6 @@ void LoadingScene::LoadAnimationFromFile(wstring fileName, const string& animati
 			in.read((char*)(&frameNum), sizeof(INT));
 			auto& frameNames = animationSet->GetFrameNames();
 			frameNames.resize(frameNum);
-			auto& frameCaches = animationSet->GetBoneFramesCaches();
-			frameCaches.resize(frameNum);
 
 			// 프레임이름을 담는 벡터에
 			// 각 이름을 읽어서 넣음

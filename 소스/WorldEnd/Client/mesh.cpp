@@ -575,14 +575,14 @@ SkyboxMesh::SkyboxMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12Gr
 	m_vertexBufferView.SizeInBytes = sizeof(SkyboxVertex) * vertices.size();
 }
 
-SkinnedMesh::SkinnedMesh()
+AnimationMesh::AnimationMesh()
 {
 	m_primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 }
 
-void SkinnedMesh::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT subMeshIndex) const
+void AnimationMesh::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT subMeshIndex, const GameObject* rootObject)
 {
-	UpdateShaderVariables(commandList);
+	UpdateShaderVariables(commandList, rootObject);
 
 	commandList->IASetPrimitiveTopology(m_primitiveTopology);
 	commandList->IASetVertexBuffers(0, 1, &m_vertexBufferView);
@@ -600,23 +600,27 @@ void SkinnedMesh::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, U
 	}
 }
 
-void SkinnedMesh::UpdateShaderVariables(const ComPtr<ID3D12GraphicsCommandList>& commandList) const
+void AnimationMesh::UpdateShaderVariables(const ComPtr<ID3D12GraphicsCommandList>& commandList, const GameObject* rootObject)
 {
+	// 오프셋 행렬은 그대로 넘긴다 -> 고정된 값이므로
+
+	// 애니메이션 변환행렬은 오브젝트에서 가져와서 넘긴다
+	// -> 모델 별로 애니메이션이 다르기 때문에
+
 	if (m_bindPoseBoneOffsetBuffers) {
 		D3D12_GPU_VIRTUAL_ADDRESS virtualAddress = m_bindPoseBoneOffsetBuffers->GetGPUVirtualAddress();
 		commandList->SetGraphicsRootConstantBufferView(16, virtualAddress);
 	}
-	if (m_skinningBoneTransformBuffers) {
-		D3D12_GPU_VIRTUAL_ADDRESS virtualAddress = m_skinningBoneTransformBuffers->GetGPUVirtualAddress();
+
+	if (m_animationTransformBuffers) {
+		::memcpy(m_animationTransformBuffersPointer, &rootObject->GetAnimationController()->GetAnimationTransform(), sizeof(XMFLOAT4X4) * AnimationSetting::MAX_BONE);
+		D3D12_GPU_VIRTUAL_ADDRESS virtualAddress = m_animationTransformBuffers->GetGPUVirtualAddress();
 		commandList->SetGraphicsRootConstantBufferView(17, virtualAddress);
 
-		for (int i = 0; i < m_skinningBoneFrames.size(); ++i) {
-			XMStoreFloat4x4(&m_mappedSkinningBoneTransforms[i], XMMatrixTranspose(XMLoadFloat4x4(&m_skinningBoneFrames[i]->GetWorldMatrix())));
-		}
 	}
 }
 
-void SkinnedMesh::ReleaseUploadBuffer()
+void AnimationMesh::ReleaseUploadBuffer()
 {
 	if (m_vertexUploadBuffer) m_vertexUploadBuffer.Reset();
 	if (m_indexUploadBuffer) m_indexUploadBuffer.Reset();
@@ -625,7 +629,7 @@ void SkinnedMesh::ReleaseUploadBuffer()
 	}
 }
 
-void SkinnedMesh::LoadSkinnedMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, ifstream& in)
+void AnimationMesh::LoadAnimationMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, ifstream& in)
 {
 	m_primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
@@ -640,8 +644,8 @@ void SkinnedMesh::LoadSkinnedMesh(const ComPtr<ID3D12Device>& device, const ComP
 	INT bonesPerVertex{}, boneNameNum{}, boneOffsetNum{}, boneIndexNum{}, boneWeightNum{};
 
 	in.read((char*)(&strLength), sizeof(BYTE));
-	m_skinnedMeshName.resize(strLength, '\0');
-	in.read(&m_skinnedMeshName[0], sizeof(char) * strLength);
+	m_animationMeshName.resize(strLength, '\0');
+	in.read(&m_animationMeshName[0], sizeof(char) * strLength);
 
 	while (1) {
 		in.read((char*)(&strLength), sizeof(BYTE));
@@ -659,7 +663,6 @@ void SkinnedMesh::LoadSkinnedMesh(const ComPtr<ID3D12Device>& device, const ComP
 		else if (strToken == "<BoneNames>:") {
 			in.read((char*)(&boneNameNum), sizeof(INT));
 
-			m_skinningBoneFrames.resize(boneNameNum);	// 오브젝트 벡터는 사이즈만 늘리고 당장은 정의 X
 			m_skinningBoneNames.resize(boneNameNum);
 
 			for (int i = 0; i < boneNameNum; ++i) {
@@ -667,6 +670,8 @@ void SkinnedMesh::LoadSkinnedMesh(const ComPtr<ID3D12Device>& device, const ComP
 				m_skinningBoneNames[i].resize(strLength);
 				in.read(&m_skinningBoneNames[i][0], sizeof(char) * strLength);
 			}
+
+
 		}
 		else if (strToken == "<BoneOffsets>:") {
 			in.read((char*)(&boneOffsetNum), sizeof(INT));
@@ -678,13 +683,13 @@ void SkinnedMesh::LoadSkinnedMesh(const ComPtr<ID3D12Device>& device, const ComP
 					in.read((char*)(&m_bindPoseBoneOffsets[i]), sizeof(XMFLOAT4X4));
 
 				//바인드포즈 오프셋 버퍼 정의
-				UINT elementBytes = (((sizeof(XMFLOAT4X4) * SKINNED_BONES) + 255) & ~255);	// // XMFLOAT4X4 가 최대 뼈의 갯수만큼 있는것을 가정하였을 때의 256의 배수 구하기
+				UINT elementBytes = (((sizeof(XMFLOAT4X4) * AnimationSetting::MAX_BONE) + 255) & ~255);	// // XMFLOAT4X4 가 최대 뼈의 갯수만큼 있는것을 가정하였을 때의 256의 배수 구하기
 				m_bindPoseBoneOffsetBuffers = CreateBufferResource(device, commandList, nullptr, elementBytes, D3D12_HEAP_TYPE_UPLOAD,
 					D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, ComPtr<ID3D12Resource>());
-				m_bindPoseBoneOffsetBuffers->Map(0, nullptr, (void**)&m_mappedBindPoseBoneOffsets);
+				m_bindPoseBoneOffsetBuffers->Map(0, nullptr, (void**)&m_bindPoseBoneOffsetBuffersPointer);
 
 				for (int i = 0; i < boneOffsetNum; ++i) {
-					XMStoreFloat4x4(&m_mappedBindPoseBoneOffsets[i], XMMatrixTranspose(XMLoadFloat4x4(&m_bindPoseBoneOffsets[i])));
+					XMStoreFloat4x4(&m_bindPoseBoneOffsetBuffersPointer[i], XMMatrixTranspose(XMLoadFloat4x4(&m_bindPoseBoneOffsets[i])));
 				}
 				
 			}
@@ -863,6 +868,11 @@ void SkinnedMesh::LoadSkinnedMesh(const ComPtr<ID3D12Device>& device, const ComP
 		m_indexBufferView.Format = DXGI_FORMAT_R32_UINT;
 		m_indexBufferView.SizeInBytes = indexBufferSize;
 	}
+
+	UINT elementBytes = (((sizeof(XMFLOAT4X4) * AnimationSetting::MAX_BONE) + 255) & ~255);
+	m_animationTransformBuffers = CreateBufferResource(device, commandList, nullptr, elementBytes,
+		D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, ComPtr<ID3D12Resource>());
+	m_animationTransformBuffers->Map(0, nullptr, (void**)&m_animationTransformBuffersPointer);
 }
 
 
