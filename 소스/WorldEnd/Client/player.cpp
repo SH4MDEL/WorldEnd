@@ -76,6 +76,12 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 			" z: " << move_packet.pos.z << endl;
 #endif // USE_NETWORK
 	}
+	if (GetAsyncKeyState('Q') & 0x8000)
+	{
+		SetPosition(XMFLOAT3{ GetPosition().x, GetPosition().y + 0.01f, GetPosition().z });
+		cout << GetPosition().x << ", " << GetPosition().y << ", " << GetPosition().z << endl;
+
+	}
 	if (GetAsyncKeyState(VK_SPACE) & 0x8000)
 	{
 

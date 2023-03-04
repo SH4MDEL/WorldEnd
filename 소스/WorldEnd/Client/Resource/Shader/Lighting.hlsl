@@ -81,7 +81,7 @@ float4 SpotLight(int index, float3 position, float3 normal, float3 toCamera, Pho
 	toLight /= distance;
 
 	float specularFactor = 0.0f;
-	float diffuseFactor = dot(toLight, normal);
+	float diffuseFactor = abs(dot(toLight, normal));
 	if (diffuseFactor > 0.0f) {
 		if (material.m_specular.a != 0.0f) {
 			float3 Half = normalize(toCamera + toLight);

@@ -508,7 +508,7 @@ ShadowShader::ShadowShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc{};
 	psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-	psoDesc.RasterizerState.DepthBias = 100000;
+	psoDesc.RasterizerState.DepthBias = 10000;
 	psoDesc.RasterizerState.DepthBiasClamp = 0.0f;
 	psoDesc.RasterizerState.SlopeScaledDepthBias = 1.0f;
 
@@ -552,7 +552,7 @@ AnimationShadowShader::AnimationShadowShader(const ComPtr<ID3D12Device>& device,
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc{};
 	psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-	psoDesc.RasterizerState.DepthBias = 100000;
+	psoDesc.RasterizerState.DepthBias = 10000;
 	psoDesc.RasterizerState.DepthBiasClamp = 0.0f;
 	psoDesc.RasterizerState.SlopeScaledDepthBias = 1.0f;
 

@@ -40,6 +40,59 @@ void TowerScene::OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FL
 void TowerScene::OnProcessingKeyboardMessage(FLOAT timeElapsed) const
 {
 	m_player->OnProcessingKeyboardMessage(timeElapsed);
+
+	//static float m_theta = 60.f;
+	//static float m_phi = 120.f;
+	//static float range = 10.f;
+	//static float falloff = 8.f;
+	//if (GetAsyncKeyState('R') & 0x8000)
+	//{
+	//	m_theta += 0.1f;
+	//	m_lightSystem->m_lights[7].m_theta = (float)cos(XMConvertToRadians(m_theta));
+	//	cout << "m_theta : " << m_theta << endl;
+	//}
+	//if (GetAsyncKeyState('F') & 0x8000)
+	//{
+	//	m_theta -= 0.1f;
+	//	m_lightSystem->m_lights[7].m_theta = (float)cos(XMConvertToRadians(m_theta));
+	//	cout << "m_theta : " << m_theta << endl;
+	//}
+	//if (GetAsyncKeyState('T') & 0x8000)
+	//{
+	//	m_phi += 0.1f;
+	//	m_lightSystem->m_lights[7].m_phi = (float)cos(XMConvertToRadians(m_phi));
+	//	cout << "m_phi : " << m_phi << endl;
+	//}
+	//if (GetAsyncKeyState('G') & 0x8000)
+	//{
+	//	m_phi -= 0.1f;
+	//	m_lightSystem->m_lights[7].m_phi = (float)cos(XMConvertToRadians(m_phi));
+	//	cout << "m_phi : " << m_phi << endl;
+	//}
+	//if (GetAsyncKeyState('Y') & 0x8000)
+	//{
+	//	range += 0.1f;
+	//	m_lightSystem->m_lights[7].m_range = range;
+	//	cout << "range : " << range << endl;
+	//}
+	//if (GetAsyncKeyState('H') & 0x8000)
+	//{
+	//	range -= 0.1f;
+	//	m_lightSystem->m_lights[7].m_range = range;
+	//	cout << "range : " << range << endl;
+	//}
+	//if (GetAsyncKeyState('U') & 0x8000)
+	//{
+	//	falloff += 0.1f;
+	//	m_lightSystem->m_lights[7].m_falloff = falloff;
+	//	cout << "falloff : " << falloff << endl;
+	//}
+	//if (GetAsyncKeyState('J') & 0x8000)
+	//{
+	//	falloff -= 0.1f;
+	//	m_lightSystem->m_lights[7].m_falloff = falloff;
+	//	cout << "falloff : " << falloff << endl;
+	//}
 }
 
 void TowerScene::CreateShaderVariable(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList)
@@ -58,7 +111,7 @@ void TowerScene::CreateShaderVariable(const ComPtr<ID3D12Device>& device, const 
 
 void TowerScene::UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& commandList)
 {
-	BoundingSphere sceneBounds{ XMFLOAT3{ 0.0f, 0.0f, 0.0f }, 100.f * sqrt(2.0f) };
+	BoundingSphere sceneBounds{ XMFLOAT3{ 0.0f, 0.0f, 10.0f }, 60.f };
 
 	// Only the first "main" light casts a shadow.
 	XMVECTOR lightDir = XMLoadFloat3(&m_lightSystem->m_lights[0].m_direction);
@@ -130,7 +183,7 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	m_camera->SetProjMatrix(projMatrix);
 
 	// 그림자 맵 생성
-	m_shadow = make_unique<Shadow>(device, 4096, 4096);
+	m_shadow = make_unique<Shadow>(device, 4096 << 1, 4096 << 1);
 
 	// 씬 로드
 	LoadSceneFromFile(device, commandlist, TEXT("./Resource/Scene/TowerScene.bin"), TEXT("TowerScene"));
@@ -158,7 +211,7 @@ void TowerScene::CreateLight(const ComPtr<ID3D12Device>& device, const ComPtr<ID
 {
 	m_lightSystem = make_shared<LightSystem>();
 	m_lightSystem->m_globalAmbient = XMFLOAT4{ 0.1f, 0.1f, 0.1f, 1.f };
-	m_lightSystem->m_numLight = 3;
+	m_lightSystem->m_numLight = 8;
 
 	m_lightSystem->m_lights[0].m_type = DIRECTIONAL_LIGHT;
 	m_lightSystem->m_lights[0].m_ambient = XMFLOAT4{ 0.3f, 0.3f, 0.3f, 1.f };
@@ -167,38 +220,96 @@ void TowerScene::CreateLight(const ComPtr<ID3D12Device>& device, const ComPtr<ID
 	m_lightSystem->m_lights[0].m_direction = XMFLOAT3{ 1.f, -1.f, 1.f };
 	m_lightSystem->m_lights[0].m_enable = true;
 
-	m_lightSystem->m_lights[1].m_type = POINT_LIGHT;
-	m_lightSystem->m_lights[1].m_range = 2.f;
+	m_lightSystem->m_lights[1].m_type = SPOT_LIGHT;
+	m_lightSystem->m_lights[1].m_range = 5.f;
 	m_lightSystem->m_lights[1].m_ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
-	m_lightSystem->m_lights[1].m_diffuse = XMFLOAT4(0.8f, 0.3f, 0.3f, 1.0f);
+	m_lightSystem->m_lights[1].m_diffuse = XMFLOAT4(0.64f, 0.64f, 0.44f, 1.0f);
 	m_lightSystem->m_lights[1].m_specular = XMFLOAT4(0.1f, 0.1f, 0.1f, 0.0f);
-	m_lightSystem->m_lights[1].m_position = XMFLOAT3(1.927f, 2.215f, 0.267f);
-	m_lightSystem->m_lights[1].m_direction = XMFLOAT3(0.0f, 1.0f, 0.0f);
-	m_lightSystem->m_lights[1].m_attenuation = XMFLOAT3(1.0f, 0.001f, 0.0001f);
+	m_lightSystem->m_lights[1].m_position = XMFLOAT3(-2.943f, -2.468f, -45.335f);
+	m_lightSystem->m_lights[1].m_direction = XMFLOAT3(0.0f, -1.0f, 0.0f);
+	m_lightSystem->m_lights[1].m_attenuation = XMFLOAT3(1.0f, 0.25f, 0.05f);
+	m_lightSystem->m_lights[1].m_falloff = 3.f;
+	m_lightSystem->m_lights[1].m_phi = (float)cos(XMConvertToRadians(120.f));
+	m_lightSystem->m_lights[1].m_theta = (float)cos(XMConvertToRadians(60.f));
 	m_lightSystem->m_lights[1].m_enable = true;
 
-	m_lightSystem->m_lights[2].m_type = POINT_LIGHT;
-	m_lightSystem->m_lights[2].m_range = 2.f;
+	m_lightSystem->m_lights[2].m_type = SPOT_LIGHT;
+	m_lightSystem->m_lights[2].m_range = 5.f;
 	m_lightSystem->m_lights[2].m_ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
-	m_lightSystem->m_lights[2].m_diffuse = XMFLOAT4(0.8f, 0.3f, 0.3f, 1.0f);
+	m_lightSystem->m_lights[2].m_diffuse = XMFLOAT4(0.64f, 0.64f, 0.44f, 1.0f);
 	m_lightSystem->m_lights[2].m_specular = XMFLOAT4(0.1f, 0.1f, 0.1f, 0.0f);
-	m_lightSystem->m_lights[2].m_position = XMFLOAT3(-5.916f, 2.215f, 0.267f);
-	m_lightSystem->m_lights[2].m_direction = XMFLOAT3(0.0f, 1.0f, 0.0f);
-	m_lightSystem->m_lights[2].m_attenuation = XMFLOAT3(1.0f, 0.001f, 0.0001f);
+	m_lightSystem->m_lights[2].m_position = XMFLOAT3(-2.963f, -2.468f, -33.575f);
+	m_lightSystem->m_lights[2].m_direction = XMFLOAT3(0.0f, -1.0f, 0.0f);
+	m_lightSystem->m_lights[2].m_attenuation = XMFLOAT3(1.0f, 0.25f, 0.05f);
+	m_lightSystem->m_lights[2].m_falloff = 3.f;
+	m_lightSystem->m_lights[2].m_phi = (float)cos(XMConvertToRadians(120.f));
+	m_lightSystem->m_lights[2].m_theta = (float)cos(XMConvertToRadians(60.f));
 	m_lightSystem->m_lights[2].m_enable = true;
 
-	//m_lightSystem->m_lights[3].m_type = SPOT_LIGHT;
-	//m_lightSystem->m_lights[3].m_range = 100.0f;
-	//m_lightSystem->m_lights[3].m_ambient = XMFLOAT4(0.3f, 0.3f, 0.3f, 1.0f);
-	//m_lightSystem->m_lights[3].m_diffuse = XMFLOAT4(0.4f, 0.4f, 0.4f, 1.0f);
-	//m_lightSystem->m_lights[3].m_specular = XMFLOAT4(0.3f, 0.3f, 0.3f, 0.0f);
-	//m_lightSystem->m_lights[3].m_position = XMFLOAT3(0.f, 5.f, 0.f);
-	//m_lightSystem->m_lights[3].m_direction = XMFLOAT3(0.0f, 1.0f, 0.0f);
-	//m_lightSystem->m_lights[3].m_attenuation = XMFLOAT3(1.0f, 0.001f, 0.0001f);
-	//m_lightSystem->m_lights[3].m_falloff = 8.f;
-	//m_lightSystem->m_lights[3].m_phi = (float)cos(XMConvertToRadians(40.0f));
-	//m_lightSystem->m_lights[3].m_theta = (float)cos(XMConvertToRadians(20.0f));
-	//m_lightSystem->m_lights[3].m_enable = true;
+	m_lightSystem->m_lights[3].m_type = SPOT_LIGHT;
+	m_lightSystem->m_lights[3].m_range = 5.f;
+	m_lightSystem->m_lights[3].m_ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
+	m_lightSystem->m_lights[3].m_diffuse = XMFLOAT4(0.64f, 0.64f, 0.44f, 1.0f);
+	m_lightSystem->m_lights[3].m_specular = XMFLOAT4(0.1f, 0.1f, 0.1f, 0.0f);
+	m_lightSystem->m_lights[3].m_position = XMFLOAT3(-2.755f, -2.468f, -21.307f);
+	m_lightSystem->m_lights[3].m_direction = XMFLOAT3(0.0f, -1.0f, 0.0f);
+	m_lightSystem->m_lights[3].m_attenuation = XMFLOAT3(1.0f, 0.25f, 0.05f);
+	m_lightSystem->m_lights[3].m_falloff = 3.f;
+	m_lightSystem->m_lights[3].m_phi = (float)cos(XMConvertToRadians(120.f));
+	m_lightSystem->m_lights[3].m_theta = (float)cos(XMConvertToRadians(60.f));
+	m_lightSystem->m_lights[3].m_enable = true;
+
+	m_lightSystem->m_lights[4].m_type = SPOT_LIGHT;
+	m_lightSystem->m_lights[4].m_range = 5.f;
+	m_lightSystem->m_lights[4].m_ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
+	m_lightSystem->m_lights[4].m_diffuse = XMFLOAT4(0.64f, 0.64f, 0.44f, 1.0f);
+	m_lightSystem->m_lights[4].m_specular = XMFLOAT4(0.1f, 0.1f, 0.1f, 0.0f);
+	m_lightSystem->m_lights[4].m_position = XMFLOAT3(-4.833f, 1.952f, 8.224f);
+	m_lightSystem->m_lights[4].m_direction = XMFLOAT3(0.0f, -1.0f, 0.0f);
+	m_lightSystem->m_lights[4].m_attenuation = XMFLOAT3(1.0f, 0.25f, 0.05f);
+	m_lightSystem->m_lights[4].m_falloff = 3.f;
+	m_lightSystem->m_lights[4].m_phi = (float)cos(XMConvertToRadians(120.f));
+	m_lightSystem->m_lights[4].m_theta = (float)cos(XMConvertToRadians(60.f));
+	m_lightSystem->m_lights[4].m_enable = true;
+
+	m_lightSystem->m_lights[5].m_type = SPOT_LIGHT;
+	m_lightSystem->m_lights[5].m_range = 5.f;
+	m_lightSystem->m_lights[5].m_ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
+	m_lightSystem->m_lights[5].m_diffuse = XMFLOAT4(0.64f, 0.64f, 0.44f, 1.0f);
+	m_lightSystem->m_lights[5].m_specular = XMFLOAT4(0.1f, 0.1f, 0.1f, 0.0f);
+	m_lightSystem->m_lights[5].m_position = XMFLOAT3(4.796f, 1.952f, 8.044f);
+	m_lightSystem->m_lights[5].m_direction = XMFLOAT3(0.0f, -1.0f, 0.0f);
+	m_lightSystem->m_lights[5].m_attenuation = XMFLOAT3(1.0f, 0.25f, 0.05f);
+	m_lightSystem->m_lights[5].m_falloff = 3.f;
+	m_lightSystem->m_lights[5].m_phi = (float)cos(XMConvertToRadians(120.f));
+	m_lightSystem->m_lights[5].m_theta = (float)cos(XMConvertToRadians(60.f));
+	m_lightSystem->m_lights[5].m_enable = true;
+
+	m_lightSystem->m_lights[6].m_type = SPOT_LIGHT;
+	m_lightSystem->m_lights[6].m_range = 5.f;
+	m_lightSystem->m_lights[6].m_ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
+	m_lightSystem->m_lights[6].m_diffuse = XMFLOAT4(0.64f, 0.64f, 0.44f, 1.0f);
+	m_lightSystem->m_lights[6].m_specular = XMFLOAT4(0.1f, 0.1f, 0.1f, 0.0f);
+	m_lightSystem->m_lights[6].m_position = XMFLOAT3(-4.433f, 1.952f, 39.324f);
+	m_lightSystem->m_lights[6].m_direction = XMFLOAT3(0.0f, -1.0f, 0.0f);
+	m_lightSystem->m_lights[6].m_attenuation = XMFLOAT3(1.0f, 0.25f, 0.05f);
+	m_lightSystem->m_lights[6].m_falloff = 3.f;
+	m_lightSystem->m_lights[6].m_phi = (float)cos(XMConvertToRadians(120.f));
+	m_lightSystem->m_lights[6].m_theta = (float)cos(XMConvertToRadians(60.f));
+	m_lightSystem->m_lights[6].m_enable = true;
+
+	m_lightSystem->m_lights[7].m_type = SPOT_LIGHT;
+	m_lightSystem->m_lights[7].m_range = 5.f;
+	m_lightSystem->m_lights[7].m_ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
+	m_lightSystem->m_lights[7].m_diffuse = XMFLOAT4(0.64f, 0.64f, 0.44f, 1.0f);
+	m_lightSystem->m_lights[7].m_specular = XMFLOAT4(0.1f, 0.1f, 0.1f, 0.0f);
+	m_lightSystem->m_lights[7].m_position = XMFLOAT3(3.116f, 1.952f, 39.184f);
+	m_lightSystem->m_lights[7].m_direction = XMFLOAT3(0.0f, -1.0f, 0.0f);
+	m_lightSystem->m_lights[7].m_attenuation = XMFLOAT3(1.0f, 0.25f, 0.05f);
+	m_lightSystem->m_lights[7].m_falloff = 3.f;
+	m_lightSystem->m_lights[7].m_phi = (float)cos(XMConvertToRadians(120.f));
+	m_lightSystem->m_lights[7].m_theta = (float)cos(XMConvertToRadians(60.f));
+	m_lightSystem->m_lights[7].m_enable = true;
 
 	m_lightSystem->CreateShaderVariable(device, commandlist);
 }
@@ -209,7 +320,7 @@ void TowerScene::Update(FLOAT timeElapsed)
 	if (m_shaders["SKYBOX"]) for (auto& skybox : m_shaders["SKYBOX"]->GetObjects()) skybox->SetPosition(m_camera->GetEye());
 	for (const auto& shader : m_shaders)
 		shader.second->Update(timeElapsed);
-	CheckBorderLimit();
+	//CheckBorderLimit();
 }
 
 void TowerScene::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const
@@ -285,6 +396,9 @@ void TowerScene::LoadSceneFromFile(const ComPtr<ID3D12Device>& device, const Com
 		XMFLOAT4X4 worldMatrix;
 		in.read((CHAR*)(&worldMatrix), sizeof(XMFLOAT4X4));
 		object->SetWorldMatrix(worldMatrix);
+		if (objectName == "AD_Brazier_A_01") {
+			cout << worldMatrix._41 << ", " << worldMatrix._42 << ", " << worldMatrix._43 << endl;
+		}
 
 		m_object.push_back(object);
 		m_shaders["OBJECT"]->SetObject(object);
@@ -562,12 +676,3 @@ void TowerScene::RecvUpdateMonster(char* ptr)
 			" y: " << monster_packet->monster_data.pos.y <<
 			" z: " << monster_packet->monster_data.pos.z << ")" << endl;
 }
-
-
-
-
-
-
-
-
-

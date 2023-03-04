@@ -117,7 +117,7 @@ float4 PS_TEXTUREHIERARCHY_MAIN(VS_TEXTUREHIERARCHY_OUTPUT input) : SV_TARGET
 
 	if (textureMask & MATERIAL_ALBEDO_MAP) material.m_diffuse = g_albedoTexture.Sample(g_samplerWrap, input.uv);
 	if (textureMask & MATERIAL_SPECULAR_MAP) material.m_specular = g_specularTexture.Sample(g_samplerWrap, input.uv);
-	if (textureMask & MATERIAL_NORMAL_MAP) normalColor = g_normalTexture.Sample(g_samplerWrap, input.uv);
+	if (textureMask & MATERIAL_NORMAL_MAP) normalColor = -g_normalTexture.Sample(g_samplerWrap, input.uv);
 	else normalColor = float4(input.normal, 1.f);
 	if (textureMask & MATERIAL_METALLIC_MAP) metallicColor = g_metallicTexture.Sample(g_samplerWrap, input.uv);
 	if (textureMask & MATERIAL_EMISSION_MAP) emissionColor = g_emissionTexture.Sample(g_samplerWrap, input.uv);
@@ -129,7 +129,7 @@ float4 PS_TEXTUREHIERARCHY_MAIN(VS_TEXTUREHIERARCHY_OUTPUT input) : SV_TARGET
 	//normal = normalize(mul(vNormal, TBN));
 	float shadowFactor = CalcShadowFactor(input.shadowPosition);
 	float4 light = Lighting(input.positionW, normal, material, shadowFactor);
-	color = lerp(color, light, 0.5);
+	color = lerp(color, light, 0.8);
 	return color;
 }
 
@@ -214,7 +214,7 @@ float4 PS_ANIMATION_MAIN(VS_ANIMATION_OUTPUT input) : SV_TARGET
 
 	if (textureMask & MATERIAL_ALBEDO_MAP) material.m_diffuse = g_albedoTexture.Sample(g_samplerWrap, input.uv);
 	if (textureMask & MATERIAL_SPECULAR_MAP) material.m_specular = g_specularTexture.Sample(g_samplerWrap, input.uv);
-	if (textureMask & MATERIAL_NORMAL_MAP) normalColor = g_normalTexture.Sample(g_samplerWrap, input.uv);
+	if (textureMask & MATERIAL_NORMAL_MAP) normalColor = -g_normalTexture.Sample(g_samplerWrap, input.uv);
 	else normalColor = float4(input.normal, 1.f);
 	if (textureMask & MATERIAL_METALLIC_MAP) metallicColor = g_metallicTexture.Sample(g_samplerWrap, input.uv);
 	if (textureMask & MATERIAL_EMISSION_MAP) emissionColor = g_emissionTexture.Sample(g_samplerWrap, input.uv);
