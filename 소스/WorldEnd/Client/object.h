@@ -21,11 +21,12 @@ public:
 	virtual ~GameObject();
 
 	virtual void Update(FLOAT timeElapsed);
-	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const;
-	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, const GameObject* rootObject) const;
+	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList);
+	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, GameObject* rootObject);
 	virtual void Move(const XMFLOAT3& shift);
 	virtual void Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw);
 	virtual void UpdateTransform(XMFLOAT4X4* parentMatrix = nullptr);
+	virtual void UpdateAnimationTransform(XMFLOAT4X4* parentMatrix = nullptr);
 
 	void SetMesh(const shared_ptr<Mesh>& mesh);
 	void SetTexture(const shared_ptr<Texture>& texture);
@@ -50,7 +51,8 @@ public:
 	void SetFrameName(string&& frameName) noexcept;
 	shared_ptr<GameObject> FindFrame(string frameName);
 
-	void LoadObject(ifstream& in);
+	virtual void LoadObject(ifstream& in);
+	void LoadObject(ifstream& in, const shared_ptr<GameObject>& rootObject);
 
 	void UpdateBoundingBox();
 	void SetBoundingBox(const BoundingOrientedBox& boundingBox);
@@ -62,11 +64,15 @@ public:
 	XMFLOAT4X4 GetTransformMatrix() const { return m_transformMatrix; }
 	void SetTransformMatrix(XMFLOAT4X4 mat) { m_transformMatrix = mat; }
 
+	XMFLOAT4X4 GetAnimationMatrix() const { return m_animationMatrix; }
+	void SetAnimationMatrix(XMFLOAT4X4 mat) { m_animationMatrix = mat; }
+
 	virtual AnimationController* GetAnimationController() const { return nullptr; }
 
 protected:
 	XMFLOAT4X4					m_transformMatrix;
 	XMFLOAT4X4					m_worldMatrix;
+	XMFLOAT4X4					m_animationMatrix;
 
 	XMFLOAT3					m_right;		// 로컬 x축
 	XMFLOAT3					m_up;			// 로컬 y축
@@ -96,7 +102,7 @@ public:
 		INT width, INT length, INT height, INT blockWidth, INT blockLength, INT blockHeight, XMFLOAT3 scale);
 	~Field() = default;
 
-	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const;
+	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList);
 	virtual void Move(const XMFLOAT3& shift);
 	virtual void Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw);
 
@@ -125,7 +131,7 @@ public:
 		INT width, INT length, INT blockWidth, INT blockLength);
 	~Fence() = default;
 
-	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>&commandList) const;
+	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>&commandList);
 	virtual void Move(const XMFLOAT3 & shift);
 	virtual void Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw);
 
@@ -159,7 +165,7 @@ public:
 	HpBar();
 	~HpBar() = default;
 
-	void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const override;
+	void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) override;
 
 	void SetHp(FLOAT hp) { m_hp = hp; }
 	void SetMaxHp(FLOAT maxHp) { m_maxHp = maxHp; }
@@ -187,10 +193,12 @@ public:
 
 
 	virtual void Update(FLOAT timeElapsed);
-	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const;
+	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList);
 
 	void SetAnimationSet(const shared_ptr<AnimationSet>& animations);
 	void SetAnimationOnTrack(int animationTrackNumber, int animation);
+
+	virtual void LoadObject(ifstream& in);
 
 protected:
 	unique_ptr<AnimationController>		m_animationController;
@@ -274,7 +282,7 @@ public:
 	vector<CALLBACKKEY> GetCallbackKeys() const { return m_callbackKeys; }
 	AnimationCallbackHandler* GetAnimationCallbackHandler() const { return m_animationCallbackHandler.get(); }
 
-	float UpdatePosition(float trackPosition, float trackElapsedTime, float animationLength);
+	float UpdatePosition(float trackPosition, float timeElapsed, float animationLength);
 
 	void AnimationCallback();
 
@@ -313,12 +321,16 @@ public:
 	AnimationTrack& GetAnimationTrack(int index) { return m_animationTracks[index]; }
 	AnimationSet* GetAnimationSet() const { return m_animationSet.get(); }
 
-	void Update(float timeElapsed);
+	void Update(float timeElapsed, const shared_ptr<GameObject>& rootObject);
 
 	void SetBlendingMode(AnimationBlending blendingMode) { m_blendingMode = blendingMode; }
 	AnimationBlending GetBlendingMode() const { return m_blendingMode; }
 
-	array<XMFLOAT4X4, AnimationSetting::MAX_BONE>& GetAnimationTransform() { return m_animationTransform; }
+	
+	// 해시맵 관련 함수
+	GameObject* GetGameObject(string boneName) { return m_animationTransforms[boneName].second.get(); }
+
+	void InsertObject(string boneName, UINT boneNumber, const shared_ptr<GameObject>& object);
 
 private:
 	float									m_time;
@@ -328,6 +340,5 @@ private:
 
 	AnimationBlending						m_blendingMode;
 
-	array<XMFLOAT4X4, AnimationSetting::MAX_BONE> m_animationTransform;
-
+	unordered_map<string, pair<UINT, shared_ptr<GameObject>>>		m_animationTransforms;
 };

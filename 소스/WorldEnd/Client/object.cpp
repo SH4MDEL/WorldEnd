@@ -22,7 +22,7 @@ void GameObject::Update(FLOAT timeElapsed)
 	UpdateBoundingBox();
 }
 
-void GameObject::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const
+void GameObject::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList)
 {
 	XMFLOAT4X4 worldMatrix;
 	XMStoreFloat4x4(&worldMatrix, XMMatrixTranspose(XMLoadFloat4x4(&m_worldMatrix)));
@@ -44,17 +44,13 @@ void GameObject::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) co
 	if (m_child) m_child->Render(commandList);
 }
 
-void GameObject::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, const GameObject* rootObject) const
+void GameObject::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, GameObject* rootObject)
 {
-	XMFLOAT4X4 worldMatrix;
-	XMStoreFloat4x4(&worldMatrix, XMMatrixTranspose(XMLoadFloat4x4(&m_worldMatrix)));
-	commandList->SetGraphicsRoot32BitConstants(0, 16, &worldMatrix, 0);
-
 	if (m_texture) { m_texture->UpdateShaderVariable(commandList); }
 	if (m_materials) {
 		for (size_t i = 0; const auto & material : m_materials->m_materials) {
 			material.UpdateShaderVariable(commandList);
-			m_mesh->Render(commandList, i, rootObject);
+			m_mesh->Render(commandList, i, rootObject, this);
 			++i;
 		}
 	}
@@ -134,6 +130,14 @@ void GameObject::UpdateTransform(XMFLOAT4X4* parentMatrix)
 
 	if (m_sibling) m_sibling->UpdateTransform(parentMatrix);
 	if (m_child) m_child->UpdateTransform(&m_worldMatrix);
+}
+
+void GameObject::UpdateAnimationTransform(XMFLOAT4X4* parentMatrix)
+{
+	m_animationMatrix = (parentMatrix) ? Matrix::Mul(m_animationMatrix, *parentMatrix) : m_animationMatrix;
+
+	if (m_sibling) m_sibling->UpdateAnimationTransform(parentMatrix);
+	if (m_child) m_child->UpdateAnimationTransform(&m_animationMatrix);
 }
 
 void GameObject::ReleaseUploadBuffer() const
@@ -257,6 +261,92 @@ void GameObject::LoadObject(ifstream& in)
 	}
 }
 
+void GameObject::LoadObject(ifstream& in, const shared_ptr<GameObject>& rootObject)
+{
+	BYTE strLength;
+	INT frame, texture;
+
+	while (1) {
+		in.read((char*)(&strLength), sizeof(BYTE));
+		string strToken(strLength, '\0');
+		in.read((&strToken[0]), sizeof(char) * strLength);
+
+		if (strToken == "<Frame>:") {
+			in.read((char*)(&frame), sizeof(INT));
+			in.read((char*)(&texture), sizeof(INT));
+
+			in.read((char*)(&strLength), sizeof(BYTE));
+			m_frameName.resize(strLength);
+			in.read((&m_frameName[0]), sizeof(char) * strLength);
+
+			// 루트오브젝트의 해시맵을 채움
+			// 이름과 frame 번호를 이용해서 해시맵을 채움
+			rootObject->GetAnimationController()->InsertObject(m_frameName, frame, shared_from_this());
+		}
+		else if (strToken == "<Transform>:") {
+			XMFLOAT3 position, rotation, scale;
+			XMFLOAT4 qrotation;
+
+			in.read((char*)(&position), sizeof(FLOAT) * 3);
+			in.read((char*)(&rotation), sizeof(FLOAT) * 3);
+			in.read((char*)(&scale), sizeof(FLOAT) * 3);
+			in.read((char*)(&qrotation), sizeof(FLOAT) * 4);
+		}
+		else if (strToken == "<TransformMatrix>:") {
+			in.read((char*)(&m_transformMatrix), sizeof(FLOAT) * 16);
+		}
+		else if (strToken == "<Mesh>:") {
+			in.read((char*)(&strLength), sizeof(BYTE));
+			string meshName(strLength, '\0');
+			in.read(&meshName[0], sizeof(CHAR) * strLength);
+
+			SetMesh(Scene::m_meshs[meshName]);
+			SetBoundingBox(m_mesh->GetBoundingBox());
+		}
+		else if (strToken == "<SkinningInfo>:") {		// 스킨메쉬 정보
+			in.read((char*)(&strLength), sizeof(BYTE));
+			string meshName(strLength, '\0');
+			in.read(&meshName[0], sizeof(CHAR) * strLength);
+
+			// 스킨메쉬는 메쉬정보까지 담고 있으므로
+			// 메쉬까지 읽기만 하고 넘기도록 함
+			SetMesh(Scene::m_meshs[meshName]);
+			SetBoundingBox(m_mesh->GetBoundingBox());
+
+			// </SkinningInfo>		읽고 넘김
+			in.read((char*)(&strLength), sizeof(BYTE));
+			strToken.resize(strLength);
+			in.read((&strToken[0]), sizeof(char) * strLength);
+
+			// <Mesh>:		읽고 넘김
+			in.read((char*)(&strLength), sizeof(BYTE));
+			strToken.resize(strLength);
+			in.read((&strToken[0]), sizeof(char) * strLength);
+
+		}
+		else if (strToken == "<Materials>:") {
+			in.read((char*)(&strLength), sizeof(BYTE));
+			string materialName(strLength, '\0');
+			in.read(&materialName[0], sizeof(CHAR) * strLength);
+			SetMaterials(Scene::m_materials[materialName]);
+		}
+		else if (strToken == "<Children>:") {
+			INT childNum = 0;
+			in.read((char*)(&childNum), sizeof(INT));
+			if (childNum) {
+				for (int i = 0; i < childNum; ++i) {
+					auto child = make_shared<GameObject>();
+					child->LoadObject(in, rootObject);
+					SetChild(child);
+				}
+			}
+		}
+		else if (strToken == "</Frame>") {
+			break;
+		}
+	}
+}
+
 void GameObject::UpdateBoundingBox()
 {
 	m_boundingBox.Center = GetPosition();
@@ -298,7 +388,7 @@ Field::Field(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsComm
 	}
 }
 
-void Field::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const
+void Field::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList)
 {
 	if (m_texture) m_texture->UpdateShaderVariable(commandList);
 	for (const auto& block : m_blocks)
@@ -375,7 +465,7 @@ Fence::Fence(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsComm
 	}
 }
 
-void Fence::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const
+void Fence::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList)
 {
 	if (m_texture) m_texture->UpdateShaderVariable(commandList);
 	for (const auto& block : m_blocks)
@@ -422,7 +512,7 @@ void Skybox::Update(FLOAT timeElapsed)
 
 HpBar::HpBar() {}
 
-void HpBar::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const
+void HpBar::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList)
 {
 	commandList->SetGraphicsRoot32BitConstants(0, 1, &(m_hp), 16);
 	commandList->SetGraphicsRoot32BitConstants(0, 1, &(m_maxHp), 17);
@@ -473,6 +563,7 @@ XMFLOAT4X4 Animation::GetTransform(int boneNumber, float position)
 		}
 	}
 
+
 	if (position >= m_keyFrameTimes[keyFrames - 1])
 		transform = m_keyFrameTransforms[keyFrames - 1][boneNumber];
 
@@ -517,9 +608,9 @@ void AnimationTrack::SetAnimationCallbackHandler(const shared_ptr<AnimationCallb
 	m_animationCallbackHandler = callbackHandler;
 }
 
-float AnimationTrack::UpdatePosition(float trackPosition, float elapsedTime, float animationLength)
+float AnimationTrack::UpdatePosition(float trackPosition, float timeElapsed, float animationLength)
 {
-	float trackElapsedTime = elapsedTime * m_speed;		// 트랙 재생정도 = 시간의 흐름 * 애니메이션 재생속도
+	float trackElapsedTime = timeElapsed * m_speed;		// 트랙 재생정도 = 시간의 흐름 * 애니메이션 재생속도
 
 	if (ANIMATION_TYPE_LOOP == m_type) {
 		if (m_position < 0.0f)
@@ -567,9 +658,6 @@ AnimationController::AnimationController(int animationTracks)
 	// 컨트롤러 생성 시 원하는 갯수만큼 트랙 생성
 	m_animationTracks.resize(animationTracks);
 	m_blendingMode = AnimationBlending::NORMAL;
-
-	for (XMFLOAT4X4& transform : m_animationTransform) 
-		XMStoreFloat4x4(&transform, XMMatrixIdentity());
 }
 
 AnimationController::~AnimationController()
@@ -631,8 +719,9 @@ void AnimationController::SetAnimationCallbackHandler(int animationTrack, const 
 
 }
 
-void AnimationController::Update(float timeElapsed)
+void AnimationController::Update(float timeElapsed, const shared_ptr<GameObject>& rootObject)
 {
+	m_time += timeElapsed;
 	if (!m_animationTracks.empty()) {
 
 		// 하나의 애니메이션 행렬을 그대로 저장
@@ -649,10 +738,15 @@ void AnimationController::Update(float timeElapsed)
 				// 트랙의 애니메이션 재생 위치를 갱신하고 갱신된 위치를 가져옴
 				float position = track.UpdatePosition(track.GetPosition(), timeElapsed, animation->GetLength());
 
-				// 애니메이션이 적용될 뼈대의 개수만큼만 애니메이션 행렬을 가져옴
-				// MAX BONE을 넘지 않기 위해 애니메이션 클래스에 저장된 값을 이용
-				for (size_t i = 0; i < m_animationSet->GetFrameNames().size(); ++i) {
-					m_animationTransform[i] = animation->GetTransform(i, position);
+				// 애니메이션 조합은 애니메이션이 적용될 오브젝트의 이름이 나열되어 있음
+				// 이를 이용해 애니메이션 변환을 갱신함
+				for (const string& str : m_animationSet->GetFrameNames()) {
+					
+					// 이름으로 해당 뼈대의 번호와 오브젝트를 참조함
+					pair<UINT, shared_ptr<GameObject>>& p = m_animationTransforms[str];
+					
+					// 해당 오브젝트를 찾아가 애니메이션 변환 값을 변경
+					p.second->SetAnimationMatrix(animation->GetTransform(p.first, position));
 				}
 
 				track.AnimationCallback();
@@ -661,9 +755,10 @@ void AnimationController::Update(float timeElapsed)
 
 		// 여러 애니메이션 행렬을 섞어서 저장
 		else {
-			for (auto& transform : m_animationTransform) {
-				transform = Matrix::Zero();
-			}
+
+			// bone = pair<string, pair<UINT, shared_ptr<GameObject>>>
+			for (auto& bone : m_animationTransforms)
+				bone.second.second->SetAnimationMatrix(Matrix::Zero());
 
 			for (auto& track : m_animationTracks) {
 				if (!track.GetEnable()) continue;
@@ -672,16 +767,27 @@ void AnimationController::Update(float timeElapsed)
 
 				float position = track.UpdatePosition(track.GetPosition(), timeElapsed, animation->GetLength());
 
-				for (size_t i = 0; i < animation->GetKeyFrameTimes().size(); ++i) {
-					XMFLOAT4X4 transform = animation->GetTransform(i, position);
-					m_animationTransform[i] = Matrix::Add(m_animationTransform[i], Matrix::Scale(transform, track.GetWeight()));
+				for (const string& str : m_animationSet->GetFrameNames()) {
+					pair<UINT, shared_ptr<GameObject>>& p = m_animationTransforms[str];
+					XMFLOAT4X4 transform = animation->GetTransform(p.first, position);
+
+					p.second->SetAnimationMatrix(Matrix::Add(p.second->GetAnimationMatrix(), 
+						Matrix::Scale(transform, track.GetWeight())));
 				}
 
 				track.AnimationCallback();
 			}
 		}
-	}
+		rootObject->UpdateAnimationTransform(nullptr);
 
+	}
+}
+
+void AnimationController::InsertObject(string boneName, UINT boneNumber, const shared_ptr<GameObject>& object)
+{
+	XMFLOAT4X4 transform;
+	XMStoreFloat4x4(&transform, XMMatrixIdentity());
+	m_animationTransforms.insert({ boneName, make_pair(boneNumber, object) });
 }
 
 AnimationObject::AnimationObject()
@@ -725,22 +831,18 @@ void AnimationObject::ChangeAnimation(int animation)
 
 void AnimationObject::Update(FLOAT timeElapsed)
 {
-	m_animationController->Update(timeElapsed);
+	m_animationController->Update(timeElapsed, shared_from_this());
 
 	GameObject::Update(timeElapsed);
 }
 
-void AnimationObject::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const
+void AnimationObject::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList)
 {
-	XMFLOAT4X4 worldMatrix;
-	XMStoreFloat4x4(&worldMatrix, XMMatrixTranspose(XMLoadFloat4x4(&m_worldMatrix)));
-	commandList->SetGraphicsRoot32BitConstants(0, 16, &worldMatrix, 0);
-
 	if (m_texture) { m_texture->UpdateShaderVariable(commandList); }
 	if (m_materials) {
 		for (size_t i = 0; const auto & material : m_materials->m_materials) {
 			material.UpdateShaderVariable(commandList);
-			m_mesh->Render(commandList, i, this);
+			m_mesh->Render(commandList, i, this, this);
 			++i;
 		}
 	}
@@ -761,4 +863,9 @@ void AnimationObject::SetAnimationSet(const shared_ptr<AnimationSet>& animationS
 void AnimationObject::SetAnimationOnTrack(int animationTrackNumber, int animation)
 {
 	m_animationController->SetTrackAnimation(animationTrackNumber, animation);
+}
+
+void AnimationObject::LoadObject(ifstream& in)
+{
+	GameObject::LoadObject(in, shared_from_this());
 }

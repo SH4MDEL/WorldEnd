@@ -73,15 +73,15 @@ struct TextureHierarchyVertex
 	XMFLOAT2 uv0;
 };
 
-struct SkinnedVertex
+struct AnimationVertex
 {
-	SkinnedVertex() : position{ XMFLOAT3{0.f, 0.f, 0.f} }, normal{ XMFLOAT3{0.f, 0.f, 0.f} },
+	AnimationVertex() : position{ XMFLOAT3{0.f, 0.f, 0.f} }, normal{ XMFLOAT3{0.f, 0.f, 0.f} },
 		tangent{ XMFLOAT3{0.f, 0.f, 0.f} }, biTangent{ XMFLOAT3{0.f, 0.f, 0.f} }, uv0{ XMFLOAT2{0.f, 0.f} },
 		boneIndex{ XMINT4(0, 0,0,0) }, boneWeight{ XMFLOAT4(0.f, 0.f, 0.f, 0.f) } {}
-	SkinnedVertex(const XMFLOAT3& p, const XMFLOAT3& n, const XMFLOAT3& t, const XMFLOAT3& bt,
+	AnimationVertex(const XMFLOAT3& p, const XMFLOAT3& n, const XMFLOAT3& t, const XMFLOAT3& bt,
 		const XMFLOAT2& uv0, const XMINT4& bi, const XMFLOAT4& bw)
 		: position{ p }, normal{ n }, tangent{ t }, biTangent{ bt }, uv0{ uv0 }, boneIndex{ bi }, boneWeight{ bw } { }
-	~SkinnedVertex() = default;
+	~AnimationVertex() = default;
 
 	XMFLOAT3 position;
 	XMFLOAT3 normal;
@@ -102,7 +102,7 @@ public:
 	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const;
 	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, const D3D12_VERTEX_BUFFER_VIEW& instanceBufferView) const;
 	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT subMeshIndex) const;
-	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT subMeshIndex, const GameObject* rootObject) {}
+	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT subMeshIndex, GameObject* rootObject, const GameObject* object) {}
 	virtual void ReleaseUploadBuffer();
 
 	BoundingOrientedBox GetBoundingBox() { return m_boundingBox; }
@@ -129,7 +129,7 @@ public:
 	virtual ~MeshFromFile() = default;
 
 	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT subMeshIndex) const override;
-	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT subMeshIndex, const GameObject* rootObject) {}
+	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT subMeshIndex, GameObject* rootObject, const GameObject* object) {}
 
 	void ReleaseUploadBuffer() override;
 
@@ -162,17 +162,13 @@ public:
 	AnimationMesh();
 	virtual ~AnimationMesh() = default;
 
-	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT subMeshIndex, const GameObject* rootObject);
+	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT subMeshIndex, GameObject* rootObject, const GameObject* object);
 
-	void UpdateShaderVariables(const ComPtr<ID3D12GraphicsCommandList>& commandList, const GameObject* rootObject);
+	void UpdateShaderVariables(const ComPtr<ID3D12GraphicsCommandList>& commandList, GameObject* rootObject, const GameObject* object);
 
 	void ReleaseUploadBuffer() override;
 
 	void LoadAnimationMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, ifstream& in);
-
-	ComPtr<ID3D12Resource>& GetSkinningBoneTransform() { return m_animationTransformBuffers; }
-	XMFLOAT4X4*& GetMappedSkinningBoneTransform() { return m_animationTransformBuffersPointer; }
-	vector<string>& GetSkinningBoneNames() { return m_skinningBoneNames; }
 
 	virtual string GetAnimationMeshName() const { return m_animationMeshName; }
 
@@ -180,8 +176,6 @@ public:
 	void SetType(int type) { m_meshType = type; }
 private:
 	string								m_animationMeshName;
-
-	UINT								m_nBonesPerVertex;
 
 	vector<string>						m_skinningBoneNames;
 
@@ -192,6 +186,8 @@ private:
 
 	ComPtr<ID3D12Resource>				m_animationTransformBuffers;
 	XMFLOAT4X4*							m_animationTransformBuffersPointer;
+
+	unordered_map<GameObject*, pair<ComPtr<ID3D12Resource>, XMFLOAT4X4*>> m_animationTransformBuffer;
 
 	int									m_meshType;
 };
