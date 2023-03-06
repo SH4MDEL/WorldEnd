@@ -47,6 +47,12 @@ public:
 	// 9. 风飘 矫弊聪贸 积己
 	void CreateRootSignature();
 
+	void Create11On12Device();
+
+	void CreateD2DDevice();
+
+	void CreateD2DRenderTarget();
+
 
 	void BuildObjects();
 	void ChangeScene(SCENETAG tag);
@@ -54,13 +60,16 @@ public:
 	void FrameAdvance();
 	void Update(FLOAT timeElapsed);
 	void Render();
+	void RenderText();
 
 	void WaitForGpuComplete();
 
 	UINT GetWindowWidth() const { return m_width; }
 	UINT GetWindowHeight() const { return m_height; }
+	FLOAT GetAspectRatio() const { return m_aspectRatio; }
 	void SetIsActive(BOOL isActive) { m_isActive = isActive; }
 
+	ComPtr<ID3D12CommandQueue> GetCommandQueue() const { return m_commandQueue; }
 
 private:
 	static const INT					SwapChainBufferCount = 2;
@@ -89,6 +98,15 @@ private:
 	ComPtr<ID3D12DescriptorHeap>		m_dsvHeap;
 	ComPtr<ID3D12RootSignature>			m_rootSignature;
 
+	// Text Write (UI Layer)
+	ComPtr<ID3D11DeviceContext>			m_deviceContext;
+	ComPtr<ID3D11On12Device>			m_11On12Device;
+	ComPtr<IDWriteFactory>				m_writeFactory;
+	ComPtr<ID2D1Factory3>				m_d2dFactory;
+	ComPtr<ID2D1Device2>				m_d2dDevice;
+	ComPtr<ID2D1DeviceContext2>			m_d2dDeviceContext;
+	ComPtr<ID3D11Resource>				m_d3d11WrappedRenderTarget[SwapChainBufferCount];
+	ComPtr<ID2D1Bitmap1>				m_d2dRenderTarget[SwapChainBufferCount];
 
 	ComPtr<ID3D12Fence>					m_fence;
 	UINT								m_frameIndex;

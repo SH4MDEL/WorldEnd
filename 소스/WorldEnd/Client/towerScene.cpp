@@ -12,8 +12,10 @@ TowerScene::~TowerScene()
 
 }
 
-void TowerScene::OnCreate()
+void TowerScene::OnCreate(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, const ComPtr<ID3D12RootSignature>& rootSignature)
 {
+	cout << "Asdf";
+	BuildObjects(device, commandList, rootSignature);
 }
 
 void TowerScene::OnDestroy()
@@ -39,60 +41,7 @@ void TowerScene::OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FL
 
 void TowerScene::OnProcessingKeyboardMessage(FLOAT timeElapsed) const
 {
-	m_player->OnProcessingKeyboardMessage(timeElapsed);
-
-	//static float m_theta = 60.f;
-	//static float m_phi = 120.f;
-	//static float range = 10.f;
-	//static float falloff = 8.f;
-	//if (GetAsyncKeyState('R') & 0x8000)
-	//{
-	//	m_theta += 0.1f;
-	//	m_lightSystem->m_lights[7].m_theta = (float)cos(XMConvertToRadians(m_theta));
-	//	cout << "m_theta : " << m_theta << endl;
-	//}
-	//if (GetAsyncKeyState('F') & 0x8000)
-	//{
-	//	m_theta -= 0.1f;
-	//	m_lightSystem->m_lights[7].m_theta = (float)cos(XMConvertToRadians(m_theta));
-	//	cout << "m_theta : " << m_theta << endl;
-	//}
-	//if (GetAsyncKeyState('T') & 0x8000)
-	//{
-	//	m_phi += 0.1f;
-	//	m_lightSystem->m_lights[7].m_phi = (float)cos(XMConvertToRadians(m_phi));
-	//	cout << "m_phi : " << m_phi << endl;
-	//}
-	//if (GetAsyncKeyState('G') & 0x8000)
-	//{
-	//	m_phi -= 0.1f;
-	//	m_lightSystem->m_lights[7].m_phi = (float)cos(XMConvertToRadians(m_phi));
-	//	cout << "m_phi : " << m_phi << endl;
-	//}
-	//if (GetAsyncKeyState('Y') & 0x8000)
-	//{
-	//	range += 0.1f;
-	//	m_lightSystem->m_lights[7].m_range = range;
-	//	cout << "range : " << range << endl;
-	//}
-	//if (GetAsyncKeyState('H') & 0x8000)
-	//{
-	//	range -= 0.1f;
-	//	m_lightSystem->m_lights[7].m_range = range;
-	//	cout << "range : " << range << endl;
-	//}
-	//if (GetAsyncKeyState('U') & 0x8000)
-	//{
-	//	falloff += 0.1f;
-	//	m_lightSystem->m_lights[7].m_falloff = falloff;
-	//	cout << "falloff : " << falloff << endl;
-	//}
-	//if (GetAsyncKeyState('J') & 0x8000)
-	//{
-	//	falloff -= 0.1f;
-	//	m_lightSystem->m_lights[7].m_falloff = falloff;
-	//	cout << "falloff : " << falloff << endl;
-	//}
+	if (m_player) m_player->OnProcessingKeyboardMessage(timeElapsed);
 }
 
 void TowerScene::CreateShaderVariable(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList)
@@ -140,7 +89,7 @@ void TowerScene::UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& c
 	commandList->SetGraphicsRootConstantBufferView(4, virtualAddress);
 }
 
-void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, const ComPtr<ID3D12RootSignature>& rootsignature, FLOAT aspectRatio)
+void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, const ComPtr<ID3D12RootSignature>& rootsignature)
 {
 	CreateShaderVariable(device, commandlist);
 
@@ -179,7 +128,7 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	m_player->SetCamera(m_camera);
 
 	XMFLOAT4X4 projMatrix;
-	XMStoreFloat4x4(&projMatrix, XMMatrixPerspectiveFovLH(0.25f * XM_PI, aspectRatio, 0.1f, 100.0f));
+	XMStoreFloat4x4(&projMatrix, XMMatrixPerspectiveFovLH(0.25f * XM_PI, g_GameFramework.GetAspectRatio(), 0.1f, 100.0f));
 	m_camera->SetProjMatrix(projMatrix);
 
 	// 그림자 맵 생성
@@ -320,7 +269,6 @@ void TowerScene::Update(FLOAT timeElapsed)
 	if (m_shaders["SKYBOX"]) for (auto& skybox : m_shaders["SKYBOX"]->GetObjects()) skybox->SetPosition(m_camera->GetEye());
 	for (const auto& shader : m_shaders)
 		shader.second->Update(timeElapsed);
-	//CheckBorderLimit();
 }
 
 void TowerScene::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const
@@ -356,12 +304,16 @@ void TowerScene::RenderShadow(const ComPtr<ID3D12GraphicsCommandList>& commandLi
 	// 반드시 활성 PSO의 렌더 타겟 개수도 0으로 지정해야 함을 주의해야 한다.
 	commandList->OMSetRenderTargets(0, nullptr, false, &m_shadow->GetCpuDsv());
 
-	m_shaders.at("ANIMATION")->Render(commandList, m_shaders.at("ANIMATIONSHADOW"));
-	m_shaders.at("OBJECT")->Render(commandList, m_shaders.at("SHADOW"));
+	m_shaders["ANIMATION"]->Render(commandList, m_shaders["ANIMATIONSHADOW"]);
+	m_shaders["OBJECT"]->Render(commandList, m_shaders["SHADOW"]);
 
 	// 셰이더에서 텍스처를 읽을 수 있도록 다시 GENERIC_READ로 바꾼다.
 	commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_shadow->GetShadowMap().Get(),
 		D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_GENERIC_READ));
+}
+
+void TowerScene::RenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext)
+{
 }
 
 void TowerScene::LoadSceneFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, wstring fileName, wstring sceneName)
@@ -396,9 +348,6 @@ void TowerScene::LoadSceneFromFile(const ComPtr<ID3D12Device>& device, const Com
 		XMFLOAT4X4 worldMatrix;
 		in.read((CHAR*)(&worldMatrix), sizeof(XMFLOAT4X4));
 		object->SetWorldMatrix(worldMatrix);
-		if (objectName == "AD_Brazier_A_01") {
-			cout << worldMatrix._41 << ", " << worldMatrix._42 << ", " << worldMatrix._43 << endl;
-		}
 
 		m_object.push_back(object);
 		m_shaders["OBJECT"]->SetObject(object);
@@ -423,23 +372,6 @@ void TowerScene::LoadObjectFromFile(wstring fileName, const shared_ptr<GameObjec
 		else if (strToken == "</Hierarchy>") {
 			break;
 		}
-	}
-}
-
-void TowerScene::CheckBorderLimit()
-{
-	XMFLOAT3 pos = m_player->GetPosition();
-	if (pos.x > 25.f) {
-		m_player->SetPosition(XMFLOAT3{ 25.f, pos.y, pos.z });
-	}
-	if (pos.x < -25.f) {
-		m_player->SetPosition(XMFLOAT3{ -25.f, pos.y, pos.z });
-	}
-	if (pos.z > 25.f) {
-		m_player->SetPosition(XMFLOAT3{ pos.x, pos.y, 25.f });
-	}
-	if (pos.z < -25.f) {
-		m_player->SetPosition(XMFLOAT3{ pos.x, pos.y, -25.f });
 	}
 }
 

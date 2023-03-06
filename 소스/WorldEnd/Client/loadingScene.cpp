@@ -1,17 +1,26 @@
 ﻿#include "loadingScene.h"
 
+LoadingScene::LoadingScene(const ComPtr<ID3D12Device>& device) : m_canNextScene{ false }
+{
+	DX::ThrowIfFailed(device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_threadCommandAllocator)));
+	DX::ThrowIfFailed(device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_threadCommandAllocator.Get(), nullptr, IID_PPV_ARGS(&m_threadCommandList)));
+
+}
+
 LoadingScene::~LoadingScene()
 {
 }
 
-void LoadingScene::OnCreate()
+void LoadingScene::OnCreate(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, const ComPtr<ID3D12RootSignature>& rootSignature)
 {
+	m_loadingText = make_shared<LoadingText>(53);
 
+	m_loadingThread = thread{ &LoadingScene::BuildObjects, this, device, m_threadCommandList, rootSignature };
 }
 
 void LoadingScene::OnDestroy()
 {
-
+	m_loadingText.reset();
 }
 
 void LoadingScene::ReleaseUploadBuffer()
@@ -25,7 +34,7 @@ void LoadingScene::UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>&
 void LoadingScene::OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime) const {}
 void LoadingScene::OnProcessingKeyboardMessage(FLOAT timeElapsed) const {}
 
-void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, const ComPtr<ID3D12RootSignature>& rootsignature, FLOAT aspectRatio)
+void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, const ComPtr<ID3D12RootSignature>& rootsignature)
 {
 	CreateShaderVariable(device, commandlist);
 
@@ -136,18 +145,39 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	m_shaders.insert({ "ANIMATIONSHADOW", animationShadowShader });
 	m_shaders.insert({ "DEBUG", debugShader });
 
-	g_GameFramework.ChangeScene(SCENETAG::TowerScene);
+	DX::ThrowIfFailed(m_threadCommandList->Close());
+
+	// 명령 실행을 위해 커맨드 리스트를 커맨드 큐에 추가한다.
+	ID3D12CommandList* ppCommandList[] = { m_threadCommandList.Get() };
+	g_GameFramework.GetCommandQueue()->ExecuteCommandLists(_countof(ppCommandList), ppCommandList);
+
+	g_GameFramework.WaitForGpuComplete();
+	m_canNextScene = true;
 }
 
-void LoadingScene::Update(FLOAT timeElapsed) {}
+void LoadingScene::Update(FLOAT timeElapsed) 
+{
+	if (m_canNextScene && m_loadingThread.joinable())
+	{
+		m_loadingThread.join();
+		g_GameFramework.ChangeScene(SCENETAG::TowerScene);
+	}
+}
 
 void LoadingScene::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const {}
 void LoadingScene::RenderShadow(const ComPtr<ID3D12GraphicsCommandList>& commandList) {}
+
+void LoadingScene::RenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext)
+{
+	//m_loadingText->Render(deviceContext);
+}
 
 void LoadingScene::LoadMeshFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, wstring fileName)
 {
 	ifstream in{ fileName, std::ios::binary };
 	if (!in) return;
+
+	//m_loadingText->SetFileName(fileName);
 	
 	BYTE strLength;
 	string backup;
@@ -175,12 +205,16 @@ void LoadingScene::LoadMeshFromFile(const ComPtr<ID3D12Device>& device, const Co
 			break;
 		}
 	}
+
+	//m_loadingText->LoadingFile();
 }
 
 void LoadingScene::LoadMaterialFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, wstring fileName)
 {
 	ifstream in{ fileName, std::ios::binary };
 	if (!in) return;
+
+	//m_loadingText->SetFileName(fileName);
 
 	BYTE strLength;
 	INT frame, texture;
@@ -211,12 +245,16 @@ void LoadingScene::LoadMaterialFromFile(const ComPtr<ID3D12Device>& device, cons
 			break;
 		}
 	}
+
+	//m_loadingText->LoadingFile();
 }
 
 void LoadingScene::LoadAnimationFromFile(wstring fileName, const string& animationName)
 {
 	ifstream in{ fileName, std::ios::binary };
 	if (!in) return;
+
+	//m_loadingText->SetFileName(fileName);
 
 	auto animationSet = make_shared<AnimationSet>();
 
@@ -303,6 +341,7 @@ void LoadingScene::LoadAnimationFromFile(wstring fileName, const string& animati
 	}
 
 	m_animations.insert({ animationName, animationSet });
+	//m_loadingText->LoadingFile();
 }
 
 

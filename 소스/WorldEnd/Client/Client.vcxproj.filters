@@ -40,6 +40,12 @@
     <Filter Include="소스 파일\Shader">
       <UniqueIdentifier>{8e08da9e-2b50-40d7-a5bf-f142314003c2}</UniqueIdentifier>
     </Filter>
+    <Filter Include="헤더 파일\Base">
+      <UniqueIdentifier>{1555a5e2-1f6b-431e-90ea-c3679a4f1b8a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Base">
+      <UniqueIdentifier>{23f982d3-1e29-4b90-8480-09205a35a9a7}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Client.h">
@@ -55,9 +61,6 @@
       <Filter>헤더 파일\Framework</Filter>
     </ClInclude>
     <ClInclude Include="framework.h">
-      <Filter>헤더 파일\Framework</Filter>
-    </ClInclude>
-    <ClInclude Include="mesh.h">
       <Filter>헤더 파일\Framework</Filter>
     </ClInclude>
     <ClInclude Include="Resource.h">
@@ -99,11 +102,17 @@
     <ClInclude Include="texture.h">
       <Filter>헤더 파일\Shader</Filter>
     </ClInclude>
-    <ClInclude Include="shadow.h">
-      <Filter>헤더 파일\Framework</Filter>
-    </ClInclude>
     <ClInclude Include="monster.h">
       <Filter>헤더 파일\Object</Filter>
+    </ClInclude>
+    <ClInclude Include="shadow.h">
+      <Filter>헤더 파일\Shader</Filter>
+    </ClInclude>
+    <ClInclude Include="mesh.h">
+      <Filter>헤더 파일\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="text.h">
+      <Filter>헤더 파일\Base</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -118,9 +127,6 @@
     </ClCompile>
     <ClCompile Include="scene.cpp">
       <Filter>소스 파일\Scene</Filter>
-    </ClCompile>
-    <ClCompile Include="mesh.cpp">
-      <Filter>소스 파일\Framework</Filter>
     </ClCompile>
     <ClCompile Include="stdafx.cpp">
       <Filter>소스 파일\Framework</Filter>
@@ -152,14 +158,20 @@
     <ClCompile Include="texture.cpp">
       <Filter>소스 파일\Shader</Filter>
     </ClCompile>
-    <ClCompile Include="shadow.cpp">
-      <Filter>소스 파일\Framework</Filter>
-    </ClCompile>
     <ClCompile Include="towerScene.cpp">
       <Filter>소스 파일\Scene</Filter>
     </ClCompile>
     <ClCompile Include="monster.cpp">
       <Filter>소스 파일\Object</Filter>
+    </ClCompile>
+    <ClCompile Include="shadow.cpp">
+      <Filter>소스 파일\Shader</Filter>
+    </ClCompile>
+    <ClCompile Include="mesh.cpp">
+      <Filter>소스 파일\Base</Filter>
+    </ClCompile>
+    <ClCompile Include="text.cpp">
+      <Filter>소스 파일\Base</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

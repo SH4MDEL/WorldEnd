@@ -88,6 +88,12 @@ void GameFramework::StartPipeline()
 
 	// 9. 루트 시그니처 생성
 	CreateRootSignature();
+
+	Create11On12Device();
+
+	CreateD2DDevice();
+
+	CreateD2DRenderTarget();
 }
 
 void GameFramework::CreateDevice()
@@ -323,15 +329,83 @@ void GameFramework::CreateRootSignature()
 	DX::ThrowIfFailed(m_device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_rootSignature)));
 }
 
+void GameFramework::Create11On12Device()
+{
+	UINT d3d11DeviceFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
+
+#if defined(_DEBUG) || defined(DBG)
+	d3d11DeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
+#endif
+
+	ComPtr<ID3D11Device> d3d11Device;
+	DX::ThrowIfFailed(D3D11On12CreateDevice(m_device.Get(),
+		d3d11DeviceFlags, 
+		nullptr, 
+		0, 
+		reinterpret_cast<IUnknown**>(m_commandQueue.GetAddressOf()),
+		1,
+		0, 
+		&d3d11Device,
+		&m_deviceContext,
+		nullptr));
+
+	d3d11Device->QueryInterface(__uuidof(ID3D11On12Device), (void**)&m_11On12Device);
+}
+
+void GameFramework::CreateD2DDevice()
+{
+	D2D1_FACTORY_OPTIONS d2dFactoryOptions = { };
+
+#if defined(_DEBUG) || defined(DBG)
+	d2dFactoryOptions.debugLevel = D2D1_DEBUG_LEVEL_INFORMATION;
+#endif
+
+	ComPtr<IDXGIDevice> dxgiDevice;
+	m_11On12Device->QueryInterface(__uuidof(IDXGIDevice), (void**)&dxgiDevice);
+
+	DX::ThrowIfFailed(D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED,
+		__uuidof(ID2D1Factory3), 
+		&d2dFactoryOptions, 
+		(void**)&m_d2dFactory));
+
+	DX::ThrowIfFailed(m_d2dFactory->CreateDevice(dxgiDevice.Get(), (ID2D1Device2**)&m_d2dDevice));
+	DX::ThrowIfFailed(m_d2dDevice->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_NONE, (ID2D1DeviceContext2**)&m_d2dDeviceContext));
+
+	m_d2dDeviceContext->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);
+
+	DX::ThrowIfFailed(DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory), (IUnknown**)&m_d2dFactory));
+}
+
+void GameFramework::CreateD2DRenderTarget()
+{
+	D2D1_BITMAP_PROPERTIES1 d2dBitmapPropertie = D2D1::BitmapProperties1(D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW, 
+		D2D1::PixelFormat(DXGI_FORMAT_UNKNOWN, D2D1_ALPHA_MODE_PREMULTIPLIED));
+
+	for (UINT i = 0; i < SwapChainBufferCount; ++i)
+	{
+		D3D11_RESOURCE_FLAGS d3d11Flags = { D3D11_BIND_RENDER_TARGET };
+		DX::ThrowIfFailed(m_11On12Device->CreateWrappedResource(m_renderTargets[i].Get(),
+			&d3d11Flags, 
+			D3D12_RESOURCE_STATE_RENDER_TARGET, 
+			D3D12_RESOURCE_STATE_PRESENT, 
+			IID_PPV_ARGS(&m_d3d11WrappedRenderTarget[i])));
+		ComPtr<IDXGISurface> dxgiSurface;
+		DX::ThrowIfFailed(m_d3d11WrappedRenderTarget[i]->QueryInterface(__uuidof(IDXGISurface), (void**)&dxgiSurface));
+		DX::ThrowIfFailed(m_d2dDeviceContext->CreateBitmapFromDxgiSurface(dxgiSurface.Get(), &d2dBitmapPropertie, &m_d2dRenderTarget[i]));
+	}
+}
+
 
 void GameFramework::BuildObjects()
 {
 	m_commandList->Reset(m_commandAllocator.Get(), nullptr);
 
-	m_scenes[static_cast<int>(SCENETAG::LoadingScene)] = make_unique<LoadingScene>();
+	m_scenes[static_cast<int>(SCENETAG::LoadingScene)] = make_unique<LoadingScene>(m_device);
 	m_scenes[static_cast<int>(SCENETAG::TowerScene)] = make_unique<TowerScene>();
-	m_scenes[static_cast<int>(SCENETAG::LoadingScene)]->BuildObjects(m_device, m_commandList, m_rootSignature, m_aspectRatio);
-	m_scenes[static_cast<int>(SCENETAG::TowerScene)]->BuildObjects(m_device, m_commandList, m_rootSignature, m_aspectRatio);
+	//m_scenes[static_cast<int>(SCENETAG::LoadingScene)]->BuildObjects(m_device, m_commandList, m_rootSignature);
+	//m_scenes[static_cast<int>(SCENETAG::TowerScene)]->BuildObjects(m_device, m_commandList, m_rootSignature);
+
+	m_scenes[m_sceneIndex]->OnCreate(m_device, m_commandList, m_rootSignature);
 
 	m_commandList->Close();
 	ID3D12CommandList* ppCommandList[] = { m_commandList.Get() };
@@ -347,7 +421,7 @@ void GameFramework::BuildObjects()
 void GameFramework::ChangeScene(SCENETAG tag)
 {
 	m_scenes[m_sceneIndex]->OnDestroy();
-	m_scenes[m_sceneIndex = static_cast<int>(tag)]->OnCreate();
+	m_scenes[m_sceneIndex = static_cast<int>(tag)]->OnCreate(m_device, m_commandList, m_rootSignature);
 }
 
 void GameFramework::FrameAdvance()
@@ -414,7 +488,7 @@ void GameFramework::Render()
 	m_commandList->OMSetRenderTargets(1, &rtvHandle, TRUE, &dsvHandle);
 
 	// 원하는 색상으로 렌더 타겟을 지우고, 원하는 값으로 깊이 스텐실을 지운다.
-	const FLOAT clearColor[]{ 0.0f, 0.125f, 0.3f, 1.0f };
+	const FLOAT clearColor[]{ 0.f, 0.125f, 0.3f, 1.f };
 	m_commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, NULL);
 	m_commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, NULL);
 
@@ -434,7 +508,26 @@ void GameFramework::Render()
 	ID3D12CommandList* ppCommandList[] = { m_commandList.Get() };
 	m_commandQueue->ExecuteCommandLists(_countof(ppCommandList), ppCommandList);
 
+	RenderText();
+
 	DX::ThrowIfFailed(m_swapChain->Present(1, 0));
 
 	WaitForGpuComplete();
+}
+
+void GameFramework::RenderText()
+{
+	m_d2dDeviceContext->SetTarget(m_d2dRenderTarget[m_frameIndex].Get());
+	m_11On12Device->AcquireWrappedResources(m_d3d11WrappedRenderTarget[m_frameIndex].GetAddressOf(), 1);
+
+	m_d2dDeviceContext->BeginDraw();
+
+	if (m_scenes[m_sceneIndex]) {
+		m_scenes[m_sceneIndex]->RenderText(m_d2dDeviceContext);
+	}
+
+	m_d2dDeviceContext->EndDraw();
+
+	m_11On12Device->ReleaseWrappedResources(m_d3d11WrappedRenderTarget[m_frameIndex].GetAddressOf(), 1);
+	m_deviceContext->Flush();
 }

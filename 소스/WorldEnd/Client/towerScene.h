@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "scene.h"
+#include "framework.h"
 
 class TowerScene : public Scene
 {
@@ -7,7 +8,7 @@ public:
 	TowerScene();
 	~TowerScene() override;
 
-	void OnCreate() override;
+	void OnCreate(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, const ComPtr<ID3D12RootSignature>& rootSignature) override;
 	void OnDestroy() override;
 
 	void ReleaseUploadBuffer() override;
@@ -15,7 +16,7 @@ public:
 	void CreateShaderVariable(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList) override;
 	void UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& commandList) override;
 
-	void BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, const ComPtr<ID3D12RootSignature>& rootsignature, FLOAT	aspectRatio) override;
+	void BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, const ComPtr<ID3D12RootSignature>& rootsignature) override;
 	void CreateLight(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist);
 	
 	void OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime) const override;
@@ -24,11 +25,11 @@ public:
 	void Update(FLOAT timeElapsed) override;
 	void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const override;
 	void RenderShadow(const ComPtr<ID3D12GraphicsCommandList>& commandList) override;
+	void RenderText(const ComPtr< ID2D1DeviceContext2>& deviceContext) override;
 
 	void LoadSceneFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, wstring fileName, wstring sceneName);
 	void LoadObjectFromFile(wstring fileName, const shared_ptr<GameObject>& object);
 
-	void CheckBorderLimit();
 
     // 서버 추가 코드
 	void InitServer();
