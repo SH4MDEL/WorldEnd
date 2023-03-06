@@ -102,10 +102,12 @@ public:
 	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const;
 	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, const D3D12_VERTEX_BUFFER_VIEW& instanceBufferView) const;
 	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT subMeshIndex) const;
-	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT subMeshIndex, GameObject* rootObject, const GameObject* object) {}
+	virtual void Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT subMeshIndex, GameObject* rootObject, const GameObject* object) {}
 	virtual void ReleaseUploadBuffer();
 
 	BoundingOrientedBox GetBoundingBox() { return m_boundingBox; }
+	
+	virtual void CreateShaderVariables(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, GameObject* rootObject) {}
 
 protected:
 	UINT						m_nVertices;
@@ -129,7 +131,7 @@ public:
 	virtual ~MeshFromFile() = default;
 
 	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT subMeshIndex) const override;
-	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT subMeshIndex, GameObject* rootObject, const GameObject* object) {}
+	virtual void Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT subMeshIndex, GameObject* rootObject, const GameObject* object) {}
 
 	void ReleaseUploadBuffer() override;
 
@@ -138,6 +140,7 @@ public:
 
 	string GetMeshName() const { return m_meshName; }
 
+	virtual void CreateShaderVariables(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, GameObject* rootObject) {}
 
 protected:
 	string								m_meshName;
@@ -162,9 +165,11 @@ public:
 	AnimationMesh();
 	virtual ~AnimationMesh() = default;
 
-	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT subMeshIndex, GameObject* rootObject, const GameObject* object);
+	virtual void Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT subMeshIndex, GameObject* rootObject, const GameObject* object);
 
-	void UpdateShaderVariables(const ComPtr<ID3D12GraphicsCommandList>& commandList, GameObject* rootObject, const GameObject* object);
+	virtual void CreateShaderVariables(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, GameObject* rootObject);
+
+	void UpdateShaderVariables(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, GameObject* rootObject, const GameObject* object);
 
 	void ReleaseUploadBuffer() override;
 
@@ -183,9 +188,6 @@ private:
 
 	ComPtr<ID3D12Resource>				m_bindPoseBoneOffsetBuffers;
 	XMFLOAT4X4*							m_bindPoseBoneOffsetBuffersPointer;
-
-	ComPtr<ID3D12Resource>				m_animationTransformBuffers;
-	XMFLOAT4X4*							m_animationTransformBuffersPointer;
 
 	unordered_map<GameObject*, pair<ComPtr<ID3D12Resource>, XMFLOAT4X4*>> m_animationTransformBuffer;
 

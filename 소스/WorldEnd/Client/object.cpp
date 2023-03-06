@@ -22,7 +22,7 @@ void GameObject::Update(FLOAT timeElapsed)
 	UpdateBoundingBox();
 }
 
-void GameObject::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList)
+void GameObject::Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList)
 {
 	XMFLOAT4X4 worldMatrix;
 	XMStoreFloat4x4(&worldMatrix, XMMatrixTranspose(XMLoadFloat4x4(&m_worldMatrix)));
@@ -40,17 +40,17 @@ void GameObject::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList)
 		if (m_mesh) m_mesh->Render(commandList);
 	}
 
-	if (m_sibling) m_sibling->Render(commandList);
-	if (m_child) m_child->Render(commandList);
+	if (m_sibling) m_sibling->Render(device, commandList);
+	if (m_child) m_child->Render(device, commandList);
 }
 
-void GameObject::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, GameObject* rootObject)
+void GameObject::Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, GameObject* rootObject)
 {
 	if (m_texture) { m_texture->UpdateShaderVariable(commandList); }
 	if (m_materials) {
 		for (size_t i = 0; const auto & material : m_materials->m_materials) {
 			material.UpdateShaderVariable(commandList);
-			m_mesh->Render(commandList, i, rootObject, this);
+			m_mesh->Render(device, commandList, i, rootObject, this);
 			++i;
 		}
 	}
@@ -58,8 +58,8 @@ void GameObject::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, Ga
 		if (m_mesh) m_mesh->Render(commandList);
 	}
 
-	if (m_sibling) m_sibling->Render(commandList, rootObject);
-	if (m_child) m_child->Render(commandList, rootObject);
+	if (m_sibling) m_sibling->Render(device, commandList, rootObject);
+	if (m_child) m_child->Render(device, commandList, rootObject);
 }
 
 void GameObject::Move(const XMFLOAT3& shift)
@@ -179,7 +179,7 @@ shared_ptr<GameObject> GameObject::FindFrame(string frameName)
 	return nullptr;
 }
 
-void GameObject::LoadObject(ifstream& in)
+void GameObject::LoadObject(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, ifstream& in)
 {
 	BYTE strLength;
 	INT frame, texture;
@@ -250,7 +250,7 @@ void GameObject::LoadObject(ifstream& in)
 			if (childNum) {
 				for (int i = 0; i < childNum; ++i) {
 					auto child = make_shared<GameObject>();
-					child->LoadObject(in);
+					child->LoadObject(device, commandList, in);
 					SetChild(child);
 				}
 			}
@@ -261,7 +261,7 @@ void GameObject::LoadObject(ifstream& in)
 	}
 }
 
-void GameObject::LoadObject(ifstream& in, const shared_ptr<GameObject>& rootObject)
+void GameObject::LoadObject(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, ifstream& in, const shared_ptr<GameObject>& rootObject)
 {
 	BYTE strLength;
 	INT frame, texture;
@@ -300,6 +300,8 @@ void GameObject::LoadObject(ifstream& in, const shared_ptr<GameObject>& rootObje
 			string meshName(strLength, '\0');
 			in.read(&meshName[0], sizeof(CHAR) * strLength);
 
+			Scene::m_meshs[meshName]->CreateShaderVariables(device, commandList, rootObject.get());
+
 			SetMesh(Scene::m_meshs[meshName]);
 			SetBoundingBox(m_mesh->GetBoundingBox());
 		}
@@ -307,6 +309,8 @@ void GameObject::LoadObject(ifstream& in, const shared_ptr<GameObject>& rootObje
 			in.read((char*)(&strLength), sizeof(BYTE));
 			string meshName(strLength, '\0');
 			in.read(&meshName[0], sizeof(CHAR) * strLength);
+
+			Scene::m_meshs[meshName]->CreateShaderVariables(device, commandList, rootObject.get());
 
 			// 스킨메쉬는 메쉬정보까지 담고 있으므로
 			// 메쉬까지 읽기만 하고 넘기도록 함
@@ -336,7 +340,7 @@ void GameObject::LoadObject(ifstream& in, const shared_ptr<GameObject>& rootObje
 			if (childNum) {
 				for (int i = 0; i < childNum; ++i) {
 					auto child = make_shared<GameObject>();
-					child->LoadObject(in, rootObject);
+					child->LoadObject(device, commandList, in, rootObject);
 					SetChild(child);
 				}
 			}
@@ -388,11 +392,11 @@ Field::Field(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsComm
 	}
 }
 
-void Field::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList)
+void Field::Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList)
 {
 	if (m_texture) m_texture->UpdateShaderVariable(commandList);
 	for (const auto& block : m_blocks)
-		block->Render(commandList);
+		block->Render(device, commandList);
 }
 
 void Field::Move(const XMFLOAT3& shift)
@@ -465,11 +469,11 @@ Fence::Fence(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsComm
 	}
 }
 
-void Fence::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList)
+void Fence::Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList)
 {
 	if (m_texture) m_texture->UpdateShaderVariable(commandList);
 	for (const auto& block : m_blocks)
-		block->Render(commandList);
+		block->Render(device, commandList);
 }
 
 void Fence::Move(const XMFLOAT3& shift)
@@ -512,12 +516,12 @@ void Skybox::Update(FLOAT timeElapsed)
 
 HpBar::HpBar() {}
 
-void HpBar::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList)
+void HpBar::Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList)
 {
 	commandList->SetGraphicsRoot32BitConstants(0, 1, &(m_hp), 16);
 	commandList->SetGraphicsRoot32BitConstants(0, 1, &(m_maxHp), 17);
 
-	GameObject::Render(commandList);
+	GameObject::Render(device, commandList);
 }
 
 // 애니메이션
@@ -831,18 +835,18 @@ void AnimationObject::ChangeAnimation(int animation)
 
 void AnimationObject::Update(FLOAT timeElapsed)
 {
-	m_animationController->Update(timeElapsed, shared_from_this());
+	UpdateAnimation(timeElapsed);
 
 	GameObject::Update(timeElapsed);
 }
 
-void AnimationObject::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList)
+void AnimationObject::Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList)
 {
 	if (m_texture) { m_texture->UpdateShaderVariable(commandList); }
 	if (m_materials) {
 		for (size_t i = 0; const auto & material : m_materials->m_materials) {
 			material.UpdateShaderVariable(commandList);
-			m_mesh->Render(commandList, i, this, this);
+			m_mesh->Render(device, commandList, i, this, this);
 			++i;
 		}
 	}
@@ -850,8 +854,13 @@ void AnimationObject::Render(const ComPtr<ID3D12GraphicsCommandList>& commandLis
 		if (m_mesh) m_mesh->Render(commandList);
 	}
 
-	if (m_sibling) m_sibling->Render(commandList, this);
-	if (m_child) m_child->Render(commandList, this);
+	if (m_sibling) m_sibling->Render(device, commandList, this);
+	if (m_child) m_child->Render(device, commandList, this);
+}
+
+void AnimationObject::UpdateAnimation(FLOAT timeElapsed)
+{
+	m_animationController->Update(timeElapsed, shared_from_this());
 }
 
 void AnimationObject::SetAnimationSet(const shared_ptr<AnimationSet>& animationSet)
@@ -865,7 +874,7 @@ void AnimationObject::SetAnimationOnTrack(int animationTrackNumber, int animatio
 	m_animationController->SetTrackAnimation(animationTrackNumber, animation);
 }
 
-void AnimationObject::LoadObject(ifstream& in)
+void AnimationObject::LoadObject(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, ifstream& in)
 {
-	GameObject::LoadObject(in, shared_from_this());
+	GameObject::LoadObject(device, commandList, in, shared_from_this());
 }

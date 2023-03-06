@@ -126,8 +126,8 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 
 void LoadingScene::Update(FLOAT timeElapsed) {}
 
-void LoadingScene::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const {}
-void LoadingScene::RenderShadow(const ComPtr<ID3D12GraphicsCommandList>& commandList) {}
+void LoadingScene::Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList) const {}
+void LoadingScene::RenderShadow(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList) {}
 
 void LoadingScene::LoadMeshFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, wstring fileName)
 {
