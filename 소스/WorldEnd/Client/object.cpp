@@ -524,6 +524,96 @@ void HpBar::Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12Graphi
 	GameObject::Render(device, commandList);
 }
 
+AnimationObject::AnimationObject()
+{
+	// 디폴트 개수인 3개로 트랙의 개수를 지정하여 애니메이션 컨트롤러를 생성함
+	m_animationController = make_unique<AnimationController>(DEFAULT_TRACK_NUM);
+}
+
+void AnimationObject::ChangeAnimation(int animation)
+{
+	switch (animation) {
+	case ObjectAnimation::IDLE:
+		m_animationController->SetTrackType(0, ANIMATION_TYPE_LOOP);
+		m_animationController->SetTrackAnimation(0, animation);
+
+		break;
+
+	case ObjectAnimation::WALK:
+		m_animationController->SetTrackType(0, ANIMATION_TYPE_LOOP);
+		m_animationController->SetTrackAnimation(0, animation);
+
+		break;
+
+	case ObjectAnimation::ATTACK: 
+	{
+		m_animationController->SetTrackType(0, ANIMATION_TYPE_ONCE);
+		m_animationController->SetTrackPosition(0, 0.f);
+		m_animationController->SetTrackAnimation(0, animation);
+
+		break; 
+	}
+
+	case WarriorAnimation::GUARD:
+		m_animationController->SetTrackType(0, ANIMATION_TYPE_LOOP);
+		m_animationController->SetTrackAnimation(0, animation);
+
+		break;
+
+	case ArcherAnimation::AIM:
+		m_animationController->SetTrackType(0, ANIMATION_TYPE_LOOP);
+		m_animationController->SetTrackAnimation(0, animation);
+
+		break;
+	}
+}
+
+void AnimationObject::Update(FLOAT timeElapsed)
+{
+	UpdateAnimation(timeElapsed);
+
+	GameObject::Update(timeElapsed);
+}
+
+void AnimationObject::Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList)
+{
+	if (m_texture) { m_texture->UpdateShaderVariable(commandList); }
+	if (m_materials) {
+		for (size_t i = 0; const auto & material : m_materials->m_materials) {
+			material.UpdateShaderVariable(commandList);
+			m_mesh->Render(device, commandList, i, this, this);
+			++i;
+		}
+	}
+	else {
+		if (m_mesh) m_mesh->Render(commandList);
+	}
+
+	if (m_sibling) m_sibling->Render(device, commandList, this);
+	if (m_child) m_child->Render(device, commandList, this);
+}
+
+void AnimationObject::UpdateAnimation(FLOAT timeElapsed)
+{
+	m_animationController->Update(timeElapsed, shared_from_this());
+}
+
+void AnimationObject::SetAnimationSet(const shared_ptr<AnimationSet>& animationSet)
+{
+	if (m_animationController)
+		m_animationController->SetAnimationSet(animationSet);
+}
+
+void AnimationObject::SetAnimationOnTrack(int animationTrackNumber, int animation)
+{
+	m_animationController->SetTrackAnimation(animationTrackNumber, animation);
+}
+
+void AnimationObject::LoadObject(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, ifstream& in)
+{
+	GameObject::LoadObject(device, commandList, in, shared_from_this());
+}
+
 // 애니메이션
 void AnimationCallbackHandler::Callback(void* callbackData, float trackPosition)
 {
@@ -574,9 +664,78 @@ XMFLOAT4X4 Animation::GetTransform(int boneNumber, float position)
 	return transform;
 }
 
-AnimationSet::AnimationSet(int nAnimation)
+void AnimationSet::LoadAnimationSet(ifstream& in, const string& animationSetName)
 {
-	m_animations.resize(nAnimation);
+	BYTE strLength{};
+	INT frameNum{};
+
+	while (true) {
+		in.read((char*)(&strLength), sizeof(BYTE));
+		string strToken(strLength, '\0');
+		in.read((&strToken[0]), sizeof(char) * strLength);
+
+		if (strToken == "<FrameNames>:") {
+			// 애니메이션이 적용될 뼈 개수 resize
+			in.read((char*)(&frameNum), sizeof(INT));
+
+			m_frameNames.resize(frameNum);
+
+			// 프레임이름을 담는 벡터에
+			// 각 이름을 읽어서 넣음
+			for (int i = 0; i < frameNum; ++i) {
+				in.read((char*)(&strLength), sizeof(BYTE));
+				m_frameNames[i].resize(strLength);
+				in.read((char*)(m_frameNames[i].data()), sizeof(char) * strLength);
+			}
+		}
+		else if (strToken == "<AnimationSet>:") {
+			// 애니메이션 번호, 이름, 시간, 초당 프레임, 총 프레임
+			INT animationNum{};
+			in.read((char*)(&animationNum), sizeof(INT));
+
+			in.read((char*)(&strLength), sizeof(BYTE));
+			string animationName(strLength, '\0');
+			in.read(&animationName[0], sizeof(char) * strLength);
+
+			float animationLength{};
+			in.read((char*)(&animationLength), sizeof(float));
+
+			INT framePerSecond{};
+			in.read((char*)(&framePerSecond), sizeof(INT));
+
+			INT totalFrames{};
+			in.read((char*)(&totalFrames), sizeof(INT));
+
+			auto animation = make_shared<Animation>(animationLength, framePerSecond,
+				totalFrames, frameNum, animationName);
+
+			auto& keyFrameTimes = animation->GetKeyFrameTimes();
+			auto& keyFrameTransforms = animation->GetKeyFrameTransforms();
+
+			for (int i = 0; i < totalFrames; ++i) {
+				in.read((char*)(&strLength), sizeof(BYTE));
+				string strToken(strLength, '\0');
+				in.read(&strToken[0], sizeof(char) * strLength);
+
+				// 키프레임 번호, 키프레임 시간, 키프레임 행렬들
+				if (strToken == "<Transforms>:") {
+					INT keyFrameNum{};
+					in.read((char*)(&keyFrameNum), sizeof(INT));
+
+					float keyFrameTime{};
+					in.read((char*)(&keyFrameTime), sizeof(float));
+
+					keyFrameTimes[i] = keyFrameTime;
+					in.read((char*)(keyFrameTransforms[i].data()), sizeof(XMFLOAT4X4) * frameNum);
+				}
+			}
+
+			m_animations.emplace_back(move(animation));
+		}
+		else if (strToken == "</AnimationSets>") {
+			break;
+		}
+	}
 }
 
 AnimationTrack::AnimationTrack()
@@ -629,8 +788,13 @@ float AnimationTrack::UpdatePosition(float trackPosition, float timeElapsed, flo
 	}
 	else if (ANIMATION_TYPE_ONCE == m_type) {
 		m_position = trackPosition + trackElapsedTime;
-		if (m_position > animationLength) 
+		if (m_position > animationLength) {
 			m_position = animationLength;
+
+			m_animation = ObjectAnimation::IDLE;
+			m_type = ANIMATION_TYPE_LOOP;
+			m_position = 0.f;
+		}
 	}
 
 	return m_position;
@@ -702,6 +866,12 @@ void AnimationController::SetTrackWeight(int animationTrack, float weight)
 {
 	if (!m_animationTracks.empty())
 		m_animationTracks[animationTrack].SetWeight(weight);
+}
+
+void AnimationController::SetTrackType(int animationTrack, int type)
+{
+	if (!m_animationTracks.empty())
+		m_animationTracks[animationTrack].SetAnimationType(type);
 }
 
 void AnimationController::SetCallbackKeys(int animationTrack, int callbackKeys)
@@ -792,89 +962,4 @@ void AnimationController::InsertObject(string boneName, UINT boneNumber, const s
 	XMFLOAT4X4 transform;
 	XMStoreFloat4x4(&transform, XMMatrixIdentity());
 	m_animationTransforms.insert({ boneName, make_pair(boneNumber, object) });
-}
-
-AnimationObject::AnimationObject()
-{
-	// 디폴트 개수인 3개로 트랙의 개수를 지정하여 애니메이션 컨트롤러를 생성함
-	m_animationController = make_unique<AnimationController>(DEFAULT_TRACK_NUM);
-}
-
-void AnimationObject::ChangeAnimation(int animation)
-{
-	// 현재 애니메이션 세트의 해당 애니메이션으로 변경하므로
-	// 전사, 궁수 구분하지 않아도 오브젝트가 전사면 전사의 IDLE
-	// 궁수면 궁수의 IDLE 이 출력되도록 해야 함
-
-	switch (animation) {
-	case ObjectAnimation::IDLE:
-
-		break;
-
-	case ObjectAnimation::WALK:
-
-		break;
-
-	case ObjectAnimation::RUN:
-
-		break;
-
-	case ObjectAnimation::ATTACK:
-
-		break;
-
-	case WarriorAnimation::GUARD:
-
-		break;
-
-	case ArcherAnimation::AIM:
-
-		break;
-	}
-}
-
-void AnimationObject::Update(FLOAT timeElapsed)
-{
-	UpdateAnimation(timeElapsed);
-
-	GameObject::Update(timeElapsed);
-}
-
-void AnimationObject::Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList)
-{
-	if (m_texture) { m_texture->UpdateShaderVariable(commandList); }
-	if (m_materials) {
-		for (size_t i = 0; const auto & material : m_materials->m_materials) {
-			material.UpdateShaderVariable(commandList);
-			m_mesh->Render(device, commandList, i, this, this);
-			++i;
-		}
-	}
-	else {
-		if (m_mesh) m_mesh->Render(commandList);
-	}
-
-	if (m_sibling) m_sibling->Render(device, commandList, this);
-	if (m_child) m_child->Render(device, commandList, this);
-}
-
-void AnimationObject::UpdateAnimation(FLOAT timeElapsed)
-{
-	m_animationController->Update(timeElapsed, shared_from_this());
-}
-
-void AnimationObject::SetAnimationSet(const shared_ptr<AnimationSet>& animationSet)
-{
-	if (m_animationController)
-		m_animationController->SetAnimationSet(animationSet);
-}
-
-void AnimationObject::SetAnimationOnTrack(int animationTrackNumber, int animation)
-{
-	m_animationController->SetTrackAnimation(animationTrackNumber, animation);
-}
-
-void AnimationObject::LoadObject(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, ifstream& in)
-{
-	GameObject::LoadObject(device, commandList, in, shared_from_this());
 }

@@ -602,7 +602,7 @@ void AnimationMesh::Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D
 
 void AnimationMesh::CreateShaderVariables(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, GameObject* rootObject)
 {
-	if (m_animationTransformBuffer.contains(rootObject))
+	if (m_animationTransformBuffers.contains(rootObject))
 		return;
 
 	UINT elementBytes = (((sizeof(XMFLOAT4X4) * AnimationSetting::MAX_BONE) + 255) & ~255);
@@ -612,7 +612,7 @@ void AnimationMesh::CreateShaderVariables(const ComPtr<ID3D12Device>& device, co
 	XMFLOAT4X4* bufferPointer{};
 	buffer->Map(0, nullptr, (void**)&bufferPointer);
 
-	m_animationTransformBuffer.insert({ rootObject, make_pair(buffer, bufferPointer) });
+	m_animationTransformBuffers.insert({ rootObject, make_pair(buffer, bufferPointer) });
 }
 
 void AnimationMesh::UpdateShaderVariables(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, GameObject* rootObject, const GameObject* object)
@@ -626,20 +626,21 @@ void AnimationMesh::UpdateShaderVariables(const ComPtr<ID3D12Device>& device, co
 	XMStoreFloat4x4(&worldMatrix, XMMatrixTranspose(XMLoadFloat4x4(&rootObject->GetWorldMatrix())));
 	commandList->SetGraphicsRoot32BitConstants(0, 16, &worldMatrix, 0);
 
-	// 바인드 포즈 넘기기
-	D3D12_GPU_VIRTUAL_ADDRESS virtualAddress = m_bindPoseBoneOffsetBuffers->GetGPUVirtualAddress();
-	commandList->SetGraphicsRootConstantBufferView(16, virtualAddress);
-
-
 	// 애니메이션 메쉬는 해시맵에서 이름을 통해 찾아 변환행렬을 채움
 	if (AnimationSetting::ANIMATION_MESH == m_meshType) {
+		D3D12_GPU_VIRTUAL_ADDRESS virtualAddress = m_bindPoseBoneOffsetBuffers->GetGPUVirtualAddress();
+		commandList->SetGraphicsRootConstantBufferView(16, virtualAddress);
+
 		for (size_t i = 0; const string & boneName : m_skinningBoneNames) {
 			XMFLOAT4X4 transform;
 			XMStoreFloat4x4(&transform, XMMatrixTranspose(XMLoadFloat4x4(
 				&rootObject->GetAnimationController()->GetGameObject(boneName)->GetAnimationMatrix())));
-			::memcpy(&m_animationTransformBuffer[rootObject].second[i], &transform, sizeof(XMFLOAT4X4));
+			::memcpy(&m_animationTransformBuffers[rootObject].second[i], &transform, sizeof(XMFLOAT4X4));
 			++i;
 		}
+
+		virtualAddress = m_animationTransformBuffers[rootObject].first->GetGPUVirtualAddress();
+		commandList->SetGraphicsRootConstantBufferView(17, virtualAddress);
 	}
 
 	// 일반 메쉬의 경우 넘겨받은 오브젝트로 직접 찾아서 해당 변환행렬만을 찾아옴
@@ -647,12 +648,12 @@ void AnimationMesh::UpdateShaderVariables(const ComPtr<ID3D12Device>& device, co
 		XMFLOAT4X4 transform;
 		XMStoreFloat4x4(&transform, XMMatrixTranspose(XMLoadFloat4x4(
 			&rootObject->GetAnimationController()->GetGameObject(object->GetFrameName())->GetAnimationMatrix())));
-		::memcpy(&m_animationTransformBuffer[rootObject].second, &transform, sizeof(XMFLOAT4X4));
+		::memcpy(&m_animationTransformBuffers[rootObject].second[0], &transform, sizeof(XMFLOAT4X4));
+
+		D3D12_GPU_VIRTUAL_ADDRESS virtualAddress = m_animationTransformBuffers[rootObject].first->GetGPUVirtualAddress();
+		commandList->SetGraphicsRootConstantBufferView(17, virtualAddress);
 	}
 
-	D3D12_GPU_VIRTUAL_ADDRESS virtualAddress = m_animationTransformBuffer[rootObject].first->GetGPUVirtualAddress();
-	commandList->SetGraphicsRootConstantBufferView(17, virtualAddress);
-	
 }
 
 void AnimationMesh::ReleaseUploadBuffer()

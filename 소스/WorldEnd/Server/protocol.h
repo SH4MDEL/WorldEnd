@@ -20,10 +20,10 @@ constexpr char SC_PACKET_UPDATE_MONSTER = 5;
 
 constexpr char INPUT_KEY_E = 0b1000;
 
-enum class PlayerType : char {SWORD, BOW};
+enum class PlayerType : char { WARRIOR, ARCHER, UNKNOWN };
 enum class AttackType : char { NORMAL, SKILL };
 enum class SceneType : char { LOGIN, LOADING, VILLAGE, PARTY, DUNGEON  };
-enum class MonsterType : char {WARRIOR, ARCHER, WIZARD};
+enum class MonsterType : char { WARRIOR, ARCHER, WIZARD };
 
 enum eEventType : char { EVENT_PLAYER_ATTACK };
 
@@ -33,7 +33,7 @@ class ObjectAnimation
 {
 public:
 	enum {
-		IDLE, WALK, RUN, ATTACK,
+		IDLE, WALK, ATTACK,
 		END
 	};
 };

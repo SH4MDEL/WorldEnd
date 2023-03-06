@@ -177,12 +177,6 @@ private:
 	FLOAT	m_maxHp;
 };
 
-struct CALLBACKKEY
-{
-	float	m_time = 0.0f;
-	void*	m_callbackData = nullptr;
-};
-
 class AnimationObject : public GameObject
 {
 public:
@@ -192,7 +186,6 @@ public:
 	virtual AnimationController* GetAnimationController() const { return m_animationController.get(); }
 
 	void ChangeAnimation(int animation);
-
 
 	virtual void Update(FLOAT timeElapsed);
 	virtual void Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList);
@@ -206,6 +199,12 @@ public:
 
 protected:
 	unique_ptr<AnimationController>		m_animationController;
+};
+
+struct CALLBACKKEY
+{
+	float	m_time = 0.0f;
+	void* m_callbackData = nullptr;
 };
 
 class AnimationCallbackHandler
@@ -247,11 +246,12 @@ class AnimationSet		// 애니메이션들의 집합
 {
 public:
 	AnimationSet() = default;
-	AnimationSet(int nAnimation);
 	~AnimationSet() = default;
 
 	vector<shared_ptr<Animation>>& GetAnimations() { return m_animations; }
 	vector<string>& GetFrameNames() { return m_frameNames; }
+
+	void LoadAnimationSet(ifstream& in, const string& animationSetName);
 
 private:
 	vector<shared_ptr<Animation>>		m_animations;
@@ -317,6 +317,7 @@ public:
 	void SetTrackPosition(int animationTrack, float position);
 	void SetTrackSpeed(int animationTrack, float speed);
 	void SetTrackWeight(int animationTrack, float weight);
+	void SetTrackType(int animationTrack, int type);
 
 	void SetCallbackKeys(int animationTrack, int callbackKeys);
 	void SetCallbackKey(int animationTrack, int keyIndex, float  time, void* data);

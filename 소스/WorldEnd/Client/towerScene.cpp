@@ -93,20 +93,8 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 
 	// 플레이어 생성
 	m_player = make_shared<Player>();
-	LoadObjectFromFile(device, commandlist, TEXT("./Resource/Model/Archer.bin"), m_player);
-	
-	m_player->SetAnimationSet(m_animations["ArcherAnimation"]);
-	m_player->SetAnimationOnTrack(0, 0);
-	m_player->SetAnimationOnTrack(1, 1);
-	m_player->SetAnimationOnTrack(2, 2);
-	m_player->GetAnimationController()->SetTrackEnable(1, false);
-	m_player->GetAnimationController()->SetTrackEnable(2, false);
-
-	m_player->GetAnimationController()->SetCallbackKeys(2, 1);
-	m_player->GetAnimationController()->SetCallbackKey(2, 0, 0.f, m_player.get());
-
-	auto callbackHandler = make_shared<AttackCallbackHandler>();
-	m_player->GetAnimationController()->SetAnimationCallbackHandler(2, callbackHandler);
+	m_player->SetType(PlayerType::WARRIOR);
+	LoadPlayerFromFile(device, commandlist, m_player);
 
 	m_player->SetPosition(XMFLOAT3{ 0.f, 0.f, 0.f });
 	m_shaders["PLAYER"]->SetPlayer(m_player);
@@ -309,6 +297,31 @@ void TowerScene::LoadObjectFromFile(const ComPtr<ID3D12Device>& device, const Co
 	}
 }
 
+void TowerScene::LoadPlayerFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, const shared_ptr<Player>& player)
+{
+	wstring filePath{};
+	string animationSet{};
+
+	switch (player->GetType()) {
+	case PlayerType::WARRIOR:
+		filePath = TEXT("./Resource/Model/Warrior.bin");
+		animationSet = "WarriorAnimation";
+		break;
+
+	case PlayerType::ARCHER:
+		filePath = TEXT("./Resource/Model/Archer.bin");
+		animationSet = "ArcherAnimation";
+		break;
+	}
+	
+	LoadObjectFromFile(device, commandList, filePath, player);
+
+	player->SetAnimationSet(m_animationSets[animationSet]);
+	player->SetAnimationOnTrack(0, ObjectAnimation::IDLE);
+	player->GetAnimationController()->SetTrackEnable(1, false);
+	player->GetAnimationController()->SetTrackEnable(2, false);
+}
+
 void TowerScene::CheckBorderLimit()
 {
 	XMFLOAT3 pos = m_player->GetPosition();
@@ -467,13 +480,10 @@ void TowerScene::RecvAddPlayerPacket(const ComPtr<ID3D12Device>& device, const C
 	player_data.pos = add_pl_packet->player_data.pos;
 
 	auto multiPlayer = make_shared<Player>();
-	LoadObjectFromFile(device, commandList, TEXT("./Resource/Model/Archer.bin"), multiPlayer);
-	multiPlayer->SetPosition(XMFLOAT3{ 0.f, 0.f, 0.f });
+	multiPlayer->SetType(PlayerType::ARCHER);
+	LoadPlayerFromFile(device, commandList, multiPlayer);
 
-	multiPlayer->SetAnimationSet(m_animations["ArcherAnimation"]);
-	multiPlayer->SetAnimationOnTrack(0, 0);
-	multiPlayer->SetAnimationOnTrack(1, 1);
-	multiPlayer->GetAnimationController()->SetTrackEnable(1, false);
+	multiPlayer->SetPosition(XMFLOAT3{ 0.f, 0.f, 0.f });
 
 	m_multiPlayers.insert({ player_data.id, multiPlayer });
 

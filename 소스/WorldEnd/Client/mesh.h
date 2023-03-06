@@ -189,7 +189,7 @@ private:
 	ComPtr<ID3D12Resource>				m_bindPoseBoneOffsetBuffers;
 	XMFLOAT4X4*							m_bindPoseBoneOffsetBuffersPointer;
 
-	unordered_map<GameObject*, pair<ComPtr<ID3D12Resource>, XMFLOAT4X4*>> m_animationTransformBuffer;
+	unordered_map<GameObject*, pair<ComPtr<ID3D12Resource>, XMFLOAT4X4*>>	 m_animationTransformBuffers;
 
 	int									m_meshType;
 };

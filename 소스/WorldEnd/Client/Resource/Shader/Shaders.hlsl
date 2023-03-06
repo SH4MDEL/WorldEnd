@@ -170,9 +170,9 @@ VS_TEXTUREHIERARCHY_OUTPUT VS_SKINNED_ANIMATION_MAIN(VS_SKINNED_STANDARD_INPUT i
 		output.biTangent = mul(mul(input.biTangent, (float3x3)mat), (float3x3)worldMatrix);
 		output.uv = input.uv;
 	}
-	// 일반 메쉬
+	// 일반 메쉬, 0번 인덱스에 애니메이션 변환행렬이 넘어오도록 함
 	else {
-		mat = boneTransforms[input.indices[0]];
+		mat = boneTransforms[0];
 
 		output.position = mul(mul(float4(input.position, 1.0f), mat), worldMatrix);
 		output.positionW = output.position.xyz;
