@@ -14,6 +14,7 @@ public:
 	void SetPosition(const XMFLOAT3& position) override;
 	void SetHp(FLOAT hp) { m_hp = hp; }
 	void SetHpBar(const shared_ptr<HpBar>& hpBar) { m_hpBar = hpBar; }
+	void SetVelocity(XMFLOAT3& velocity);
 
 	FLOAT GetHp() const { return m_hp; }
 

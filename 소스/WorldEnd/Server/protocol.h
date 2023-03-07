@@ -3,7 +3,7 @@
 
 constexpr short SERVER_PORT = 9000;
 
-constexpr int BUF_SIZE = 1600;
+constexpr int BUF_SIZE = 5000;
 constexpr int NAME_SIZE = 20;
 constexpr int MAX_USER = 3;
 constexpr int MAX_MONSTER = 10;

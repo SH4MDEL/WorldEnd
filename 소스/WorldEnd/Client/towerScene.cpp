@@ -531,6 +531,7 @@ void TowerScene::ProcessPacket(char* ptr)
 		break;
 	case SC_PACKET_ADD_MONSTER:
 		RecvAddMonsterPacket(ptr);
+		break;
 	case SC_PACKET_UPDATE_MONSTER:
 		RecvUpdateMonster(ptr);
 		break;
@@ -553,7 +554,7 @@ void TowerScene::PacketReassembly(char* net_buf, size_t io_byte)
 			ZeroMemory(packet_buffer, BUF_SIZE);
 			ptr += make_packet_size - saved_packet_size;
 			io_byte -= make_packet_size - saved_packet_size;
-			cout << "io byte - " << io_byte << endl;
+			//cout << "io byte - " << io_byte << endl;
 			make_packet_size = 0;
 			saved_packet_size = 0;
 		}
@@ -671,8 +672,10 @@ void TowerScene::RecvUpdateMonster(char* ptr)
 
 	m_monsters[monster_packet->monster_data.id]->SetPosition(monster_packet->monster_data.pos);
 
-	cout << "monster id - " << (int)monster_packet->monster_data.id << endl;
+	/*cout << "monster id - " << (int)monster_packet->monster_data.id << endl;
 	cout << "monster pos (x: " << monster_packet->monster_data.pos.x <<
 			" y: " << monster_packet->monster_data.pos.y <<
-			" z: " << monster_packet->monster_data.pos.z << ")" << endl;
+			" z: " << monster_packet->monster_data.pos.z << ")" << endl;*/
+
+	
 }

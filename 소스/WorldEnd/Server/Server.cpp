@@ -1,7 +1,7 @@
 ﻿#include "Server.h"
 #include "stdafx.h"
 
-Server::Server() : m_disconnect_cnt{ 0 }, m_round{1}, m_next_monster_id {0}, m_accept {false}
+Server::Server() : m_disconnect_cnt{ 0 }, m_floor{1}, m_next_monster_id {0}, m_accept {false}
 {
 }
 
@@ -40,13 +40,15 @@ int Server::Network()
 
 	bool ret = AcceptEx(g_socket, c_socket, accept_buf, 0, sizeof(SOCKADDR_IN) + 16, sizeof(SOCKADDR_IN) + 16, 0, &accept_ex._wsa_over);
 
-	thread thread1{ &Server::Timer,this };
 	for (int i = 0; i < 6; ++i)
 		m_worker_threads.emplace_back(&Server::WorkerThreads, this);
 
-	thread1.detach();
 	for (auto& th : m_worker_threads)
 		th.detach();
+
+	thread thread1{ &Server::Timer,this };
+	thread1.detach();
+
 
 	using frame = std::chrono::duration<int32_t, std::ratio<1, 60>>;
 	using ms = std::chrono::duration<float, std::milli>;
@@ -69,18 +71,32 @@ int Server::Network()
 		// 아직 1/60초가 안지났으면 패스
 		if (fps.count() < 1) continue;
 
-		if (frame_count.count() & 1) {
-
+		if (frame_count.count() & 15) {
+			//SendPlayerDataPacket();
 		}
 		else {
-			//SendMonsterDataPacket();
+			SendMonsterDataPacket();
 		}
 
 		Update(duration_cast<ms>(fps).count() / 1000.0f);
+	
+		frame_count = duration_cast<frame>(frame_count + fps);
+		if (frame_count.count() >= 60) {
+			frame_count = frame::zero();
+		}
+		else {
+		}
 		fps_timer = std::chrono::steady_clock::now();
 	}
 
+	for (const auto& pl : m_clients)
+	{
+		if (pl.m_player_data.active_check)
+			Disconnect(pl.m_player_data.id);
+	}
 
+	for (auto& th : m_worker_threads)
+		th.join();
 
 	closesocket(g_socket);
 	WSACleanup();
@@ -188,13 +204,13 @@ void Server::ProcessPacket(const int id, char* p)
 		cl.m_lock.lock();
 		SendLoginOkPacket(cl);
 		cl.m_state = STATE::ST_INGAME;
+		SendMonsterAddPacket();
 		cl.m_lock.unlock();
 		cout << login_packet->name << " is connect" << endl;
 
 		// 재접속 시 disconnectCount를 감소시켜야함
 		// disconnect_cnt = max(0, disconnect_cnt - 1);
-		SendPlayerDataPacket();
-		SendMonsterAddPacket();
+		//SendPlayerDataPacket();
 		break;
 	}
 	case CS_PACKET_PLAYER_MOVE:
@@ -399,12 +415,11 @@ void Server::Update(const float taketime)
 {
 
 	if (m_monsters.size() < MAX_MONSTER)
-		CreateMonsters();
+		CreateMonsters(taketime);
 
 
 	for (auto& m : m_monsters)
 		m->CreateMonster(taketime);
-
 
 }
 
@@ -414,7 +429,7 @@ UCHAR Server::RecognizePlayer(const XMFLOAT3& mon_pos)
 	{
 		if (!pl.m_exist_check) continue;
 		const float  myself{ Vector3::Length(Vector3::Sub(pl.m_player_data.pos, mon_pos)) };
-		cout << "pl - mon: " <<  myself << endl;
+		//cout << "pl - mon: " <<  myself << endl;
 		if (myself < m_length)
 		{
 			m_length = myself;
@@ -424,29 +439,38 @@ UCHAR Server::RecognizePlayer(const XMFLOAT3& mon_pos)
 	return m_target_id;
 }
 
-void Server::CreateMonsters()
+void Server::CreateMonsters(const float taketime)
 {
+	//if (m_floor_mob_count[m_floor - 1] <= 0) {
+	//	m_spawn_stop = g_spawm_stop;
+	//	return;
+	//}
+
 	unique_ptr<Monster> monsters;
 
-	switch (m_round)
-	{
-	case 1:
-		monsters = make_unique<WarriorMonster>();
-		monsters->SetMonsterPosition();
-		break;
-	default:
-		break;
+	//if (m_spawn_stop <= 0.0f) {
+		switch (m_floor)
+		{
+		case 1:
+			monsters = make_unique<WarriorMonster>();
+			monsters->SetMonsterPosition();
+			break;
+		default:
+			break;
+		}
+		monsters->SetId(m_next_monster_id++);
+		monsters->SetTargetId(RecognizePlayer(monsters->GetPosition()));
+		cout << "Monster id - " << (int)monsters->GetId() << " is created" << " / pos (x: " << monsters->GetPosition().x << " y: " << monsters->GetPosition().y
+			<< " z: " << monsters->GetPosition().z << ")" << endl;
+		cout << "capacity:" << m_monsters.size() << " / " << MAX_MONSTER << std::endl;
+
+
+		m_monsters.push_back(move(monsters));
+
+	/*	m_spawn_stop = g_spawm_stop;
+		--m_floor_mob_count[m_floor - 1];
 	}
-	monsters->SetId(m_next_monster_id++);
-	monsters->SetTargetId(RecognizePlayer(monsters->GetPosition()));
-	cout << "Monster id - " << (int)monsters->GetId() << " is created" << " / pos (x: " << monsters->GetPosition().x << " y: " << monsters->GetPosition().y
-		<< " z: " << monsters->GetPosition().z << ")" << endl;
-	cout << "capacity:" << m_monsters.size() << " / " << MAX_MONSTER << std::endl;
-
-
-	m_monsters.push_back(move(monsters));
-
-	//m_monsters[0]->GetPosition() = XMFLOAT3(17.0f, 17.0f, 17.0f);
+	m_spawn_stop -= taketime;*/
 }
 
 void Server::SendMonsterAddPacket()
