@@ -30,8 +30,8 @@ public:
 	void Check4xMSAAMultiSampleQuality();
 
 	// 4. 명령 큐, 명령 할당자, 명령 리스트 생성
-	void CreateCommandQueueAndList();
-
+	void CreateMainCommandQueueAndList();
+	void CreateThreadCommandList();
 	// 5. 스왑 체인 생성
 	void CreateSwapChain();
 
@@ -71,56 +71,61 @@ public:
 	void SetIsActive(BOOL isActive) { m_isActive = isActive; }
 
 	ComPtr<ID3D12Device> GetDevice() const { return m_device; }
-	ComPtr<ID3D12GraphicsCommandList> GetCommandList() const { return m_commandList; }
 	ComPtr<ID3D12CommandQueue> GetCommandQueue() const { return m_commandQueue; }
+	ComPtr<ID3D12GraphicsCommandList> GetCommandList() const { return m_mainCommandList; }
 	ComPtr<ID2D1DeviceContext2> GetD2DDeviceContext() const { return m_d2dDeviceContext; }
 	ComPtr<IDWriteFactory> GetWriteFactory() const { return m_writeFactory; }
 
 private:
-	static const INT					SwapChainBufferCount = 2;
+	static const INT										SwapChainBufferCount = 2;
 
 	// Window
-	HINSTANCE							m_hInstance;
-	HWND								m_hWnd;
-	UINT								m_width;
-	UINT								m_height;
-	FLOAT								m_aspectRatio;
-	BOOL								m_isActive;
+	HINSTANCE												m_hInstance;
+	HWND													m_hWnd;
+	UINT													m_width;
+	UINT													m_height;
+	FLOAT													m_aspectRatio;
+	BOOL													m_isActive;
 
-	D3D12_VIEWPORT						m_viewport;
-	D3D12_RECT							m_scissorRect;
-	ComPtr<IDXGIFactory4>				m_factory;
-	ComPtr<IDXGISwapChain3>				m_swapChain;
-	ComPtr<ID3D12Device>				m_device;
-	INT									m_MSAA4xQualityLevel;
-	ComPtr<ID3D12CommandAllocator>		m_commandAllocator;
-	ComPtr<ID3D12CommandQueue>			m_commandQueue;
-	ComPtr<ID3D12GraphicsCommandList>	m_commandList;
-	ComPtr<ID3D12Resource>				m_renderTargets[SwapChainBufferCount];
-	ComPtr<ID3D12DescriptorHeap>		m_rtvHeap;
-	UINT								m_rtvDescriptorSize;
-	ComPtr<ID3D12Resource>				m_depthStencil;
-	ComPtr<ID3D12DescriptorHeap>		m_dsvHeap;
-	ComPtr<ID3D12RootSignature>			m_rootSignature;
+	D3D12_VIEWPORT											m_viewport;
+	D3D12_RECT												m_scissorRect;
+	ComPtr<IDXGIFactory4>									m_factory;
+	ComPtr<IDXGISwapChain3>									m_swapChain;
+	ComPtr<ID3D12Device>									m_device;
+	INT														m_MSAA4xQualityLevel;
+
+	ComPtr<ID3D12CommandQueue>								m_commandQueue;
+	ComPtr<ID3D12CommandAllocator>							m_mainCommandAllocator;
+	ComPtr<ID3D12GraphicsCommandList>						m_mainCommandList;
+	array<thread, MAX_THREAD>								m_thread;
+	array<ComPtr<ID3D12CommandAllocator>, MAX_THREAD>		m_threadCommandAllocator;
+	array<ComPtr<ID3D12GraphicsCommandList>, MAX_THREAD>	m_threadCommandList;
+
+	ComPtr<ID3D12Resource>									m_renderTargets[SwapChainBufferCount];
+	ComPtr<ID3D12DescriptorHeap>							m_rtvHeap;
+	UINT													m_rtvDescriptorSize;
+	ComPtr<ID3D12Resource>									m_depthStencil;
+	ComPtr<ID3D12DescriptorHeap>							m_dsvHeap;
+	ComPtr<ID3D12RootSignature>								m_rootSignature;
 
 	// Text Write (UI Layer)
-	ComPtr<ID3D11DeviceContext>			m_deviceContext;
-	ComPtr<ID3D11On12Device>			m_11On12Device;
-	ComPtr<IDWriteFactory>				m_writeFactory;
-	ComPtr<ID2D1Factory3>				m_d2dFactory;
-	ComPtr<ID2D1Device2>				m_d2dDevice;
-	ComPtr<ID2D1DeviceContext2>			m_d2dDeviceContext;
-	ComPtr<ID3D11Resource>				m_d3d11WrappedRenderTarget[SwapChainBufferCount];
-	ComPtr<ID2D1Bitmap1>				m_d2dRenderTarget[SwapChainBufferCount];
+	ComPtr<ID3D11DeviceContext>								m_deviceContext;
+	ComPtr<ID3D11On12Device>								m_11On12Device;
+	ComPtr<IDWriteFactory>									m_writeFactory;
+	ComPtr<ID2D1Factory3>									m_d2dFactory;
+	ComPtr<ID2D1Device2>									m_d2dDevice;
+	ComPtr<ID2D1DeviceContext2>								m_d2dDeviceContext;
+	ComPtr<ID3D11Resource>									m_d3d11WrappedRenderTarget[SwapChainBufferCount];
+	ComPtr<ID2D1Bitmap1>									m_d2dRenderTarget[SwapChainBufferCount];
 
-	ComPtr<ID3D12Fence>					m_fence;
-	UINT								m_frameIndex;
-	UINT64								m_fenceValue;
-	HANDLE								m_fenceEvent;
+	ComPtr<ID3D12Fence>										m_fence;
+	UINT													m_frameIndex;
+	UINT64													m_fenceValue;
+	HANDLE													m_fenceEvent;
 
-	Timer								m_timer;
+	Timer													m_timer;
 
-	vector<unique_ptr<Scene>>			m_scenes;
-	INT									m_sceneIndex;
+	vector<unique_ptr<Scene>>								m_scenes;
+	INT														m_sceneIndex;
 };
 

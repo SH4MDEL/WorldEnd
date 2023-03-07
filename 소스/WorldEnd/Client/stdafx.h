@@ -69,6 +69,11 @@ extern string				g_serverIP;							// 서버 아이피
 extern thread               g_networkThread;
 extern mutex                g_mutex;
 
+
+constexpr int MAX_PLAYERS = 2;
+constexpr int MAX_THREAD = 4;
+
+
 namespace DX
 {
     inline void ThrowIfFailed(HRESULT hr)
@@ -213,8 +218,3 @@ ComPtr<ID3D12Resource> CreateBufferResource(const ComPtr<ID3D12Device>& device, 
 
 void ErrorQuit(const char* msg);
 void ErrorDisplay(const char* msg);
-
-namespace Setting
-{
-    constexpr auto MAX_PLAYERS = 2;    // 최대 플레이어 수(본인 제외)
-}

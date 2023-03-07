@@ -12,9 +12,13 @@ TowerScene::~TowerScene()
 
 }
 
-void TowerScene::OnCreate(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, const ComPtr<ID3D12RootSignature>& rootSignature)
+void TowerScene::OnCreate(const ComPtr<ID3D12Device>& device,
+	const ComPtr<ID3D12GraphicsCommandList>& mainCommandList,
+	const array<ComPtr<ID3D12GraphicsCommandList>, MAX_THREAD>& threadCommandList,
+	array<thread, MAX_THREAD>& subThread,
+	const ComPtr<ID3D12RootSignature>& rootSignature)
 {
-	BuildObjects(device, commandList, rootSignature);
+	BuildObjects(device, mainCommandList, rootSignature);
 }
 
 void TowerScene::OnDestroy()
@@ -552,7 +556,6 @@ void TowerScene::RecvUpdateClient(char* ptr)
 {
 	SC_UPDATE_CLIENT_PACKET* update_packet = reinterpret_cast<SC_UPDATE_CLIENT_PACKET*>(ptr);
 
-	unique_lock<mutex> lock{ g_mutex };
 	for (int i = 0; i < MAX_USER; ++i) {
 		if (update_packet->data[i].id == -1) {
 			continue;

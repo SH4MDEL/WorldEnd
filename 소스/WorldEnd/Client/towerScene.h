@@ -8,7 +8,11 @@ public:
 	TowerScene();
 	~TowerScene() override;
 
-	void OnCreate(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, const ComPtr<ID3D12RootSignature>& rootSignature) override;
+	void OnCreate(const ComPtr<ID3D12Device>& device,
+		const ComPtr<ID3D12GraphicsCommandList>& mainCommandList,
+		const array<ComPtr<ID3D12GraphicsCommandList>, MAX_THREAD>& threadCommandList,
+		array<thread, MAX_THREAD>& subThread,
+		const ComPtr<ID3D12RootSignature>& rootSignature) override;
 	void OnDestroy() override;
 
 	void ReleaseUploadBuffer() override;
