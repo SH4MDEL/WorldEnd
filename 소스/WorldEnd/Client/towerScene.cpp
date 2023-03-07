@@ -38,6 +38,11 @@ void TowerScene::OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FL
 	SetCursorPos(prevPosition.x, prevPosition.y);
 }
 
+void TowerScene::OnProcessingClickMessage(LPARAM lParam) const
+{
+	if (m_player) m_player->OnProcessingClickMessage(lParam);
+}
+
 void TowerScene::OnProcessingKeyboardMessage(FLOAT timeElapsed) const
 {
 	if (m_player) m_player->OnProcessingKeyboardMessage(timeElapsed);

@@ -38,6 +38,7 @@ public:
 	virtual void BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, const ComPtr<ID3D12RootSignature>& rootsignature) = 0;
 
 	virtual void OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime) const = 0;
+	virtual void OnProcessingClickMessage(LPARAM lParam) const = 0;
 	virtual void OnProcessingKeyboardMessage(FLOAT timeElapsed) const = 0;
 
 	virtual void Update(FLOAT timeElapsed) = 0;

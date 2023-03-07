@@ -17,6 +17,7 @@ public:
 	void OnCreate(HINSTANCE hInstance, HWND hWnd);
 	void OnDestroy();
 	void OnProcessingMouseMessage() const;
+	void OnProcessingClickMessage(LPARAM lParam) const;
 	void OnProcessingKeyboardMessage() const;
 	void StartPipeline();
 	

@@ -50,6 +50,7 @@ void LoadingScene::ReleaseUploadBuffer()
 void LoadingScene::CreateShaderVariable(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList) {}
 void LoadingScene::UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& commandList) {}
 void LoadingScene::OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime) const {}
+void LoadingScene::OnProcessingClickMessage(LPARAM lParam) const {}
 void LoadingScene::OnProcessingKeyboardMessage(FLOAT timeElapsed) const {}
 
 void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, const ComPtr<ID3D12RootSignature>& rootsignature)
