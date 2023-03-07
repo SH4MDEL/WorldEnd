@@ -266,7 +266,7 @@ void TowerScene::Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12G
 	m_shaders.at("OBJECT")->Render(device, commandList);
 	m_shaders.at("SKYBOX")->Render(device, commandList);
 	m_shaders.at("HPBAR")->Render(device, commandList);
-	//m_shaders.at("DEBUG")->Render(commandList);
+	//m_shaders.at("DEBUG")->Render(device, commandList);
 }
 
 void TowerScene::RenderShadow(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList)
@@ -330,7 +330,7 @@ void TowerScene::LoadSceneFromFile(const ComPtr<ID3D12Device>& device, const Com
 		wstrToken.assign(objectName.begin(), objectName.end());
 		wstring strPath = L"./Resource/Model/" + sceneName + L"/" + wstrToken + L".bin";
 
-		LoadObjectFromFile(device, commandList, strPath, object);
+		LoadObjectFromFile(device, commandlist, strPath, object);
 
 		XMFLOAT4X4 worldMatrix;
 		in.read((CHAR*)(&worldMatrix), sizeof(XMFLOAT4X4));
@@ -592,13 +592,13 @@ void TowerScene::RecvAddMonsterPacket(char* ptr)
 	switch (add_monster_packet->monster_type)
 	{
 	case MonsterType::WARRIOR:
-		LoadObjectFromFile(TEXT("./Resource/Model/Undead_Warrior.bin"), monster);
+		LoadObjectFromFile(g_GameFramework.GetDevice(), g_GameFramework.GetCommandList(), TEXT("./Resource/Model/Undead_Warrior.bin"), monster);
 		break;
 	case MonsterType::ARCHER:
-		LoadObjectFromFile(TEXT("./Resource/Model/Undead_Archer.bin"), monster);
+		LoadObjectFromFile(g_GameFramework.GetDevice(), g_GameFramework.GetCommandList(), TEXT("./Resource/Model/Undead_Archer.bin"), monster);
 		break;
 	case MonsterType::WIZARD:
-		LoadObjectFromFile(TEXT("./Resource/Model/Undead_Wizard.bin"), monster);
+		LoadObjectFromFile(g_GameFramework.GetDevice(), g_GameFramework.GetCommandList(), TEXT("./Resource/Model/Undead_Wizard.bin"), monster);
 		break;
 	}
 	monster->SetPosition(XMFLOAT3{ 0.f, 0.f, 0.f });

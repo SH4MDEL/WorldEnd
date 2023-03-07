@@ -64,19 +64,20 @@ VS_ANIMATION_SHADOW_OUTPUT VS_ANIMATION_SHADOW_MAIN(VS_ANIMATION_SHADOW_INPUT in
 {
 	VS_ANIMATION_SHADOW_OUTPUT output;
 
+	float4x4 mat = (float4x4)0.0f;
 	if (input.weights[0] > 0) {
 		// 정점이 영향을 받는 뼈마다 오프셋 * 애니메이션 변환행렬을 전부 더합
-		float4x4 mat = (float4x4)0.0f;
 		for (int i = 0; i < 2; ++i) {
 			mat += input.weights[i] * mul(boneOffsets[input.indices[i]], boneTransforms[input.indices[i]]);
 		}
 
-		output.position = mul(float4(input.position, 1.0f), mat);
+		output.position = mul(mul(float4(input.position, 1.0f), mat), worldMatrix);
 		output.position = mul(output.position, lightView);
 		output.position = mul(output.position, lightProj);
 	}
 	else {
-		output.position = mul(float4(input.position, 1.0f), worldMatrix);
+		mat = boneTransforms[0];
+		output.position = mul(mul(float4(input.position, 1.0f), mat), worldMatrix);
 		output.position = mul(output.position, lightView);
 		output.position = mul(output.position, lightProj);
 	}

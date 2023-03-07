@@ -70,6 +70,8 @@ public:
 	FLOAT GetAspectRatio() const { return m_aspectRatio; }
 	void SetIsActive(BOOL isActive) { m_isActive = isActive; }
 
+	ComPtr<ID3D12Device> GetDevice() const { return m_device; }
+	ComPtr<ID3D12GraphicsCommandList> GetCommandList() const { return m_commandList; }
 	ComPtr<ID3D12CommandQueue> GetCommandQueue() const { return m_commandQueue; }
 	ComPtr<ID2D1DeviceContext2> GetD2DDeviceContext() const { return m_d2dDeviceContext; }
 	ComPtr<IDWriteFactory> GetWriteFactory() const { return m_writeFactory; }

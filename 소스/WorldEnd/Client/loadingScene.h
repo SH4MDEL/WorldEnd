@@ -29,7 +29,7 @@ public:
  
 	void LoadMeshFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, wstring fileName);
 	void LoadMaterialFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, wstring fileName);
-	void LoadAnimationSetFile(wstring fileName, const string& animationSetName);
+	void LoadAnimationSetFromFile(wstring fileName, const string& animationSetName);
 
 private:
 	shared_ptr<LoadingText>				m_loadingText;

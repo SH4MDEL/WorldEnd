@@ -622,6 +622,7 @@ void AnimationMesh::UpdateShaderVariables(const ComPtr<ID3D12Device>& device, co
 	// 애니메이션 변환행렬은 오브젝트에서 가져와서 넘긴다
 	// -> 모델 별로 애니메이션이 다르기 때문에
 
+
 	XMFLOAT4X4 worldMatrix;
 	XMStoreFloat4x4(&worldMatrix, XMMatrixTranspose(XMLoadFloat4x4(&rootObject->GetWorldMatrix())));
 	commandList->SetGraphicsRoot32BitConstants(0, 16, &worldMatrix, 0);
