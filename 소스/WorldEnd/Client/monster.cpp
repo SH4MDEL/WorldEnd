@@ -27,3 +27,8 @@ void Monster::SetPosition(const XMFLOAT3& position)
 		m_hpBar->SetPosition(hpBarPosition);
 	}
 }
+
+void Monster::SetVelocity(XMFLOAT3& velocity)
+{
+
+}

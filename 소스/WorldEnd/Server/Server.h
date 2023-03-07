@@ -14,6 +14,8 @@ struct TimerEvent {
 	}
 };
 
+constexpr float                             g_spawm_stop = 2.0;
+
 class Server
 {
 
@@ -26,7 +28,10 @@ private:
 	bool									m_accept;
 
 	// 게임 관련
-	int                                     m_round;
+	int                                     m_floor;
+	int                                     m_floor_mob_count[4];
+	float                                   m_spawn_stop;
+
 	char                                    m_next_monster_id;
 
 	int                                     m_start_cool_time;
@@ -60,7 +65,7 @@ public:
 
 	void PlayerCollisionCheck(Session& player, const int id);
 	void Update(float taketime);
-	void CreateMonsters();
+	void CreateMonsters(float taketime);
 
 	void Timer();
 

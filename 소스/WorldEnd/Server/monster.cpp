@@ -40,7 +40,7 @@ void Monster::SetMonsterPosition()
 {
 	constexpr DirectX::XMFLOAT3 monster_create_area[]
 	{
-		{ 0.0f,	0.0f, 5.0f }, { 2.0f, 0.0f, -6.0f },{ 4.0f,  0.0f, 0.0f },	{ -3.0f, 0.0f, 0.0f },
+		{ 4.0f,	0.0f, 5.0f }, { 2.0f, 0.0f, -6.0f },{ 4.0f,  0.0f, 6.0f },	{ -3.0f, 0.0f, 7.0f },
 		{ 5.0f, 0.0f, 7.0f }, { -10.0f, 0.0f,  15.0f },	{ 15.0f, 0.0f, 16.0f }, {  14.0f, 0.0f, -17.0f }
 	};
 	std::uniform_int_distribution<int> area_distribution{ 0, static_cast<int>(std::size(monster_create_area) - 1) };
@@ -88,7 +88,7 @@ WarriorMonster::WarriorMonster()
 	m_monster_type = MonsterType::WARRIOR;
 	m_hp = 200;
 	m_damage = 20;
-	m_speed = 2;
+	m_speed = 0.8;
 }
 
 void WarriorMonster::CreateMonster(float taketime)
