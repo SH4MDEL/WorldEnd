@@ -575,14 +575,14 @@ SkyboxMesh::SkyboxMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12Gr
 	m_vertexBufferView.SizeInBytes = sizeof(SkyboxVertex) * vertices.size();
 }
 
-SkinnedMesh::SkinnedMesh()
+AnimationMesh::AnimationMesh()
 {
 	m_primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 }
 
-void SkinnedMesh::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT subMeshIndex) const
+void AnimationMesh::Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT subMeshIndex, GameObject* rootObject, const GameObject* object)
 {
-	UpdateShaderVariables(commandList);
+	UpdateShaderVariables(device, commandList, rootObject, object);
 
 	commandList->IASetPrimitiveTopology(m_primitiveTopology);
 	commandList->IASetVertexBuffers(0, 1, &m_vertexBufferView);
@@ -600,23 +600,63 @@ void SkinnedMesh::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, U
 	}
 }
 
-void SkinnedMesh::UpdateShaderVariables(const ComPtr<ID3D12GraphicsCommandList>& commandList) const
+void AnimationMesh::CreateShaderVariables(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, GameObject* rootObject)
 {
-	if (m_bindPoseBoneOffsetBuffers) {
-		D3D12_GPU_VIRTUAL_ADDRESS virtualAddress = m_bindPoseBoneOffsetBuffers->GetGPUVirtualAddress();
-		commandList->SetGraphicsRootConstantBufferView(16, virtualAddress);
-	}
-	if (m_skinningBoneTransformBuffers) {
-		D3D12_GPU_VIRTUAL_ADDRESS virtualAddress = m_skinningBoneTransformBuffers->GetGPUVirtualAddress();
-		commandList->SetGraphicsRootConstantBufferView(17, virtualAddress);
+	if (m_animationTransformBuffers.contains(rootObject))
+		return;
 
-		for (int i = 0; i < m_skinningBoneFrames.size(); ++i) {
-			XMStoreFloat4x4(&m_mappedSkinningBoneTransforms[i], XMMatrixTranspose(XMLoadFloat4x4(&m_skinningBoneFrames[i]->GetWorldMatrix())));
-		}
-	}
+	UINT elementBytes = (((sizeof(XMFLOAT4X4) * AnimationSetting::MAX_BONE) + 255) & ~255);
+	ComPtr<ID3D12Resource> buffer = CreateBufferResource(device, commandList, nullptr, elementBytes,
+		D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, ComPtr<ID3D12Resource>());
+
+	XMFLOAT4X4* bufferPointer{};
+	buffer->Map(0, nullptr, (void**)&bufferPointer);
+
+	m_animationTransformBuffers.insert({ rootObject, make_pair(buffer, bufferPointer) });
 }
 
-void SkinnedMesh::ReleaseUploadBuffer()
+void AnimationMesh::UpdateShaderVariables(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, GameObject* rootObject, const GameObject* object)
+{
+	// 오프셋 행렬은 그대로 넘긴다 -> 고정된 값이므로
+
+	// 애니메이션 변환행렬은 오브젝트에서 가져와서 넘긴다
+	// -> 모델 별로 애니메이션이 다르기 때문에
+
+	XMFLOAT4X4 worldMatrix;
+	XMStoreFloat4x4(&worldMatrix, XMMatrixTranspose(XMLoadFloat4x4(&rootObject->GetWorldMatrix())));
+	commandList->SetGraphicsRoot32BitConstants(0, 16, &worldMatrix, 0);
+
+	// 애니메이션 메쉬는 해시맵에서 이름을 통해 찾아 변환행렬을 채움
+	if (AnimationSetting::ANIMATION_MESH == m_meshType) {
+		D3D12_GPU_VIRTUAL_ADDRESS virtualAddress = m_bindPoseBoneOffsetBuffers->GetGPUVirtualAddress();
+		commandList->SetGraphicsRootConstantBufferView(16, virtualAddress);
+
+		for (size_t i = 0; const string & boneName : m_skinningBoneNames) {
+			XMFLOAT4X4 transform;
+			XMStoreFloat4x4(&transform, XMMatrixTranspose(XMLoadFloat4x4(
+				&rootObject->GetAnimationController()->GetGameObject(boneName)->GetAnimationMatrix())));
+			::memcpy(&m_animationTransformBuffers[rootObject].second[i], &transform, sizeof(XMFLOAT4X4));
+			++i;
+		}
+
+		virtualAddress = m_animationTransformBuffers[rootObject].first->GetGPUVirtualAddress();
+		commandList->SetGraphicsRootConstantBufferView(17, virtualAddress);
+	}
+
+	// 일반 메쉬의 경우 넘겨받은 오브젝트로 직접 찾아서 해당 변환행렬만을 찾아옴
+	else {
+		XMFLOAT4X4 transform;
+		XMStoreFloat4x4(&transform, XMMatrixTranspose(XMLoadFloat4x4(
+			&rootObject->GetAnimationController()->GetGameObject(object->GetFrameName())->GetAnimationMatrix())));
+		::memcpy(&m_animationTransformBuffers[rootObject].second[0], &transform, sizeof(XMFLOAT4X4));
+
+		D3D12_GPU_VIRTUAL_ADDRESS virtualAddress = m_animationTransformBuffers[rootObject].first->GetGPUVirtualAddress();
+		commandList->SetGraphicsRootConstantBufferView(17, virtualAddress);
+	}
+
+}
+
+void AnimationMesh::ReleaseUploadBuffer()
 {
 	if (m_vertexUploadBuffer) m_vertexUploadBuffer.Reset();
 	if (m_indexUploadBuffer) m_indexUploadBuffer.Reset();
@@ -625,23 +665,23 @@ void SkinnedMesh::ReleaseUploadBuffer()
 	}
 }
 
-void SkinnedMesh::LoadSkinnedMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, ifstream& in)
+void AnimationMesh::LoadAnimationMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, ifstream& in)
 {
 	m_primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
 	m_nIndices = 0;
 
-	vector<SkinnedVertex> vertices;
+	vector<AnimationVertex> vertices;
 	vector<UINT> indices;
 
 	BYTE strLength{};
 
 	INT positionNum{}, colorNum{}, texcoord0Num{}, texcoord1Num{}, normalNum{}, tangentNum{}, biTangentNum{};
-	INT bonesPerVertex{}, boneNameNum{}, boneOffsetNum{}, boneIndexNum{}, boneWeightNum{};
+	INT boneNameNum{}, boneOffsetNum{}, boneIndexNum{}, boneWeightNum{};
 
 	in.read((char*)(&strLength), sizeof(BYTE));
-	m_skinnedMeshName.resize(strLength, '\0');
-	in.read(&m_skinnedMeshName[0], sizeof(char) * strLength);
+	m_animationMeshName.resize(strLength, '\0');
+	in.read(&m_animationMeshName[0], sizeof(char) * strLength);
 
 	while (1) {
 		in.read((char*)(&strLength), sizeof(BYTE));
@@ -649,8 +689,8 @@ void SkinnedMesh::LoadSkinnedMesh(const ComPtr<ID3D12Device>& device, const ComP
 		in.read(&strToken[0], sizeof(char) * strLength);
 
 		if (strToken == "<BonesPerVertex>:") {
-			in.read((char*)(&bonesPerVertex), sizeof(INT));
-			m_nBonesPerVertex = bonesPerVertex;
+			INT dummy{};
+			in.read((char*)(&dummy), sizeof(INT));
 		}
 		else if (strToken == "<Bounds>:") {
 			in.read((char*)(&m_boundingBox.Center), sizeof(XMFLOAT3));
@@ -659,7 +699,6 @@ void SkinnedMesh::LoadSkinnedMesh(const ComPtr<ID3D12Device>& device, const ComP
 		else if (strToken == "<BoneNames>:") {
 			in.read((char*)(&boneNameNum), sizeof(INT));
 
-			m_skinningBoneFrames.resize(boneNameNum);	// 오브젝트 벡터는 사이즈만 늘리고 당장은 정의 X
 			m_skinningBoneNames.resize(boneNameNum);
 
 			for (int i = 0; i < boneNameNum; ++i) {
@@ -667,6 +706,8 @@ void SkinnedMesh::LoadSkinnedMesh(const ComPtr<ID3D12Device>& device, const ComP
 				m_skinningBoneNames[i].resize(strLength);
 				in.read(&m_skinningBoneNames[i][0], sizeof(char) * strLength);
 			}
+
+
 		}
 		else if (strToken == "<BoneOffsets>:") {
 			in.read((char*)(&boneOffsetNum), sizeof(INT));
@@ -678,13 +719,13 @@ void SkinnedMesh::LoadSkinnedMesh(const ComPtr<ID3D12Device>& device, const ComP
 					in.read((char*)(&m_bindPoseBoneOffsets[i]), sizeof(XMFLOAT4X4));
 
 				//바인드포즈 오프셋 버퍼 정의
-				UINT elementBytes = (((sizeof(XMFLOAT4X4) * SKINNED_BONES) + 255) & ~255);	// // XMFLOAT4X4 가 최대 뼈의 갯수만큼 있는것을 가정하였을 때의 256의 배수 구하기
+				UINT elementBytes = (((sizeof(XMFLOAT4X4) * AnimationSetting::MAX_BONE) + 255) & ~255);	// // XMFLOAT4X4 가 최대 뼈의 갯수만큼 있는것을 가정하였을 때의 256의 배수 구하기
 				m_bindPoseBoneOffsetBuffers = CreateBufferResource(device, commandList, nullptr, elementBytes, D3D12_HEAP_TYPE_UPLOAD,
 					D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, ComPtr<ID3D12Resource>());
-				m_bindPoseBoneOffsetBuffers->Map(0, nullptr, (void**)&m_mappedBindPoseBoneOffsets);
+				m_bindPoseBoneOffsetBuffers->Map(0, nullptr, (void**)&m_bindPoseBoneOffsetBuffersPointer);
 
 				for (int i = 0; i < boneOffsetNum; ++i) {
-					XMStoreFloat4x4(&m_mappedBindPoseBoneOffsets[i], XMMatrixTranspose(XMLoadFloat4x4(&m_bindPoseBoneOffsets[i])));
+					XMStoreFloat4x4(&m_bindPoseBoneOffsetBuffersPointer[i], XMMatrixTranspose(XMLoadFloat4x4(&m_bindPoseBoneOffsets[i])));
 				}
 				
 			}
@@ -824,12 +865,12 @@ void SkinnedMesh::LoadSkinnedMesh(const ComPtr<ID3D12Device>& device, const ComP
 
 	m_nVertices = (UINT)vertices.size();
 	m_vertexBuffer = CreateBufferResource(device, commandList, vertices.data(),
-		sizeof(SkinnedVertex) * vertices.size(), D3D12_HEAP_TYPE_DEFAULT,
+		sizeof(AnimationVertex) * vertices.size(), D3D12_HEAP_TYPE_DEFAULT,
 		D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, m_vertexUploadBuffer);
 
 	m_vertexBufferView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
-	m_vertexBufferView.StrideInBytes = sizeof(SkinnedVertex);
-	m_vertexBufferView.SizeInBytes = sizeof(SkinnedVertex) * vertices.size();
+	m_vertexBufferView.StrideInBytes = sizeof(AnimationVertex);
+	m_vertexBufferView.SizeInBytes = sizeof(AnimationVertex) * vertices.size();
 
 	m_nIndices = (UINT)indices.size();
 	if (m_nIndices) {

@@ -26,7 +26,7 @@ cbuffer cbMaterial : register(b2)
 	uint textureMask : packoffset(c5.y);
 };
 
-#define MAX_BONES					256
+#define MAX_BONES					100
 
 // bone
 cbuffer cbBoneOffsets : register(b5)

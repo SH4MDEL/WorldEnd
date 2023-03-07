@@ -61,8 +61,8 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/WarriorMesh.bin"));
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/ArcherMesh.bin"));
 
-	LoadAnimationFromFile(TEXT("./Resource/Animation/WarriorAnimation.bin"), "WarriorAnimation");
-	LoadAnimationFromFile(TEXT("./Resource/Animation/ArcherAnimation.bin"), "ArcherAnimation");
+	LoadAnimationSetFromFile(TEXT("./Resource/Animation/WarriorAnimation.bin"), "WarriorAnimation");
+	LoadAnimationSetFromFile(TEXT("./Resource/Animation/ArcherAnimation.bin"), "ArcherAnimation");
 
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/WarriorTexture.bin"));
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/ArcherTexture.bin"));
@@ -94,6 +94,8 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/Undead_WarriorMesh.bin"));
 	LoadAnimationFromFile(TEXT("./Resource/Animation/Undead_WarriorAnimation.bin"), "Undead_WarriorAnimation");
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/Undead_WarriorTexture.bin"));
+
+	LoadAnimationSetFromFile(TEXT("./Resource/Animation/Undead_WarriorAnimation.bin"), "Undead_WarriorAnimation");
 
 	// 타워 씬 메쉬 로딩
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/AD_ArchDeco_A_01Mesh.bin"));
@@ -185,8 +187,8 @@ void LoadingScene::Update(FLOAT timeElapsed)
 	}
 }
 
-void LoadingScene::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const {}
-void LoadingScene::RenderShadow(const ComPtr<ID3D12GraphicsCommandList>& commandList) {}
+void LoadingScene::Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList) const {}
+void LoadingScene::RenderShadow(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList) {}
 
 void LoadingScene::RenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext)
 {
@@ -209,18 +211,18 @@ void LoadingScene::LoadMeshFromFile(const ComPtr<ID3D12Device>& device, const Co
 
 		if (strToken == "<Hierarchy>:") {}
 		else if (strToken == "<SkinningInfo>:") {
-			auto skinnedMesh = make_shared<SkinnedMesh>();
-			skinnedMesh->LoadSkinnedMesh(device, commandList, in);
-			skinnedMesh->SetMeshType(SKINNED_MESH);
+			auto animationMesh = make_shared<AnimationMesh>();
+			animationMesh->LoadAnimationMesh(device, commandList, in);
+			animationMesh->SetType(AnimationSetting::ANIMATION_MESH);
 
-			m_meshs.insert({ skinnedMesh->GetSkinnedMeshName(), skinnedMesh });
+			m_meshs.insert({ animationMesh->GetAnimationMeshName(), animationMesh });
 		}
 		else if (strToken == "<Mesh>:") {
-			auto mesh = make_shared<SkinnedMesh>();
-			mesh->LoadSkinnedMesh(device, commandList, in);
-			mesh->SetMeshType(STANDARD_MESH);
+			auto mesh = make_shared<AnimationMesh>();
+			mesh->LoadAnimationMesh(device, commandList, in);
+			mesh->SetType(AnimationSetting::STANDARD_MESH);
 
-			m_meshs.insert({ mesh->GetSkinnedMeshName(), mesh });
+			m_meshs.insert({ mesh->GetAnimationMeshName(), mesh });
 		}
 		else if (strToken == "</Hierarchy>") {
 			break;
@@ -270,99 +272,25 @@ void LoadingScene::LoadMaterialFromFile(const ComPtr<ID3D12Device>& device, cons
 	m_loadingText->LoadingFile();
 }
 
-void LoadingScene::LoadAnimationFromFile(wstring fileName, const string& animationName)
+void LoadingScene::LoadAnimationSetFromFile(wstring fileName, const string& animationSetName)
 {
 	ifstream in{ fileName, std::ios::binary };
 	if (!in) return;
 
 	m_loadingText->SetFileName(fileName);
 
-	auto animationSet = make_shared<AnimationSet>();
-
-	// frameNum = 뼈대 개수
 	BYTE strLength{};
-	INT num{}, frameNum{};
+	in.read((char*)(&strLength), sizeof(BYTE));
 
-	INT animationCount{};
+	string strDummy(strLength, '\0');
+	in.read(&strDummy[0], sizeof(char) * strLength);
 
-	while (true) {
-		in.read((char*)(&strLength), sizeof(BYTE));
-		string strToken(strLength, '\0');
-		in.read(&strToken[0], sizeof(char) * strLength);
+	INT dummy{};
+	in.read((char*)(&dummy), sizeof(INT));
+	
+	auto animationSet = make_shared<AnimationSet>();
+	animationSet->LoadAnimationSet(in, animationSetName);
 
-		if (strToken == "<AnimationSets>:") {
-			// 애니메이션 조합에 애니메이션 갯수 resize
-			in.read((char*)(&num), sizeof(INT));
-			animationSet->GetAnimations().resize(num);
-		}
-		else if (strToken == "<FrameNames>:") {
-			// 애니메이션이 적용될 뼈 개수 resize
-			in.read((char*)(&frameNum), sizeof(INT));
-			auto& frameNames = animationSet->GetFrameNames();
-			frameNames.resize(frameNum);
-			auto& frameCaches = animationSet->GetBoneFramesCaches();
-			frameCaches.resize(frameNum);
-
-			// 프레임이름을 담는 벡터에
-			// 각 이름을 읽어서 넣음
-			for (int i = 0; i < frameNum; ++i) {
-				in.read((char*)(&strLength), sizeof(BYTE));
-				frameNames[i].resize(strLength);
-				in.read((char*)(frameNames[i].data()), sizeof(char) * strLength);
-			}
-		}
-		else if (strToken == "<AnimationSet>:") {
-			// 애니메이션 번호, 이름, 시간, 초당 프레임, 총 프레임
-			INT animationNum{};
-			in.read((char*)(&animationNum), sizeof(INT));
-
-			in.read((char*)(&strLength), sizeof(BYTE));
-			string animationName(strLength, '\0');
-			in.read(&animationName[0], sizeof(char) * strLength);
-
-			float animationLength{};
-			in.read((char*)(&animationLength), sizeof(float));
-
-			INT framePerSecond{};
-			in.read((char*)(&framePerSecond), sizeof(INT));
-
-			INT totalFrames{};
-			in.read((char*)(&totalFrames), sizeof(INT));
-
-			auto animation = make_shared<Animation>(animationLength, framePerSecond,
-				totalFrames, frameNum, animationName);
-
-			auto& keyFrameTimes = animation->GetKeyFrameTimes();
-			auto& keyFrameTransforms = animation->GetKeyFrameTransforms();
-
-			for (int i = 0; i < totalFrames; ++i) {
-				in.read((char*)(&strLength), sizeof(BYTE));
-				string strToken(strLength, '\0');
-				in.read(&strToken[0], sizeof(char) * strLength);
-
-				// 키프레임 번호, 키프레임 시간, 키프레임 행렬들
-				if (strToken == "<Transforms>:") {
-					INT keyFrameNum{};
-					in.read((char*)(&keyFrameNum), sizeof(INT));
-
-					float keyFrameTime{};
-					in.read((char*)(&keyFrameTime), sizeof(float));
-
-					keyFrameTimes[i] = keyFrameTime;
-					in.read((char*)(keyFrameTransforms[i].data()), sizeof(XMFLOAT4X4) * frameNum);
-				}
-			}
-
-			// 애니메이션 조합에 해당 애니메이션 추가
-			animationSet->GetAnimations()[animationCount++] = animation;
-		}
-		else if (strToken == "</AnimationSets>") {
-			break;
-		}
-	}
-
-	m_animations.insert({ animationName, animationSet });
+	m_animationSets.insert({ animationSetName, animationSet });
 	m_loadingText->LoadingFile();
 }
-
-

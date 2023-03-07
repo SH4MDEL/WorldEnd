@@ -120,7 +120,7 @@ void Server::WorkerThreads()
 				cl.m_ready_check = false;
 				constexpr char dummy_name[10] = "dummy\0";
 				strcpy_s(cl.m_name, sizeof(dummy_name), dummy_name);
-				cl.m_player_type = PlayerType::SWORD;
+				cl.m_player_type = PlayerType::WARRIOR;
 				cl.m_prev_size = 0;
 				cl.m_recv_over._comp_type = OP_RECV;
 				cl.m_recv_over._wsa_buf.buf = reinterpret_cast<char*>(cl.m_recv_over._send_buf);

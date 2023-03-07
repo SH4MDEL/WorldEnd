@@ -163,37 +163,39 @@ VS_ANIMATION_OUTPUT VS_ANIMATION_MAIN(VS_ANIMATION_INPUT input)
 	VS_ANIMATION_OUTPUT output;
 
 	// 스킨 메쉬
+	float4x4 mat = (float4x4)0.0f;
 	if (input.weights[0] > 0) {
 		// 정점이 영향을 받는 뼈마다 오프셋 * 애니메이션 변환행렬을 전부 더함
-		float4x4 mat = (float4x4)0.0f;
 		for (int i = 0; i < 2; ++i) {
 			mat += input.weights[i] * mul(boneOffsets[input.indices[i]], boneTransforms[input.indices[i]]);
 		}
 
-		output.position = mul(float4(input.position, 1.0f), mat);
+		output.position = mul(mul(float4(input.position, 1.0f), mat), worldMatrix);
 		output.positionW = output.position.xyz;
 		output.position = mul(output.position, viewMatrix);
 		output.position = mul(output.position, projMatrix);
 		output.shadowPosition = mul(float4(output.positionW, 1.0f), lightView);
 		output.shadowPosition = mul(output.shadowPosition, lightProj);
 		output.shadowPosition = mul(output.shadowPosition, NDCspace);
-		output.normal = mul(input.normal, (float3x3)mat);
-		output.tangent = mul(input.tangent, (float3x3)mat);
-		output.biTangent = mul(input.biTangent, (float3x3)mat);
+		output.normal = mul(mul(input.normal, (float3x3)mat), (float3x3)worldMatrix);
+		output.tangent = mul(mul(input.tangent, (float3x3)mat), (float3x3)worldMatrix);
+		output.biTangent = mul(mul(input.biTangent, (float3x3)mat), (float3x3)worldMatrix);
 		output.uv = input.uv;
 	}
-	// 일반 메쉬
+	// 일반 메쉬, 0번 인덱스에 애니메이션 변환행렬이 넘어오도록 함
 	else {
-		output.position = mul(float4(input.position, 1.0f), worldMatrix);
+		mat = boneTransforms[0];
+
+		output.position = mul(mul(float4(input.position, 1.0f), mat), worldMatrix);
 		output.positionW = output.position.xyz;
 		output.position = mul(output.position, viewMatrix);
 		output.position = mul(output.position, projMatrix);
 		output.shadowPosition = mul(float4(output.positionW, 1.0f), lightView);
 		output.shadowPosition = mul(output.shadowPosition, lightProj);
 		output.shadowPosition = mul(output.shadowPosition, NDCspace);
-		output.normal = mul(input.normal, (float3x3)worldMatrix);
-		output.tangent = mul(input.tangent, (float3x3)worldMatrix);
-		output.biTangent = mul(input.biTangent, (float3x3)worldMatrix);
+		output.normal = mul(mul(input.normal, (float3x3)mat), (float3x3)worldMatrix);
+		output.tangent = mul(mul(input.tangent, (float3x3)mat), (float3x3)worldMatrix);
+		output.biTangent = mul(mul(input.biTangent, (float3x3)mat), (float3x3)worldMatrix);
 		output.uv = input.uv;
 	}
 

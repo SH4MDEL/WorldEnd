@@ -41,15 +41,15 @@ public:
 	virtual void OnProcessingKeyboardMessage(FLOAT timeElapsed) const = 0;
 
 	virtual void Update(FLOAT timeElapsed) = 0;
-	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const = 0;
-	virtual void RenderShadow(const ComPtr<ID3D12GraphicsCommandList>& commandList) = 0;
+	virtual void Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList) const = 0;
+	virtual void RenderShadow(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList) = 0;
 	virtual void RenderText(const ComPtr< ID2D1DeviceContext2>& deviceContext) = 0;
 
 	static unordered_map<string, shared_ptr<Mesh>>			m_meshs;
 	static unordered_map<string, shared_ptr<Texture>>		m_textures;
 	static unordered_map<string, shared_ptr<Materials>>		m_materials;
 	static unordered_map<string, shared_ptr<Shader>>		m_shaders;
-	static unordered_map<string, shared_ptr<AnimationSet>>	m_animations;
+	static unordered_map<string, shared_ptr<AnimationSet>>	m_animationSets;
 
 
 protected:

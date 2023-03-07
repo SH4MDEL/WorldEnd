@@ -23,13 +23,13 @@ public:
     void OnProcessingKeyboardMessage(FLOAT timeElapsed) const override;
 
 	void Update(FLOAT timeElapsed) override;
-	void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const override;
-	void RenderShadow(const ComPtr<ID3D12GraphicsCommandList>& commandList) override;
+	void Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList) const override;
+	void RenderShadow(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList) override;
 	void RenderText(const ComPtr< ID2D1DeviceContext2>& deviceContext) override;
  
 	void LoadMeshFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, wstring fileName);
 	void LoadMaterialFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, wstring fileName);
-	void LoadAnimationFromFile(wstring fileName, const string& animationName);
+	void LoadAnimationSetFile(wstring fileName, const string& animationSetName);
 
 private:
 	shared_ptr<LoadingText>				m_loadingText;

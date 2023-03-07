@@ -93,9 +93,7 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 	
 	if (GetAsyncKeyState('E') & 0x8000) {
 		// idle, walk 애니메이션 끄기, attack 애니메이션 켜기
-		m_animationController->SetTrackEnable(0, false);
-		m_animationController->SetTrackEnable(1, false);
-		m_animationController->SetTrackEnable(2, true);
+		ChangeAnimation(ObjectAnimation::ATTACK);
 
 		CS_ATTACK_PACKET attack_packet;
 		attack_packet.size = sizeof(attack_packet);
@@ -109,18 +107,15 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 
 void Player::Update(FLOAT timeElapsed)
 {
-	GameObject::Update(timeElapsed);
+	AnimationObject::Update(timeElapsed);
 
 	if (m_animationController) {
 		float length = fabs(m_velocity.x) + fabs(m_velocity.z);
 		if (length <= numeric_limits<float>::epsilon()) {
-			m_animationController->SetTrackEnable(0, true);
-			m_animationController->SetTrackEnable(1, false);
-			m_animationController->SetTrackPosition(1, 0.0f);
+			ChangeAnimation(ObjectAnimation::IDLE);
 		}
 		else {
-			m_animationController->SetTrackEnable(0, false);
-			m_animationController->SetTrackEnable(1, true);
+			ChangeAnimation(ObjectAnimation::WALK);
 		}
 	}
 	static FLOAT dummy = 50.f;
@@ -182,7 +177,7 @@ void Player::AddVelocity(const XMFLOAT3& increase)
 	}
 }
 
-// -------------�ݹ� �Լ� -----------
+// ------------- 콜백 함수 -----------
 void AttackCallbackHandler::Callback(void* callbackData, float trackPosition)
 {
 	Player* p = static_cast<Player*>(callbackData);

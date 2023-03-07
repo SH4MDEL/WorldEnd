@@ -23,22 +23,23 @@ public:
 	void OnProcessingKeyboardMessage(FLOAT timeElapsed) const override;
 	
 	void Update(FLOAT timeElapsed) override;
-	void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const override;
-	void RenderShadow(const ComPtr<ID3D12GraphicsCommandList>& commandList) override;
+	void Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList) const override;
+	void RenderShadow(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList) override;
 	void RenderText(const ComPtr< ID2D1DeviceContext2>& deviceContext) override;
 
-	void LoadSceneFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, wstring fileName, wstring sceneName);
-	void LoadObjectFromFile(wstring fileName, const shared_ptr<GameObject>& object);
+	void LoadSceneFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, wstring fileName, wstring sceneName);
+	void LoadObjectFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, wstring fileName, const shared_ptr<GameObject>& object);
+	void LoadPlayerFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, const shared_ptr<Player>& player);
 
 
     // 서버 추가 코드
-	void InitServer();
+	void InitServer(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList);
 	void SendPlayerData();
-	void RecvPacket();
-	void ProcessPacket(char* ptr);
-	void PacketReassembly(char* net_buf, size_t io_byte);
+	void RecvPacket(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList);
+	void ProcessPacket(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, char* ptr);
+	void PacketReassembly(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, char* net_buf, size_t io_byte);
 	void RecvLoginOkPacket(char* ptr);
-	void RecvAddPlayerPacket(char* ptr);
+	void RecvAddPlayerPacket(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, char* ptr);
 	void RecvUpdateClient(char* ptr);
 	void RecvAttackPacket(char* ptr);
 	void RecvAddMonsterPacket(char* ptr);
