@@ -92,32 +92,49 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 	}
 	
 	if (GetAsyncKeyState('E') & 0x8000) {
-		// idle, walk 애니메이션 끄기, attack 애니메이션 켜기
-		ChangeAnimation(ObjectAnimation::ATTACK);
-
-		CS_ATTACK_PACKET attack_packet;
-		attack_packet.size = sizeof(attack_packet);
-		attack_packet.type = CS_PACKET_PLAYER_ATTACK;
-		attack_packet.key = m_key;
-		m_key = 0;
-		send(g_socket, reinterpret_cast<char*>(&attack_packet), sizeof(attack_packet), 0);
 
 	}
+}
+
+void Player::OnProcessingClickMessage(LPARAM lParam)
+{
+	ChangeAnimation(ObjectAnimation::ATTACK);
+
+#ifdef USE_NETWORK
+	CS_ATTACK_PACKET attack_packet;
+	attack_packet.size = sizeof(attack_packet);
+	attack_packet.type = CS_PACKET_PLAYER_ATTACK;
+	attack_packet.key = m_key;
+	m_key = 0;
+	send(g_socket, reinterpret_cast<char*>(&attack_packet), sizeof(attack_packet), 0);
+#endif
 }
 
 void Player::Update(FLOAT timeElapsed)
 {
 	AnimationObject::Update(timeElapsed);
 
+	// 애니메이션 상태 머신에 들어갈 내용
+	// 상태 전환을 하는 함수를 작성하고 해당 함수를 호출하도록 해야 함
 	if (m_animationController) {
-		float length = fabs(m_velocity.x) + fabs(m_velocity.z);
-		if (length <= numeric_limits<float>::epsilon()) {
-			ChangeAnimation(ObjectAnimation::IDLE);
+		if (ObjectAnimation::ATTACK == m_currentAnimation) {
+			auto& track = m_animationController->GetAnimationTrack(0);
+			auto& animation = m_animationController->GetAnimationSet()->GetAnimations()[track.GetAnimation()];
+			if (fabs(track.GetPosition() - animation->GetLength()) <= numeric_limits<float>::epsilon())
+				ChangeAnimation(ObjectAnimation::IDLE);
 		}
+		
 		else {
-			ChangeAnimation(ObjectAnimation::WALK);
+			float length = fabs(m_velocity.x) + fabs(m_velocity.z);
+			if (length <= numeric_limits<float>::epsilon()) {
+				ChangeAnimation(ObjectAnimation::IDLE);
+			}
+			else {
+				ChangeAnimation(ObjectAnimation::WALK);
+			}
 		}
 	}
+
 	static FLOAT dummy = 50.f;
 	if (dummy > 100.f) {
 		dummy -= 100.f;

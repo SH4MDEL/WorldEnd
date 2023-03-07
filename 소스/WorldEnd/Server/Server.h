@@ -58,7 +58,7 @@ public:
 	void SendMonsterAddPacket();
 	void SendMonsterDataPacket();
 
-	void PlayerCollisionCheck(Session& player, const int id);
+	void PlayerCollisionCheck(Session& player);
 	void Update(float taketime);
 	void CreateMonsters();
 

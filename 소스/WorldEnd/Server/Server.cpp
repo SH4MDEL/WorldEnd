@@ -225,7 +225,7 @@ void Server::ProcessPacket(const int id, char* p)
 		//cout << "x: " << cl.m_player_data.pos .x << " y: " << cl.m_player_data.pos.y <<
 		//	" z: " << cl.m_player_data.pos.z << endl;
 
-		PlayerCollisionCheck(cl, id);
+		PlayerCollisionCheck(cl);
 		SendPlayerDataPacket();
 		break;
 	}
@@ -380,17 +380,14 @@ void Server::SendPlayerAttackPacket(int pl_id)
 	}
 }
 
-void Server::PlayerCollisionCheck(Session& player, const int id)
+void Server::PlayerCollisionCheck(Session& player)
 {
-	for (int i = 0; i < m_clients.size(); ++i) {
-		for (int j = i + 1; j < m_clients.size(); ++j) {
-			if (!m_clients[j].m_player_data.active_check) continue;
+	for (auto& cl : m_clients) {
+		if (!cl.m_player_data.active_check) continue;
+		if (cl.m_player_data.id == player.m_player_data.id) continue;
 
-			if (m_clients[i].m_bounding_box.Intersects(m_clients[j].m_bounding_box)) {
-				cout << "충돌" << endl;
-
-				CollideByStatic(m_clients[i], m_clients[j].m_bounding_box);
-			}
+		if (player.m_bounding_box.Intersects(cl.m_bounding_box)) {
+			CollideByStatic(player, cl.m_bounding_box);
 		}
 	}
 }

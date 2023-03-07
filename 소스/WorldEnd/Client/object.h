@@ -197,6 +197,7 @@ public:
 
 protected:
 	unique_ptr<AnimationController>		m_animationController;
+	int									m_currentAnimation;
 };
 
 struct CALLBACKKEY

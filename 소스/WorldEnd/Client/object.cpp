@@ -528,6 +528,7 @@ AnimationObject::AnimationObject()
 {
 	// 디폴트 개수인 3개로 트랙의 개수를 지정하여 애니메이션 컨트롤러를 생성함
 	m_animationController = make_unique<AnimationController>(DEFAULT_TRACK_NUM);
+	m_currentAnimation = ObjectAnimation::IDLE;
 }
 
 void AnimationObject::ChangeAnimation(int animation)
@@ -535,37 +536,29 @@ void AnimationObject::ChangeAnimation(int animation)
 	switch (animation) {
 	case ObjectAnimation::IDLE:
 		m_animationController->SetTrackType(0, ANIMATION_TYPE_LOOP);
-		m_animationController->SetTrackAnimation(0, animation);
-
 		break;
 
 	case ObjectAnimation::WALK:
 		m_animationController->SetTrackType(0, ANIMATION_TYPE_LOOP);
-		m_animationController->SetTrackAnimation(0, animation);
-
 		break;
 
 	case ObjectAnimation::ATTACK: 
 	{
 		m_animationController->SetTrackType(0, ANIMATION_TYPE_ONCE);
 		m_animationController->SetTrackPosition(0, 0.f);
-		m_animationController->SetTrackAnimation(0, animation);
-
 		break; 
 	}
 
 	case WarriorAnimation::GUARD:
 		m_animationController->SetTrackType(0, ANIMATION_TYPE_LOOP);
-		m_animationController->SetTrackAnimation(0, animation);
-
 		break;
 
 	case ArcherAnimation::AIM:
 		m_animationController->SetTrackType(0, ANIMATION_TYPE_LOOP);
-		m_animationController->SetTrackAnimation(0, animation);
-
 		break;
 	}
+	m_currentAnimation = animation;
+	m_animationController->SetTrackAnimation(0, animation);
 }
 
 void AnimationObject::Update(FLOAT timeElapsed)
@@ -790,10 +783,6 @@ float AnimationTrack::UpdatePosition(float trackPosition, float timeElapsed, flo
 		m_position = trackPosition + trackElapsedTime;
 		if (m_position > animationLength) {
 			m_position = animationLength;
-
-			m_animation = ObjectAnimation::IDLE;
-			m_type = ANIMATION_TYPE_LOOP;
-			m_position = 0.f;
 		}
 	}
 

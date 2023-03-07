@@ -20,6 +20,7 @@ public:
 	void BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, const ComPtr<ID3D12RootSignature>& rootsignature) override;
 	
 	void OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime) const override;
+	void OnProcessingClickMessage(LPARAM lParam) const override;
     void OnProcessingKeyboardMessage(FLOAT timeElapsed) const override;
 
 	void Update(FLOAT timeElapsed) override;
