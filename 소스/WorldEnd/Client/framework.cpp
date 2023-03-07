@@ -33,7 +33,7 @@ void GameFramework::OnCreate(HINSTANCE hInstance, HWND hWnd)
 
 void GameFramework::OnDestroy()
 {
-	WaitForGpuComplete();
+	WaitForPreviousFrame();
 
 	::CloseHandle(m_fenceEvent);
 }
@@ -349,12 +349,12 @@ void GameFramework::Create11On12Device()
 		&m_deviceContext,
 		nullptr));
 
-	d3d11Device->QueryInterface(__uuidof(ID3D11On12Device), (void**)&m_11On12Device);
+	DX::ThrowIfFailed(d3d11Device.As(& m_11On12Device));
 }
 
 void GameFramework::CreateD2DDevice()
 {
-	D2D1_FACTORY_OPTIONS d2dFactoryOptions = { };
+	D2D1_FACTORY_OPTIONS d2dFactoryOptions = {};
 
 #if defined(_DEBUG) || defined(DBG)
 	d2dFactoryOptions.debugLevel = D2D1_DEBUG_LEVEL_INFORMATION;
@@ -366,14 +366,13 @@ void GameFramework::CreateD2DDevice()
 	DX::ThrowIfFailed(D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED,
 		__uuidof(ID2D1Factory3), 
 		&d2dFactoryOptions, 
-		(void**)&m_d2dFactory));
+		&m_d2dFactory));
 
-	DX::ThrowIfFailed(m_d2dFactory->CreateDevice(dxgiDevice.Get(), (ID2D1Device2**)&m_d2dDevice));
+	DX::ThrowIfFailed(m_d2dFactory->CreateDevice(dxgiDevice.Get(), &m_d2dDevice));
 	DX::ThrowIfFailed(m_d2dDevice->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_NONE, (ID2D1DeviceContext2**)&m_d2dDeviceContext));
-
 	m_d2dDeviceContext->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);
 
-	DX::ThrowIfFailed(DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory), (IUnknown**)&m_d2dFactory));
+	DX::ThrowIfFailed(DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory), (IUnknown**)&m_writeFactory));
 }
 
 void GameFramework::CreateD2DRenderTarget()
@@ -384,6 +383,7 @@ void GameFramework::CreateD2DRenderTarget()
 	for (UINT i = 0; i < SwapChainBufferCount; ++i)
 	{
 		D3D11_RESOURCE_FLAGS d3d11Flags = { D3D11_BIND_RENDER_TARGET };
+
 		DX::ThrowIfFailed(m_11On12Device->CreateWrappedResource(m_renderTargets[i].Get(),
 			&d3d11Flags, 
 			D3D12_RESOURCE_STATE_RENDER_TARGET, 
@@ -394,7 +394,6 @@ void GameFramework::CreateD2DRenderTarget()
 		DX::ThrowIfFailed(m_d2dDeviceContext->CreateBitmapFromDxgiSurface(dxgiSurface.Get(), &d2dBitmapPropertie, &m_d2dRenderTarget[i]));
 	}
 }
-
 
 void GameFramework::BuildObjects()
 {
@@ -411,7 +410,7 @@ void GameFramework::BuildObjects()
 	ID3D12CommandList* ppCommandList[] = { m_commandList.Get() };
 	m_commandQueue->ExecuteCommandLists(_countof(ppCommandList), ppCommandList);
 
-	WaitForGpuComplete();
+	WaitForPreviousFrame();
 
 	for (const auto& scene : m_scenes) scene->ReleaseUploadBuffer();
 
@@ -420,8 +419,18 @@ void GameFramework::BuildObjects()
 
 void GameFramework::ChangeScene(SCENETAG tag)
 {
+	WaitForGpu();
+
+	m_commandList->Reset(m_commandAllocator.Get(), nullptr);
+
 	m_scenes[m_sceneIndex]->OnDestroy();
 	m_scenes[m_sceneIndex = static_cast<int>(tag)]->OnCreate(m_device, m_commandList, m_rootSignature);
+
+	m_commandList->Close();
+	ID3D12CommandList* ppCommandList[] = { m_commandList.Get() };
+	m_commandQueue->ExecuteCommandLists(_countof(ppCommandList), ppCommandList);
+
+	WaitForPreviousFrame();
 }
 
 void GameFramework::FrameAdvance()
@@ -446,7 +455,7 @@ void GameFramework::Update(FLOAT timeElapsed)
 	if (m_scenes[m_sceneIndex]) m_scenes[m_sceneIndex]->Update(timeElapsed);
 }
 
-void GameFramework::WaitForGpuComplete()
+void GameFramework::WaitForPreviousFrame()
 {
 	//GPU가 펜스의 값을 설정하는 명령을 명령 큐에 추가한다. 
 	const UINT64 fence = m_fenceValue;
@@ -461,6 +470,17 @@ void GameFramework::WaitForGpuComplete()
 		::WaitForSingleObject(m_fenceEvent, INFINITE);
 	}
 	m_frameIndex = m_swapChain->GetCurrentBackBufferIndex();
+}
+
+// Wait for pending GPU work to complete.
+void GameFramework::WaitForGpu()
+{
+	// Schedule a Signal command in the queue.
+	DX::ThrowIfFailed(m_commandQueue->Signal(m_fence.Get(), m_fenceValue));
+
+	// Wait until the fence has been processed.
+	DX::ThrowIfFailed(m_fence->SetEventOnCompletion(m_fenceValue, m_fenceEvent));
+	WaitForSingleObjectEx(m_fenceEvent, INFINITE, FALSE);
 }
 
 void GameFramework::Render()
@@ -512,14 +532,13 @@ void GameFramework::Render()
 
 	DX::ThrowIfFailed(m_swapChain->Present(1, 0));
 
-	WaitForGpuComplete();
+	WaitForPreviousFrame();
 }
 
 void GameFramework::RenderText()
 {
+	m_11On12Device->AcquireWrappedResources(m_d3d11WrappedRenderTarget[m_frameIndex].GetAddressOf(),1);
 	m_d2dDeviceContext->SetTarget(m_d2dRenderTarget[m_frameIndex].Get());
-	m_11On12Device->AcquireWrappedResources(m_d3d11WrappedRenderTarget[m_frameIndex].GetAddressOf(), 1);
-
 	m_d2dDeviceContext->BeginDraw();
 
 	if (m_scenes[m_sceneIndex]) {

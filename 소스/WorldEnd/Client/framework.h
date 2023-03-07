@@ -62,7 +62,8 @@ public:
 	void Render();
 	void RenderText();
 
-	void WaitForGpuComplete();
+	void WaitForPreviousFrame();
+	void WaitForGpu();
 
 	UINT GetWindowWidth() const { return m_width; }
 	UINT GetWindowHeight() const { return m_height; }
@@ -70,6 +71,8 @@ public:
 	void SetIsActive(BOOL isActive) { m_isActive = isActive; }
 
 	ComPtr<ID3D12CommandQueue> GetCommandQueue() const { return m_commandQueue; }
+	ComPtr<ID2D1DeviceContext2> GetD2DDeviceContext() const { return m_d2dDeviceContext; }
+	ComPtr<IDWriteFactory> GetWriteFactory() const { return m_writeFactory; }
 
 private:
 	static const INT					SwapChainBufferCount = 2;

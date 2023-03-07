@@ -4,16 +4,34 @@ LoadingScene::LoadingScene(const ComPtr<ID3D12Device>& device) : m_canNextScene{
 {
 	DX::ThrowIfFailed(device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_threadCommandAllocator)));
 	DX::ThrowIfFailed(device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_threadCommandAllocator.Get(), nullptr, IID_PPV_ARGS(&m_threadCommandList)));
-
 }
 
 LoadingScene::~LoadingScene()
 {
+
 }
 
 void LoadingScene::OnCreate(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, const ComPtr<ID3D12RootSignature>& rootSignature)
 {
 	m_loadingText = make_shared<LoadingText>(53);
+
+	auto textBrush = ComPtr<ID2D1SolidColorBrush>();
+	DX::ThrowIfFailed(g_GameFramework.GetD2DDeviceContext()->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::SkyBlue, 1.f), &textBrush));
+	m_loadingText->SetTextBrush(textBrush);
+
+	auto textFormat = ComPtr<IDWriteTextFormat>();
+	DX::ThrowIfFailed(g_GameFramework.GetWriteFactory()->CreateTextFormat(
+		TEXT("돋움체"), nullptr,
+		DWRITE_FONT_WEIGHT_NORMAL,
+		DWRITE_FONT_STYLE_NORMAL,
+		DWRITE_FONT_STRETCH_NORMAL,
+		20.f,
+		TEXT("ko-kr"),
+		&textFormat
+	));
+	textFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
+	textFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
+	m_loadingText->SetTextFormat(textFormat);
 
 	m_loadingThread = thread{ &LoadingScene::BuildObjects, this, device, m_threadCommandList, rootSignature };
 }
@@ -62,6 +80,7 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 
 	// 스카이박스 로딩
 	auto skyboxShader{ make_shared<SkyboxShader>(device, rootsignature) };
+	auto skyboxMesh{ make_shared <SkyboxMesh>(device, commandlist, 20.0f, 20.0f, 20.0f)};
 	auto skyboxTexture{ make_shared<Texture>() };
 	skyboxTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/SkyBox.dds"), 7);	// Skybox
 	skyboxTexture->CreateSrvDescriptorHeap(device);
@@ -130,6 +149,7 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 
 	// 메쉬 설정
 	m_meshs.insert({ "HPBAR", hpBarMesh });
+	m_meshs.insert({ "SKYBOX", skyboxMesh });
 	m_meshs.insert({ "DEBUG", debugMesh });
 
 	// 텍스처 설정
@@ -151,12 +171,13 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	ID3D12CommandList* ppCommandList[] = { m_threadCommandList.Get() };
 	g_GameFramework.GetCommandQueue()->ExecuteCommandLists(_countof(ppCommandList), ppCommandList);
 
-	g_GameFramework.WaitForGpuComplete();
+	g_GameFramework.WaitForPreviousFrame();
 	m_canNextScene = true;
 }
 
 void LoadingScene::Update(FLOAT timeElapsed) 
 {
+	m_loadingText->Update(timeElapsed);
 	if (m_canNextScene && m_loadingThread.joinable())
 	{
 		m_loadingThread.join();
@@ -169,7 +190,7 @@ void LoadingScene::RenderShadow(const ComPtr<ID3D12GraphicsCommandList>& command
 
 void LoadingScene::RenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext)
 {
-	//m_loadingText->Render(deviceContext);
+	m_loadingText->Render(deviceContext);
 }
 
 void LoadingScene::LoadMeshFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, wstring fileName)
@@ -177,7 +198,7 @@ void LoadingScene::LoadMeshFromFile(const ComPtr<ID3D12Device>& device, const Co
 	ifstream in{ fileName, std::ios::binary };
 	if (!in) return;
 
-	//m_loadingText->SetFileName(fileName);
+	m_loadingText->SetFileName(fileName);
 	
 	BYTE strLength;
 	string backup;
@@ -206,7 +227,7 @@ void LoadingScene::LoadMeshFromFile(const ComPtr<ID3D12Device>& device, const Co
 		}
 	}
 
-	//m_loadingText->LoadingFile();
+	m_loadingText->LoadingFile();
 }
 
 void LoadingScene::LoadMaterialFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, wstring fileName)
@@ -214,7 +235,7 @@ void LoadingScene::LoadMaterialFromFile(const ComPtr<ID3D12Device>& device, cons
 	ifstream in{ fileName, std::ios::binary };
 	if (!in) return;
 
-	//m_loadingText->SetFileName(fileName);
+	m_loadingText->SetFileName(fileName);
 
 	BYTE strLength;
 	INT frame, texture;
@@ -246,7 +267,7 @@ void LoadingScene::LoadMaterialFromFile(const ComPtr<ID3D12Device>& device, cons
 		}
 	}
 
-	//m_loadingText->LoadingFile();
+	m_loadingText->LoadingFile();
 }
 
 void LoadingScene::LoadAnimationFromFile(wstring fileName, const string& animationName)
@@ -254,7 +275,7 @@ void LoadingScene::LoadAnimationFromFile(wstring fileName, const string& animati
 	ifstream in{ fileName, std::ios::binary };
 	if (!in) return;
 
-	//m_loadingText->SetFileName(fileName);
+	m_loadingText->SetFileName(fileName);
 
 	auto animationSet = make_shared<AnimationSet>();
 
@@ -341,7 +362,7 @@ void LoadingScene::LoadAnimationFromFile(wstring fileName, const string& animati
 	}
 
 	m_animations.insert({ animationName, animationSet });
-	//m_loadingText->LoadingFile();
+	m_loadingText->LoadingFile();
 }
 
 

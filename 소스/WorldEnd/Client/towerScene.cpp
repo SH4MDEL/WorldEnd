@@ -14,7 +14,6 @@ TowerScene::~TowerScene()
 
 void TowerScene::OnCreate(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, const ComPtr<ID3D12RootSignature>& rootSignature)
 {
-	cout << "Asdf";
 	BuildObjects(device, commandList, rootSignature);
 }
 
@@ -138,7 +137,8 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	LoadSceneFromFile(device, commandlist, TEXT("./Resource/Scene/TowerScene.bin"), TEXT("TowerScene"));
 
 	// 스카이 박스 생성
-	auto skybox{ make_shared<Skybox>(device, commandlist, 20.0f, 20.0f, 20.0f) };
+	auto skybox{ make_shared<GameObject>() };
+	skybox->SetMesh(m_meshs["SKYBOX"]);
 	skybox->SetTexture(m_textures["SKYBOX"]);
 	m_shaders["SKYBOX"]->SetObject(skybox);
 
