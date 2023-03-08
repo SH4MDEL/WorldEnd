@@ -141,6 +141,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="map.cpp" />
+    <ClCompile Include="object.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="monster.cpp" />
     <ClCompile Include="Server.cpp" />
@@ -148,6 +150,8 @@
     <ClCompile Include="stdafx.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="map.h" />
+    <ClInclude Include="object.h" />
     <ClInclude Include="main.h" />
     <ClInclude Include="monster.h" />
     <ClInclude Include="protocol.h" />

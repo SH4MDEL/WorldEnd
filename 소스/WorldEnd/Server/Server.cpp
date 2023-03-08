@@ -1,5 +1,8 @@
 ﻿#include "Server.h"
 #include "stdafx.h"
+#include "map.h"
+
+auto dungeon = make_unique<Dungeon>();
 
 Server::Server() : m_disconnect_cnt{ 0 }, m_floor{1}, m_next_monster_id {0}, m_accept {false}
 {
@@ -38,6 +41,8 @@ int Server::Network()
 	ZeroMemory(&accept_ex._wsa_over, sizeof(accept_ex._wsa_over));
 	accept_ex._comp_type = OP_ACCEPT;
 
+	dungeon->LoadMap();
+
 	bool ret = AcceptEx(g_socket, c_socket, accept_buf, 0, sizeof(SOCKADDR_IN) + 16, sizeof(SOCKADDR_IN) + 16, 0, &accept_ex._wsa_over);
 
 	for (int i = 0; i < 6; ++i)
@@ -53,6 +58,7 @@ int Server::Network()
 	using frame = std::chrono::duration<int32_t, std::ratio<1, 60>>;
 	using ms = std::chrono::duration<float, std::milli>;
 	std::chrono::time_point<std::chrono::steady_clock> fps_timer{ std::chrono::steady_clock::now() };
+
 
 	frame fps{}, frame_count{};
 	while (true) {
@@ -348,7 +354,7 @@ void Server::SendPlayerDataPacket()
 	for (int i = 0; i < MAX_USER; ++i)
 		update_packet.data[i] = m_clients[i].m_player_data;
 
-	for (int i = 1; i < MAX_USER; ++i) 
+	for (int i = 1; i < MAX_USER; ++i)
 	{
 		if (!update_packet.data[i].active_check)
 		{
@@ -404,6 +410,14 @@ void Server::PlayerCollisionCheck(Session& player)
 
 		if (player.m_bounding_box.Intersects(cl.m_bounding_box)) {
 			CollideByStatic(player, cl.m_bounding_box);
+		}
+	}
+
+	auto& v = dungeon->GetStructures();
+
+	for (auto& obj : v) {
+		if (player.m_bounding_box.Intersects(obj->GetBoundingBox())) {
+			CollideByStatic(player, obj->GetBoundingBox());
 		}
 	}
 }
@@ -594,9 +608,9 @@ void Server::RotatePlayer(Session& player, FLOAT yaw)
 	//player.m_bounding_box.Orientation;
 }
 
-void Server::CollideByStatic(Session& pl1, DirectX::BoundingOrientedBox obb)
+void Server::CollideByStatic(Session& player, const BoundingOrientedBox& obb)
 {
-	DirectX::BoundingOrientedBox& obb1 = pl1.m_bounding_box;
+	DirectX::BoundingOrientedBox& obb1 = player.m_bounding_box;
 
 	// length 는 바운드 박스의 길이 합
 	// dist 는 바운드 박스간의 거리
@@ -610,14 +624,13 @@ void Server::CollideByStatic(Session& pl1, DirectX::BoundingOrientedBox obb)
 	FLOAT x_bias = x_length - x_dist;
 	FLOAT z_bias = z_length - z_dist;
 
-
-	XMFLOAT3 pos = pl1.m_player_data.pos;
+	XMFLOAT3 pos = player.m_player_data.pos;
 
 	// z 방향으로 밀어내기
-	if (x_bias - z_bias >= FLT_EPSILON) {
+	if (x_bias - z_bias >= numeric_limits<FLOAT>::epsilon()) {
 		
 		// obb1이 앞쪽으로 밀려남
-		if (obb1.Center.z - obb.Center.z >= FLT_EPSILON) {
+		if (obb1.Center.z - obb.Center.z >= numeric_limits<FLOAT>::epsilon()) {
 			pos.z += z_bias;
 		}
 		// obb1이 뒤쪽으로 밀려남
@@ -630,7 +643,7 @@ void Server::CollideByStatic(Session& pl1, DirectX::BoundingOrientedBox obb)
 	else {
 
 		// obb1 이 앞쪽으로 밀려남
-		if (obb1.Center.x - obb.Center.x >= FLT_EPSILON) {
+		if (obb1.Center.x - obb.Center.x >= numeric_limits<FLOAT>::epsilon()) {
 			pos.x += x_bias;
 		}
 		// obb1이 뒤쪽으로 밀려남
@@ -638,7 +651,8 @@ void Server::CollideByStatic(Session& pl1, DirectX::BoundingOrientedBox obb)
 			pos.x -= x_bias;
 		}
 	}
-	MovePlayer(pl1, pos);
+
+	MovePlayer(player, pos);
 }
 
 void Server::CollideByMoveMent(Session& player1, Session& player2)

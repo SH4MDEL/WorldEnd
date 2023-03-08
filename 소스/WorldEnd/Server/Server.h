@@ -77,7 +77,7 @@ public:
 	void MovePlayer(Session& player, XMFLOAT3 velocity);
 	void RotatePlayer(Session& player, FLOAT yaw);
 
-	void CollideByStatic(Session& player1, DirectX::BoundingOrientedBox obb);
+	void CollideByStatic(Session& player1, const BoundingOrientedBox& obb);
 	void CollideByMoveMent(Session& player1, Session& player2);
 
 	array<Session, MAX_USER>				m_clients;

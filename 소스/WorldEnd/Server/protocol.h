@@ -5,6 +5,7 @@ constexpr short SERVER_PORT = 9000;
 
 constexpr int BUF_SIZE = 5000;
 constexpr int NAME_SIZE = 20;
+constexpr int MAX_DUNGEON_USER = 3;
 constexpr int MAX_USER = 3;
 constexpr int MAX_MONSTER = 10;
 
@@ -25,6 +26,7 @@ enum class PlayerType : char { WARRIOR, ARCHER, UNKNOWN };
 enum class AttackType : char { NORMAL, SKILL };
 enum class SceneType : char { LOGIN, LOADING, VILLAGE, PARTY, DUNGEON  };
 enum class MonsterType : char { WARRIOR, ARCHER, WIZARD };
+enum class EnvironmentType : char { RAIN, FOG, GAS, TRAP };
 
 enum eEventType : char { EVENT_PLAYER_ATTACK };
 
