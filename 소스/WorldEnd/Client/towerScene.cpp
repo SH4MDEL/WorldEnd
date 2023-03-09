@@ -464,7 +464,7 @@ void TowerScene::RecvPacket(const ComPtr<ID3D12Device>& device, const ComPtr<ID3
 
 void TowerScene::ProcessPacket(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, char* ptr)
 {
-	cout << "[Process Packet] Packet Type: " << (int)ptr[1] << endl;//test
+	//cout << "[Process Packet] Packet Type: " << (int)ptr[1] << endl;//test
 
 	switch (ptr[1])
 	{
@@ -593,8 +593,12 @@ void TowerScene::RecvAddMonsterPacket(char* ptr)
 	//monster_data.hp = add_monster_packet->monster_data.hp;
 	monster_data.id = add_monster_packet->monster_data.id;
 	monster_data.pos = add_monster_packet->monster_data.pos;
+	monster_data.hp = add_monster_packet->monster_data.hp;
+
+	cout << "monster hp - " << monster_data.hp << endl;
 
 	auto monster = make_shared<Monster>();
+
 	switch (add_monster_packet->monster_type)
 	{
 	case MonsterType::WARRIOR:
@@ -609,7 +613,7 @@ void TowerScene::RecvAddMonsterPacket(char* ptr)
 	}
 	monster->SetPosition(XMFLOAT3{ 0.f, 0.f, 0.f });
 	m_monsters.insert({ monster_data.id, monster });
-
+	
 	auto hpBar = make_shared<HpBar>();
 	hpBar->SetMesh(m_meshs["HPBAR"]);
 	hpBar->SetTexture(m_textures["HPBAR"]);
@@ -627,7 +631,7 @@ void TowerScene::RecvUpdateMonster(char* ptr)
 	if (monster_packet->monster_data.id < 0) return;
 
 	m_monsters[monster_packet->monster_data.id]->SetPosition(monster_packet->monster_data.pos);
-
+	m_monsters[monster_packet->monster_data.id]->Rotate(0.f, 0.f, monster_packet->monster_data.yaw - m_monsters[monster_packet->monster_data.id]->GetYaw());
 	/*cout << "monster id - " << (int)monster_packet->monster_data.id << endl;
 	cout << "monster pos (x: " << monster_packet->monster_data.pos.x <<
 			" y: " << monster_packet->monster_data.pos.y <<

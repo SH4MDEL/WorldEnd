@@ -18,6 +18,7 @@ constexpr char SC_PACKET_UPDATE_CLIENT = 3;
 constexpr char SC_PACKET_PLAYER_ATTACK = 4;
 constexpr char SC_PACKET_ADD_MONSTER = 5;
 constexpr char SC_PACKET_UPDATE_MONSTER = 6;
+constexpr char SC_PACKET_MONSTER_ATTACK = 7;
 
 constexpr char INPUT_KEY_E = 0b1000;
 
@@ -26,7 +27,7 @@ enum class AttackType : char { NORMAL, SKILL };
 enum class SceneType : char { LOGIN, LOADING, VILLAGE, PARTY, DUNGEON  };
 enum class MonsterType : char { WARRIOR, ARCHER, WIZARD };
 
-enum eEventType : char { EVENT_PLAYER_ATTACK };
+enum eEventType : char { EVENT_PLAYER_ATTACK, EVENT_MONSTER_ATTACK};
 
 // ----- 애니메이션 enum 클래스 -----
 // 애니메이션이 100개 이하로 떨어질 것이라 생각하여 100을 단위로 잡음
@@ -225,6 +226,8 @@ struct SC_MONSTER_UPDATE_PACKET
 	UCHAR		type;
 	MonsterData	monster_data;
 };
+
+
 
 #pragma pack (pop)
 

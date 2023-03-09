@@ -107,7 +107,6 @@ void GameObject::SetPosition(const XMFLOAT3& position)
 	m_transformMatrix._41 = position.x;
 	m_transformMatrix._42 = position.y;
 	m_transformMatrix._43 = position.z;
-
 	UpdateTransform(nullptr);
 }
 

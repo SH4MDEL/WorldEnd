@@ -32,3 +32,7 @@ void Monster::SetVelocity(XMFLOAT3& velocity)
 {
 
 }
+
+
+
+

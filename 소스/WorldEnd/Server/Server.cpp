@@ -58,12 +58,12 @@ int Server::Network()
 	while (true) {
 
 		// 아무도 서버에 접속하지 않았으면 패스
-		if (m_accept)
-		{
-			// 이 부분이 없다면 첫 프레임 때 deltaTime이 '클라에서 처음 접속한 시각 - 서버를 켠 시각' 이 된다.
-			fps_timer = std::chrono::steady_clock::now();
-			continue;
-		}
+		//if (m_accept)
+		//{
+		//	// 이 부분이 없다면 첫 프레임 때 deltaTime이 '클라에서 처음 접속한 시각 - 서버를 켠 시각' 이 된다.
+		//	fps_timer = std::chrono::steady_clock::now();
+		//	continue;
+		//}
 
 		// 이전 사이클에 얼마나 시간이 걸렸는지 계산
 		fps = duration_cast<frame>(std::chrono::steady_clock::now() - fps_timer);
@@ -71,7 +71,7 @@ int Server::Network()
 		// 아직 1/60초가 안지났으면 패스
 		if (fps.count() < 1) continue;
 
-		if (frame_count.count() & 15) {
+		if (frame_count.count() & 1) {
 			//SendPlayerDataPacket();
 		}
 		else {
@@ -227,8 +227,8 @@ void Server::ProcessPacket(const int id, char* p)
 		MovePlayer(cl, pos);
 		RotatePlayer(cl, move_packet->yaw);
 
-		cout << "Monster1 move id - " << (int)m_monsters[0]->GetId() << " / pos - " << m_monsters[0]->GetPosition().x << ", "
-			<< m_monsters[0]->GetPosition().y << ", " << m_monsters[0]->GetPosition().z << endl;
+	/*	cout << "Monster1 move id - " << (int)m_monsters[0]->GetId() << " / pos - " << m_monsters[0]->GetPosition().x << ", "
+			<< m_monsters[0]->GetPosition().y << ", " << m_monsters[0]->GetPosition().z << endl;*/
 
 		//cl.m_player_data.pos = move_packet->pos;
 		//cl.m_player_data.velocity = move_packet->velocity;
@@ -562,27 +562,40 @@ void Server::Timer()
 {
 	using namespace chrono;
 	TimerEvent event;
-	event.start_time = std::chrono::system_clock::now() + std::chrono::seconds(3);
-	while (m_start_cool_time < 6) {
-			auto attack_end_time = std::chrono::system_clock::now();
-			auto sec = std::chrono::duration_cast<std::chrono::seconds>(attack_end_time - event.start_time);
-			if (m_attack_check == true) {
-				if (sec.count() > m_start_cool_time)
-				{
-					m_start_cool_time++;
-					m_remain_cool_time = m_end_cool_time - m_start_cool_time;
-					cout << "남은 스킬 쿨타임: " << m_remain_cool_time << "초" << endl;
-				}
-				else if (m_start_cool_time == 5)
-				{
-					m_attack_check = false;
-					m_start_cool_time = 0;
-					SendPlayerAttackPacket(0);
-					event.start_time = std::chrono::system_clock::now() + std::chrono::seconds(1);
-					attack_end_time = std::chrono::system_clock::now();
-				}
+
+	while (true) {
+
+		if (!m_timer_queue.try_pop(event)) continue;
+
+		if (event.start_time <= system_clock::now()) {
+			
+			switch (event.event_type)
+			{
+			case EVENT_PLAYER_ATTACK:
+				cout << "공격 이벤트 중" << endl;
+			default:
+				break;
 			}
 		}
+
+	}
+	/*while (true) {
+		auto now = std::chrono::system_clock::now();
+		auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - event.start_time);
+		if (m_attack_check == true) {
+			if (elapsed.count() < 5.0f) {
+			}
+			else {
+				m_attack_check = false;
+				m_start_cool_time = 0;
+				for (int i = 0; i < MAX_USER; ++i)
+					SendPlayerAttackPacket(m_clients[i].m_player_data.id);
+				event.start_time = now;
+			}
+		}
+	}*/
+
+
 }
 
 void Server::RotatePlayer(Session& player, FLOAT yaw)
