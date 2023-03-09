@@ -417,7 +417,7 @@ void Server::PlayerCollisionCheck(Session& player)
 
 	for (auto& obj : v) {
 		if (player.m_bounding_box.Intersects(obj->GetBoundingBox())) {
-			CollideByStatic(player, obj->GetBoundingBox());
+			CollideByStaticOBB(player, obj->GetBoundingBox());
 		}
 	}
 }
@@ -564,12 +564,10 @@ CHAR Server::GetNewId() const
 
 void Server::MovePlayer(Session& player, XMFLOAT3 pos)
 {
-	player.m_player_data.pos.x = pos.x;
-	player.m_player_data.pos.y = pos.y;
-	player.m_player_data.pos.z = pos.z;
+	player.m_player_data.pos = pos;
 
 	// 바운드 박스 갱신
-	player.m_bounding_box.Center = player.m_player_data.pos;
+	player.m_bounding_box.Center = pos;
 }
 
 void Server::Timer()
@@ -601,24 +599,29 @@ void Server::Timer()
 
 void Server::RotatePlayer(Session& player, FLOAT yaw)
 {
-	// 플레이어 회전
+	// 플레이어 회전, degree 값
 	player.m_player_data.yaw = yaw;
 
+	float radian = XMConvertToRadians(yaw);
+	
+	XMFLOAT4 q{};
+	XMStoreFloat4(&q, XMQuaternionRotationRollPitchYaw(0.f, radian, 0.f));
+
 	// 바운드 박스 회전
-	//player.m_bounding_box.Orientation;
+	player.m_bounding_box.Orientation = XMFLOAT4{q.x, q.y, q.z, q.w};
 }
 
 void Server::CollideByStatic(Session& player, const BoundingOrientedBox& obb)
 {
-	DirectX::BoundingOrientedBox& obb1 = player.m_bounding_box;
+	BoundingOrientedBox& player_obb = player.m_bounding_box;
 
 	// length 는 바운드 박스의 길이 합
 	// dist 는 바운드 박스간의 거리
-	FLOAT x_length = obb1.Extents.x + obb.Extents.x;
-	FLOAT x_dist = abs(obb1.Center.x - obb.Center.x);
+	FLOAT x_length = player_obb.Extents.x + obb.Extents.x;
+	FLOAT x_dist = abs(player_obb.Center.x - obb.Center.x);
 
-	FLOAT z_length = obb1.Extents.z + obb.Extents.z;
-	FLOAT z_dist = abs(obb1.Center.z - obb.Center.z);
+	FLOAT z_length = player_obb.Extents.z + obb.Extents.z;
+	FLOAT z_dist = abs(player_obb.Center.z - obb.Center.z);
 
 	// 겹치는 정도
 	FLOAT x_bias = x_length - x_dist;
@@ -629,11 +632,11 @@ void Server::CollideByStatic(Session& player, const BoundingOrientedBox& obb)
 	// z 방향으로 밀어내기
 	if (x_bias - z_bias >= numeric_limits<FLOAT>::epsilon()) {
 		
-		// obb1이 앞쪽으로 밀려남
-		if (obb1.Center.z - obb.Center.z >= numeric_limits<FLOAT>::epsilon()) {
+		// player_obb 가 앞쪽으로 밀려남
+		if (player_obb.Center.z - obb.Center.z >= numeric_limits<FLOAT>::epsilon()) {
 			pos.z += z_bias;
 		}
-		// obb1이 뒤쪽으로 밀려남
+		// player_obb 가 뒤쪽으로 밀려남
 		else {
 			pos.z -= z_bias;
 		}
@@ -642,11 +645,11 @@ void Server::CollideByStatic(Session& player, const BoundingOrientedBox& obb)
 	// x 방향으로 밀어내기
 	else {
 
-		// obb1 이 앞쪽으로 밀려남
-		if (obb1.Center.x - obb.Center.x >= numeric_limits<FLOAT>::epsilon()) {
+		// player_obb 가 앞쪽으로 밀려남
+		if (player_obb.Center.x - obb.Center.x >= numeric_limits<FLOAT>::epsilon()) {
 			pos.x += x_bias;
 		}
-		// obb1이 뒤쪽으로 밀려남
+		// player_obb 가 뒤쪽으로 밀려남
 		else {
 			pos.x -= x_bias;
 		}
@@ -671,3 +674,113 @@ void Server::CollideByMoveMent(Session& player1, Session& player2)
 	MovePlayer(player2, pos);
 }
 
+void Server::CollideByStaticOBB(Session& player, const BoundingOrientedBox& obb)
+{
+	// 1. 오브젝트에서 충돌면을 구한다
+	// 2. 해당 충돌면의 법선 벡터를 구한다
+	// 3. 플레이어의 속도 벡터에 2에서 구한 법선 벡터를 투영한다
+	// 4. 투영 벡터만큼 플레이어를 이동시킨다
+
+	XMFLOAT3 corners[8]{};
+
+	obb.GetCorners(corners);
+	
+	// 꼭짓점 시계방향 0,1,5,4
+	XMFLOAT3 o_square[4] = {
+		{corners[0].x, 0.f, corners[0].z},
+		{corners[1].x, 0.f, corners[1].z} ,
+		{corners[5].x, 0.f, corners[5].z} ,
+		{corners[4].x, 0.f, corners[4].z} };
+
+	player.m_bounding_box.GetCorners(corners);
+
+	XMFLOAT3 p_square[4] = {
+		{corners[0].x, 0.f, corners[0].z},
+		{corners[1].x, 0.f, corners[1].z} ,
+		{corners[5].x, 0.f, corners[5].z} ,
+		{corners[4].x, 0.f, corners[4].z} };
+
+
+	
+	for (const XMFLOAT3& point : p_square) {
+		if (!obb.Contains(XMLoadFloat3(&point))) continue;
+
+		array<float, 4> dist{};
+		dist[0] = XMVectorGetX(XMVector3LinePointDistance(XMLoadFloat3(&o_square[0]), XMLoadFloat3(&o_square[1]), XMLoadFloat3(&point)));
+		dist[1] = XMVectorGetX(XMVector3LinePointDistance(XMLoadFloat3(&o_square[1]), XMLoadFloat3(&o_square[2]), XMLoadFloat3(&point)));
+		dist[2] = XMVectorGetX(XMVector3LinePointDistance(XMLoadFloat3(&o_square[2]), XMLoadFloat3(&o_square[3]), XMLoadFloat3(&point)));
+		dist[3] = XMVectorGetX(XMVector3LinePointDistance(XMLoadFloat3(&o_square[3]), XMLoadFloat3(&o_square[0]), XMLoadFloat3(&point)));
+
+		auto min = min_element(dist.begin(), dist.end());
+		
+		XMFLOAT3 v{};
+		if (*min == dist[0])
+		{
+			v = Vector3::Normalize(Vector3::Sub(o_square[1], o_square[2]));
+		}
+		else if (*min == dist[1])
+		{
+			v = Vector3::Normalize(Vector3::Sub(o_square[1], o_square[0]));
+		}
+		else if (*min == dist[2])
+		{
+			v = Vector3::Normalize(Vector3::Sub(o_square[2], o_square[1]));
+		}
+		else if (*min == dist[3])
+		{
+			v = Vector3::Normalize(Vector3::Sub(o_square[0], o_square[1]));
+		}
+		v = Vector3::Mul(v, *min);
+		MovePlayer(player, Vector3::Add(player.m_player_data.pos, v));
+
+		
+
+		//// 충돌한 오브젝트의 꼭짓점을 이용해 사각형의 테두리를 따라가는 벡터 4개를 구함
+		//XMFLOAT3 vec[4]{
+		//	Vector3::Sub(o_square[0], o_square[1]),
+		//	Vector3::Sub(o_square[1], o_square[2]),
+		//	Vector3::Sub(o_square[2], o_square[3]),
+		//	Vector3::Sub(o_square[3], o_square[0])
+		//};
+
+		//// 플레이어의 충돌점과 위에서 구한 벡터를 더함
+		//XMFLOAT3 position[4]{};
+		//for (size_t i = 0; XMFLOAT3& pos : position) {
+		//	pos = Vector3::Add(point, vec[i]);
+		//	++i;
+		//}
+
+		//// 구한 위치와 player obb의 Center 와의 거리를 구함
+		//// 거리가 가장 짧은 위치에 더한 벡터가 밀어내는 방향의 벡터
+		//array<FLOAT, 4>dist{};
+		//XMFLOAT3 player_center{ player.m_bounding_box.Center.x, 0.f, player.m_bounding_box.Center.z };
+		//for (size_t i = 0; FLOAT & d : dist) {
+		//	d = Vector3::Length(Vector3::Sub(player_center, position[i]));
+		//	++i;
+		//}
+
+		//// dist에서 최솟값의 위치를 알아내고 이를 이용해 index를 구함
+		//// vec[index] 가 밀어내야 할 벡터가 됨
+		//auto p = min_element(dist.begin(), dist.end());
+		//int index = distance(dist.begin(), p);
+
+		//// 충돌점과 충돌한 직선의 거리를 구함
+		//// 위에서 구한 벡터의 index - 1 이 충돌한 직선이 됨
+		//int line_index = index - 1;
+		//if (-1 == line_index)
+		//	line_index = 3;
+
+		//float scale = XMVectorGetX(XMVector3LinePointDistance(XMLoadFloat3(&o_square[line_index]), XMLoadFloat3(&o_square[(line_index + 1) % 4]), XMLoadFloat3(&point)));
+
+		//
+		//// vec[index] 를 정규화 하고
+		//XMFLOAT3 direction = Vector3::Normalize(vec[index]);
+
+		//XMFLOAT3 move_vector = Vector3::Mul(direction, scale);
+
+		//MovePlayer(player, Vector3::Add(player.m_player_data.pos, move_vector));
+		break;
+	}
+
+}
+ 

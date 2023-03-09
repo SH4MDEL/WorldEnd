@@ -2,9 +2,10 @@
 #include "stdafx.h"
 
 Session::Session() : m_socket{}, m_player_data{ 0, false , {},{},{} , 100}, m_ready_check{FALSE},
-m_player_type{ PlayerType::WARRIOR }, m_state{ STATE::ST_FREE }, m_prev_size{ 0 }, m_exist_check{TRUE}
+	m_state{ STATE::ST_FREE }, m_prev_size{ 0 }, m_exist_check{TRUE}
 {
 	strcpy_s(m_name, "Player\0");
+	SetPlayerType(PlayerType::WARRIOR);
 }
 
 Session::~Session()
@@ -46,13 +47,15 @@ void Session::SetBoundingBox(PlayerType type)
 	switch (type) {
 	case PlayerType::ARCHER:
 		// 바운드 박스는 현재 궁수의 몸통을 기준으로 생성함
-		m_bounding_box = BoundingOrientedBox{ XMFLOAT3{0.f, 0.f, 0.f}, XMFLOAT3{0.65f, 0.37f, 0.65f}, XMFLOAT4{0.0f, 0.0f, 0.0f, 1.0f} };
-		m_weopon_bounding_box = BoundingOrientedBox{ XMFLOAT3{0.f, 0.f, 0.f}, XMFLOAT3{0.18f, 0.04f, 0.68f}, XMFLOAT4{0.0f, 0.0f, 0.0f, 1.0f} };
+		//m_bounding_box = BoundingOrientedBox{ m_player_data.pos, XMFLOAT3{0.65f, 0.37f, 0.65f}, q };
+		m_bounding_box = BoundingOrientedBox{ m_player_data.pos, XMFLOAT3{0.37f, 0.65f, 0.37f}, XMFLOAT4{0.f, 0.f, 0.f, 1.f } };
+		m_weopon_bounding_box = BoundingOrientedBox{ m_player_data.pos, XMFLOAT3{0.18f, 0.04f, 0.68f}, q };
 		break;
 
 	case PlayerType::WARRIOR:
-		m_bounding_box = BoundingOrientedBox{ XMFLOAT3{0.f, 0.f, 0.f}, XMFLOAT3{0.65f, 0.17f, 0.7f}, XMFLOAT4{0.0f, 0.0f, 0.0f, 1.0f} };
-		m_weopon_bounding_box = BoundingOrientedBox{ XMFLOAT3{0.f, 0.f, 0.f}, XMFLOAT3{0.13f, 0.03f, 0.68f}, XMFLOAT4{0.0f, 0.0f, 0.0f, 1.0f} };
+		//m_bounding_box = BoundingOrientedBox{ m_player_data.pos, XMFLOAT3{0.65f, 0.17f, 0.7f}, q };
+		m_bounding_box = BoundingOrientedBox{ m_player_data.pos, XMFLOAT3{0.37f, 0.65f, 0.37f}, q };
+		m_weopon_bounding_box = BoundingOrientedBox{ m_player_data.pos, XMFLOAT3{0.13f, 0.03f, 0.68f}, q };
 		break;
 	}
 }
