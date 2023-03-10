@@ -9,9 +9,7 @@ public:
 	~TowerScene() override;
 
 	void OnCreate(const ComPtr<ID3D12Device>& device,
-		const ComPtr<ID3D12GraphicsCommandList>& mainCommandList,
-		const array<ComPtr<ID3D12GraphicsCommandList>, MAX_THREAD>& threadCommandList,
-		array<thread, MAX_THREAD>& subThread,
+		const ComPtr<ID3D12GraphicsCommandList>& commandList,
 		const ComPtr<ID3D12RootSignature>& rootSignature) override;
 	void OnDestroy() override;
 
@@ -21,6 +19,8 @@ public:
 	void UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& commandList) override;
 
 	void BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, const ComPtr<ID3D12RootSignature>& rootsignature) override;
+	void BuildObjectsByThread(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, const ComPtr<ID3D12RootSignature>& rootsignature, UINT threadIndex) override;
+
 	void CreateLight(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist);
 	
 	void OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime) const override;
@@ -28,7 +28,9 @@ public:
 	
 	void Update(FLOAT timeElapsed) override;
 	void Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList) const override;
+	void RenderByThread(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) const override;
 	void RenderShadow(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList) override;
+	void RenderShadowByThread(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) override;
 	void RenderText(const ComPtr< ID2D1DeviceContext2>& deviceContext) override;
 
 	void LoadSceneFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, wstring fileName, wstring sceneName);
@@ -63,7 +65,6 @@ protected:
 	shared_ptr<Camera>						m_camera;
 
 	shared_ptr<LightSystem>					m_lightSystem;
-	unique_ptr<Shadow>						m_shadow;
 
 	// 서버 추가 코드
 	unordered_map<INT, shared_ptr<Player>>	            m_multiPlayers;

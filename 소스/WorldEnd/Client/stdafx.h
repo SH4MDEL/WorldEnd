@@ -30,6 +30,7 @@
 #include <wrl.h>
 #include <algorithm>
 #include <array>
+#include <functional>
 
 
 // d3d12 헤더 파일입니다.
@@ -71,7 +72,12 @@ extern mutex                g_mutex;
 
 
 constexpr int MAX_PLAYERS = 2;
-constexpr int MAX_THREAD = 4;
+// Command list submissions from main thread.
+constexpr int COMMANDLIST_NUM = 3;
+constexpr int COMMANDLIST_PRE = 0;
+constexpr int COMMANDLIST_MID = 1;
+constexpr int COMMANDLIST_POST = 2;
+constexpr int THREAD_NUM = 3;
 
 
 namespace DX

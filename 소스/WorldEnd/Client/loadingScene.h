@@ -10,9 +10,7 @@ public:
 	~LoadingScene() override;
 
 	void OnCreate(const ComPtr<ID3D12Device>& device,
-		const ComPtr<ID3D12GraphicsCommandList>& mainCommandList,
-		const array<ComPtr<ID3D12GraphicsCommandList>, MAX_THREAD>& threadCommandList,
-		array<thread, MAX_THREAD>& subThread,
+		const ComPtr<ID3D12GraphicsCommandList>& commandList,
 		const ComPtr<ID3D12RootSignature>& rootSignature) override;
 	void OnDestroy() override;
 
@@ -22,18 +20,16 @@ public:
 	void UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& commandList) override;
 
 	void BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, const ComPtr<ID3D12RootSignature>& rootsignature) override;
-	void BulidObjectsByThread1(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, const ComPtr<ID3D12RootSignature>& rootsignature);
-	void BulidObjectsByThread2(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, const ComPtr<ID3D12RootSignature>& rootsignature);
-	void BulidObjectsByThread3(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, const ComPtr<ID3D12RootSignature>& rootsignature);
-	void BulidObjectsByThread4(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, const ComPtr<ID3D12RootSignature>& rootsignature);
-
+	void BuildObjectsByThread(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, const ComPtr<ID3D12RootSignature>& rootsignature, UINT threadIndex) override;
 
 	void OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime) const override;
     void OnProcessingKeyboardMessage(FLOAT timeElapsed) const override;
 
 	void Update(FLOAT timeElapsed) override;
 	void Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList) const override;
+	void RenderByThread(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) const override;
 	void RenderShadow(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList) override;
+	void RenderShadowByThread(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) override;
 	void RenderText(const ComPtr< ID2D1DeviceContext2>& deviceContext) override;
  
 	void LoadMeshFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, wstring fileName);
@@ -44,10 +40,7 @@ private:
 	shared_ptr<LoadingText>				m_loadingText;
 
 	//thread								m_loadingThread;
-	BOOL								m_canNextScene[MAX_THREAD];
 	//ComPtr<ID3D12GraphicsCommandList>	m_threadCommandList;
 	//ComPtr<ID3D12CommandAllocator>		m_threadCommandAllocator;
-	mutex								m_materialMutex;
-
 };
 

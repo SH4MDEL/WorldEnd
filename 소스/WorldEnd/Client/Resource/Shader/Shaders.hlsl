@@ -128,6 +128,7 @@ float4 PS_TEXTUREHIERARCHY_MAIN(VS_TEXTUREHIERARCHY_OUTPUT input) : SV_TARGET
 	//float3 vNormal = normalize(normal * 2.0f - 1.0f); //[0, 1] ¡æ [-1, 1]
 	//normal = normalize(mul(vNormal, TBN));
 	float shadowFactor = CalcShadowFactor(input.shadowPosition);
+	//shadowFactor = 1.f;
 	float4 light = Lighting(input.positionW, normal, material, shadowFactor);
 	color = lerp(color, light, 0.8);
 	return color;
