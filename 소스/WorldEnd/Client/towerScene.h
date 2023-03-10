@@ -45,6 +45,7 @@ public:
 	void RecvAttackPacket(char* ptr);
 	void RecvAddMonsterPacket(char* ptr);
 	void RecvUpdateMonster(char* ptr);
+	void RecvChangeAnimation(char* ptr);
 
 protected:
 	ComPtr<ID3D12Resource>					m_sceneBuffer;

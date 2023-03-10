@@ -2,7 +2,7 @@
 #include "stdafx.h"
 #include "map.h"
 
-auto dungeon = make_unique<Dungeon>();
+unique_ptr<DungeonManager> g_dungeon_manager{};
 
 Server::Server() : m_disconnect_cnt{ 0 }, m_floor{1}, m_next_monster_id {0}, m_accept {false}
 {
@@ -41,8 +41,6 @@ int Server::Network()
 	ZeroMemory(&accept_ex._wsa_over, sizeof(accept_ex._wsa_over));
 	accept_ex._comp_type = OP_ACCEPT;
 
-	dungeon->LoadMap();
-
 	bool ret = AcceptEx(g_socket, c_socket, accept_buf, 0, sizeof(SOCKADDR_IN) + 16, sizeof(SOCKADDR_IN) + 16, 0, &accept_ex._wsa_over);
 
 	for (int i = 0; i < 6; ++i)
@@ -58,6 +56,9 @@ int Server::Network()
 	using frame = std::chrono::duration<int32_t, std::ratio<1, 60>>;
 	using ms = std::chrono::duration<float, std::milli>;
 	std::chrono::time_point<std::chrono::steady_clock> fps_timer{ std::chrono::steady_clock::now() };
+
+	g_dungeon_manager = make_unique<DungeonManager>();
+	g_dungeon_manager->InitDungeon(0);
 
 
 	frame fps{}, frame_count{};
@@ -81,11 +82,13 @@ int Server::Network()
 			//SendPlayerDataPacket();
 		}
 		else {
-			SendMonsterDataPacket();
+			//SendMonsterDataPacket();
+			g_dungeon_manager->SendMonsterData();
 		}
 
-		Update(duration_cast<ms>(fps).count() / 1000.0f);
-	
+		//Update(duration_cast<ms>(fps).count() / 1000.0f);
+		g_dungeon_manager->Update(duration_cast<ms>(fps).count() / 1000.0f);
+
 		frame_count = duration_cast<frame>(frame_count + fps);
 		if (frame_count.count() >= 60) {
 			frame_count = frame::zero();
@@ -206,13 +209,23 @@ void Server::ProcessPacket(const int id, char* p)
 	case CS_PACKET_LOGIN:
 	{
 		CS_LOGIN_PACKET* login_packet = reinterpret_cast<CS_LOGIN_PACKET*>(p);
+		cl.m_player_type = login_packet->player_type;
 		strcpy_s(cl.m_name, login_packet->name);
 		cl.m_lock.lock();
-		SendLoginOkPacket(cl);
 		cl.m_state = STATE::ST_INGAME;
-		SendMonsterAddPacket();
 		cl.m_lock.unlock();
+		SendLoginOkPacket(cl);
+		//SendMonsterAddPacket();
+
+		// 원래는 던전 진입 시 던전에 배치해야하지만
+		// 현재 마을이 없이 바로 던전에 진입하므로 던전에 입장시킴
+		g_dungeon_manager->SetPlayer(0, id, &cl);
+		g_dungeon_manager->SendMonsterAdd(id);
+
 		cout << login_packet->name << " is connect" << endl;
+
+
+		
 
 		// 재접속 시 disconnectCount를 감소시켜야함
 		// disconnect_cnt = max(0, disconnect_cnt - 1);
@@ -232,9 +245,6 @@ void Server::ProcessPacket(const int id, char* p)
 
 		MovePlayer(cl, pos);
 		RotatePlayer(cl, move_packet->yaw);
-
-		cout << "Monster1 move id - " << (int)m_monsters[0]->GetId() << " / pos - " << m_monsters[0]->GetPosition().x << ", "
-			<< m_monsters[0]->GetPosition().y << ", " << m_monsters[0]->GetPosition().z << endl;
 
 		//cl.m_player_data.pos = move_packet->pos;
 		//cl.m_player_data.velocity = move_packet->velocity;
@@ -268,6 +278,53 @@ void Server::ProcessPacket(const int id, char* p)
 		break;
 	}
 
+	case CS_PACKET_WEAPON_COLLISION:
+	{
+		CS_WEAPON_COLLISION_PACKET* packet = reinterpret_cast<CS_WEAPON_COLLISION_PACKET*>(p);
+
+		// 이벤트를 생성한다
+		CollisionEvent event{};
+		event.user_id = packet->id;
+		event.bounding_box.Center.x = packet->x;
+		event.bounding_box.Center.y = packet->y;
+		event.bounding_box.Center.z = packet->z;
+		event.bounding_box.Extents = cl.m_weopon_bounding_box.Extents;
+		event.attack_type = packet->attack_type;
+		event.collision_type = packet->collision_type;
+		event.end_time = packet->end_time;
+
+		// 이벤트를 해당 플레이어가 속한 던전에 추가한다
+		g_dungeon_manager->SetEvent(event, packet->id);
+
+
+		break;
+	}
+
+	case CS_PACKET_CHANGE_ANIMATION:
+	{
+		CS_CHANGE_ANIMATION_PACKET* animation_packet = reinterpret_cast<CS_CHANGE_ANIMATION_PACKET*>(p);
+
+		SC_CHANGE_ANIMATION_PACKET packet;
+		packet.size = sizeof(packet);
+		packet.type = SC_PACKET_CHANGE_ANIMATION;
+		packet.id = animation_packet->id;
+		packet.animation_type = animation_packet->animation_type;
+
+		char buf[sizeof(packet)];
+		memcpy(buf, reinterpret_cast<char*>(&packet), sizeof(packet));
+		WSABUF wsa_buf{ sizeof(buf), buf };
+		DWORD sent_byte;
+
+		for (const auto& cl : m_clients) {
+			if (!cl.m_player_data.active_check) continue;
+			if (cl.m_player_data.id == id) continue;
+			const int retval = WSASend(cl.m_socket, &wsa_buf, 1, &sent_byte, 0, nullptr, nullptr);
+			if (retval == SOCKET_ERROR) ErrorDisplay("Send(SC_ATTACK_PACKET) Error");
+		}
+
+		break;
+	}
+
 	}
 }
 
@@ -296,6 +353,7 @@ void Server::SendLoginOkPacket(const Session& player) const
 	login_ok_packet.player_data.pos.y = player.m_player_data.pos.y;
 	login_ok_packet.player_data.pos.z = player.m_player_data.pos.z;
 	login_ok_packet.player_data.hp = player.m_player_data.hp;
+	login_ok_packet.player_type = player.m_player_type;
 	strcpy_s(login_ok_packet.name, sizeof(login_ok_packet.name), player.m_name);
 
 	char buf[sizeof(login_ok_packet)];
@@ -413,7 +471,7 @@ void Server::PlayerCollisionCheck(Session& player)
 		}
 	}
 
-	auto& v = dungeon->GetStructures();
+	auto& v = g_dungeon_manager->GetStructures();
 
 	for (auto& obj : v) {
 		if (player.m_bounding_box.Intersects(obj->GetBoundingBox())) {
@@ -490,6 +548,8 @@ void Server::SendMonsterAddPacket()
 
 	SC_ADD_MONSTER_PACKET monster_packet[MAX_MONSTER];
 
+	//auto m_monsters = g_dungeon_manager->GetDungeons()[0]->GetMonsters();
+
 	for (size_t i = 0; i < m_monsters.size(); ++i) {
 		monster_packet[i].size = static_cast<UCHAR>(sizeof(SC_ADD_MONSTER_PACKET));
 		monster_packet[i].type = SC_PACKET_ADD_MONSTER;
@@ -504,6 +564,7 @@ void Server::SendMonsterAddPacket()
 	WSABUF wsa_buf{ sizeof(buf), buf };
 	DWORD sent_byte;
 
+
 	for (const auto& cl : m_clients)
 	{
 		if (!cl.m_player_data.active_check) continue;
@@ -515,12 +576,28 @@ void Server::SendMonsterAddPacket()
 			else ErrorDisplay("Send(SC_PACKET_ADD_MONSTER)");
 		}
 	}
+
+
+	//auto& m_clients = g_dungeon_manager->GetDungeons()[0]->GetPlayers();
+	/*for (const auto& data : m_clients)
+	{
+		if (!data.second->m_player_data.active_check) continue;
+		const int retVal = WSASend(data.second->m_socket, &wsa_buf, 1, &sent_byte, 0, nullptr, nullptr);
+		if (retVal == SOCKET_ERROR)
+		{
+			if (WSAGetLastError() == WSAECONNRESET)
+				std::cout << "[" << static_cast<int>(data.second->m_player_data.id) << " Session] Disconnect" << std::endl;
+			else ErrorDisplay("Send(SC_PACKET_ADD_MONSTER)");
+		}
+	}*/
 }
 
 
 void Server::SendMonsterDataPacket()
 {
 	//cout << "크기 - " << m_monsters.size() << endl;
+
+	//auto m_monsters = g_dungeon_manager->GetDungeons()[0]->GetMonsters();
 
 	SC_MONSTER_UPDATE_PACKET monster_packet[MAX_MONSTER];
 
@@ -537,6 +614,8 @@ void Server::SendMonsterDataPacket()
 	WSABUF wsa_buf{ sizeof(buf), buf };
 	DWORD sent_byte;
 
+	
+
 	for (const auto& cl : m_clients)
 	{
 		if (!cl.m_player_data.active_check) continue;
@@ -548,6 +627,19 @@ void Server::SendMonsterDataPacket()
 			else ErrorDisplay("Send(SC_PACKET_UPDATE_MONSTER)");
 		}
 	}
+
+	/*auto& m_clients = g_dungeon_manager->GetDungeons()[0]->GetPlayers();
+	for (const auto& data : m_clients)
+	{
+		if (!data.second->m_player_data.active_check) continue;
+		const int retVal = WSASend(data.second->m_socket, &wsa_buf, 1, &sent_byte, 0, nullptr, nullptr);
+		if (retVal == SOCKET_ERROR)
+		{
+			if (WSAGetLastError() == WSAECONNRESET)
+				std::cout << "[" << static_cast<int>(data.second->m_player_data.id) << " Session] Disconnect" << std::endl;
+			else ErrorDisplay("Send(SC_PACKET_UPDATE_MONSTER)");
+		}
+	}*/
 }
 
 CHAR Server::GetNewId() const
@@ -732,7 +824,6 @@ void Server::CollideByStaticOBB(Session& player, const BoundingOrientedBox& obb)
 		}
 		v = Vector3::Mul(v, *min);
 		MovePlayer(player, Vector3::Add(player.m_player_data.pos, v));
-
 		
 
 		//// 충돌한 오브젝트의 꼭짓점을 이용해 사각형의 테두리를 따라가는 벡터 4개를 구함

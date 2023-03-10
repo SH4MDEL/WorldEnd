@@ -14,6 +14,14 @@ struct TimerEvent {
 	}
 };
 
+struct CollisionEvent {
+	int user_id;										// 공격자 id
+	CollisionType collision_type;						// 충돌 타입 (일회성, 지속성)
+	AttackType attack_type;								// 공격 타입 (기본공격, 스킬)
+	BoundingOrientedBox bounding_box;					// 충돌 범위
+	std::chrono::system_clock::time_point end_time;		// 충돌 이벤트 종료 시간
+};
+
 constexpr float                             g_spawm_stop = 2.0;
 
 class Server

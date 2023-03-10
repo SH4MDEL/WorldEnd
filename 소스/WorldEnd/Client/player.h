@@ -31,6 +31,9 @@ public:
 	
 	PlayerType GetType() const { return m_type; }
 
+	virtual void ChangeAnimation(int animation) override;
+	void ChangeAnimation(int animation, bool other);
+
 	// 추가
 	void SetID(INT id) { m_id = id; }
 	void SetKey(CHAR key) { m_key = key; }
@@ -46,6 +49,8 @@ private:
 
 	shared_ptr<Camera>	m_camera;		// 카메라
 	shared_ptr<HpBar>	m_hpBar;		// HP바
+
+	BOOL				m_isAttackCheck;
 
 	INT					m_id;				// 플레이어 고유 아이디
 	CHAR                m_key = INPUT_KEY_E;

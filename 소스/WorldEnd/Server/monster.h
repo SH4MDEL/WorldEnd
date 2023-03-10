@@ -16,10 +16,17 @@ protected:
 
 	UCHAR                           m_target_id;
 
+	BoundingOrientedBox				m_bounding_box;
+
 	void MonsterStateUpdate(XMVECTOR& look, float taketime);
 	XMVECTOR GetPlayerVector(UCHAR pl_id);
 
 public:
+
+	Monster() = default;
+	virtual ~Monster() = default;
+
+	virtual void Update(float taketime) = 0;
 
 	virtual void CreateMonster(float taketime) {};
 
@@ -33,6 +40,9 @@ public:
 	MonsterData GetData() const;
 	UCHAR GetTargetId() const;
 	MonsterType GetType() const;
+	BoundingOrientedBox GetBoundingBox() const;
+
+	void DecreaseHp(INT damage);
 };
 
 class WarriorMonster : public Monster
@@ -46,6 +56,7 @@ public:
 
 	virtual void CreateMonster(float taketime);
 
+	virtual void Update(float taketime) override;
 };
 
 class ArcherMonster : public Monster
@@ -57,8 +68,9 @@ public:
 	ArcherMonster();
 	~ArcherMonster() = default;
 
-	virtual void CreateMonster(float taketime);
+	virtual void CreateMonster(float take_time);
 
+	virtual void Update(float taketime) override;
 };
 
 class WizsadMonster : public Monster
@@ -72,5 +84,6 @@ public:
 
 	virtual void CreateMonster(float taketime);
 
+	virtual void Update(float taketime) override;
 };
 

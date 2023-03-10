@@ -183,7 +183,7 @@ public:
 
 	virtual AnimationController* GetAnimationController() const { return m_animationController.get(); }
 
-	void ChangeAnimation(int animation);
+	virtual void ChangeAnimation(int animation);
 
 	virtual void Update(FLOAT timeElapsed);
 	virtual void Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList);

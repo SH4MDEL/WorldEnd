@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include <DirectXMath.h>
+#include <chrono>
 
 constexpr short SERVER_PORT = 9000;
 
@@ -12,6 +13,8 @@ constexpr int MAX_MONSTER = 10;
 constexpr char CS_PACKET_LOGIN = 1;
 constexpr char CS_PACKET_PLAYER_MOVE = 2;
 constexpr char CS_PACKET_PLAYER_ATTACK = 4;
+constexpr char CS_PACKET_WEAPON_COLLISION = 5;
+constexpr char CS_PACKET_CHANGE_ANIMATION = 6;
 
 constexpr char SC_PACKET_LOGIN_OK = 1;
 constexpr char SC_PACKET_ADD_PLAYER = 2;
@@ -19,16 +22,19 @@ constexpr char SC_PACKET_UPDATE_CLIENT = 3;
 constexpr char SC_PACKET_PLAYER_ATTACK = 4;
 constexpr char SC_PACKET_ADD_MONSTER = 5;
 constexpr char SC_PACKET_UPDATE_MONSTER = 6;
+constexpr char SC_PACKET_CHANGE_ANIMATION = 7;
 
 constexpr char INPUT_KEY_E = 0b1000;
 
 enum class PlayerType : char { WARRIOR, ARCHER, UNKNOWN };
-enum class AttackType : char { NORMAL, SKILL };
+enum class AttackType : char { NORMAL, SKILL, ULTIMATE };
 enum class SceneType : char { LOGIN, LOADING, VILLAGE, PARTY, DUNGEON  };
 enum class MonsterType : char { WARRIOR, ARCHER, WIZARD };
 enum class EnvironmentType : char { RAIN, FOG, GAS, TRAP };
 
 enum eEventType : char { EVENT_PLAYER_ATTACK };
+
+enum CollisionType : char { PERSISTENCE, ONE_OFF, MULTIPLE_TIMES };
 
 // ----- 애니메이션 enum 클래스 -----
 // 애니메이션이 100개 이하로 떨어질 것이라 생각하여 100을 단위로 잡음
@@ -93,6 +99,7 @@ struct CS_LOGIN_PACKET
 	UCHAR size;
 	UCHAR type;
 	CHAR name[NAME_SIZE];
+	PlayerType	player_type;
 };
 
 struct CS_LOGOUT_PACKET 
@@ -140,6 +147,26 @@ struct CS_INPUT_KEY_PACKET
 	UCHAR type;
 	CHAR  dir;
 };
+
+struct CS_WEAPON_COLLISION_PACKET		// 전사 플레이어가 공격 시 무기의 충돌 프레임에 서버로 보낼 패밋
+{
+	UCHAR size;
+	UCHAR type;
+	INT id;											// 플레이어 id
+	std::chrono::system_clock::time_point end_time;	// 충돌 판정 종료 시간
+	AttackType attack_type;
+	CollisionType collision_type;
+	float x, y, z;
+};
+
+struct CS_CHANGE_ANIMATION_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+	INT id;
+	INT	animation_type;
+};
+
 ///////////////////////////////////////////////////////////////////////
 // 서버에서 클라로
 
@@ -226,6 +253,14 @@ struct SC_MONSTER_UPDATE_PACKET
 	UCHAR		size;
 	UCHAR		type;
 	MonsterData	monster_data;
+};
+
+struct SC_CHANGE_ANIMATION_PACKET
+{
+	UCHAR		size;
+	UCHAR		type;
+	INT id;
+	INT animation_type;
 };
 
 #pragma pack (pop)

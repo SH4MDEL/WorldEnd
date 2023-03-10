@@ -83,12 +83,30 @@ MonsterType Monster::GetType() const
 	return m_monster_type;
 }
 
+BoundingOrientedBox Monster::GetBoundingBox() const
+{
+	return m_bounding_box;
+}
+
+void Monster::DecreaseHp(INT damage)
+{
+	m_hp -= damage;
+	// 0이하로 떨어지면 사망처리
+	if (m_hp <= 0)
+		m_id = -1;
+}
+
 WarriorMonster::WarriorMonster()
 {
 	m_monster_type = MonsterType::WARRIOR;
 	m_hp = 200;
 	m_damage = 20;
 	m_speed = 0.8;
+	m_bounding_box.Center = XMFLOAT3(0.028f, 1.27f, 0.f);
+	m_bounding_box.Extents = XMFLOAT3(0.8f, 1.3f, 0.5f);
+	m_bounding_box.Orientation = XMFLOAT4(0.f, 0.f, 0.f, 1.f);
+	m_yaw = 0.f;
+	m_velocity = XMFLOAT3(0.f, 0.f, 0.f);
 }
 
 void WarriorMonster::CreateMonster(float taketime)
@@ -105,6 +123,19 @@ void WarriorMonster::CreateMonster(float taketime)
 
 }
 
+void WarriorMonster::Update(float take_time)
+{
+	if (m_hp <= 0) return;
+
+	TargetUpdate();
+
+
+	XMVECTOR look{ GetPlayerVector(m_target_id) };
+
+	// 플레이어를 향해서 이동
+	MonsterStateUpdate(look, take_time);
+}
+
 void ArcherMonster::TargetUpdate()
 {
 }
@@ -117,6 +148,10 @@ void ArcherMonster::CreateMonster(float taketime)
 {
 }
 
+void ArcherMonster::Update(float take_time)
+{
+}
+
 void WizsadMonster::TargetUpdate()
 {
 }
@@ -126,5 +161,9 @@ WizsadMonster::WizsadMonster()
 }
 
 void WizsadMonster::CreateMonster(float taketime)
+{
+}
+
+void WizsadMonster::Update(float take_time)
 {
 }

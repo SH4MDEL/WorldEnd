@@ -46,6 +46,9 @@ public:
 	BoundingOrientedBox                     m_bounding_box;
 	BoundingOrientedBox						m_weopon_bounding_box;
 	XMFLOAT4X4				                m_worldMatrix;	
+
+	BYTE				m_damage;
+	float				m_skill_ratio;
 public:
 	Session();
 	~Session();

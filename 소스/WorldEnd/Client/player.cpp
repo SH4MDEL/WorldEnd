@@ -120,8 +120,59 @@ void Player::Update(FLOAT timeElapsed)
 		if (ObjectAnimation::ATTACK == m_currentAnimation) {
 			auto& track = m_animationController->GetAnimationTrack(0);
 			auto& animation = m_animationController->GetAnimationSet()->GetAnimations()[track.GetAnimation()];
-			if (fabs(track.GetPosition() - animation->GetLength()) <= numeric_limits<float>::epsilon())
+
+			if (fabs(track.GetPosition() - animation->GetLength()) <= numeric_limits<float>::epsilon()) {
+				m_isAttackCheck = false;
 				ChangeAnimation(ObjectAnimation::IDLE);
+			}
+
+			// 공격이 수행되는 프레임에 충돌 패킷 전송
+#ifdef USE_NETWORK
+			else if (m_type == PlayerType::WARRIOR && fabs(track.GetPosition() - 0.21f) <= 0.01f) {
+				m_isAttackCheck = true;
+				
+				auto& obj = FindFrame("Warrior_WeaponSword");
+				/*XMFLOAT4X4 world = GetWorldMatrix();
+				XMFLOAT4X4 anim = obj->GetAnimationMatrix();
+				XMFLOAT4X4 mat = Matrix::Mul(world, anim);
+				XMFLOAT3 pos{ mat._41, mat._42, mat._43 };*/
+				XMFLOAT3 front = GetFront();
+				XMFLOAT3 pos = Vector3::Add(front, GetPosition());
+
+				CS_WEAPON_COLLISION_PACKET packet;
+				packet.size = sizeof(packet);
+				packet.type = CS_PACKET_WEAPON_COLLISION;
+				packet.x = pos.x;
+				packet.y = pos.y;
+				packet.z = pos.z;
+				packet.attack_type = AttackType::NORMAL;
+				packet.collision_type = CollisionType::MULTIPLE_TIMES;
+				packet.end_time = chrono::system_clock::now();
+				packet.id = m_id;
+				send(g_socket, reinterpret_cast<char*>(&packet), packet.size, 0);
+			}
+			else if (m_type == PlayerType::ARCHER && fabs(track.GetPosition() - 0.4f) <= 0.01f) {
+				m_isAttackCheck = true;
+
+				auto& obj = FindFrame("Archer_WeaponBow");
+				XMFLOAT4X4 world = GetWorldMatrix();
+				XMFLOAT4X4 anim = obj->GetAnimationMatrix();
+				XMFLOAT4X4 mat = Matrix::Mul(world, anim);
+				XMFLOAT3 pos{ mat._41, mat._42, mat._43 };
+
+				CS_WEAPON_COLLISION_PACKET packet;
+				packet.size = sizeof(packet);
+				packet.type = CS_PACKET_WEAPON_COLLISION;
+				packet.x = pos.x;
+				packet.y = pos.y;
+				packet.z = pos.z;
+				packet.attack_type = AttackType::NORMAL;
+				packet.collision_type = CollisionType::ONE_OFF;
+				packet.end_time = chrono::system_clock::now();
+				packet.id = m_id;
+				send(g_socket, reinterpret_cast<char*>(&packet), packet.size, 0);
+			}
+#endif
 		}
 		
 		else {
@@ -192,6 +243,24 @@ void Player::AddVelocity(const XMFLOAT3& increase)
 		FLOAT ratio{ m_maxVelocity / length };
 		m_velocity = Vector3::Mul(m_velocity, ratio);
 	}
+}
+
+void Player::ChangeAnimation(int animation)
+{
+	AnimationObject::ChangeAnimation(animation);
+#ifdef USE_NETWORK
+	CS_CHANGE_ANIMATION_PACKET packet;
+	packet.size = sizeof(packet);
+	packet.type = CS_PACKET_CHANGE_ANIMATION;
+	packet.id = m_id;
+	packet.animation_type = m_currentAnimation;
+	send(g_socket, reinterpret_cast<char*>(&packet), packet.size, 0);
+#endif
+}
+
+void Player::ChangeAnimation(int animation, bool other)
+{
+	AnimationObject::ChangeAnimation(animation);
 }
 
 // ------------- 콜백 함수 -----------

@@ -7,7 +7,9 @@
 #include <MSWSock.h>
 #include <thread>
 #include <array>
+#include <list>
 #include <vector>
+#include <unordered_map>
 #include <mutex>
 #include <random>
 #include <concurrent_queue.h>

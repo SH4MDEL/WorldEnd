@@ -6,6 +6,8 @@ Session::Session() : m_socket{}, m_player_data{ 0, false , {},{},{} , 100}, m_re
 {
 	strcpy_s(m_name, "Player\0");
 	SetPlayerType(PlayerType::WARRIOR);
+	m_damage = 10;
+	m_skill_ratio = 1.2f;
 }
 
 Session::~Session()
@@ -46,16 +48,14 @@ void Session::SetBoundingBox(PlayerType type)
 {
 	switch (type) {
 	case PlayerType::ARCHER:
-		// 바운드 박스는 현재 궁수의 몸통을 기준으로 생성함
-		//m_bounding_box = BoundingOrientedBox{ m_player_data.pos, XMFLOAT3{0.65f, 0.37f, 0.65f}, q };
 		m_bounding_box = BoundingOrientedBox{ m_player_data.pos, XMFLOAT3{0.37f, 0.65f, 0.37f}, XMFLOAT4{0.f, 0.f, 0.f, 1.f } };
-		m_weopon_bounding_box = BoundingOrientedBox{ m_player_data.pos, XMFLOAT3{0.18f, 0.04f, 0.68f}, q };
+		m_weopon_bounding_box = BoundingOrientedBox{ m_player_data.pos, XMFLOAT3{0.18f, 0.04f, 0.68f}, XMFLOAT4{0.f, 0.f, 0.f, 1.f } };
 		break;
 
 	case PlayerType::WARRIOR:
-		//m_bounding_box = BoundingOrientedBox{ m_player_data.pos, XMFLOAT3{0.65f, 0.17f, 0.7f}, q };
-		m_bounding_box = BoundingOrientedBox{ m_player_data.pos, XMFLOAT3{0.37f, 0.65f, 0.37f}, q };
-		m_weopon_bounding_box = BoundingOrientedBox{ m_player_data.pos, XMFLOAT3{0.13f, 0.03f, 0.68f}, q };
+		m_bounding_box = BoundingOrientedBox{ m_player_data.pos, XMFLOAT3{0.37f, 0.65f, 0.37f}, XMFLOAT4{0.f, 0.f, 0.f, 1.f } };
+		m_weopon_bounding_box = BoundingOrientedBox{ m_player_data.pos, XMFLOAT3{0.13f, 0.03f, 0.68f}, XMFLOAT4{0.f, 0.f, 0.f, 1.f } };
+		// 화살 바운드 박스로 교체 필요함, 활은 충돌하지 않을 것이기 때문
 		break;
 	}
 }

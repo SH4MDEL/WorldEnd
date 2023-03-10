@@ -422,6 +422,7 @@ void TowerScene::InitServer(const ComPtr<ID3D12Device>& device, const ComPtr<ID3
 	CS_LOGIN_PACKET login_packet{};
 	login_packet.size = sizeof(login_packet);
 	login_packet.type = CS_PACKET_LOGIN;
+	login_packet.player_type = m_player->GetType();
 	memcpy(login_packet.name, name, sizeof(char) * 10);
 	send(g_socket, reinterpret_cast<char*>(&login_packet), sizeof(login_packet), NULL);
 
@@ -486,6 +487,9 @@ void TowerScene::ProcessPacket(const ComPtr<ID3D12Device>& device, const ComPtr<
 	case SC_PACKET_UPDATE_MONSTER:
 		RecvUpdateMonster(ptr);
 		break;
+	case SC_PACKET_CHANGE_ANIMATION:
+		RecvChangeAnimation(ptr);
+		break;
 	}
 }
 
@@ -527,16 +531,16 @@ void TowerScene::RecvLoginOkPacket(char* ptr)
 
 void TowerScene::RecvAddPlayerPacket(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, char* ptr)
 {
-	SC_ADD_PLAYER_PACKET* add_pl_packet = reinterpret_cast<SC_ADD_PLAYER_PACKET*>(ptr);
+	SC_ADD_PLAYER_PACKET* packet = reinterpret_cast<SC_ADD_PLAYER_PACKET*>(ptr);
 
 	PlayerData player_data{};
 
-	player_data.hp = add_pl_packet->player_data.hp;
-	player_data.id = add_pl_packet->player_data.id;
-	player_data.pos = add_pl_packet->player_data.pos;
+	player_data.hp = packet->player_data.hp;
+	player_data.id = packet->player_data.id;
+	player_data.pos = packet->player_data.pos;
 
 	auto multiPlayer = make_shared<Player>();
-	multiPlayer->SetType(PlayerType::ARCHER);
+	multiPlayer->SetType(packet->player_type);
 	LoadPlayerFromFile(device, commandList, multiPlayer);
 
 	multiPlayer->SetPosition(XMFLOAT3{ 0.f, 0.f, 0.f });
@@ -608,7 +612,7 @@ void TowerScene::RecvAddMonsterPacket(char* ptr)
 		break;
 	}
 	monster->SetPosition(XMFLOAT3{ 0.f, 0.f, 0.f });
-	m_monsters.insert({ monster_data.id, monster });
+	m_monsters.insert({ static_cast<INT>(monster_data.id), monster });
 
 	auto hpBar = make_shared<HpBar>();
 	hpBar->SetMesh(m_meshs["HPBAR"]);
@@ -634,4 +638,11 @@ void TowerScene::RecvUpdateMonster(char* ptr)
 			" z: " << monster_packet->monster_data.pos.z << ")" << endl;*/
 
 	
+}
+
+void TowerScene::RecvChangeAnimation(char* ptr)
+{
+	SC_CHANGE_ANIMATION_PACKET* packet = reinterpret_cast<SC_CHANGE_ANIMATION_PACKET*>(ptr);
+
+	m_multiPlayers[packet->id]->ChangeAnimation(packet->animation_type, false);
 }
