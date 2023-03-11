@@ -22,7 +22,8 @@ constexpr char SC_PACKET_UPDATE_CLIENT = 3;
 constexpr char SC_PACKET_PLAYER_ATTACK = 4;
 constexpr char SC_PACKET_ADD_MONSTER = 5;
 constexpr char SC_PACKET_UPDATE_MONSTER = 6;
-constexpr char SC_PACKET_CHANGE_ANIMATION = 7;
+constexpr char SC_PACKET_MONSTER_ATTACK = 7;
+constexpr char SC_PACKET_CHANGE_ANIMATION = 8;
 
 constexpr char INPUT_KEY_E = 0b1000;
 
@@ -32,7 +33,7 @@ enum class SceneType : char { LOGIN, LOADING, VILLAGE, PARTY, DUNGEON  };
 enum class MonsterType : char { WARRIOR, ARCHER, WIZARD };
 enum class EnvironmentType : char { RAIN, FOG, GAS, TRAP };
 
-enum eEventType : char { EVENT_PLAYER_ATTACK };
+enum eEventType : char { EVENT_PLAYER_ATTACK, EVENT_MONSTER_ATTACK};
 
 enum CollisionType : char { PERSISTENCE, ONE_OFF, MULTIPLE_TIMES };
 

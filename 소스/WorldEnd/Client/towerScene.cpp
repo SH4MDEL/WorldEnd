@@ -495,7 +495,7 @@ void TowerScene::RecvPacket(const ComPtr<ID3D12Device>& device, const ComPtr<ID3
 
 void TowerScene::ProcessPacket(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, char* ptr)
 {
-	cout << "[Process Packet] Packet Type: " << (int)ptr[1] << endl;//test
+	//cout << "[Process Packet] Packet Type: " << (int)ptr[1] << endl;//test
 
 	switch (ptr[1])
 	{
@@ -627,6 +627,9 @@ void TowerScene::RecvAddMonsterPacket(char* ptr)
 	//monster_data.hp = add_monster_packet->monster_data.hp;
 	monster_data.id = add_monster_packet->monster_data.id;
 	monster_data.pos = add_monster_packet->monster_data.pos;
+	monster_data.hp = add_monster_packet->monster_data.hp;
+
+	cout << "monster hp - " << monster_data.hp << endl;
 
 	if (monster_data.id == -1)
 		return;
@@ -658,6 +661,7 @@ void TowerScene::RecvUpdateMonster(char* ptr)
 	m_monsters[monster_packet->monster_data.id]->SetPosition(monster_packet->monster_data.pos);
 	m_monsters[monster_packet->monster_data.id]->SetHp(monster_packet->monster_data.hp);
 
+	m_monsters[monster_packet->monster_data.id]->Rotate(0.f, 0.f, monster_packet->monster_data.yaw - m_monsters[monster_packet->monster_data.id]->GetYaw());
 	/*cout << "monster id - " << (int)monster_packet->monster_data.id << endl;
 	cout << "monster pos (x: " << monster_packet->monster_data.pos.x <<
 			" y: " << monster_packet->monster_data.pos.y <<

@@ -26,6 +26,16 @@ void Monster::MonsterStateUpdate(XMVECTOR& look, float taketime)
 	//cout << "taketime - " << taketime << endl;
 }
 
+void Monster::MonsterRotateUpdate(const XMVECTOR& look)
+{
+	XMVECTOR zAxis{ XMVectorSet(0.0f, 0.0f, 1.0f, 1.0f) };
+	XMVECTOR radian{ XMVector3AngleBetweenNormals(zAxis, look) };
+	FLOAT angle{ XMConvertToDegrees(XMVectorGetX(radian)) };
+
+	m_yaw = XMVectorGetX(look) < 0 ? -angle : angle;
+}
+
+
 XMVECTOR Monster::GetPlayerVector(UCHAR pl_id)
 {
 	XMVECTOR pl_pos{ XMLoadFloat3(&g_server.m_clients[pl_id].m_player_data.pos) };
@@ -57,6 +67,11 @@ void Monster::SetMonsterPosition()
 void Monster::SetTargetId(char id)
 {
 	m_target_id = id;
+}
+
+void Monster::SetHp(int hp)
+{
+	m_hp = hp;
 }
 
 CHAR Monster::GetId() const
@@ -134,6 +149,8 @@ void WarriorMonster::CreateMonster(float taketime)
 	// 플레이어를 향해서 이동
 	MonsterStateUpdate(look , taketime);
 
+	// 플레이어 방향으로 회전
+	MonsterRotateUpdate(look);
 
 }
 
@@ -148,6 +165,8 @@ void WarriorMonster::Update(float take_time)
 
 	// 플레이어를 향해서 이동
 	MonsterStateUpdate(look, take_time);
+
+	MonsterRotateUpdate(look);
 }
 
 void ArcherMonster::TargetUpdate()

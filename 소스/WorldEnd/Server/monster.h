@@ -8,7 +8,7 @@ protected:
 	MonsterType                     m_monster_type;
 	DirectX::XMFLOAT3				m_position;
 	DirectX::XMFLOAT3				m_velocity;
-	FLOAT							m_yaw;
+	FLOAT			                m_yaw;
 
 	INT								m_hp;			
 	INT								m_damage;		
@@ -16,11 +16,14 @@ protected:
 
 	UCHAR                           m_target_id;
 
+	XMFLOAT4X4                      m_worldmatrix;
+
 	BoundingOrientedBox				m_bounding_box;
 
 	INT								m_current_animation;
 
 	void MonsterStateUpdate(XMVECTOR& look, float taketime);
+	void MonsterRotateUpdate(const XMVECTOR& look);
 	XMVECTOR GetPlayerVector(UCHAR pl_id);
 
 public:
@@ -33,9 +36,10 @@ public:
 	virtual void CreateMonster(float taketime) {};
 
 	void SetId(char id);
-	void SetPosition(const DirectX::XMFLOAT3& position);
+	void SetPosition(const XMFLOAT3& position);
 	void SetMonsterPosition();
 	void SetTargetId(char id);
+	void SetHp(int hp);
 
 	CHAR GetId() const;
 	DirectX::XMFLOAT3 GetPosition();

@@ -65,12 +65,12 @@ int Server::Network()
 	while (true) {
 
 		// 아무도 서버에 접속하지 않았으면 패스
-		if (m_accept)
-		{
-			// 이 부분이 없다면 첫 프레임 때 deltaTime이 '클라에서 처음 접속한 시각 - 서버를 켠 시각' 이 된다.
-			fps_timer = std::chrono::steady_clock::now();
-			continue;
-		}
+		//if (m_accept)
+		//{
+		//	// 이 부분이 없다면 첫 프레임 때 deltaTime이 '클라에서 처음 접속한 시각 - 서버를 켠 시각' 이 된다.
+		//	fps_timer = std::chrono::steady_clock::now();
+		//	continue;
+		//}
 
 		// 이전 사이클에 얼마나 시간이 걸렸는지 계산
 		fps = duration_cast<frame>(std::chrono::steady_clock::now() - fps_timer);
@@ -78,7 +78,7 @@ int Server::Network()
 		// 아직 1/60초가 안지났으면 패스
 		if (fps.count() < 1) continue;
 
-		if (frame_count.count() & 15) {
+		if (frame_count.count() & 1) {
 			//SendPlayerDataPacket();
 		}
 		else {
@@ -548,8 +548,6 @@ void Server::SendMonsterAddPacket()
 
 	SC_ADD_MONSTER_PACKET monster_packet[MAX_MONSTER];
 
-	//auto m_monsters = g_dungeon_manager->GetDungeons()[0]->GetMonsters();
-
 	for (size_t i = 0; i < m_monsters.size(); ++i) {
 		monster_packet[i].size = static_cast<UCHAR>(sizeof(SC_ADD_MONSTER_PACKET));
 		monster_packet[i].type = SC_PACKET_ADD_MONSTER;
@@ -564,7 +562,6 @@ void Server::SendMonsterAddPacket()
 	WSABUF wsa_buf{ sizeof(buf), buf };
 	DWORD sent_byte;
 
-
 	for (const auto& cl : m_clients)
 	{
 		if (!cl.m_player_data.active_check) continue;
@@ -576,28 +573,12 @@ void Server::SendMonsterAddPacket()
 			else ErrorDisplay("Send(SC_PACKET_ADD_MONSTER)");
 		}
 	}
-
-
-	//auto& m_clients = g_dungeon_manager->GetDungeons()[0]->GetPlayers();
-	/*for (const auto& data : m_clients)
-	{
-		if (!data.second->m_player_data.active_check) continue;
-		const int retVal = WSASend(data.second->m_socket, &wsa_buf, 1, &sent_byte, 0, nullptr, nullptr);
-		if (retVal == SOCKET_ERROR)
-		{
-			if (WSAGetLastError() == WSAECONNRESET)
-				std::cout << "[" << static_cast<int>(data.second->m_player_data.id) << " Session] Disconnect" << std::endl;
-			else ErrorDisplay("Send(SC_PACKET_ADD_MONSTER)");
-		}
-	}*/
 }
 
 
 void Server::SendMonsterDataPacket()
 {
 	//cout << "크기 - " << m_monsters.size() << endl;
-
-	//auto m_monsters = g_dungeon_manager->GetDungeons()[0]->GetMonsters();
 
 	SC_MONSTER_UPDATE_PACKET monster_packet[MAX_MONSTER];
 
@@ -614,8 +595,6 @@ void Server::SendMonsterDataPacket()
 	WSABUF wsa_buf{ sizeof(buf), buf };
 	DWORD sent_byte;
 
-	
-
 	for (const auto& cl : m_clients)
 	{
 		if (!cl.m_player_data.active_check) continue;
@@ -627,19 +606,6 @@ void Server::SendMonsterDataPacket()
 			else ErrorDisplay("Send(SC_PACKET_UPDATE_MONSTER)");
 		}
 	}
-
-	/*auto& m_clients = g_dungeon_manager->GetDungeons()[0]->GetPlayers();
-	for (const auto& data : m_clients)
-	{
-		if (!data.second->m_player_data.active_check) continue;
-		const int retVal = WSASend(data.second->m_socket, &wsa_buf, 1, &sent_byte, 0, nullptr, nullptr);
-		if (retVal == SOCKET_ERROR)
-		{
-			if (WSAGetLastError() == WSAECONNRESET)
-				std::cout << "[" << static_cast<int>(data.second->m_player_data.id) << " Session] Disconnect" << std::endl;
-			else ErrorDisplay("Send(SC_PACKET_UPDATE_MONSTER)");
-		}
-	}*/
 }
 
 CHAR Server::GetNewId() const
@@ -666,27 +632,40 @@ void Server::Timer()
 {
 	using namespace chrono;
 	TimerEvent event;
-	event.start_time = std::chrono::system_clock::now() + std::chrono::seconds(3);
-	while (m_start_cool_time < 6) {
-			auto attack_end_time = std::chrono::system_clock::now();
-			auto sec = std::chrono::duration_cast<std::chrono::seconds>(attack_end_time - event.start_time);
-			if (m_attack_check == true) {
-				if (sec.count() > m_start_cool_time)
-				{
-					m_start_cool_time++;
-					m_remain_cool_time = m_end_cool_time - m_start_cool_time;
-					cout << "남은 스킬 쿨타임: " << m_remain_cool_time << "초" << endl;
-				}
-				else if (m_start_cool_time == 5)
-				{
-					m_attack_check = false;
-					m_start_cool_time = 0;
-					SendPlayerAttackPacket(0);
-					event.start_time = std::chrono::system_clock::now() + std::chrono::seconds(1);
-					attack_end_time = std::chrono::system_clock::now();
-				}
+
+	while (true) {
+
+		if (!m_timer_queue.try_pop(event)) continue;
+
+		if (event.start_time <= system_clock::now()) {
+			
+			switch (event.event_type)
+			{
+			case EVENT_PLAYER_ATTACK:
+				cout << "공격 이벤트 중" << endl;
+			default:
+				break;
 			}
 		}
+
+	}
+	/*while (true) {
+		auto now = std::chrono::system_clock::now();
+		auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - event.start_time);
+		if (m_attack_check == true) {
+			if (elapsed.count() < 5.0f) {
+			}
+			else {
+				m_attack_check = false;
+				m_start_cool_time = 0;
+				for (int i = 0; i < MAX_USER; ++i)
+					SendPlayerAttackPacket(m_clients[i].m_player_data.id);
+				event.start_time = now;
+			}
+		}
+	}*/
+
+
 }
 
 void Server::RotatePlayer(Session& player, FLOAT yaw)

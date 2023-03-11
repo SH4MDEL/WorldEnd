@@ -16,7 +16,7 @@ public:
 	void SetHpBar(const shared_ptr<HpBar>& hpBar) { m_hpBar = hpBar; }
 	void SetVelocity(XMFLOAT3& velocity);
 
-	FLOAT GetHp() const { return m_hp; }
+
 
 	void SetID(INT id) { m_id = id; }
 	INT GetID() const { return m_id; }
