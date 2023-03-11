@@ -222,8 +222,6 @@ void Dungeon::SendMonsterAdd(CHAR player_id)
 {
 	SC_ADD_MONSTER_PACKET monster_packet[MAX_MONSTER];
 
-	//auto m_monsters = g_dungeon_manager->GetDungeons()[0]->GetMonsters();
-
 	for (size_t i = 0; i < m_monsters.size(); ++i) {
 		monster_packet[i].size = static_cast<UCHAR>(sizeof(SC_ADD_MONSTER_PACKET));
 		monster_packet[i].type = SC_PACKET_ADD_MONSTER;
@@ -240,19 +238,6 @@ void Dungeon::SendMonsterAdd(CHAR player_id)
 	memcpy(buf, reinterpret_cast<char*>(&monster_packet), sizeof(monster_packet));
 	WSABUF wsa_buf{ sizeof(buf), buf };
 	DWORD sent_byte;
-
-
-	/*for (const auto& data : m_players)
-	{
-		if (!data.second->m_player_data.active_check) continue;
-		const int retVal = WSASend(data.second->m_socket, &wsa_buf, 1, &sent_byte, 0, nullptr, nullptr);
-		if (retVal == SOCKET_ERROR)
-		{
-			if (WSAGetLastError() == WSAECONNRESET)
-				std::cout << "[" << static_cast<int>(data.second->m_player_data.id) << " Session] Disconnect" << std::endl;
-			else ErrorDisplay("Send(SC_PACKET_ADD_MONSTER)");
-		}
-	}*/
 
 	const int retVal = WSASend(m_players[static_cast<int>(player_id)]->m_socket, &wsa_buf, 1, &sent_byte, 0, nullptr, nullptr);
 	if (retVal == SOCKET_ERROR)

@@ -245,9 +245,10 @@ void Player::AddVelocity(const XMFLOAT3& increase)
 	}
 }
 
-void Player::ChangeAnimation(int animation)
+bool Player::ChangeAnimation(int animation)
 {
-	AnimationObject::ChangeAnimation(animation);
+	if (!AnimationObject::ChangeAnimation(animation))
+		return false;
 #ifdef USE_NETWORK
 	CS_CHANGE_ANIMATION_PACKET packet;
 	packet.size = sizeof(packet);

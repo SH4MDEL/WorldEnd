@@ -1,7 +1,7 @@
 #pragma once
 #include "stdafx.h"
 
-class Monster abstract
+class Monster
 {
 protected:
 	CHAR							m_id;
@@ -18,12 +18,14 @@ protected:
 
 	BoundingOrientedBox				m_bounding_box;
 
+	INT								m_current_animation;
+
 	void MonsterStateUpdate(XMVECTOR& look, float taketime);
 	XMVECTOR GetPlayerVector(UCHAR pl_id);
 
 public:
 
-	Monster() = default;
+	Monster();
 	virtual ~Monster() = default;
 
 	virtual void Update(float taketime) = 0;
@@ -43,6 +45,8 @@ public:
 	BoundingOrientedBox GetBoundingBox() const;
 
 	void DecreaseHp(INT damage);
+
+	bool ChangeAnimation(int animation);
 };
 
 class WarriorMonster : public Monster

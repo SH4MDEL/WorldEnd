@@ -31,7 +31,7 @@ public:
 	
 	PlayerType GetType() const { return m_type; }
 
-	virtual void ChangeAnimation(int animation) override;
+	virtual bool ChangeAnimation(int animation) override;
 	void ChangeAnimation(int animation, bool other);
 
 	// 추가

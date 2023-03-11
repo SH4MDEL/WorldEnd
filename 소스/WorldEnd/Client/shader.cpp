@@ -48,6 +48,9 @@ void Shader::Update(FLOAT timeElapsed)
 
 	for (const auto& elm : m_multiPlayers)
 		elm.second->UpdateAnimation(timeElapsed);
+
+	for (const auto& elm : m_monsters)
+		elm.second->UpdateAnimation(timeElapsed);
 }
 
 void Shader::Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList) const
@@ -61,6 +64,9 @@ void Shader::Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12Graph
 
 	for (const auto& elm : m_multiPlayers)
 		if (elm.second) elm.second->Render(device, commandList);
+
+	for (const auto& elm : m_monsters)
+		if (elm.second) elm.second->Render(device, commandList);
 }
 
 void Shader::Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, const shared_ptr<Shader>& shader) const
@@ -73,6 +79,9 @@ void Shader::Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12Graph
 		if (elm) elm->Render(device, commandList);
 
 	for (const auto& elm : m_multiPlayers)
+		if (elm.second) elm.second->Render(device, commandList);
+
+	for (const auto& elm : m_monsters)
 		if (elm.second) elm.second->Render(device, commandList);
 }
 
@@ -101,6 +110,11 @@ void Shader::SetObject(const shared_ptr<GameObject>& object)
 void Shader::SetMultiPlayer(INT ID, const shared_ptr<Player>& player)
 {
 	m_multiPlayers.insert({ ID, player });
+}
+
+void Shader::SetMonster(INT ID, const shared_ptr<Monster>& monster)
+{
+	m_monsters.insert({ ID, monster });
 }
 
 DetailShader::DetailShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature)

@@ -531,8 +531,11 @@ AnimationObject::AnimationObject()
 	m_currentAnimation = ObjectAnimation::IDLE;
 }
 
-void AnimationObject::ChangeAnimation(int animation)
+bool AnimationObject::ChangeAnimation(int animation)
 {
+	if (m_currentAnimation == animation)
+		return false;
+
 	switch (animation) {
 	case ObjectAnimation::IDLE:
 		m_animationController->SetTrackType(0, ANIMATION_TYPE_LOOP);
@@ -559,6 +562,8 @@ void AnimationObject::ChangeAnimation(int animation)
 	}
 	m_currentAnimation = animation;
 	m_animationController->SetTrackAnimation(0, animation);
+	
+	return true;
 }
 
 void AnimationObject::Update(FLOAT timeElapsed)

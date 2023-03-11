@@ -2,6 +2,12 @@
 #include "stdafx.h"
 #include "Server.h"
 
+Monster::Monster()
+{
+	m_yaw = 0.f;
+	m_velocity = XMFLOAT3(0.f, 0.f, 0.f);
+	m_current_animation = ObjectAnimation::IDLE;
+}
 
 void Monster::MonsterStateUpdate(XMVECTOR& look, float taketime)
 {
@@ -16,6 +22,7 @@ void Monster::MonsterStateUpdate(XMVECTOR& look, float taketime)
 	m_position.y += velocity.y * taketime;
 	m_position.z += velocity.z * taketime;
 
+	m_bounding_box.Center = m_position;
 	//cout << "taketime - " << taketime << endl;
 }
 
@@ -64,7 +71,7 @@ DirectX::XMFLOAT3 Monster::GetPosition()
 
 MonsterData Monster::GetData() const
 {
-	return MonsterData{ m_id, m_position, m_velocity, m_yaw };
+	return MonsterData{ m_id, m_position, m_velocity, m_yaw, m_hp };
 }
 
 UCHAR Monster::GetTargetId() const
@@ -96,6 +103,15 @@ void Monster::DecreaseHp(INT damage)
 		m_id = -1;
 }
 
+bool Monster::ChangeAnimation(int animation)
+{
+	if (m_current_animation == animation)
+		return false;
+
+	m_current_animation = animation;
+	return true;
+}
+
 WarriorMonster::WarriorMonster()
 {
 	m_monster_type = MonsterType::WARRIOR;
@@ -105,8 +121,6 @@ WarriorMonster::WarriorMonster()
 	m_bounding_box.Center = XMFLOAT3(0.028f, 1.27f, 0.f);
 	m_bounding_box.Extents = XMFLOAT3(0.8f, 1.3f, 0.5f);
 	m_bounding_box.Orientation = XMFLOAT4(0.f, 0.f, 0.f, 1.f);
-	m_yaw = 0.f;
-	m_velocity = XMFLOAT3(0.f, 0.f, 0.f);
 }
 
 void WarriorMonster::CreateMonster(float taketime)

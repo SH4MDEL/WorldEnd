@@ -3,6 +3,7 @@
 #include "object.h"
 #include "player.h"
 #include "camera.h"
+#include "monster.h"
 
 class Shader
 {
@@ -26,6 +27,7 @@ public:
 	void SetCamera(const shared_ptr<Camera>& camera);
 	void SetObject(const shared_ptr<GameObject>& object);
 	void SetMultiPlayer(INT ID, const shared_ptr<Player>& player);
+	void SetMonster(INT ID, const shared_ptr<Monster>& monster);
 
 protected:
 	ComPtr<ID3D12PipelineState>				m_pipelineState;
@@ -37,6 +39,7 @@ protected:
 	shared_ptr<Camera>						m_camera;
 
 	unordered_map<INT, shared_ptr<Player>>	m_multiPlayers;
+	unordered_map<INT, shared_ptr<Monster>>	m_monsters;
 };
 
 class DetailShader : public Shader

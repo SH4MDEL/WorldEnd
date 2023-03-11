@@ -392,6 +392,36 @@ void TowerScene::LoadPlayerFromFile(const ComPtr<ID3D12Device>& device, const Co
 	player->GetAnimationController()->SetTrackEnable(2, false);
 }
 
+void TowerScene::LoadMonsterFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, const shared_ptr<Monster>& monster)
+{
+	wstring filePath{};
+	string animationSet{};
+
+	switch (monster->GetType()) {
+	case MonsterType::WARRIOR:
+		filePath = TEXT("./Resource/Model/Undead_Warrior.bin");
+		animationSet = "Undead_WarriorAnimation";
+		break;
+
+	case MonsterType::ARCHER:
+		filePath = TEXT("./Resource/Model/Undead_Archer.bin");
+		animationSet = "Undead_ArcherAnimation";
+		break;
+
+	case MonsterType::WIZARD:
+		filePath = TEXT("./Resource/Model/Undead_Wizard.bin");
+		animationSet = "Undead_WizardAnimation";
+		break;
+	}
+
+	LoadObjectFromFile(device, commandList, filePath, monster);
+
+	monster->SetAnimationSet(m_animationSets[animationSet]);
+	monster->SetAnimationOnTrack(0, ObjectAnimation::IDLE);
+	monster->GetAnimationController()->SetTrackEnable(1, false);
+	monster->GetAnimationController()->SetTrackEnable(2, false);
+}
+
 
 void TowerScene::InitServer(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList)
 {
@@ -598,19 +628,14 @@ void TowerScene::RecvAddMonsterPacket(char* ptr)
 	monster_data.id = add_monster_packet->monster_data.id;
 	monster_data.pos = add_monster_packet->monster_data.pos;
 
+	if (monster_data.id == -1)
+		return;
+
 	auto monster = make_shared<Monster>();
-	switch (add_monster_packet->monster_type)
-	{
-	case MonsterType::WARRIOR:
-		LoadObjectFromFile(g_GameFramework.GetDevice(), g_GameFramework.GetCommandList(), TEXT("./Resource/Model/Undead_Warrior.bin"), monster);
-		break;
-	case MonsterType::ARCHER:
-		LoadObjectFromFile(g_GameFramework.GetDevice(), g_GameFramework.GetCommandList(), TEXT("./Resource/Model/Undead_Archer.bin"), monster);
-		break;
-	case MonsterType::WIZARD:
-		LoadObjectFromFile(g_GameFramework.GetDevice(), g_GameFramework.GetCommandList(), TEXT("./Resource/Model/Undead_Wizard.bin"), monster);
-		break;
-	}
+	monster->SetType(add_monster_packet->monster_type);
+	LoadMonsterFromFile(g_GameFramework.GetDevice(), g_GameFramework.GetCommandList(), monster);
+	monster->ChangeAnimation(ObjectAnimation::WALK);
+
 	monster->SetPosition(XMFLOAT3{ 0.f, 0.f, 0.f });
 	m_monsters.insert({ static_cast<INT>(monster_data.id), monster });
 
@@ -620,7 +645,7 @@ void TowerScene::RecvAddMonsterPacket(char* ptr)
 	m_shaders["HPBAR"]->SetObject(hpBar);
 	monster->SetHpBar(hpBar);
 
-	m_shaders["OBJECT"]->SetObject(monster);
+	m_shaders["ANIMATION"]->SetMonster(monster_data.id, monster);
 	cout << "add monster" << static_cast<int>(monster_data.id) << endl;
 }
 
@@ -631,6 +656,7 @@ void TowerScene::RecvUpdateMonster(char* ptr)
 	if (monster_packet->monster_data.id < 0) return;
 
 	m_monsters[monster_packet->monster_data.id]->SetPosition(monster_packet->monster_data.pos);
+	m_monsters[monster_packet->monster_data.id]->SetHp(monster_packet->monster_data.hp);
 
 	/*cout << "monster id - " << (int)monster_packet->monster_data.id << endl;
 	cout << "monster pos (x: " << monster_packet->monster_data.pos.x <<
