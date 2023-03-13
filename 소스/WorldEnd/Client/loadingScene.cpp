@@ -1,9 +1,8 @@
 ﻿#include "loadingScene.h"
 
-LoadingScene::LoadingScene(const ComPtr<ID3D12Device>& device) : m_canNextScene{ false }
+LoadingScene::LoadingScene(const ComPtr<ID3D12Device>& device)
 {
-	DX::ThrowIfFailed(device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_threadCommandAllocator)));
-	DX::ThrowIfFailed(device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_threadCommandAllocator.Get(), nullptr, IID_PPV_ARGS(&m_threadCommandList)));
+
 }
 
 LoadingScene::~LoadingScene()
@@ -11,9 +10,11 @@ LoadingScene::~LoadingScene()
 
 }
 
-void LoadingScene::OnCreate(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, const ComPtr<ID3D12RootSignature>& rootSignature)
+void LoadingScene::OnCreate(const ComPtr<ID3D12Device>& device,
+	const ComPtr<ID3D12GraphicsCommandList>& commandList,
+	const ComPtr<ID3D12RootSignature>& rootSignature)
 {
-	m_loadingText = make_shared<LoadingText>(54);
+	m_loadingText = make_shared<LoadingText>(53);
 
 	auto textBrush = ComPtr<ID2D1SolidColorBrush>();
 	DX::ThrowIfFailed(g_GameFramework.GetD2DDeviceContext()->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::SkyBlue, 1.f), &textBrush));
@@ -33,7 +34,15 @@ void LoadingScene::OnCreate(const ComPtr<ID3D12Device>& device, const ComPtr<ID3
 	textFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
 	m_loadingText->SetTextFormat(textFormat);
 
-	m_loadingThread = thread{ &LoadingScene::BuildObjects, this, device, m_threadCommandList, rootSignature };
+	BuildObjects(device, commandList, rootSignature);
+
+	//for (UINT i = 0; i < MAX_THREAD; ++i) {
+	//	subThread[i] = thread{ &LoadingScene::BuildObjectsByThread, this, device, threadCommandList[i], rootSignature, i };
+	//	subThread[i].detach();
+	//}
+	//for (UINT i = 0; i < MAX_THREAD; ++i) {
+	//	subThread[i].join();
+	//}
 }
 
 void LoadingScene::OnDestroy()
@@ -55,8 +64,6 @@ void LoadingScene::OnProcessingKeyboardMessage(FLOAT timeElapsed) const {}
 
 void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, const ComPtr<ID3D12RootSignature>& rootsignature)
 {
-	CreateShaderVariable(device, commandlist);
-
 	// 플레이어 로딩
 	auto animationShader{ make_shared<AnimationShader>(device, rootsignature) };
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/WarriorMesh.bin"));
@@ -95,8 +102,6 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/Undead_WarriorMesh.bin"));
 	LoadAnimationSetFromFile(TEXT("./Resource/Animation/Undead_WarriorAnimation.bin"), "Undead_WarriorAnimation");
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/Undead_WarriorTexture.bin"));
-
-	LoadAnimationSetFromFile(TEXT("./Resource/Animation/Undead_WarriorAnimation.bin"), "Undead_WarriorAnimation");
 
 	// 타워 씬 메쉬 로딩
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/AD_ArchDeco_A_01Mesh.bin"));
@@ -168,28 +173,170 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	m_shaders.insert({ "ANIMATIONSHADOW", animationShadowShader });
 	m_shaders.insert({ "DEBUG", debugShader });
 
-	DX::ThrowIfFailed(m_threadCommandList->Close());
 
-	// 명령 실행을 위해 커맨드 리스트를 커맨드 큐에 추가한다.
-	ID3D12CommandList* ppCommandList[] = { m_threadCommandList.Get() };
-	g_GameFramework.GetCommandQueue()->ExecuteCommandLists(_countof(ppCommandList), ppCommandList);
+	g_GameFramework.ChangeScene(SCENETAG::TowerScene);
+}
 
-	g_GameFramework.WaitForPreviousFrame();
-	m_canNextScene = true;
+void LoadingScene::BuildObjectsByThread(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, const ComPtr<ID3D12RootSignature>& rootsignature, UINT threadIndex)
+{
+	return;
+	switch (threadIndex)
+	{
+		case 0:
+		{
+			auto animationShader{ make_shared<AnimationShader>(device, rootsignature) };
+			auto objectShader{ make_shared<TextureHierarchyShader>(device, rootsignature) };
+			auto hpBarShader{ make_shared<HpBarShader>(device, rootsignature) };
+			auto skyboxShader{ make_shared<SkyboxShader>(device, rootsignature) };
+			auto shadowShader{ make_shared<ShadowShader>(device, rootsignature) };
+			auto animationShadowShader{ make_shared<AnimationShadowShader>(device, rootsignature) };
+			auto debugShader{ make_shared<UIRenderShader>(device, rootsignature) };
+
+			m_shaders.insert({ "ANIMATION", animationShader });
+			m_shaders.insert({ "OBJECT", objectShader });
+			m_shaders.insert({ "SKYBOX", skyboxShader });
+			m_shaders.insert({ "HPBAR", hpBarShader });
+			m_shaders.insert({ "SHADOW", shadowShader });
+			m_shaders.insert({ "ANIMATIONSHADOW", animationShadowShader });
+			m_shaders.insert({ "DEBUG", debugShader });
+
+			DX::ThrowIfFailed(commandlist->Close());
+
+			// 명령 실행을 위해 커맨드 리스트를 커맨드 큐에 추가한다.
+			ID3D12CommandList* ppCommandList[] = { commandlist.Get() };
+			g_GameFramework.GetCommandQueue()->ExecuteCommandLists(_countof(ppCommandList), ppCommandList);
+
+			g_GameFramework.WaitForPreviousFrame();
+			break;
+		}
+		case 1:
+		{
+			LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/WarriorMesh.bin"));
+			LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/ArcherMesh.bin"));
+			LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/Undead_WarriorMesh.bin"));
+
+			// 타워 씬 메쉬 로딩
+			LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/AD_ArchDeco_A_01Mesh.bin"));
+			LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/AD_ArchPillar_A_01Mesh.bin"));
+			LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/AD_ArchPillar_B_01Mesh.bin"));
+			LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/AD_Arch_B_01Mesh.bin"));
+			LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/AD_Brazier_A_01Mesh.bin"));
+			LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/AD_DecoTile_D_01Mesh.bin"));
+			LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/AD_DoorFrame_B_01Mesh.bin"));
+			LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/AD_Door_A_02Mesh.bin"));
+			LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/AD_Frame_A_01Mesh.bin"));
+			LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/AD_Frame_C_01Mesh.bin"));
+			LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/AD_Frame_D_01Mesh.bin"));
+			LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/AD_GatePillar_A_01Mesh.bin"));
+			LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/AD_Ground_C_01Mesh.bin"));
+			LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/AD_Ground_D_01Mesh.bin"));
+			LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/AD_Pillar_A_01Mesh.bin"));
+			LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/AD_Pillar_B_01Mesh.bin"));
+			LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/AD_Pillar_E_01Mesh.bin"));
+			LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/AD_Pillar_G_01Mesh.bin"));
+			LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/AD_Stair_A_01Mesh.bin"));
+			LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/AD_Wall_B_01Mesh.bin"));
+			LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/AD_Wall_C_01Mesh.bin"));
+			LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/AD_Wall_D_01Mesh.bin"));
+
+			auto hpBarMesh{ make_shared<BillboardMesh>(device, commandlist, XMFLOAT3{ 0.f, 0.f, 0.f }, XMFLOAT2{ 0.75f, 0.15f }) };
+			auto skyboxMesh{ make_shared <SkyboxMesh>(device, commandlist, 20.0f, 20.0f, 20.0f) };
+			auto debugMesh{ make_shared<UIMesh>(device, commandlist) };
+
+			m_meshs.insert({ "HPBAR", hpBarMesh });
+			m_meshs.insert({ "SKYBOX", skyboxMesh });
+			m_meshs.insert({ "DEBUG", debugMesh });
+
+			DX::ThrowIfFailed(commandlist->Close());
+
+			// 명령 실행을 위해 커맨드 리스트를 커맨드 큐에 추가한다.
+			ID3D12CommandList* ppCommandList[] = { commandlist.Get() };
+			g_GameFramework.GetCommandQueue()->ExecuteCommandLists(_countof(ppCommandList), ppCommandList);
+
+			g_GameFramework.WaitForPreviousFrame();
+			break;
+		}
+		case 2:
+		{
+			LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/WarriorTexture.bin"));
+			LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/ArcherTexture.bin"));
+			LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/Undead_WarriorTexture.bin"));
+
+			//타워 씬 텍스처 로딩
+			LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/AD_ArchDeco_A_01Texture.bin"));
+			LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/AD_ArchPillar_A_01Texture.bin"));
+			LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/AD_ArchPillar_B_01Texture.bin"));
+			LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/AD_Arch_B_01Texture.bin"));
+			LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/AD_Brazier_A_01Texture.bin"));
+			LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/AD_DecoTile_D_01Texture.bin"));
+			LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/AD_DoorFrame_B_01Texture.bin"));
+			LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/AD_Door_A_02Texture.bin"));
+			LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/AD_Frame_A_01Texture.bin"));
+			LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/AD_Frame_C_01Texture.bin"));
+			LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/AD_Frame_D_01Texture.bin"));
+			LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/AD_GatePillar_A_01Texture.bin"));
+			LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/AD_Ground_C_01Texture.bin"));
+			LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/AD_Ground_D_01Texture.bin"));
+			LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/AD_Pillar_A_01Texture.bin"));
+			LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/AD_Pillar_B_01Texture.bin"));
+			LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/AD_Pillar_E_01Texture.bin"));
+			LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/AD_Pillar_G_01Texture.bin"));
+			LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/AD_Stair_A_01Texture.bin"));
+			LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/AD_Wall_B_01Texture.bin"));
+			LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/AD_Wall_C_01Texture.bin"));
+			LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/AD_Wall_D_01Texture.bin"));
+
+			auto skyboxTexture{ make_shared<Texture>() };
+			skyboxTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/SkyBox.dds"), 7);	// Skybox
+			skyboxTexture->CreateSrvDescriptorHeap(device);
+			skyboxTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURECUBE);
+
+			auto hpBarTexture{ make_shared<Texture>() };
+			hpBarTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/Full_HpBar.dds"), 5); // BaseTexture
+			hpBarTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/Empty_HpBar.dds"), 6); // SubTexture
+			hpBarTexture->CreateSrvDescriptorHeap(device);
+			hpBarTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+
+			// 텍스처 설정
+			m_textures.insert({ "SKYBOX", skyboxTexture });
+			m_textures.insert({ "HPBAR", hpBarTexture });
+
+			DX::ThrowIfFailed(commandlist->Close());
+
+			// 명령 실행을 위해 커맨드 리스트를 커맨드 큐에 추가한다.
+			ID3D12CommandList* ppCommandList[] = { commandlist.Get() };
+			g_GameFramework.GetCommandQueue()->ExecuteCommandLists(_countof(ppCommandList), ppCommandList);
+
+			g_GameFramework.WaitForPreviousFrame();
+			break;
+		}
+		case 3:
+		{
+			LoadAnimationSetFromFile(TEXT("./Resource/Animation/WarriorAnimation.bin"), "WarriorAnimation");
+			LoadAnimationSetFromFile(TEXT("./Resource/Animation/ArcherAnimation.bin"), "ArcherAnimation");
+			LoadAnimationSetFromFile(TEXT("./Resource/Animation/Undead_WarriorAnimation.bin"), "Undead_WarriorAnimation");
+
+			DX::ThrowIfFailed(commandlist->Close());
+
+			// 명령 실행을 위해 커맨드 리스트를 커맨드 큐에 추가한다.
+			ID3D12CommandList* ppCommandList[] = { commandlist.Get() };
+			g_GameFramework.GetCommandQueue()->ExecuteCommandLists(_countof(ppCommandList), ppCommandList);
+
+			g_GameFramework.WaitForPreviousFrame();
+			break;
+		}
+	}
 }
 
 void LoadingScene::Update(FLOAT timeElapsed) 
 {
 	m_loadingText->Update(timeElapsed);
-	if (m_canNextScene && m_loadingThread.joinable())
-	{
-		m_loadingThread.join();
-		g_GameFramework.ChangeScene(SCENETAG::TowerScene);
-	}
 }
 
 void LoadingScene::Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList) const {}
+void LoadingScene::RenderByThread(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) const {}
 void LoadingScene::RenderShadow(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList) {}
+void LoadingScene::RenderShadowByThread(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) {}
 
 void LoadingScene::RenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext)
 {
@@ -202,7 +349,7 @@ void LoadingScene::LoadMeshFromFile(const ComPtr<ID3D12Device>& device, const Co
 	if (!in) return;
 
 	m_loadingText->SetFileName(fileName);
-	
+
 	BYTE strLength;
 	string backup;
 	while (1) {
@@ -261,7 +408,6 @@ void LoadingScene::LoadMaterialFromFile(const ComPtr<ID3D12Device>& device, cons
 
 			materials->LoadMaterials(device, commandList, in);
 			
-
 			m_materials.insert({ materials->m_materialName, materials });
 			m_materials.insert({ "@" + materials->m_materialName, materials});
 		}
@@ -293,5 +439,6 @@ void LoadingScene::LoadAnimationSetFromFile(wstring fileName, const string& anim
 	animationSet->LoadAnimationSet(in, animationSetName);
 
 	m_animationSets.insert({ animationSetName, animationSet });
+
 	m_loadingText->LoadingFile();
 }

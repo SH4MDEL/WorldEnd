@@ -89,7 +89,7 @@ float CalcShadowFactor(float4 shadowPosH)
     // Texel size.
     float dx = 1.0f / (float)width;
 
-    float percentLit = 0.0f;
+    float percentLit = 0.f;
     const float2 offsets[9] =
     {
         float2(-dx,  -dx), float2(0.0f,  -dx), float2(dx,  -dx),

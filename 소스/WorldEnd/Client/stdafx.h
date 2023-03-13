@@ -30,6 +30,7 @@
 #include <wrl.h>
 #include <algorithm>
 #include <array>
+#include <functional>
 
 
 // d3d12 헤더 파일입니다.
@@ -68,6 +69,16 @@ extern SOCKET               g_socket;                           // 소켓
 extern string				g_serverIP;							// 서버 아이피
 extern thread               g_networkThread;
 extern mutex                g_mutex;
+
+
+constexpr int MAX_PLAYERS = 2;
+// Command list submissions from main thread.
+constexpr int COMMANDLIST_NUM = 3;
+constexpr int COMMANDLIST_PRE = 0;
+constexpr int COMMANDLIST_MID = 1;
+constexpr int COMMANDLIST_POST = 2;
+constexpr int THREAD_NUM = 3;
+
 
 namespace DX
 {
@@ -213,8 +224,3 @@ ComPtr<ID3D12Resource> CreateBufferResource(const ComPtr<ID3D12Device>& device, 
 
 void ErrorQuit(const char* msg);
 void ErrorDisplay(const char* msg);
-
-namespace Setting
-{
-    constexpr auto MAX_PLAYERS = 2;    // 최대 플레이어 수(본인 제외)
-}
