@@ -29,7 +29,7 @@ inline void Shadow::CreateShadowMap(const ComPtr<ID3D12Device>& device)
 
 	D3D12_CLEAR_VALUE optClear;
 	optClear.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-	optClear.DepthStencil.Depth = 1.0f;
+	optClear.DepthStencil.Depth = 1.f;
 	optClear.DepthStencil.Stencil = 0;
 
 	DX::ThrowIfFailed(device->CreateCommittedResource(

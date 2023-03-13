@@ -69,7 +69,6 @@ void GameFramework::StartPipeline()
 		dxgiFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
 	}
 #endif
-	ComPtr<IDXGIFactory4> m_factory;
 	DX::ThrowIfFailed(CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&m_factory)));
 
 	// 1. 디바이스 생성
@@ -109,24 +108,23 @@ void GameFramework::StartPipeline()
 
 void GameFramework::CreateDevice()
 {
-	DX::ThrowIfFailed(CreateDXGIFactory1(IID_PPV_ARGS(&m_factory)));
 
 	// 하드웨어 어댑터를 나타내는 장치를 생성해 본다.
 	// 최소 기능 수준은 D3D_FEATURE_LEVEL_12_0 이다.
-	ComPtr<IDXGIAdapter1> Adapter;
-	for (UINT i = 0; DXGI_ERROR_NOT_FOUND != m_factory->EnumAdapters1(i, &Adapter); ++i)
+	ComPtr<IDXGIAdapter1> adapter;
+	for (UINT i = 0; DXGI_ERROR_NOT_FOUND != m_factory->EnumAdapters1(i, &adapter); ++i)
 	{
 		DXGI_ADAPTER_DESC1 adapterDesc;
-		Adapter->GetDesc1(&adapterDesc);
+		adapter->GetDesc1(&adapterDesc);
 		if (adapterDesc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) continue;
-		if (SUCCEEDED(D3D12CreateDevice(Adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&m_device)))) break;
+		if (SUCCEEDED(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&m_device)))) break;
 	}
 
 	// 실패했다면 WARP 어댑터를 나타내는 장치를 생성한다.
 	if (!m_device)
 	{
-		m_factory->EnumWarpAdapter(IID_PPV_ARGS(&Adapter));
-		DX::ThrowIfFailed(D3D12CreateDevice(Adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&m_device)));
+		m_factory->EnumWarpAdapter(IID_PPV_ARGS(&adapter));
+		DX::ThrowIfFailed(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&m_device)));
 	}
 }
 
@@ -381,18 +379,19 @@ void GameFramework::Create11On12Device()
 #endif
 
 	ComPtr<ID3D11Device> d3d11Device;
-	DX::ThrowIfFailed(D3D11On12CreateDevice(m_device.Get(),
+	DX::ThrowIfFailed(D3D11On12CreateDevice(
+		m_device.Get(),
 		d3d11DeviceFlags, 
 		nullptr, 
 		0, 
 		reinterpret_cast<IUnknown**>(m_commandQueue.GetAddressOf()),
 		1,
 		0, 
-		&d3d11Device,
+		d3d11Device.GetAddressOf(),
 		&m_deviceContext,
 		nullptr));
 
-	DX::ThrowIfFailed(d3d11Device.As(& m_11On12Device));
+	DX::ThrowIfFailed(d3d11Device.As(&m_11On12Device));
 }
 
 void GameFramework::CreateD2DDevice()
@@ -429,8 +428,8 @@ void GameFramework::CreateD2DRenderTarget()
 
 		DX::ThrowIfFailed(m_11On12Device->CreateWrappedResource(m_renderTargets[i].Get(),
 			&d3d11Flags, 
-			D3D12_RESOURCE_STATE_RENDER_TARGET, 
-			D3D12_RESOURCE_STATE_PRESENT, 
+			D3D12_RESOURCE_STATE_RENDER_TARGET,
+			D3D12_RESOURCE_STATE_PRESENT,
 			IID_PPV_ARGS(&m_d3d11WrappedRenderTarget[i])));
 		ComPtr<IDXGISurface> dxgiSurface;
 		DX::ThrowIfFailed(m_d3d11WrappedRenderTarget[i]->QueryInterface(__uuidof(IDXGISurface), (void**)&dxgiSurface));
@@ -440,6 +439,7 @@ void GameFramework::CreateD2DRenderTarget()
 
 void GameFramework::BuildObjects()
 {
+	DX::ThrowIfFailed(m_mainCommandAllocator->Reset());
 	m_mainCommandList->Reset(m_mainCommandAllocator.Get(), nullptr);
 
 	m_scenes[static_cast<int>(SCENETAG::LoadingScene)] = make_unique<LoadingScene>(m_device);
@@ -447,11 +447,8 @@ void GameFramework::BuildObjects()
 	//m_scenes[static_cast<int>(SCENETAG::LoadingScene)]->BuildObjects(m_device, m_mainCommandList, m_rootSignature);
 	//m_scenes[static_cast<int>(SCENETAG::TowerScene)]->BuildObjects(m_device, m_mainCommandList, m_rootSignature);
 
-	m_shadow = make_unique<Shadow>(m_device, 4096 << 1, 4096 << 1);
+	m_shadow = make_unique<Shadow>(m_device, 4096, 4096);
 
-	//for (int i = 0; i < MAX_THREAD; ++i) {
-	//	m_threadCommandList[i]->Reset(m_threadCommandAllocator[i].Get(), nullptr);
-	//}
 	m_scenes[m_sceneIndex]->OnCreate(m_device, m_mainCommandList, m_rootSignature);
 
 	m_mainCommandList->Close();
@@ -475,16 +472,8 @@ void GameFramework::CreateThread()
 
 void GameFramework::ChangeScene(SCENETAG tag)
 {
-	WaitForGpu();
-
-	m_mainCommandList->Reset(m_mainCommandAllocator.Get(), nullptr);
-
 	m_scenes[m_sceneIndex]->OnDestroy();
 	m_scenes[m_sceneIndex = static_cast<int>(tag)]->OnCreate(m_device, m_mainCommandList, m_rootSignature);
-
-	m_mainCommandList->Close();
-	ID3D12CommandList* ppCommandList[] = { m_mainCommandList.Get() };
-	m_commandQueue->ExecuteCommandLists(_countof(ppCommandList), ppCommandList);
 
 	WaitForPreviousFrame();
 }
@@ -542,50 +531,6 @@ void GameFramework::WaitForGpu()
 // Render the scene
 void GameFramework::Render()
 {
-	//// 명령 할당자와 명령 리스트를 리셋한다. 
-	//DX::ThrowIfFailed(m_mainCommandAllocator->Reset());
-	//DX::ThrowIfFailed(m_mainCommandList->Reset(m_mainCommandAllocator.Get(), nullptr));
-	//for (UINT i = 0; i < MAX_THREAD; ++i) {
-	//	DX::ThrowIfFailed(m_threadCommandAllocator[i]->Reset());
-	//	DX::ThrowIfFailed(m_threadCommandList[i]->Reset(m_threadCommandAllocator[i].Get(), nullptr));
-	//}
-	//m_mainCommandList->SetGraphicsRootSignature(m_rootSignature.Get());
-	//if (m_scenes[m_sceneIndex]) {
-	//	m_scenes[m_sceneIndex]->UpdateShaderVariable(m_mainCommandList);
-	//	m_scenes[m_sceneIndex]->RenderShadow(m_device, m_mainCommandList);
-	//}
-	//// 자원 용도와 관련된 상태 전이를 Direct3D에 통지한다.
-	//m_mainCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_frameIndex].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
-	////뷰포트와 씨저 사각형을 설정한다. 
-	//m_mainCommandList->RSSetViewports(1, &m_viewport);
-	//m_mainCommandList->RSSetScissorRects(1, &m_scissorRect);
-	////현재의 렌더 타겟에 해당하는 서술자와 깊이 스텐실 서술자의 CPU 주소(핸들)를 계산한다. 
-	//CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle{ m_rtvHeap->GetCPUDescriptorHandleForHeapStart(), static_cast<INT>(m_frameIndex), m_rtvDescriptorSize };
-	//CD3DX12_CPU_DESCRIPTOR_HANDLE dsvHandle{ m_dsvHeap->GetCPUDescriptorHandleForHeapStart() };
-	//m_mainCommandList->OMSetRenderTargets(1, &rtvHandle, TRUE, &dsvHandle);
-	//// 원하는 색상으로 렌더 타겟을 지우고, 원하는 값으로 깊이 스텐실을 지운다.
-	//const FLOAT clearColor[]{ 0.f, 0.125f, 0.3f, 1.f };
-	//m_mainCommandList->ClearRenderTargetView(rtvHandle, clearColor, 0, NULL);
-	//m_mainCommandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, NULL);
-	//for (UINT i = 0; i < MAX_THREAD; ++i) {
-	//	SetEvent(m_beforeRender[i]);
-	//}
-	//// Scene을 Render한다.
-	////if (m_scenes[m_sceneIndex]) {
-	////	m_scenes[m_sceneIndex]->Render(m_device, m_mainCommandList);
-	////}
-	//WaitForSingleObject(m_afterRender, INFINITE);
-	//// 자원 용도와 관련된 상태 전이를 Direct3D에 통지한다.
-	//m_mainCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_frameIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
-	//// 명령들의 기록을 마친다.
-	//DX::ThrowIfFailed(m_mainCommandList->Close());
-	//// 명령 실행을 위해 커맨드 리스트를 커맨드 큐에 추가한다.
-	//ID3D12CommandList* ppCommandList[] = { m_mainCommandList.Get() };
-	//m_commandQueue->ExecuteCommandLists(_countof(ppCommandList), ppCommandList);
-	//RenderText();
-	//DX::ThrowIfFailed(m_swapChain->Present(1, 0));
-	//WaitForPreviousFrame();
-
 	BeginFrame();
 
 	for (int i = 0; i < THREAD_NUM; ++i) {
@@ -627,6 +572,7 @@ void GameFramework::BeginFrame()
 	m_commandLists[COMMANDLIST_PRE]->ClearDepthStencilView(m_shadow->GetCpuDsv(),
 		D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.f, 0, 0, nullptr);
 
+
 	// Reset the worker command allocators and lists.
 	for (int i = 0; i < THREAD_NUM; ++i) {
 		DX::ThrowIfFailed(m_shadowCommandAllocators[i]->Reset());
@@ -646,11 +592,8 @@ void GameFramework::BeginFrame()
 	// 원하는 색상으로 렌더 타겟을 지우고, 원하는 값으로 깊이 스텐실을 지운다.
 	const FLOAT clearColor[]{ 0.f, 0.125f, 0.3f, 1.f };
 	m_commandLists[COMMANDLIST_PRE]->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
-	m_commandLists[COMMANDLIST_PRE]->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
-
-	if (m_scenes[m_sceneIndex]) {
-
-	}
+	m_commandLists[COMMANDLIST_PRE]->ClearDepthStencilView(dsvHandle, 
+		D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
 	DX::ThrowIfFailed(m_commandLists[COMMANDLIST_PRE]->Close());
 }
@@ -660,16 +603,15 @@ void GameFramework::MidFrame()
 	// Transition the shadow map from writeable to readable.
 	m_commandLists[COMMANDLIST_MID]->ResourceBarrier(1, 
 		&CD3DX12_RESOURCE_BARRIER::Transition(m_shadow->GetShadowMap().Get(), 
-		D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));
+		D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_GENERIC_READ));
 
 	DX::ThrowIfFailed(m_commandLists[COMMANDLIST_MID]->Close());
 }
 
 void GameFramework::EndFrame()
 {
-	m_commandLists[COMMANDLIST_POST]->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_shadow->GetShadowMap().Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_DEPTH_WRITE));
-
-	m_commandLists[COMMANDLIST_POST]->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_frameIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
+	m_commandLists[COMMANDLIST_POST]->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_shadow->GetShadowMap().Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_DEPTH_WRITE));
+	//m_commandLists[COMMANDLIST_POST]->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_frameIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
 
 	DX::ThrowIfFailed(m_commandLists[COMMANDLIST_POST]->Close());
 }
@@ -694,7 +636,9 @@ void GameFramework::WorkerThread(UINT threadIndex)
 		// 장면을 깊이 버퍼에만 렌더링할 것이므로 렌더 타겟은 nullptr로 설정한다.
 		// 이처럼 nullptr 렌더 타겟을 설정하면 색상 쓰기가 비활성화된다.
 		// 반드시 활성 PSO의 렌더 타겟 개수도 0으로 지정해야 함을 주의해야 한다.
-		m_shadowCommandLists[threadIndex]->OMSetRenderTargets(0, nullptr, false, &m_shadow->GetCpuDsv());
+
+		m_shadowCommandLists[threadIndex]->OMSetRenderTargets(0, nullptr, true, &m_shadow->GetCpuDsv());
+
 		if (m_scenes[m_sceneIndex]) {
 			m_scenes[m_sceneIndex]->UpdateShaderVariable(m_shadowCommandLists[threadIndex]);
 			m_scenes[m_sceneIndex]->RenderShadowByThread(m_device, m_shadowCommandLists[threadIndex], threadIndex);
@@ -713,9 +657,8 @@ void GameFramework::WorkerThread(UINT threadIndex)
 		// passes for this frame have been submitted.
 		m_sceneCommandLists[threadIndex]->SetGraphicsRootSignature(m_rootSignature.Get());
 
-		//ID3D12DescriptorHeap* ppHeaps[] = { m_shadow->GetSrvDiscriptorHeap().Get() };
-		//m_sceneCommandLists[threadIndex]->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
-		//m_sceneCommandLists[threadIndex]->SetGraphicsRootDescriptorTable(8, m_shadow->GetGpuSrv());
+		m_sceneCommandLists[threadIndex]->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
+		m_sceneCommandLists[threadIndex]->SetGraphicsRootDescriptorTable(8, m_shadow->GetGpuSrv());
 
 		m_sceneCommandLists[threadIndex]->RSSetViewports(1, &m_viewport);
 		m_sceneCommandLists[threadIndex]->RSSetScissorRects(1, &m_scissorRect);
