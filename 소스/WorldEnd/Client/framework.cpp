@@ -646,7 +646,7 @@ void GameFramework::WorkerThread(UINT threadIndex)
 
 		if (m_scenes[m_sceneIndex]) {
 			m_scenes[m_sceneIndex]->UpdateShaderVariable(m_shadowCommandLists[threadIndex]);
-			m_scenes[m_sceneIndex]->RenderShadowByThread(m_device, m_shadowCommandLists[threadIndex], threadIndex);
+			m_scenes[m_sceneIndex]->RenderShadow(m_device, m_shadowCommandLists[threadIndex], threadIndex);
 		}
 
 		DX::ThrowIfFailed(m_shadowCommandLists[threadIndex]->Close());
@@ -674,7 +674,7 @@ void GameFramework::WorkerThread(UINT threadIndex)
 
 		// Scene을 Render한다.
 		if (m_scenes[m_sceneIndex]) {
-			m_scenes[m_sceneIndex]->RenderByThread(m_device, m_sceneCommandLists[threadIndex], threadIndex);
+			m_scenes[m_sceneIndex]->Render(m_device, m_sceneCommandLists[threadIndex], threadIndex);
 		}
 
 		DX::ThrowIfFailed(m_sceneCommandLists[threadIndex]->Close());

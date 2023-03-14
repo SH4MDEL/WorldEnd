@@ -39,24 +39,6 @@ protected:
 	unordered_map<INT, shared_ptr<Player>>	m_multiPlayers;
 };
 
-class DetailShader : public Shader
-{
-public:
-	DetailShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature);
-	~DetailShader() = default;
-
-	virtual void CreatePipelineState(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature);
-
-	virtual void Update(FLOAT timeElapsed);
-	virtual void Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList) const;
-
-	void SetField(const shared_ptr<Field>& field) { m_field = field; }
-
-private:
-	shared_ptr<Field>		m_field;
-};
-
-
 struct InstancingData
 {
 	XMFLOAT4X4 worldMatrix;
@@ -85,11 +67,18 @@ protected:
 	UINT								m_instancingCount;
 };
 
-class TextureHierarchyShader : public Shader
+class StaticObjectShader : public Shader
 {
 public:
-	TextureHierarchyShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature);
-	~TextureHierarchyShader() = default;
+	StaticObjectShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature);
+	~StaticObjectShader() = default;
+};
+
+class AnimationShader : public Shader
+{
+public:
+	AnimationShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature);
+	~AnimationShader() = default;
 };
 
 class SkyboxShader : public Shader
@@ -99,25 +88,11 @@ public:
 	~SkyboxShader() = default;
 };
 
-class BlendingShader : public Shader
-{
-public:
-	BlendingShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature);
-	~BlendingShader() = default;
-};
-
 class HpBarShader : public Shader
 {
 public:
 	HpBarShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature);
 	~HpBarShader() = default;
-};
-
-class AnimationShader : public Shader
-{
-public:
-	AnimationShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature);
-	~AnimationShader() = default;
 };
 
 class ShadowShader : public Shader

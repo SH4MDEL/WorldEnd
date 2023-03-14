@@ -1,4 +1,4 @@
-#include "Buffer.hlsl"
+#include "common.hlsl"
 
 struct VS_SHADOW_INPUT
 {

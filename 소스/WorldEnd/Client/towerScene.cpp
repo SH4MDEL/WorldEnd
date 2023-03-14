@@ -147,11 +147,6 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	InitServer(device, commandlist);
 }
 
-void TowerScene::BuildObjectsByThread(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, const ComPtr<ID3D12RootSignature>& rootsignature, UINT threadIndex)
-{
-
-}
-
 void TowerScene::CreateLight(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist)
 {
 	m_lightSystem = make_shared<LightSystem>();
@@ -267,17 +262,7 @@ void TowerScene::Update(FLOAT timeElapsed)
 		shader.second->Update(timeElapsed);
 }
 
-void TowerScene::Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList) const
-{
-	if (m_camera) m_camera->UpdateShaderVariable(commandList);
-	if (m_lightSystem) m_lightSystem->UpdateShaderVariable(commandList);
-	m_shaders.at("ANIMATION")->Render(device, commandList);
-	m_shaders.at("OBJECT")->Render(device, commandList);
-	m_shaders.at("SKYBOX")->Render(device, commandList);
-	m_shaders.at("HPBAR")->Render(device, commandList);
-}
-
-void TowerScene::RenderByThread(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) const
+void TowerScene::Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) const
 {
 	if (m_camera) m_camera->UpdateShaderVariable(commandList);
 	if (m_lightSystem) m_lightSystem->UpdateShaderVariable(commandList);
@@ -311,37 +296,7 @@ void TowerScene::RenderByThread(const ComPtr<ID3D12Device>& device, const ComPtr
 	}
 }
 
-void TowerScene::RenderShadow(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList)
-{
-	//ID3D12DescriptorHeap* ppHeaps[] = { m_shadow->GetSrvDiscriptorHeap().Get() };
-	//commandList->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
-	//commandList->SetGraphicsRootDescriptorTable(8, m_shadow->GetGpuSrv());
-
-	//commandList->RSSetViewports(1, &m_shadow->GetViewport());
-	//commandList->RSSetScissorRects(1, &m_shadow->GetScissorRect());
-
-	//// DEPTH_WRITE로 바꾼다.
-	//commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_shadow->GetShadowMap().Get(),
-	//	D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_DEPTH_WRITE));
-
-	//// 후면 버퍼와 깊이 버퍼를 지운다.
-	//commandList->ClearDepthStencilView(m_shadow->GetCpuDsv(),
-	//	D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.f, 0, 0, nullptr);
-
-	//// 장면을 깊이 버퍼에만 렌더링할 것이므로 렌더 타겟은 nullptr로 설정한다.
-	//// 이처럼 nullptr 렌더 타겟을 설정하면 색상 쓰기가 비활성화된다.
-	//// 반드시 활성 PSO의 렌더 타겟 개수도 0으로 지정해야 함을 주의해야 한다.
-	//commandList->OMSetRenderTargets(0, nullptr, false, &m_shadow->GetCpuDsv());
-
-	//m_shaders["ANIMATION"]->Render(device, commandList, m_shaders["ANIMATIONSHADOW"]);
-	//m_shaders["OBJECT"]->Render(device, commandList, m_shaders["SHADOW"]);
-
-	//// 셰이더에서 텍스처를 읽을 수 있도록 다시 GENERIC_READ로 바꾼다.
-	//commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_shadow->GetShadowMap().Get(),
-	//	D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_GENERIC_READ));
-}
-
-void TowerScene::RenderShadowByThread(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex)
+void TowerScene::RenderShadow(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex)
 {
 	switch (threadIndex)
 	{

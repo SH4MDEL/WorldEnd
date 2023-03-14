@@ -188,16 +188,34 @@
     </Image>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Resource\Shader\Shaders.hlsl">
+    <FxCompile Include="Resource\Shader\animation.hlsl">
       <Filter>셰이더 파일</Filter>
     </FxCompile>
-    <FxCompile Include="Resource\Shader\Buffer.hlsl">
+    <FxCompile Include="Resource\Shader\common.hlsl">
       <Filter>셰이더 파일</Filter>
     </FxCompile>
-    <FxCompile Include="Resource\Shader\Lighting.hlsl">
+    <FxCompile Include="Resource\Shader\debug.hlsl">
       <Filter>셰이더 파일</Filter>
     </FxCompile>
-    <FxCompile Include="Resource\Shader\Shadow.hlsl">
+    <FxCompile Include="Resource\Shader\hpbar.hlsl">
+      <Filter>셰이더 파일</Filter>
+    </FxCompile>
+    <FxCompile Include="Resource\Shader\instance.hlsl">
+      <Filter>셰이더 파일</Filter>
+    </FxCompile>
+    <FxCompile Include="Resource\Shader\lighting.hlsl">
+      <Filter>셰이더 파일</Filter>
+    </FxCompile>
+    <FxCompile Include="Resource\Shader\shadow.hlsl">
+      <Filter>셰이더 파일</Filter>
+    </FxCompile>
+    <FxCompile Include="Resource\Shader\skybox.hlsl">
+      <Filter>셰이더 파일</Filter>
+    </FxCompile>
+    <FxCompile Include="Resource\Shader\standard.hlsl">
+      <Filter>셰이더 파일</Filter>
+    </FxCompile>
+    <FxCompile Include="Resource\Shader\staticObject.hlsl">
       <Filter>셰이더 파일</Filter>
     </FxCompile>
   </ItemGroup>

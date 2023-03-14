@@ -40,7 +40,7 @@ cbuffer cbBoneTransforms : register(b6)
 };
 // ------------------------------
 
-#include "Lighting.hlsl"
+#include "lighting.hlsl"
 
 
 cbuffer cbScene : register(b4)

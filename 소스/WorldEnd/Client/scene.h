@@ -37,17 +37,14 @@ public:
 	virtual void UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& commandList) = 0;
 
 	virtual void BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, const ComPtr<ID3D12RootSignature>& rootsignature) = 0;
-	virtual void BuildObjectsByThread(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, const ComPtr<ID3D12RootSignature>& rootsignature, UINT threadIndex) = 0;
-
+	
 	virtual void OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime) const = 0;
 	virtual void OnProcessingClickMessage(LPARAM lParam) const = 0;
 	virtual void OnProcessingKeyboardMessage(FLOAT timeElapsed) const = 0;
 
 	virtual void Update(FLOAT timeElapsed) = 0;
-	virtual void Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList) const = 0;
-	virtual void RenderByThread(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) const = 0;
-	virtual void RenderShadow(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList) = 0;
-	virtual void RenderShadowByThread(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) = 0;
+	virtual void Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) const = 0;
+	virtual void RenderShadow(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) = 0;
 	virtual void RenderText(const ComPtr< ID2D1DeviceContext2>& deviceContext) = 0;
 
 	static unordered_map<string, shared_ptr<Mesh>>			m_meshs;
