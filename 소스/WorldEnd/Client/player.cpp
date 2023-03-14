@@ -104,8 +104,7 @@ void Player::OnProcessingClickMessage(LPARAM lParam)
 	CS_ATTACK_PACKET attack_packet;
 	attack_packet.size = sizeof(attack_packet);
 	attack_packet.type = CS_PACKET_PLAYER_ATTACK;
-	attack_packet.key = m_key;
-	m_key = 0;
+	attack_packet.attack_type = AttackType::NORMAL;
 	send(g_socket, reinterpret_cast<char*>(&attack_packet), sizeof(attack_packet), 0);
 #endif
 }
@@ -148,7 +147,6 @@ void Player::Update(FLOAT timeElapsed)
 				packet.attack_type = AttackType::NORMAL;
 				packet.collision_type = CollisionType::MULTIPLE_TIMES;
 				packet.end_time = chrono::system_clock::now();
-				packet.id = m_id;
 				send(g_socket, reinterpret_cast<char*>(&packet), packet.size, 0);
 			}
 			else if (m_type == PlayerType::ARCHER && fabs(track.GetPosition() - 0.4f) <= 0.01f) {
@@ -169,7 +167,6 @@ void Player::Update(FLOAT timeElapsed)
 				packet.attack_type = AttackType::NORMAL;
 				packet.collision_type = CollisionType::ONE_OFF;
 				packet.end_time = chrono::system_clock::now();
-				packet.id = m_id;
 				send(g_socket, reinterpret_cast<char*>(&packet), packet.size, 0);
 			}
 #endif
@@ -253,10 +250,10 @@ bool Player::ChangeAnimation(int animation)
 	CS_CHANGE_ANIMATION_PACKET packet;
 	packet.size = sizeof(packet);
 	packet.type = CS_PACKET_CHANGE_ANIMATION;
-	packet.id = m_id;
 	packet.animation_type = m_currentAnimation;
 	send(g_socket, reinterpret_cast<char*>(&packet), packet.size, 0);
 #endif
+	return true;
 }
 
 void Player::ChangeAnimation(int animation, bool other)

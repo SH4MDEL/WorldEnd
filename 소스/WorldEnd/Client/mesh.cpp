@@ -1,5 +1,6 @@
 ﻿#include "mesh.h"
 #include "object.h"
+#include "framework.h"
 
 Mesh::Mesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, const vector<TextureVertex>& vertices, const vector<UINT>& indices)
 {
@@ -580,9 +581,9 @@ AnimationMesh::AnimationMesh()
 	m_primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 }
 
-void AnimationMesh::Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT subMeshIndex, GameObject* rootObject, const GameObject* object)
+void AnimationMesh::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT subMeshIndex, GameObject* rootObject, const GameObject* object)
 {
-	UpdateShaderVariables(device, commandList, rootObject, object);
+	UpdateShaderVariables(commandList, rootObject, object);
 
 	commandList->IASetPrimitiveTopology(m_primitiveTopology);
 	commandList->IASetVertexBuffers(0, 1, &m_vertexBufferView);
@@ -600,13 +601,14 @@ void AnimationMesh::Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D
 	}
 }
 
-void AnimationMesh::CreateShaderVariables(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, GameObject* rootObject)
+void AnimationMesh::CreateShaderVariables(GameObject* rootObject)
 {
 	if (m_animationTransformBuffers.contains(rootObject))
 		return;
-
+	
 	UINT elementBytes = (((sizeof(XMFLOAT4X4) * AnimationSetting::MAX_BONE) + 255) & ~255);
-	ComPtr<ID3D12Resource> buffer = CreateBufferResource(device, commandList, nullptr, elementBytes,
+	ComPtr<ID3D12Resource> buffer = CreateBufferResource(g_GameFramework.GetDevice(), 
+		g_GameFramework.GetCommandList(), nullptr, elementBytes,
 		D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, ComPtr<ID3D12Resource>());
 
 	XMFLOAT4X4* bufferPointer{};
@@ -615,13 +617,12 @@ void AnimationMesh::CreateShaderVariables(const ComPtr<ID3D12Device>& device, co
 	m_animationTransformBuffers.insert({ rootObject, make_pair(buffer, bufferPointer) });
 }
 
-void AnimationMesh::UpdateShaderVariables(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, GameObject* rootObject, const GameObject* object)
+void AnimationMesh::UpdateShaderVariables(const ComPtr<ID3D12GraphicsCommandList>& commandList, GameObject* rootObject, const GameObject* object)
 {
 	// 오프셋 행렬은 그대로 넘긴다 -> 고정된 값이므로
 
 	// 애니메이션 변환행렬은 오브젝트에서 가져와서 넘긴다
 	// -> 모델 별로 애니메이션이 다르기 때문에
-
 
 	XMFLOAT4X4 worldMatrix;
 	XMStoreFloat4x4(&worldMatrix, XMMatrixTranspose(XMLoadFloat4x4(&rootObject->GetWorldMatrix())));

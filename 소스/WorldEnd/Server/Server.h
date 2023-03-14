@@ -1,20 +1,21 @@
 ﻿#pragma once
-#include "session.h"
+#include "client.h"
 #include "monster.h"
+#include "object.h"
 
-struct TimerEvent {
+struct TIMER_EVENT {
 	int obj_id;
 	int targat_id;
-	std::chrono::system_clock::time_point start_time;
-	eEventType event_type;
+	std::chrono::system_clock::time_point event_time;
+	EventType event_type;
 
-	constexpr bool operator <(const TimerEvent& left)const
+	constexpr bool operator <(const TIMER_EVENT& left)const
 	{
-		return (start_time > left.start_time);
+		return (event_time > left.event_time);
 	}
 };
 
-struct CollisionEvent {
+struct COLLISION_EVENT {
 	int user_id;										// 공격자 id
 	CollisionType collision_type;						// 충돌 타입 (일회성, 지속성)
 	AttackType attack_type;								// 공격 타입 (기본공격, 스킬)
@@ -22,40 +23,8 @@ struct CollisionEvent {
 	std::chrono::system_clock::time_point end_time;		// 충돌 이벤트 종료 시간
 };
 
-constexpr float                             g_spawm_stop = 2.0;
-
 class Server
 {
-
-private:
-	vector<std::unique_ptr<Monster>>		m_monsters;			
-
-	// 통신 관련 변수
-	vector <thread>                         m_worker_threads;
-	int 									m_disconnect_cnt;	// 연결 끊긴 인원 수
-	bool									m_accept;
-
-	// 게임 관련
-	int                                     m_floor;
-	int                                     m_floor_mob_count[4];
-	float                                   m_spawn_stop;
-
-	char                                    m_next_monster_id;
-
-	int                                     m_start_cool_time;
-	int                                     m_end_cool_time = 5;
-	int                                     m_remain_cool_time;
-
-	bool                                    m_attack_check = false;
-
-	// 플레이어 관련
-
-	UCHAR                                   m_target_id;
-	float                                   m_length{ FLT_MAX };
-
-	concurrency::concurrent_priority_queue<TimerEvent> m_timer_queue;
-	concurrency::concurrent_queue<ExpOver*>            m_exp_over;
-
 public:
 	Server();
 	~Server() = default;
@@ -65,29 +34,28 @@ public:
 	void ProcessPacket(const int id, char* p);
 	void Disconnect(const int id);
 
-	void SendLoginOkPacket(const Session& player) const;
+	void SendLoginOkPacket(const Client& player) const;
 	void SendPlayerDataPacket();
-	void SendPlayerAttackPacket(int pl_id);
-	void SendMonsterAddPacket();
-	void SendMonsterDataPacket();
 
-	void PlayerCollisionCheck(Session& player);
-	void Update(float taketime);
-	void CreateMonsters(float taketime);
+	void PlayerCollisionCheck(Client& player);
 
 	void Timer();
 
-	UCHAR RecognizePlayer(const XMFLOAT3& mon_pos);
-	CHAR GetNewId() const;
-
+	CHAR GetNewId();
 
 	// 플레이어 처리
-	void MovePlayer(Session& player, XMFLOAT3 velocity);
-	void RotatePlayer(Session& player, FLOAT yaw);
+	void MovePlayer(Client& player, XMFLOAT3 velocity);
+	void RotatePlayer(Client& player, FLOAT yaw);
 
-	void CollideByStatic(Session& player, const BoundingOrientedBox& obb);
-	void CollideByMoveMent(Session& player1, Session& player2);
-	void CollideByStaticOBB(Session& player, const BoundingOrientedBox& obb);
+	void CollideByStatic(Client& player, const BoundingOrientedBox& obb);
+	void CollideByMoveMent(Client& player1, Client& player2);
+	void CollideByStaticOBB(Client& player, const BoundingOrientedBox& obb);
 
-	array<Session, MAX_USER>				m_clients;
+	array<Client, MAX_USER>				m_clients;
+
+private:
+	vector<thread>                          m_worker_threads;
+	bool									m_accept;
+
+	concurrency::concurrent_priority_queue<TIMER_EVENT>	 m_timer_queue;
 };

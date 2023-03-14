@@ -53,36 +53,36 @@ void Shader::Update(FLOAT timeElapsed)
 		elm.second->UpdateAnimation(timeElapsed);
 }
 
-void Shader::Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList) const
+void Shader::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const
 {
 	Shader::UpdateShaderVariable(commandList);
 
-	if (m_player) m_player->Render(device, commandList);
+	if (m_player) m_player->Render(commandList);
 
 	for (const auto& elm : m_gameObjects)
-		if (elm) elm->Render(device, commandList);
+		if (elm) elm->Render(commandList);
 
 	for (const auto& elm : m_multiPlayers)
-		if (elm.second) elm.second->Render(device, commandList);
+		if (elm.second) elm.second->Render(commandList);
 
 	for (const auto& elm : m_monsters)
-		if (elm.second) elm.second->Render(device, commandList);
+		if (elm.second) elm.second->Render(commandList);
 }
 
-void Shader::Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, const shared_ptr<Shader>& shader) const
+void Shader::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, const shared_ptr<Shader>& shader) const
 {
 	shader->UpdateShaderVariable(commandList);
 	
-	if (m_player) m_player->Render(device, commandList);
+	if (m_player) m_player->Render(commandList);
 
 	for (const auto& elm : m_gameObjects)
-		if (elm) elm->Render(device, commandList);
+		if (elm) elm->Render(commandList);
 
 	for (const auto& elm : m_multiPlayers)
-		if (elm.second) elm.second->Render(device, commandList);
+		if (elm.second) elm.second->Render(commandList);
 
 	for (const auto& elm : m_monsters)
-		if (elm.second) elm.second->Render(device, commandList);
+		if (elm.second) elm.second->Render(commandList);
 }
 
 void Shader::UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& commandList) const
@@ -170,7 +170,7 @@ void DetailShader::Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D1
 {
 	UpdateShaderVariable(commandList);
 
-	if (m_field) { m_field->Render(device, commandList); }
+	if (m_field) { m_field->Render(commandList); }
 }
 
 InstancingShader::InstancingShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature, const Mesh& mesh, UINT count) : 

@@ -2,9 +2,9 @@
 #include "stdafx.h"
 #include "map.h"
 
-unique_ptr<DungeonManager> g_dungeon_manager{};
+unique_ptr<GameRoomManager> g_game_room_manager{};
 
-Server::Server() : m_disconnect_cnt{ 0 }, m_floor{1}, m_next_monster_id {0}, m_accept {false}
+Server::Server() : m_accept {false}
 {
 }
 
@@ -57,9 +57,8 @@ int Server::Network()
 	using ms = std::chrono::duration<float, std::milli>;
 	std::chrono::time_point<std::chrono::steady_clock> fps_timer{ std::chrono::steady_clock::now() };
 
-	g_dungeon_manager = make_unique<DungeonManager>();
-	g_dungeon_manager->InitDungeon(0);
-
+	g_game_room_manager = make_unique<GameRoomManager>();
+	g_game_room_manager->InitGameRoom(0);
 
 	frame fps{}, frame_count{};
 	while (true) {
@@ -82,12 +81,10 @@ int Server::Network()
 			//SendPlayerDataPacket();
 		}
 		else {
-			//SendMonsterDataPacket();
-			g_dungeon_manager->SendMonsterData();
+			g_game_room_manager->SendMonsterData();
 		}
 
-		//Update(duration_cast<ms>(fps).count() / 1000.0f);
-		g_dungeon_manager->Update(duration_cast<ms>(fps).count() / 1000.0f);
+		g_game_room_manager->Update(duration_cast<ms>(fps).count() / 1000.0f);
 
 		frame_count = duration_cast<frame>(frame_count + fps);
 		if (frame_count.count() >= 60) {
@@ -98,10 +95,10 @@ int Server::Network()
 		fps_timer = std::chrono::steady_clock::now();
 	}
 
-	for (const auto& pl : m_clients)
+	for (const auto& cl : m_clients)
 	{
-		if (pl.m_player_data.active_check)
-			Disconnect(pl.m_player_data.id);
+		if (-1 == cl.GetId())
+			Disconnect(cl.GetId());
 	}
 
 	for (auto& th : m_worker_threads)
@@ -133,25 +130,29 @@ void Server::WorkerThreads()
 		case OP_ACCEPT: {
 			SOCKET c_socket = *(reinterpret_cast<SOCKET*>(exp_over->_send_buf));
 			CHAR new_id{ GetNewId() };
-			if (new_id == -1) {
+			if (-1 == new_id) {
 				std::cout << "Maxmum user overflow. Accept aborted." << std::endl;
 			}
 			else {
-				Session& cl = m_clients[new_id];
-				cl.m_lock.lock();
-				cl.m_player_data.id = new_id;
-				cl.m_player_data.active_check = true;
-				cl.m_socket = c_socket;
-				cl.m_ready_check = false;
-				constexpr char dummy_name[10] = "dummy\0";
-				strcpy_s(cl.m_name, sizeof(dummy_name), dummy_name);
-				cl.m_player_type = PlayerType::WARRIOR;
-				cl.m_prev_size = 0;
-				cl.m_recv_over._comp_type = OP_RECV;
-				cl.m_recv_over._wsa_buf.buf = reinterpret_cast<char*>(cl.m_recv_over._send_buf);
-				cl.m_recv_over._wsa_buf.len = sizeof(cl.m_recv_over._send_buf);
-				ZeroMemory(&cl.m_recv_over._wsa_over, sizeof(cl.m_recv_over._wsa_over));
-				cl.m_lock.unlock();
+				Client& cl = m_clients[new_id];
+				/*{
+					lock_guard<mutex> lock{ cl.GetStateMutex() }; 
+					cl.SetState(State::ST_ACCEPT);
+				}*/
+				// 새로운 id를 받아올 때 lock을 걸고 확인하면서 ACCEPT로 바꾸면
+				// 여기서 다시 걸 필요가 없을 것
+
+				cl.SetId(new_id);
+				cl.SetSocket(c_socket);
+
+				// client 클래스의 생성자에서 remain_size, EXP_OVER의 _comp_type을 초기화함
+				// 이후 Disconnect에서 나간 클라이언트를 다시 초기값으로 해주면
+				// 여기서 다시 할 필요는 없을 것
+
+				ExpOver& client_exp_over = cl.GetExpOver();
+				client_exp_over._wsa_buf.buf = reinterpret_cast<char*>(client_exp_over._send_buf);
+				client_exp_over._wsa_buf.len = sizeof(client_exp_over._send_buf);
+				ZeroMemory(&client_exp_over._wsa_over, sizeof(client_exp_over._wsa_over));
 
 				CreateIoCompletionPort(reinterpret_cast<HANDLE>(c_socket), g_h_iocp, new_id, 0);
 				cl.DoRecv();
@@ -168,8 +169,8 @@ void Server::WorkerThreads()
 				//disconnect(static_cast<int>(key));
 				continue;
 			}
-			Session& cl = m_clients[static_cast<int>(key)];
-			int remain_data = num_bytes + cl.m_prev_size;
+			Client& cl = m_clients[static_cast<int>(key)];
+			int remain_data = num_bytes + cl.GetRemainSize();
 			char* packet_start = exp_over->_send_buf;
 			int packet_size = packet_start[0];
 			while (packet_size <= remain_data) {
@@ -181,7 +182,7 @@ void Server::WorkerThreads()
 			}
 
 			if (0 < remain_data) {
-				cl.m_prev_size = remain_data;
+				cl.SetRemainSize(remain_data);
 				memcpy(&exp_over->_send_buf, packet_start, remain_data);
 			}
 			cl.DoRecv();
@@ -202,33 +203,28 @@ void Server::WorkerThreads()
 void Server::ProcessPacket(const int id, char* p) 
 {
 	char packet_type = p[1];
-	Session& cl = m_clients[id];
+	Client& cl = m_clients[id];
 	
 	switch (packet_type)
 	{
 	case CS_PACKET_LOGIN:
 	{
 		CS_LOGIN_PACKET* login_packet = reinterpret_cast<CS_LOGIN_PACKET*>(p);
-		cl.m_player_type = login_packet->player_type;
-		strcpy_s(cl.m_name, login_packet->name);
-		cl.m_lock.lock();
-		cl.m_state = STATE::ST_INGAME;
-		cl.m_lock.unlock();
+		cl.SetPlayerType(login_packet->player_type);
+		cl.SetName(string{ login_packet->name });
+		{
+			lock_guard<mutex> lock{ cl.GetStateMutex() }; 
+			cl.SetState(State::ST_INGAME);
+		}
 		SendLoginOkPacket(cl);
-		//SendMonsterAddPacket();
 
 		// 원래는 던전 진입 시 던전에 배치해야하지만
 		// 현재 마을이 없이 바로 던전에 진입하므로 던전에 입장시킴
-		g_dungeon_manager->SetPlayer(0, id, &cl);
-		g_dungeon_manager->SendMonsterAdd(id);
+		g_game_room_manager->SetPlayer(0, id, &cl);
+		g_game_room_manager->SendAddMonster(id);
 
 		cout << login_packet->name << " is connect" << endl;
 
-
-		
-
-		// 재접속 시 disconnectCount를 감소시켜야함
-		// disconnect_cnt = max(0, disconnect_cnt - 1);
 		//SendPlayerDataPacket();
 		break;
 	}
@@ -236,7 +232,9 @@ void Server::ProcessPacket(const int id, char* p)
 	{
 		CS_PLAYER_MOVE_PACKET* move_packet = reinterpret_cast<CS_PLAYER_MOVE_PACKET*>(p);
 
-		cl.m_player_data.velocity = move_packet->velocity;
+		// 위치는 서버에서 저장하므로 굳이 받을 필요는 없을 것
+		// 속도만 받아와서 처리해도 됨
+		cl.SetVelocity(move_packet->velocity);
 
 		XMFLOAT3 pos = move_packet->pos;
 		pos.x += move_packet->velocity.x;
@@ -245,17 +243,6 @@ void Server::ProcessPacket(const int id, char* p)
 
 		MovePlayer(cl, pos);
 		RotatePlayer(cl, move_packet->yaw);
-
-		//cl.m_player_data.pos = move_packet->pos;
-		//cl.m_player_data.velocity = move_packet->velocity;
-		//cl.m_player_data.yaw = move_packet->yaw;
-
-
-		//// 바운드 박스 처리
-		//cl.m_bounding_box.Center = move_packet->pos;
-
-		//cout << "x: " << cl.m_player_data.pos .x << " y: " << cl.m_player_data.pos.y <<
-		//	" z: " << cl.m_player_data.pos.z << endl;
 
 		PlayerCollisionCheck(cl);
 		SendPlayerDataPacket();
@@ -266,12 +253,11 @@ void Server::ProcessPacket(const int id, char* p)
 		CS_ATTACK_PACKET* attack_packet = reinterpret_cast<CS_ATTACK_PACKET*>(p);
 
 		
-		switch (attack_packet->key)
+		switch (attack_packet->attack_type)
 		{
-			case INPUT_KEY_E:
+			case AttackType::NORMAL:
 			{
 				cout << "공격!" << endl;
-				m_attack_check = true;
 				break;
 		    }	
 	    }
@@ -283,18 +269,18 @@ void Server::ProcessPacket(const int id, char* p)
 		CS_WEAPON_COLLISION_PACKET* packet = reinterpret_cast<CS_WEAPON_COLLISION_PACKET*>(p);
 
 		// 이벤트를 생성한다
-		CollisionEvent event{};
-		event.user_id = packet->id;
+		COLLISION_EVENT event{};
+		event.user_id = cl.GetId();
 		event.bounding_box.Center.x = packet->x;
 		event.bounding_box.Center.y = packet->y;
 		event.bounding_box.Center.z = packet->z;
-		event.bounding_box.Extents = cl.m_weopon_bounding_box.Extents;
+		event.bounding_box.Extents = cl.GetWeaponBoundingBox().Extents;
 		event.attack_type = packet->attack_type;
 		event.collision_type = packet->collision_type;
 		event.end_time = packet->end_time;
 
 		// 이벤트를 해당 플레이어가 속한 던전에 추가한다
-		g_dungeon_manager->SetEvent(event, packet->id);
+		g_game_room_manager->SetEvent(event, cl.GetId());
 
 
 		break;
@@ -307,7 +293,7 @@ void Server::ProcessPacket(const int id, char* p)
 		SC_CHANGE_ANIMATION_PACKET packet;
 		packet.size = sizeof(packet);
 		packet.type = SC_PACKET_CHANGE_ANIMATION;
-		packet.id = animation_packet->id;
+		packet.id = cl.GetId();
 		packet.animation_type = animation_packet->animation_type;
 
 		char buf[sizeof(packet)];
@@ -315,10 +301,11 @@ void Server::ProcessPacket(const int id, char* p)
 		WSABUF wsa_buf{ sizeof(buf), buf };
 		DWORD sent_byte;
 
+		// 마을, 게임룸 구분하여 보낼 필요 있음
 		for (const auto& cl : m_clients) {
-			if (!cl.m_player_data.active_check) continue;
-			if (cl.m_player_data.id == id) continue;
-			const int retval = WSASend(cl.m_socket, &wsa_buf, 1, &sent_byte, 0, nullptr, nullptr);
+			if (-1 == cl.GetId()) continue;
+			if (cl.GetId() == id) continue;
+			const int retval = WSASend(cl.GetSocket(), &wsa_buf, 1, &sent_byte, 0, nullptr, nullptr);
 			if (retval == SOCKET_ERROR) ErrorDisplay("Send(SC_ATTACK_PACKET) Error");
 		}
 
@@ -331,71 +318,68 @@ void Server::ProcessPacket(const int id, char* p)
 
 void Server::Disconnect(const int id)
 {
-	Session& cl = m_clients[id];
-	cl.m_lock.lock();
-	cl.m_player_data.id = 0;
-	cl.m_player_data.active_check = false;
-	cl.m_player_data.pos = {};
-	cl.m_player_data.velocity = {};
-	cl.m_player_data.yaw = 0.0f;
-	closesocket(cl.m_socket);
-	cl.m_lock.unlock();
+	// remain_size 를 0으로, ExpOver의 _comp_type을 OP_RECV 로 해야함
+	Client& cl = m_clients[id];
+	cl.SetId(-1);
+	cl.SetPosition(0.f, 0.f, 0.f);
+	cl.SetVelocity(0.f, 0.f, 0.f);
+	cl.SetYaw(0.f);
+	closesocket(cl.GetSocket());
+
+	lock_guard<mutex> lock{ cl.GetStateMutex() };
+	cl.SetState(State::ST_FREE);
 }
 
-void Server::SendLoginOkPacket(const Session& player) const
+void Server::SendLoginOkPacket(const Client& player) const
 {
 	SC_LOGIN_OK_PACKET login_ok_packet{};
 	login_ok_packet.size = sizeof(login_ok_packet);
 	login_ok_packet.type = SC_PACKET_LOGIN_OK;
-	login_ok_packet.player_data.id = player.m_player_data.id;
-	login_ok_packet.player_data.active_check = true;
-	login_ok_packet.player_data.pos.x = player.m_player_data.pos.x;
-	login_ok_packet.player_data.pos.y = player.m_player_data.pos.y;
-	login_ok_packet.player_data.pos.z = player.m_player_data.pos.z;
-	login_ok_packet.player_data.hp = player.m_player_data.hp;
-	login_ok_packet.player_type = player.m_player_type;
-	strcpy_s(login_ok_packet.name, sizeof(login_ok_packet.name), player.m_name);
+	login_ok_packet.player_data.id = player.GetId();
+	login_ok_packet.player_data.pos = player.GetPosition();
+	login_ok_packet.player_data.hp = player.GetHp();
+	login_ok_packet.player_type = player.GetPlayerType();
+	strcpy_s(login_ok_packet.name, sizeof(login_ok_packet.name), player.GetName().c_str());
 
 	char buf[sizeof(login_ok_packet)];
 	memcpy(buf, reinterpret_cast<char*>(&login_ok_packet), sizeof(login_ok_packet));
 	WSABUF wsa_buf{ sizeof(buf), buf };
 	DWORD sent_byte;
 
-	const int retval = WSASend(player.m_socket, &wsa_buf, 1, &sent_byte, 0, nullptr, nullptr);
+	const int retval = WSASend(player.GetSocket(), &wsa_buf, 1, &sent_byte, 0, nullptr, nullptr);
 	if (retval == SOCKET_ERROR) ErrorDisplay("Send(SC_LOGIN_OK_PACKET) Error");
 
-	login_ok_packet.type = SC_PACKET_ADD_PLAYER;
+	login_ok_packet.type = SC_PACKET_ADD_CHARACTER;
 	memcpy(buf, reinterpret_cast<char*>(&login_ok_packet), sizeof(login_ok_packet));
 
 	// 현재 접속해 있는 모든 클라이언트들에게 새로 로그인한 클라이언트들의 정보를 전송
 	for (const auto& other : m_clients)
 	{
-		if (!other.m_player_data.active_check) continue;
-		if (player.m_player_data.id == other.m_player_data.id) continue;
+		if (-1 == other.GetId()) continue;
+		if (player.GetId() == other.GetId()) continue;
 		cout << "sc packet1 " << endl;
-		const int retval = WSASend(other.m_socket, &wsa_buf, 1, &sent_byte, 0, nullptr, nullptr);
+		const int retval = WSASend(other.GetSocket(), &wsa_buf, 1, &sent_byte, 0, nullptr, nullptr);
 		if (retval == SOCKET_ERROR) ErrorDisplay("Send(SC_LOGIN_OK_PACKET) Error");
 	}
 
 	// 새로 로그인한 클라이언트에게 현재 접속해 있는 모든 클라이언트들의 정보를 전송
 	for (const auto& other : m_clients)
 	{
-		if (!other.m_player_data.active_check) continue;
-		if (static_cast<int>(other.m_player_data.id) == player.m_player_data.id) continue;
+		if (-1 == other.GetId()) continue;
+		if (static_cast<int>(other.GetId()) == player.GetId()) continue;
 
 		cout << "sc packet2 " << endl;
 		SC_LOGIN_OK_PACKET sub_packet{};
 		sub_packet.size = sizeof(sub_packet);
-		sub_packet.type = SC_PACKET_ADD_PLAYER;
-		sub_packet.player_data = other.m_player_data;
-		strcpy_s(sub_packet.name, sizeof(sub_packet.name), other.m_name);
+		sub_packet.type = SC_PACKET_ADD_CHARACTER;
+		sub_packet.player_data = other.GetPlayerData();
+		strcpy_s(sub_packet.name, sizeof(sub_packet.name), other.GetName().c_str());
 		//sub_packet.ready_check = other.m_ready_check;
-		sub_packet.player_type = other.m_player_type;
+		sub_packet.player_type = other.GetPlayerType();
 
 		memcpy(buf, reinterpret_cast<char*>(&sub_packet), sizeof(sub_packet));
-		const int retval = WSASend(player.m_socket, &wsa_buf, 1, &sent_byte, 0, nullptr, nullptr);
+		const int retval = WSASend(player.GetSocket(), &wsa_buf, 1, &sent_byte, 0, nullptr, nullptr);
 		if (retval == SOCKET_ERROR) ErrorDisplay("Send(SC_LOGIN_OK_PACKET) Error");
-		cout << (int)other.m_player_data.id << "add player to " << (int)player.m_player_data.id << endl;
 	}
 
 	std::cout << "[ id: " << static_cast<int>(login_ok_packet.player_data.id) << " Login Packet Received ]" << std::endl;
@@ -410,15 +394,7 @@ void Server::SendPlayerDataPacket()
 	update_packet.size = sizeof(update_packet);
 	update_packet.type = SC_PACKET_UPDATE_CLIENT;
 	for (int i = 0; i < MAX_USER; ++i)
-		update_packet.data[i] = m_clients[i].m_player_data;
-
-	for (int i = 1; i < MAX_USER; ++i)
-	{
-		if (!update_packet.data[i].active_check)
-		{
-			update_packet.data[i].id = -1;
-		}
-	}
+		update_packet.data[i] = m_clients[i].GetPlayerData();
 
 	char buf[sizeof(update_packet)];
 	memcpy(buf, reinterpret_cast<char*>(&update_packet), sizeof(update_packet));
@@ -427,192 +403,48 @@ void Server::SendPlayerDataPacket()
 
 	for (const auto& cl : m_clients)
 	{
-		if (!cl.m_player_data.active_check) continue; 
+		if (-1 == cl.GetId()) continue; 
 		
-		const int retval = WSASend(cl.m_socket, &wsa_buf, 1, &sent_byte, 0, nullptr, nullptr);
+		const int retval = WSASend(cl.GetSocket(), &wsa_buf, 1, &sent_byte, 0, nullptr, nullptr);
 		if (retval == SOCKET_ERROR)
 		{
 			if (WSAGetLastError() == WSAECONNRESET)
-				std::cout << "[" << static_cast<int>(cl.m_player_data.id) << " Session] Disconnect" << std::endl;
+				std::cout << "[" << static_cast<int>(cl.GetId()) << " Client] Disconnect" << std::endl;
 			else ErrorDisplay("Send(SC_PACKET_UPDATE_CLIENT)");
 		}
 	}
 	//cout << "작동중인 모든 클라이언트들에게 이동 결과를 알려줌" << endl;
 }
 
-void Server::SendPlayerAttackPacket(int pl_id)
+void Server::PlayerCollisionCheck(Client& player)
 {
-	SC_ATTACK_PACKET attack_packet;
-	attack_packet.size = sizeof(attack_packet);
-	attack_packet.type = SC_PACKET_PLAYER_ATTACK;
-	attack_packet.id = pl_id;
-	attack_packet.key = INPUT_KEY_E;
-
-	char buf[sizeof(attack_packet)];
-	memcpy(buf, reinterpret_cast<char*>(&attack_packet), sizeof(attack_packet));
-	WSABUF wsa_buf{ sizeof(buf), buf };
-	DWORD sent_byte;
-
-	for (const auto& cl : m_clients) {
-		if (!cl.m_player_data.active_check) continue;
-		const int retval = WSASend(cl.m_socket, &wsa_buf, 1, &sent_byte, 0, nullptr, nullptr);
-		if (retval == SOCKET_ERROR) ErrorDisplay("Send(SC_ATTACK_PACKET) Error");
-	}
-}
-
-void Server::PlayerCollisionCheck(Session& player)
-{
+	BoundingOrientedBox& player_obb = player.GetBoundingBox();
 	for (auto& cl : m_clients) {
-		if (!cl.m_player_data.active_check) continue;
-		if (cl.m_player_data.id == player.m_player_data.id) continue;
+		if (-1 == cl.GetId()) continue;
+		if (cl.GetId() == player.GetId()) continue;
 
-		if (player.m_bounding_box.Intersects(cl.m_bounding_box)) {
-			CollideByStatic(player, cl.m_bounding_box);
+		BoundingOrientedBox& obb = cl.GetBoundingBox();
+		if (player_obb.Intersects(obb)) {
+			CollideByStatic(player, obb);
 		}
 	}
 
-	auto& v = g_dungeon_manager->GetStructures();
+	auto& v = g_game_room_manager->GetStructures();
 
 	for (auto& obj : v) {
-		if (player.m_bounding_box.Intersects(obj->GetBoundingBox())) {
-			CollideByStaticOBB(player, obj->GetBoundingBox());
+		BoundingOrientedBox& obb = obj->GetBoundingBox();
+		if (player_obb.Intersects(obb)) {
+			CollideByStaticOBB(player, obb);
 		}
 	}
 }
 
-void Server::Update(const float taketime)
+CHAR Server::GetNewId()
 {
-
-	if (m_monsters.size() < MAX_MONSTER)
-		CreateMonsters(taketime);
-
-
-	for (auto& m : m_monsters)
-		m->CreateMonster(taketime);
-
-}
-
-UCHAR Server::RecognizePlayer(const XMFLOAT3& mon_pos)
-{
-	for (const auto& pl : m_clients)
-	{
-		if (!pl.m_exist_check) continue;
-		const float  myself{ Vector3::Length(Vector3::Sub(pl.m_player_data.pos, mon_pos)) };
-		//cout << "pl - mon: " <<  myself << endl;
-		if (myself < m_length)
-		{
-			m_length = myself;
-			m_target_id = pl.m_player_data.id;
-		}
-	}
-	return m_target_id;
-}
-
-void Server::CreateMonsters(const float taketime)
-{
-	//if (m_floor_mob_count[m_floor - 1] <= 0) {
-	//	m_spawn_stop = g_spawm_stop;
-	//	return;
-	//}
-
-	unique_ptr<Monster> monsters;
-
-	//if (m_spawn_stop <= 0.0f) {
-		switch (m_floor)
-		{
-		case 1:
-			monsters = make_unique<WarriorMonster>();
-			monsters->SetMonsterPosition();
-			break;
-		default:
-			break;
-		}
-		monsters->SetId(m_next_monster_id++);
-		monsters->SetTargetId(RecognizePlayer(monsters->GetPosition()));
-		cout << "Monster id - " << (int)monsters->GetId() << " is created" << " / pos (x: " << monsters->GetPosition().x << " y: " << monsters->GetPosition().y
-			<< " z: " << monsters->GetPosition().z << ")" << endl;
-		cout << "capacity:" << m_monsters.size() << " / " << MAX_MONSTER << std::endl;
-
-
-		m_monsters.push_back(move(monsters));
-
-	/*	m_spawn_stop = g_spawm_stop;
-		--m_floor_mob_count[m_floor - 1];
-	}
-	m_spawn_stop -= taketime;*/
-}
-
-void Server::SendMonsterAddPacket()
-{
-	//cout << "크기 - " << m_monsters.size() << endl;
-
-	SC_ADD_MONSTER_PACKET monster_packet[MAX_MONSTER];
-
-	for (size_t i = 0; i < m_monsters.size(); ++i) {
-		monster_packet[i].size = static_cast<UCHAR>(sizeof(SC_ADD_MONSTER_PACKET));
-		monster_packet[i].type = SC_PACKET_ADD_MONSTER;
-		monster_packet[i].monster_data = m_monsters[i]->GetData();
-		monster_packet[i].monster_type = m_monsters[i]->GetType();
-	}
-	for (size_t i = m_monsters.size(); i < MAX_MONSTER; ++i)
-		monster_packet[i].monster_data = MonsterData{ .id = -1 };
-
-	char buf[sizeof(monster_packet)];
-	memcpy(buf, reinterpret_cast<char*>(&monster_packet), sizeof(monster_packet));
-	WSABUF wsa_buf{ sizeof(buf), buf };
-	DWORD sent_byte;
-
-	for (const auto& cl : m_clients)
-	{
-		if (!cl.m_player_data.active_check) continue;
-		const int retVal = WSASend(cl.m_socket, &wsa_buf, 1, &sent_byte, 0, nullptr, nullptr);
-		if (retVal == SOCKET_ERROR)
-		{
-			if (WSAGetLastError() == WSAECONNRESET)
-				std::cout << "[" << static_cast<int>(cl.m_player_data.id) << " Session] Disconnect" << std::endl;
-			else ErrorDisplay("Send(SC_PACKET_ADD_MONSTER)");
-		}
-	}
-}
-
-
-void Server::SendMonsterDataPacket()
-{
-	//cout << "크기 - " << m_monsters.size() << endl;
-
-	SC_MONSTER_UPDATE_PACKET monster_packet[MAX_MONSTER];
-
-	for (size_t i = 0; i < m_monsters.size(); ++i) {
-		monster_packet[i].size = static_cast<UCHAR>(sizeof(SC_MONSTER_UPDATE_PACKET));
-		monster_packet[i].type = SC_PACKET_UPDATE_MONSTER;
-		monster_packet[i].monster_data = m_monsters[i]->GetData();
-	}
-	for (size_t i = m_monsters.size(); i < MAX_MONSTER; ++i)
-		monster_packet[i].monster_data = MonsterData{ .id = -1 };
-
-	char buf[sizeof(monster_packet)];
-	memcpy(buf, reinterpret_cast<char*>(&monster_packet), sizeof(monster_packet));
-	WSABUF wsa_buf{ sizeof(buf), buf };
-	DWORD sent_byte;
-
-	for (const auto& cl : m_clients)
-	{
-		if (!cl.m_player_data.active_check) continue;
-		const int retVal = WSASend(cl.m_socket, &wsa_buf, 1, &sent_byte, 0, nullptr, nullptr);
-		if (retVal == SOCKET_ERROR)
-		{
-			if (WSAGetLastError() == WSAECONNRESET)
-				std::cout << "[" << static_cast<int>(cl.m_player_data.id) << " Session] Disconnect" << std::endl;
-			else ErrorDisplay("Send(SC_PACKET_UPDATE_MONSTER)");
-		}
-	}
-}
-
-CHAR Server::GetNewId() const
-{
-	for (int i = 0; i < MAX_USER; ++i) {
-		if (false == m_clients[i].m_player_data.active_check)
-		{
+	for (size_t i = 0; i < MAX_USER; ++i) {
+		lock_guard<mutex> lock{ m_clients[i].GetStateMutex() };
+		if (State::ST_FREE == m_clients[i].GetState()) {
+			m_clients[i].SetState(State::ST_ACCEPT);
 			return i;
 		}
 	}
@@ -620,29 +452,32 @@ CHAR Server::GetNewId() const
 	return -1;
 }
 
-void Server::MovePlayer(Session& player, XMFLOAT3 pos)
+void Server::MovePlayer(Client& player, XMFLOAT3 pos)
 {
-	player.m_player_data.pos = pos;
+	player.SetPosition(pos);
 
 	// 바운드 박스 갱신
-	player.m_bounding_box.Center = pos;
+	player.SetBoundingBoxCenter(pos);
 }
 
 void Server::Timer()
 {
 	using namespace chrono;
-	TimerEvent event;
+	TIMER_EVENT event;
 
 	while (true) {
+		if (!m_timer_queue.try_pop(event)) {
+			std::this_thread::sleep_for(1ms);
+			continue;
+		}
 
-		if (!m_timer_queue.try_pop(event)) continue;
-
-		if (event.start_time <= system_clock::now()) {
+		if (event.event_time <= system_clock::now()) {
 			
 			switch (event.event_type)
 			{
 			case EVENT_PLAYER_ATTACK:
 				cout << "공격 이벤트 중" << endl;
+				break;
 			default:
 				break;
 			}
@@ -668,10 +503,10 @@ void Server::Timer()
 
 }
 
-void Server::RotatePlayer(Session& player, FLOAT yaw)
+void Server::RotatePlayer(Client& player, FLOAT yaw)
 {
 	// 플레이어 회전, degree 값
-	player.m_player_data.yaw = yaw;
+	player.SetYaw(yaw);
 
 	float radian = XMConvertToRadians(yaw);
 	
@@ -679,12 +514,12 @@ void Server::RotatePlayer(Session& player, FLOAT yaw)
 	XMStoreFloat4(&q, XMQuaternionRotationRollPitchYaw(0.f, radian, 0.f));
 
 	// 바운드 박스 회전
-	player.m_bounding_box.Orientation = XMFLOAT4{q.x, q.y, q.z, q.w};
+	player.SetBoundingBoxOrientation(q);
 }
 
-void Server::CollideByStatic(Session& player, const BoundingOrientedBox& obb)
+void Server::CollideByStatic(Client& player, const BoundingOrientedBox& obb)
 {
-	BoundingOrientedBox& player_obb = player.m_bounding_box;
+	BoundingOrientedBox& player_obb = player.GetBoundingBox();
 
 	// length 는 바운드 박스의 길이 합
 	// dist 는 바운드 박스간의 거리
@@ -698,7 +533,7 @@ void Server::CollideByStatic(Session& player, const BoundingOrientedBox& obb)
 	FLOAT x_bias = x_length - x_dist;
 	FLOAT z_bias = z_length - z_dist;
 
-	XMFLOAT3 pos = player.m_player_data.pos;
+	XMFLOAT3 pos = player.GetPosition();
 
 	// z 방향으로 밀어내기
 	if (x_bias - z_bias >= numeric_limits<FLOAT>::epsilon()) {
@@ -729,13 +564,13 @@ void Server::CollideByStatic(Session& player, const BoundingOrientedBox& obb)
 	MovePlayer(player, pos);
 }
 
-void Server::CollideByMoveMent(Session& player1, Session& player2)
+void Server::CollideByMoveMent(Client& player1, Client& player2)
 {
 	// 충돌한 플레이어의 속도
-	XMFLOAT3 velocity = player1.m_player_data.velocity;
+	XMFLOAT3 velocity = player1.GetVelocity();
 
 	// 충돌된 오브젝트의 위치
-	XMFLOAT3 pos = player2.m_player_data.pos;
+	XMFLOAT3 pos = player2.GetPosition();
 
 	// 충돌된 오브젝트를 충돌한 플레이어의 속도만큼 밀어냄
 	// 밀어내는 방향 고려할 필요 있음 ( 아직 X )
@@ -745,7 +580,7 @@ void Server::CollideByMoveMent(Session& player1, Session& player2)
 	MovePlayer(player2, pos);
 }
 
-void Server::CollideByStaticOBB(Session& player, const BoundingOrientedBox& obb)
+void Server::CollideByStaticOBB(Client& player, const BoundingOrientedBox& obb)
 {
 	// 1. 오브젝트에서 충돌면을 구한다
 	// 2. 해당 충돌면의 법선 벡터를 구한다
@@ -763,7 +598,7 @@ void Server::CollideByStaticOBB(Session& player, const BoundingOrientedBox& obb)
 		{corners[5].x, 0.f, corners[5].z} ,
 		{corners[4].x, 0.f, corners[4].z} };
 
-	player.m_bounding_box.GetCorners(corners);
+	player.GetBoundingBox().GetCorners(corners);
 
 	XMFLOAT3 p_square[4] = {
 		{corners[0].x, 0.f, corners[0].z},
@@ -802,7 +637,7 @@ void Server::CollideByStaticOBB(Session& player, const BoundingOrientedBox& obb)
 			v = Vector3::Normalize(Vector3::Sub(o_square[0], o_square[1]));
 		}
 		v = Vector3::Mul(v, *min);
-		MovePlayer(player, Vector3::Add(player.m_player_data.pos, v));
+		MovePlayer(player, Vector3::Add(player.GetPosition(), v));
 		
 
 		//// 충돌한 오브젝트의 꼭짓점을 이용해 사각형의 테두리를 따라가는 벡터 4개를 구함

@@ -2,59 +2,74 @@
 #include "stdafx.h"
 #include "Server.h"
 
-Monster::Monster()
+Monster::Monster() : m_target_id{ -1 }, m_current_animation{ ObjectAnimation::IDLE }
 {
-	m_yaw = 0.f;
-	m_velocity = XMFLOAT3(0.f, 0.f, 0.f);
-	m_current_animation = ObjectAnimation::IDLE;
 }
 
-void Monster::MonsterStateUpdate(XMVECTOR& look, float taketime)
+void Monster::UpdatePosition(XMVECTOR& dir, FLOAT elapsed_time)
 {
-	XMFLOAT3 velocity{};
-
-	XMStoreFloat3(&velocity, look * m_speed);
-	m_velocity = XMFLOAT3{ 0.0f, 0.0f, m_speed };
+	XMStoreFloat3(&m_velocity, dir * MonsterSetting::MONSTER_WALK_SPEED);
 
 	// 몬스터 이동
-
-	m_position.x += velocity.x * taketime;
-	m_position.y += velocity.y * taketime;
-	m_position.z += velocity.z * taketime;
+	m_position.x += m_velocity.x * elapsed_time;
+	m_position.y += m_velocity.y * elapsed_time;
+	m_position.z += m_velocity.z * elapsed_time;
 
 	m_bounding_box.Center = m_position;
-	//cout << "taketime - " << taketime << endl;
 }
 
-void Monster::MonsterRotateUpdate(const XMVECTOR& look)
+void Monster::UpdateRotation(const XMVECTOR& dir)
 {
-	XMVECTOR zAxis{ XMVectorSet(0.0f, 0.0f, 1.0f, 1.0f) };
-	XMVECTOR radian{ XMVector3AngleBetweenNormals(zAxis, look) };
+	XMVECTOR z_axis{ XMVectorSet(0.0f, 0.0f, 1.0f, 1.0f) };
+	XMVECTOR radian{ XMVector3AngleBetweenNormals(z_axis, dir) };
 	FLOAT angle{ XMConvertToDegrees(XMVectorGetX(radian)) };
 
-	m_yaw = XMVectorGetX(look) < 0 ? -angle : angle;
+	m_yaw = XMVectorGetX(dir) < 0 ? -angle : angle;
 }
 
 
-XMVECTOR Monster::GetPlayerVector(UCHAR pl_id)
+XMVECTOR Monster::GetPlayerVector(INT player_id)
 {
-	XMVECTOR pl_pos{ XMLoadFloat3(&g_server.m_clients[pl_id].m_player_data.pos) };
-	XMVECTOR mon_pos{ XMLoadFloat3(&m_position) };
-	return XMVector3Normalize(pl_pos - mon_pos);
+	XMFLOAT3 pos = g_server.m_clients[player_id].GetPosition();
+	XMVECTOR player_pos{ XMLoadFloat3(&pos)};
+	XMVECTOR monster_pos{ XMLoadFloat3(&m_position) };
+	return XMVector3Normalize(player_pos - monster_pos);
 }
 
-void Monster::SetId(char id)
+void Monster::SetTargetId(INT id)
 {
-	m_id = id;
+	m_target_id = id;
 }
 
-void Monster::SetPosition(const DirectX::XMFLOAT3& position)
+MONSTER_DATA Monster::GetData() const
 {
-	m_position = position;
+	return MONSTER_DATA( m_id, m_position, m_velocity, m_yaw, m_hp );
 }
 
-void Monster::SetMonsterPosition()
+void Monster::DecreaseHp(USHORT damage)
 {
+	m_hp -= damage;
+	
+	// 0이하로 떨어지면 사망처리 해야 함
+	if (m_hp <= 0)
+		m_id = -1;
+}
+
+bool Monster::ChangeAnimation(BYTE animation)
+{
+	if (m_current_animation == animation)
+		return false;
+
+	m_current_animation = animation;
+	return true;
+}
+
+void Monster::InitializePosition()
+{
+	// 파일을 읽어서 초기 위치를 정하는 함수 필요
+	// 던전 매니저에서 해야하는 일이므로 나중에 던전매니저로 옮겨야 하는 함수
+	// 던전 매니저는 지형지물, 몬스터 배치 등의 던전 정보들을 관리함
+
 	constexpr DirectX::XMFLOAT3 monster_create_area[]
 	{
 		{ 4.0f,	0.0f, 5.0f }, { 2.0f, 0.0f, -6.0f },{ 4.0f,  0.0f, 6.0f },	{ -3.0f, 0.0f, 7.0f },
@@ -64,139 +79,45 @@ void Monster::SetMonsterPosition()
 	SetPosition(monster_create_area[area_distribution(g_random_engine)]);
 }
 
-void Monster::SetTargetId(char id)
-{
-	m_target_id = id;
-}
-
-void Monster::SetHp(int hp)
-{
-	m_hp = hp;
-}
-
-CHAR Monster::GetId() const
-{
-	return m_id;
-}
-
-DirectX::XMFLOAT3 Monster::GetPosition()
-{
-	return m_position;
-}
-
-MonsterData Monster::GetData() const
-{
-	return MonsterData{ m_id, m_position, m_velocity, m_yaw, m_hp };
-}
-
-UCHAR Monster::GetTargetId() const
-{
-	return m_target_id;
-}
-
-void WarriorMonster::TargetUpdate()
-{
-	if (!g_server.m_clients[m_target_id].m_exist_check)
-		m_target_id = g_server.RecognizePlayer(GetPosition());
-}
-
-MonsterType Monster::GetType() const
-{
-	return m_monster_type;
-}
-
-BoundingOrientedBox Monster::GetBoundingBox() const
-{
-	return m_bounding_box;
-}
-
-void Monster::DecreaseHp(INT damage)
-{
-	m_hp -= damage;
-	// 0이하로 떨어지면 사망처리
-	if (m_hp <= 0)
-		m_id = -1;
-}
-
-bool Monster::ChangeAnimation(int animation)
-{
-	if (m_current_animation == animation)
-		return false;
-
-	m_current_animation = animation;
-	return true;
-}
 
 WarriorMonster::WarriorMonster()
 {
 	m_monster_type = MonsterType::WARRIOR;
 	m_hp = 200;
 	m_damage = 20;
-	m_speed = 0.8;
 	m_bounding_box.Center = XMFLOAT3(0.028f, 1.27f, 0.f);
 	m_bounding_box.Extents = XMFLOAT3(0.8f, 1.3f, 0.5f);
 	m_bounding_box.Orientation = XMFLOAT4(0.f, 0.f, 0.f, 1.f);
 }
 
-void WarriorMonster::CreateMonster(float taketime)
+void WarriorMonster::Update(FLOAT elapsed_time)
 {
 	if (m_hp <= 0) return;
-
-	TargetUpdate();
-
-	XMVECTOR look{GetPlayerVector(m_target_id)};
-
-	// 플레이어를 향해서 이동
-	MonsterStateUpdate(look , taketime);
-
-	// 플레이어 방향으로 회전
-	MonsterRotateUpdate(look);
-
-}
-
-void WarriorMonster::Update(float take_time)
-{
-	if (m_hp <= 0) return;
-
-	TargetUpdate();
-
 
 	XMVECTOR look{ GetPlayerVector(m_target_id) };
 
 	// 플레이어를 향해서 이동
-	MonsterStateUpdate(look, take_time);
+	UpdatePosition(look, elapsed_time);
 
-	MonsterRotateUpdate(look);
-}
-
-void ArcherMonster::TargetUpdate()
-{
+	UpdateRotation(look);
 }
 
 ArcherMonster::ArcherMonster()
 {
+
 }
 
-void ArcherMonster::CreateMonster(float taketime)
+void ArcherMonster::Update(FLOAT elapsed_time)
 {
+
 }
 
-void ArcherMonster::Update(float take_time)
+WizardMonster::WizardMonster()
 {
+
 }
 
-void WizsadMonster::TargetUpdate()
+void WizardMonster::Update(FLOAT elapsed_time)
 {
-}
 
-WizsadMonster::WizsadMonster()
-{
-}
-
-void WizsadMonster::CreateMonster(float taketime)
-{
-}
-
-void WizsadMonster::Update(float take_time)
-{
 }

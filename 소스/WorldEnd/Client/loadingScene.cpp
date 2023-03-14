@@ -186,8 +186,8 @@ void LoadingScene::Update(FLOAT timeElapsed)
 	}
 }
 
-void LoadingScene::Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList) const {}
-void LoadingScene::RenderShadow(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList) {}
+void LoadingScene::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const {}
+void LoadingScene::RenderShadow(const ComPtr<ID3D12GraphicsCommandList>& commandList) {}
 
 void LoadingScene::RenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext)
 {

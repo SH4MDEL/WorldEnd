@@ -1,5 +1,5 @@
-#include "main.h"
 #include "stdafx.h"
+#include "Server.h"
 
 int main()
 {

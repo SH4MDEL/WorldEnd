@@ -36,7 +36,6 @@ public:
 
 	// 추가
 	void SetID(INT id) { m_id = id; }
-	void SetKey(CHAR key) { m_key = key; }
 	INT GetID() const { return m_id; }
 
 private:
@@ -53,7 +52,6 @@ private:
 	BOOL				m_isAttackCheck;
 
 	INT					m_id;				// 플레이어 고유 아이디
-	CHAR                m_key = INPUT_KEY_E;
 
 	PlayerType			m_type = PlayerType::WARRIOR;
 };

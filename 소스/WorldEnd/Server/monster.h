@@ -1,97 +1,62 @@
 #pragma once
 #include "stdafx.h"
+#include "object.h"
 
-class Monster
+class Monster : public MovementObject
 {
-protected:
-	CHAR							m_id;
-	MonsterType                     m_monster_type;
-	DirectX::XMFLOAT3				m_position;
-	DirectX::XMFLOAT3				m_velocity;
-	FLOAT			                m_yaw;
-
-	INT								m_hp;			
-	INT								m_damage;		
-	FLOAT							m_speed;	
-
-	UCHAR                           m_target_id;
-
-	XMFLOAT4X4                      m_worldmatrix;
-
-	BoundingOrientedBox				m_bounding_box;
-
-	INT								m_current_animation;
-
-	void MonsterStateUpdate(XMVECTOR& look, float taketime);
-	void MonsterRotateUpdate(const XMVECTOR& look);
-	XMVECTOR GetPlayerVector(UCHAR pl_id);
-
 public:
-
 	Monster();
 	virtual ~Monster() = default;
 
-	virtual void Update(float taketime) = 0;
+	virtual void Update(FLOAT elapsed_time) {};
 
-	virtual void CreateMonster(float taketime) {};
+	void SetTargetId(INT player_id);
 
-	void SetId(char id);
-	void SetPosition(const XMFLOAT3& position);
-	void SetMonsterPosition();
-	void SetTargetId(char id);
-	void SetHp(int hp);
+	MONSTER_DATA GetData() const;
+	UCHAR GetTargetId() const { return m_target_id; }
+	MonsterType GetType() const { return m_monster_type; }
 
-	CHAR GetId() const;
-	DirectX::XMFLOAT3 GetPosition();
-	MonsterData GetData() const;
-	UCHAR GetTargetId() const;
-	MonsterType GetType() const;
-	BoundingOrientedBox GetBoundingBox() const;
+	void DecreaseHp(USHORT damage);
 
-	void DecreaseHp(INT damage);
+	bool ChangeAnimation(BYTE animation);
 
-	bool ChangeAnimation(int animation);
+	// 나중에 던전 매니저로 옮겨야 할 함수
+	void InitializePosition();
+
+protected:
+	MonsterType		m_monster_type;
+	INT				m_target_id;
+	USHORT			m_current_animation;
+
+	void UpdatePosition(XMVECTOR& dir, FLOAT elapsed_time);
+	void UpdateRotation(const XMVECTOR& dir);
+	XMVECTOR GetPlayerVector(INT player_id);
 };
 
 class WarriorMonster : public Monster
 {
-private:
-	void TargetUpdate();
-
 public:
 	WarriorMonster();
-	~WarriorMonster() = default;
+	virtual ~WarriorMonster() = default;
 
-	virtual void CreateMonster(float taketime);
-
-	virtual void Update(float taketime) override;
+	virtual void Update(FLOAT elapsed_time) override;
 };
 
 class ArcherMonster : public Monster
 {
-private:
-	void TargetUpdate();
-
 public:
 	ArcherMonster();
-	~ArcherMonster() = default;
+	virtual ~ArcherMonster() = default;
 
-	virtual void CreateMonster(float take_time);
-
-	virtual void Update(float taketime) override;
+	virtual void Update(FLOAT elapsed_time) override;
 };
 
-class WizsadMonster : public Monster
+class WizardMonster : public Monster
 {
-private:
-	void TargetUpdate();
-
 public:
-	WizsadMonster();
-	~WizsadMonster() = default;
+	WizardMonster();
+	virtual ~WizardMonster() = default;
 
-	virtual void CreateMonster(float taketime);
-
-	virtual void Update(float taketime) override;
+	virtual void Update(FLOAT elapsed_time) override;
 };
 

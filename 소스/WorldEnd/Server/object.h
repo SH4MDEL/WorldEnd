@@ -1,35 +1,125 @@
 #pragma once
 #include "stdafx.h"
 
-class Session;
+struct SCORE_DATA
+{
+	string names[MAX_IN_GAME_USER];
+	USHORT score;
+
+	constexpr bool operator <(const SCORE_DATA& left)const
+	{
+		return (score < left.score);
+	}
+};
+
+enum class State { ST_FREE, ST_ACCEPT, ST_INGAME };
 
 class GameObject
 {
 public:
-	GameObject() = default;
+	GameObject();
 	virtual ~GameObject() = default;
-	
-	virtual void CheckCollision(Session& player) {}
-	virtual void CheckCollision(GameObject& object) {}
 
-	void SetPosition(const XMFLOAT3& pos);
-	void SetRotation(const FLOAT& yaw);
-	void SetBoundingBox(const BoundingOrientedBox& obb);
+	void SetId(INT id) { m_id = id; }
+	void SetPosition(const XMFLOAT3& pos) { m_position = pos; }
+	void SetPosition(FLOAT x, FLOAT y, FLOAT z);
+	void SetYaw(const FLOAT& yaw) { m_yaw = yaw; }
+	void SetBoundingBox(const BoundingOrientedBox& obb) { m_bounding_box = obb; }
+	void SetBoundingBoxCenter(const XMFLOAT3& center) { m_bounding_box.Center = center; }
+	void SetBoundingBoxOrientation(const XMFLOAT4& orientaion) { m_bounding_box.Orientation = orientaion; }
 
-	BoundingOrientedBox GetBoundingBox() const { return m_bounding_box; }
+	XMFLOAT3 GetPosition() const { return m_position; }
+	FLOAT GetYaw() const { return m_yaw; }
+	const BoundingOrientedBox& GetBoundingBox() const { return m_bounding_box; }
+	BoundingOrientedBox& GetBoundingBox() { return m_bounding_box; }
+	INT GetId() const { return m_id; }
+
+	virtual void SendEvent(INT id) {}
 
 protected:
 	XMFLOAT3				m_position;
 	FLOAT					m_yaw;
 	BoundingOrientedBox		m_bounding_box;
+	INT						m_id;
 };
 
-class NPC : public GameObject
+class Npc : public GameObject
 {
 public:
-	NPC() = default;
-	virtual ~NPC() = default;
+	Npc() = default;
+	virtual ~Npc() = default;
+
+	void SetEventBoundingBox(const BoundingOrientedBox& obb) { m_event_bounding_box = obb; }
+
+	BoundingOrientedBox GetEventBoundingBox() const { return m_event_bounding_box; }
+
+	virtual void SendEvent(INT id) override {}
 
 private:
-
+	BoundingOrientedBox m_event_bounding_box;
 };
+
+class RecordBoard : public Npc
+{
+public:
+	RecordBoard();
+	virtual ~RecordBoard() = default;
+
+	virtual void SendEvent(INT player_id) override;
+
+	void SetRecord(const SCORE_DATA& record, INT player_num);
+
+	array<SCORE_DATA, MAX_RECORD_NUM>& GetRecord(INT player_num);
+
+private:
+	array<SCORE_DATA, MAX_RECORD_NUM> m_trio_squad_records;
+	array<SCORE_DATA, MAX_RECORD_NUM> m_duo_squad_records;
+	array<SCORE_DATA, MAX_RECORD_NUM> m_solo_squad_records;
+};
+
+class Enhancment : public Npc
+{
+public:
+	Enhancment();
+	virtual ~Enhancment() = default;
+
+	virtual void SendEvent(INT player_id) override;
+};
+
+class MovementObject : public GameObject
+{
+public:
+	MovementObject();
+	virtual ~MovementObject() = default;
+
+	void SetVelocity(const XMFLOAT3& velocity) { m_velocity = velocity; }
+	void SetVelocity(FLOAT x, FLOAT y, FLOAT z);
+	void SetStateLock() { m_state_lock.lock(); }
+	void SetStateUnLock() { m_state_lock.unlock(); }
+	void SetState(State state) { m_state = state; }
+	void SetName(string name) { m_name = name; }
+	void SetHp(INT hp) { m_hp = hp; }
+	void SetDamage(INT damage) { m_damage = damage; }
+	void SetRoomNum(USHORT room_num) { m_room_num = room_num; }
+
+	XMFLOAT3 GetVelocity() const { return m_velocity; }
+	std::mutex& GetStateMutex() { return m_state_lock; }
+	State GetState() const { return m_state; }
+	string GetName() const { return m_name; }
+	INT GetHp() const { return m_hp; }
+	INT GetDamage() const { return m_damage; }
+	USHORT GetRoomNum() const { return m_room_num; }
+
+protected:
+	XMFLOAT3	m_velocity;
+
+	std::mutex	m_state_lock;
+	State		m_state;
+
+	string		m_name;
+	INT			m_hp;
+	INT			m_damage;
+
+	USHORT		m_room_num;
+};
+

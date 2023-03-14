@@ -12,9 +12,9 @@
 #include <unordered_map>
 #include <mutex>
 #include <random>
-#include <concurrent_queue.h>
-#include<concurrent_priority_queue.h>
-#include<concurrent_unordered_set.h>
+#include <queue>
+#include <concurrent_priority_queue.h>
+#include <concurrent_unordered_set.h>
 #include "protocol.h"
 
 #pragma comment (lib, "opengl32.lib")
@@ -36,6 +36,7 @@ using namespace DirectX;
 #pragma comment (lib, "MSWSock.LIB")
 
 class Server;
+
 extern Server           g_server;
 extern SOCKET			g_socket;
 extern HANDLE           g_h_iocp;
@@ -68,7 +69,7 @@ namespace Vector3
         XMStoreFloat3(&result, XMVector3Cross(XMLoadFloat3(&a), XMLoadFloat3(&b)));
         return result;
     }
-    inline XMFLOAT3 Angle(const XMFLOAT3& a, const XMFLOAT3& b, BOOL isNormalized = true)
+    inline XMFLOAT3 Angle(const XMFLOAT3& a, const XMFLOAT3& b, bool isNormalized = true)
     {
         XMFLOAT3 result;
         if (isNormalized) XMStoreFloat3(&result, XMVector3AngleBetweenNormals(XMLoadFloat3(&a), XMLoadFloat3(&b)));

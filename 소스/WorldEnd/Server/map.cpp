@@ -2,132 +2,26 @@
 #include <unordered_map>
 #include "map.h"
 
-vector<shared_ptr<GameObject>> Dungeon::m_structures;
-
-
-DungeonManager::DungeonManager()
-{
-	auto dungeon = make_shared<Dungeon>();
-	m_dungeons.push_back(dungeon);
-	dungeon->LoadMap();
-}
-
-int DungeonManager::FindDungeonInPlayer(CHAR player_id)
-{
-	for (size_t i = 0; const auto & dungeon : m_dungeons) {
-		if (dungeon->FindPlayer(player_id))
-			return i;
-		++i;
-	}
-	return -1;
-}
-
-void DungeonManager::SetEvent(CollisionEvent event, CHAR player_id)
-{
-	int index = FindDungeonInPlayer(player_id);
-	m_dungeons[index]->SetEvent(event);
-}
-
-void DungeonManager::SetPlayer(int index, CHAR player_id, Session* player)
-{
-	m_dungeons[index]->SetPlayer(player_id, player);
-}
-
-void DungeonManager::InitDungeon(int index)
-{
-	m_dungeons[index]->InitDungeon();
-}
-
-void DungeonManager::Update(float take_time)
-{
-	for (const auto& dungeon : m_dungeons)
-		dungeon->Update(take_time);
-}
-
-void DungeonManager::SendMonsterData()
-{
-	for (const auto& dungeon : m_dungeons)
-		dungeon->SendMonsterData();
-}
-
-void DungeonManager::SendMonsterAdd(CHAR player_id)
-{
-	int index = FindDungeonInPlayer(player_id);
-	m_dungeons[index]->SendMonsterAdd(player_id);
-}
-
-
-void Dungeon::LoadMap()
-{
-	unordered_map<string, BoundingOrientedBox> bounding_box_data;
-
-	ifstream in{ "./Resource/DungeonObject.bin", std::ios::binary };
-
-	BYTE strLength{};
-	string objectName;
-	BoundingOrientedBox bounding_box{};
-
-	while (in.read((char*)(&strLength), sizeof(BYTE))) {
-		objectName.resize(strLength, '\0');
-		in.read((char*)(&objectName[0]), strLength);
-
-		in.read((char*)(&bounding_box.Extents), sizeof(XMFLOAT3));
-
-		bounding_box_data.insert({ objectName, bounding_box });
-	}
-	in.close();
-
-	
-	in.open("./Resource/DungeonMap.bin", std::ios::binary);
-
-	XMFLOAT3 position{};
-	FLOAT yaw{};
-
-	while (in.read((char*)(&strLength), sizeof(BYTE))) {
-		objectName.resize(strLength, '\0');
-		in.read(&objectName[0], strLength);
-
-		in.read((char*)(&position), sizeof(XMFLOAT3));
-		in.read((char*)(&yaw), sizeof(FLOAT));
-		// 라디안 값
-
-		if (!bounding_box_data.contains(objectName))
-			continue;
-
-		auto object = make_shared<GameObject>();
-		object->SetPosition(position);
-		object->SetRotation(yaw);
-
-		XMVECTOR vec = XMQuaternionRotationRollPitchYaw(0.f, yaw, 0.f);
-		XMFLOAT4 q{};
-		XMStoreFloat4(&q, vec);
-
-		bounding_box = bounding_box_data[objectName];
-		bounding_box.Center = position;
-		bounding_box.Orientation = XMFLOAT4{ q.x, q.y, q.x, q.w };
-		
-		object->SetBoundingBox(bounding_box);
-
-		m_structures.push_back(object);
-	}
-
-}
-
-void Dungeon::SetEvent(CollisionEvent event)
+void GameRoom::SetEvent(COLLISION_EVENT event)
 {
 	m_collision_events.push_back(event);
 }
 
-void Dungeon::SetPlayer(CHAR player_id, Session* player)
+void GameRoom::SetPlayer(INT player_id, Client* player)
 {
 	m_players.insert({ player_id, player });
 }
 
-void Dungeon::Update(float take_time)
+GameRoom::GameRoom() : m_state{ GameRoomState::EMPTY }, m_floor{ 1 }, 
+	m_type{ EnvironmentType::FOG }
+{
+}
+
+void GameRoom::Update(FLOAT elapsed_time)
 {
 	// 몬스터 이동
 	for (const auto& monster : m_monsters)
-		monster->Update(take_time);
+		monster->Update(elapsed_time);
 
 
 	// 충돌 이벤트에 대한 검사
@@ -139,11 +33,11 @@ void Dungeon::Update(float take_time)
 			if ((*m_it)->GetBoundingBox().Intersects(c_it->bounding_box)) {
 
 				// 충돌 발생 시 데미지 계산
-				float damage = m_players[c_it->user_id]->m_damage;
+				FLOAT damage = m_players[c_it->user_id]->GetDamage();
 
 				switch (c_it->attack_type) {
 				case AttackType::SKILL:
-					damage *= m_players[c_it->user_id]->m_skill_ratio;
+					damage *= m_players[c_it->user_id]->GetSkillRatio(AttackType::SKILL);
 					break;
 
 				case AttackType::ULTIMATE:
@@ -185,7 +79,7 @@ void Dungeon::Update(float take_time)
 	}
 }
 
-void Dungeon::SendMonsterData()
+void GameRoom::SendMonsterData()
 {
 	SC_MONSTER_UPDATE_PACKET monster_packet[MAX_MONSTER];
 
@@ -197,7 +91,7 @@ void Dungeon::SendMonsterData()
 	for (size_t i = m_monsters.size(); i < MAX_MONSTER; ++i) {
 		monster_packet[i].size = static_cast<UCHAR>(sizeof(SC_MONSTER_UPDATE_PACKET));
 		monster_packet[i].type = SC_PACKET_UPDATE_MONSTER;
-		monster_packet[i].monster_data = MonsterData{ .id = -1 };
+		monster_packet[i].monster_data = MONSTER_DATA{ .id = -1 };
 	}
 
 	char buf[sizeof(monster_packet)];
@@ -207,18 +101,18 @@ void Dungeon::SendMonsterData()
 
 	for (const auto& data : m_players)
 	{
-		if (!data.second->m_player_data.active_check) continue;
-		const int retVal = WSASend(data.second->m_socket, &wsa_buf, 1, &sent_byte, 0, nullptr, nullptr);
+		if (-1 == data.second->GetId()) continue;
+		const int retVal = WSASend(data.second->GetSocket(), &wsa_buf, 1, &sent_byte, 0, nullptr, nullptr);
 		if (retVal == SOCKET_ERROR)
 		{
 			if (WSAGetLastError() == WSAECONNRESET)
-				std::cout << "[" << static_cast<int>(data.second->m_player_data.id) << " Session] Disconnect" << std::endl;
+				std::cout << "[" << static_cast<int>(data.second->GetId()) << " Client] Disconnect" << std::endl;
 			else ErrorDisplay("Send(SC_PACKET_UPDATE_MONSTER)");
 		}
 	}
 }
 
-void Dungeon::SendMonsterAdd(CHAR player_id)
+void GameRoom::SendAddMonster(INT player_id)
 {
 	SC_ADD_MONSTER_PACKET monster_packet[MAX_MONSTER];
 
@@ -231,7 +125,7 @@ void Dungeon::SendMonsterAdd(CHAR player_id)
 	for (size_t i = m_monsters.size(); i < MAX_MONSTER; ++i) {
 		monster_packet[i].size = static_cast<UCHAR>(sizeof(SC_ADD_MONSTER_PACKET));
 		monster_packet[i].type = SC_PACKET_ADD_MONSTER;
-		monster_packet[i].monster_data = MonsterData{ .id = -1 };
+		monster_packet[i].monster_data = MONSTER_DATA{ .id = -1 };
 	}
 
 	char buf[sizeof(monster_packet)];
@@ -239,31 +133,32 @@ void Dungeon::SendMonsterAdd(CHAR player_id)
 	WSABUF wsa_buf{ sizeof(buf), buf };
 	DWORD sent_byte;
 
-	const int retVal = WSASend(m_players[static_cast<int>(player_id)]->m_socket, &wsa_buf, 1, &sent_byte, 0, nullptr, nullptr);
+	const int retVal = WSASend(m_players[static_cast<int>(player_id)]->GetSocket(), &wsa_buf, 1, &sent_byte, 0, nullptr, nullptr);
 	if (retVal == SOCKET_ERROR)
 	{
 		if (WSAGetLastError() == WSAECONNRESET)
-			std::cout << "[" << static_cast<int>(m_players[static_cast<int>(player_id)]->m_player_data.id) << " Session] Disconnect" << std::endl;
+			std::cout << "[" << static_cast<int>(m_players[static_cast<int>(player_id)]->GetId()) << " Client] Disconnect" << std::endl;
 		else ErrorDisplay("Send(SC_PACKET_ADD_MONSTER)");
 	}
 }
 
-BOOL Dungeon::FindPlayer(CHAR player_id)
+bool GameRoom::FindPlayer(INT player_id)
 {
 	for (const auto& data : m_players) {
-		if (data.second->m_player_data.id == player_id)
+		if (data.second->GetId() == player_id)
 			return true;
 	}
 	return false;
 }
 
-void Dungeon::InitDungeon()
+void GameRoom::InitGameRoom()
 {
+	m_state = GameRoomState::ACCEPT;
 	InitMonsters();
 	InitEnvironment();
 }
 
-void Dungeon::InitMonsters()
+void GameRoom::InitMonsters()
 {
 	// 파일을 읽어서 몬스터를 생성할 예정
 
@@ -271,13 +166,153 @@ void Dungeon::InitMonsters()
 		auto monster = make_shared<WarriorMonster>();
 		monster->SetTargetId(0);
 		monster->SetId(i);
-		monster->SetMonsterPosition();
+		monster->InitializePosition();
 		m_monsters.push_back(monster);
 	}
 }
 
-void Dungeon::InitEnvironment()
+void GameRoom::InitEnvironment()
 {
 	// 랜덤하게 환경을 설정함
 }
 
+GameRoomManager::GameRoomManager()
+{
+	LoadMap();
+	for (auto& game_room : m_game_rooms) {
+		game_room = make_shared<GameRoom>();
+	}
+}
+
+void GameRoomManager::SetEvent(COLLISION_EVENT event, INT player_id)
+{
+	int index = FindGameRoomInPlayer(player_id);
+	m_game_rooms[index]->SetEvent(event);
+}
+
+void GameRoomManager::SetPlayer(INT index, INT player_id, Client* player)
+{
+	m_game_rooms[index]->SetPlayer(player_id, player);
+}
+
+void GameRoomManager::InitGameRoom(INT room_num)
+{
+	m_game_rooms[room_num]->InitGameRoom();
+}
+
+void GameRoomManager::LoadMap()
+{
+	unordered_map<string, BoundingOrientedBox> bounding_box_data;
+
+	ifstream in{ "./Resource/GameRoomObject.bin", std::ios::binary };
+
+	BYTE strLength{};
+	string objectName;
+	BoundingOrientedBox bounding_box{};
+
+	while (in.read((char*)(&strLength), sizeof(BYTE))) {
+		objectName.resize(strLength, '\0');
+		in.read((char*)(&objectName[0]), strLength);
+
+		in.read((char*)(&bounding_box.Extents), sizeof(XMFLOAT3));
+
+		bounding_box_data.insert({ objectName, bounding_box });
+	}
+	in.close();
+
+
+	in.open("./Resource/GameRoomMap.bin", std::ios::binary);
+
+	XMFLOAT3 position{};
+	FLOAT yaw{};
+
+	while (in.read((char*)(&strLength), sizeof(BYTE))) {
+		objectName.resize(strLength, '\0');
+		in.read(&objectName[0], strLength);
+
+		in.read((char*)(&position), sizeof(XMFLOAT3));
+		in.read((char*)(&yaw), sizeof(FLOAT));
+		// 라디안 값
+
+		if (!bounding_box_data.contains(objectName))
+			continue;
+
+		auto object = make_shared<GameObject>();
+		object->SetPosition(position);
+		object->SetYaw(yaw);
+
+		XMVECTOR vec = XMQuaternionRotationRollPitchYaw(0.f, yaw, 0.f);
+		XMFLOAT4 q{};
+		XMStoreFloat4(&q, vec);
+
+		bounding_box = bounding_box_data[objectName];
+		bounding_box.Center = position;
+		bounding_box.Orientation = XMFLOAT4{ q.x, q.y, q.z, q.w };
+
+		object->SetBoundingBox(bounding_box);
+
+		m_structures.push_back(object);
+	}
+}
+
+bool GameRoomManager::EnterGameRoom(const shared_ptr<Party>& party)
+{
+	INT room_num = FindEmptyRoom();
+	if (-1 == room_num)
+		return false;
+
+	auto& members = party->GetMembers();
+	for (size_t i = 0; i < MAX_IN_GAME_USER; ++i) {
+		if (-1 == members[i]) continue;
+
+		int& client_id = members[i];
+		m_game_rooms[room_num]->SetPlayer(client_id, &g_server.m_clients[client_id]);
+	}
+	m_game_rooms[room_num]->SetState(GameRoomState::ACCEPT);
+
+	return true;
+}
+
+void GameRoomManager::Update(float elapsed_time)
+{
+	for (const auto& game_room : m_game_rooms) {
+		if (GameRoomState::EMPTY == game_room->GetState()) continue;
+		
+		game_room->Update(elapsed_time);
+	}
+}
+
+void GameRoomManager::SendMonsterData()
+{
+	for (const auto& game_room : m_game_rooms) {
+		if (GameRoomState::EMPTY == game_room->GetState()) continue;
+
+		game_room->SendMonsterData();
+	}
+}
+
+void GameRoomManager::SendAddMonster(INT player_id)
+{
+	int index = FindGameRoomInPlayer(player_id);
+	m_game_rooms[index]->SendAddMonster(player_id);
+}
+
+INT GameRoomManager::FindEmptyRoom()
+{
+	for (size_t i = 0; const auto & game_room : m_game_rooms) {
+		if (GameRoomState::EMPTY == game_room->GetState())
+			return i;
+		++i;
+	}
+	return -1;
+}
+
+INT GameRoomManager::FindGameRoomInPlayer(INT player_id)
+{
+	for (size_t i = 0; const auto & game_room : m_game_rooms) {
+		if (game_room->FindPlayer(player_id))
+			return i;
+		++i;
+	}
+	return -1;
+}

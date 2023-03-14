@@ -21,8 +21,8 @@ public:
 	virtual ~GameObject();
 
 	virtual void Update(FLOAT timeElapsed);
-	virtual void Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList);
-	virtual void Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, GameObject* rootObject);
+	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList);
+	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, GameObject* rootObject);
 	virtual void Move(const XMFLOAT3& shift);
 	virtual void Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw);
 	virtual void UpdateTransform(XMFLOAT4X4* parentMatrix = nullptr);
@@ -51,8 +51,8 @@ public:
 	void SetFrameName(string&& frameName) noexcept;
 	shared_ptr<GameObject> FindFrame(string frameName);
 
-	virtual void LoadObject(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, ifstream& in);
-	void LoadObject(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, ifstream& in, const shared_ptr<GameObject>& rootObject);
+	virtual void LoadObject(ifstream& in);
+	void LoadObject(ifstream& in, const shared_ptr<GameObject>& rootObject);
 
 	void UpdateBoundingBox();
 	void SetBoundingBox(const BoundingOrientedBox& boundingBox);
@@ -102,7 +102,7 @@ public:
 		INT width, INT length, INT height, INT blockWidth, INT blockLength, INT blockHeight, XMFLOAT3 scale);
 	~Field() = default;
 
-	virtual void Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList);
+	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList);
 	virtual void Move(const XMFLOAT3& shift);
 	virtual void Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw);
 
@@ -131,7 +131,7 @@ public:
 		INT width, INT length, INT blockWidth, INT blockLength);
 	~Fence() = default;
 
-	virtual void Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>&commandList);
+	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>&commandList);
 	virtual void Move(const XMFLOAT3 & shift);
 	virtual void Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw);
 
@@ -165,7 +165,7 @@ public:
 	HpBar();
 	~HpBar() = default;
 
-	void Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList) override;
+	void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) override;
 
 	void SetHp(FLOAT hp) { m_hp = hp; }
 	void SetMaxHp(FLOAT maxHp) { m_maxHp = maxHp; }
@@ -185,15 +185,15 @@ public:
 
 	virtual bool ChangeAnimation(int animation);
 
-	virtual void Update(FLOAT timeElapsed);
-	virtual void Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList);
+	virtual void Update(FLOAT timeElapsed) override;
+	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) override;
 
 	virtual void UpdateAnimation(FLOAT timeElapsed) override;
 
 	void SetAnimationSet(const shared_ptr<AnimationSet>& animations);
 	void SetAnimationOnTrack(int animationTrackNumber, int animation);
 
-	virtual void LoadObject(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, ifstream& in) override;
+	virtual void LoadObject(ifstream& in) override;
 
 protected:
 	unique_ptr<AnimationController>		m_animationController;

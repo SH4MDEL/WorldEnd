@@ -497,7 +497,7 @@ void GameFramework::Render()
 	m_commandList->SetGraphicsRootSignature(m_rootSignature.Get());
 	if (m_scenes[m_sceneIndex]) {
 		m_scenes[m_sceneIndex]->UpdateShaderVariable(m_commandList);
-		m_scenes[m_sceneIndex]->RenderShadow(m_device, m_commandList);
+		m_scenes[m_sceneIndex]->RenderShadow(m_commandList);
 	}
 
 	// 자원 용도와 관련된 상태 전이를 Direct3D에 통지한다.
@@ -519,7 +519,7 @@ void GameFramework::Render()
 
 	// Scene을 Render한다.
 	if (m_scenes[m_sceneIndex]) {
-		m_scenes[m_sceneIndex]->Render(m_device, m_commandList);
+		m_scenes[m_sceneIndex]->Render(m_commandList);
 	}
 
 	// 자원 용도와 관련된 상태 전이를 Direct3D에 통지한다.
