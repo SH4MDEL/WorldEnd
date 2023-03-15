@@ -30,7 +30,8 @@ void Monster::UpdateRotation(const XMVECTOR& dir)
 
 XMVECTOR Monster::GetPlayerVector(INT player_id)
 {
-	XMFLOAT3 pos = g_server.m_clients[player_id].GetPosition();
+	Server& server = Server::GetInstance();
+	XMFLOAT3 pos = server.m_clients[player_id]->GetPosition();
 	XMVECTOR player_pos{ XMLoadFloat3(&pos)};
 	XMVECTOR monster_pos{ XMLoadFloat3(&m_position) };
 	return XMVector3Normalize(player_pos - monster_pos);

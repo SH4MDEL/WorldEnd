@@ -2,10 +2,11 @@
 #include "client.h"
 #include "monster.h"
 #include "object.h"
+#include "map.h"
 
 struct TIMER_EVENT {
-	int obj_id;
-	int targat_id;
+	INT obj_id;
+	INT targat_id;
 	std::chrono::system_clock::time_point event_time;
 	EventType event_type;
 
@@ -15,47 +16,52 @@ struct TIMER_EVENT {
 	}
 };
 
-struct COLLISION_EVENT {
-	int user_id;										// 공격자 id
-	CollisionType collision_type;						// 충돌 타입 (일회성, 지속성)
-	AttackType attack_type;								// 공격 타입 (기본공격, 스킬)
-	BoundingOrientedBox bounding_box;					// 충돌 범위
-	std::chrono::system_clock::time_point end_time;		// 충돌 이벤트 종료 시간
-};
+
 
 class Server
 {
 public:
-	Server();
-	~Server() = default;
-	
-	int Network();
-	void WorkerThreads();
-	void ProcessPacket(const int id, char* p);
-	void Disconnect(const int id);
+	static Server& GetInstance();
 
-	void SendLoginOkPacket(const Client& player) const;
+	Server(const Server& server) = delete;
+	Server& operator=(const Server& server) = delete;
+
+	~Server();
+	
+	void Network();
+	void WorkerThread();
+	void ProcessPacket(int id, char* p);
+	void Disconnect(int id);
+
+	void SendLoginOkPacket(const shared_ptr<Client>& player) const;
 	void SendPlayerDataPacket();
 
-	void PlayerCollisionCheck(Client& player);
+	void PlayerCollisionCheck(shared_ptr<Client>& player);
 
 	void Timer();
 
-	CHAR GetNewId();
+	INT GetNewId();
 
 	// 플레이어 처리
-	void MovePlayer(Client& player, XMFLOAT3 velocity);
-	void RotatePlayer(Client& player, FLOAT yaw);
+	void MovePlayer(shared_ptr<Client>& player, XMFLOAT3 velocity);
+	void RotatePlayer(shared_ptr<Client>& player, FLOAT yaw);
 
-	void CollideByStatic(Client& player, const BoundingOrientedBox& obb);
-	void CollideByMoveMent(Client& player1, Client& player2);
-	void CollideByStaticOBB(Client& player, const BoundingOrientedBox& obb);
+	void CollideByStatic(shared_ptr<Client>& player, const BoundingOrientedBox& obb);
+	void CollideByMoveMent(shared_ptr<Client>& player1, shared_ptr<Client>& player2);
+	void CollideByStaticOBB(shared_ptr<Client>& player, const BoundingOrientedBox& obb);
 
-	array<Client, MAX_USER>				m_clients;
+	array<shared_ptr<MovementObject>, MAX_OBJECT> m_clients;
 
 private:
-	vector<thread>                          m_worker_threads;
-	bool									m_accept;
+	unique_ptr<GameRoomManager> m_game_room_manager;
 
-	concurrency::concurrent_priority_queue<TIMER_EVENT>	 m_timer_queue;
+	SOCKET				m_server_socket;
+	HANDLE				m_handle_iocp;
+
+	vector<thread>		m_worker_threads;
+	bool				m_accept;
+
+	concurrency::concurrent_priority_queue<TIMER_EVENT> m_timer_queue;
+
+	Server();
 };

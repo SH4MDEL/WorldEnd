@@ -2,6 +2,24 @@
 #include "stdafx.h"
 #include "object.h"
 
+
+ExpOver::ExpOver()
+{
+	_wsa_buf.len = BUF_SIZE;
+	_wsa_buf.buf = _send_buf;
+	_comp_type = OP_RECV;
+	ZeroMemory(&_wsa_over, sizeof(_wsa_over));
+}
+
+ExpOver::ExpOver(char* packet)
+{
+	ZeroMemory(&_wsa_over, sizeof(_wsa_over));
+	_wsa_buf.buf = _send_buf;
+	_wsa_buf.len = packet[0];
+	_comp_type = OP_SEND;
+	memcpy(_send_buf, packet, packet[0]);
+}
+
 Client::Client() : m_socket{}, m_ready_check{ false }, m_remain_size{ 0 },
 	m_recv_over{}
 {
@@ -22,21 +40,26 @@ void Client::DoRecv()
 	m_recv_over._wsa_buf.buf = reinterpret_cast<char*>(m_recv_over._send_buf + m_remain_size);
 	m_recv_over._wsa_buf.len = sizeof(m_recv_over._send_buf) - m_remain_size;
 	int ret = WSARecv(m_socket, &m_recv_over._wsa_buf, 1, 0, &recv_flag, &m_recv_over._wsa_over, NULL);
-	if (SOCKET_ERROR == ret)
-	{
+	if (SOCKET_ERROR == ret){
 		int error_num = WSAGetLastError();
-		if (ERROR_IO_PENDING != error_num)
-		{
+		if (ERROR_IO_PENDING != error_num){
 			//g_server.Disconnect(data.id);
 			if (error_num == WSAECONNRESET)
-				std::cout << "[" << static_cast<int>(m_id) << " Client] Disconnect(do_recv)" << std::endl;
+				std::cout << "[" << m_id << " Client] Disconnect(do_recv)" << std::endl;
 			else ErrorDisplay("do_recv");
 		}
 	}
 }
 
-void Client::DoSend()
+void Client::DoSend(void* p)
 {
+	ExpOver* ex_over = new ExpOver{ reinterpret_cast<char*>(p) };
+	int retval = WSASend(m_socket, &ex_over->_wsa_buf, 1, 0, 0, &ex_over->_wsa_over, nullptr);
+	if (SOCKET_ERROR == retval) {
+		if (ERROR_IO_PENDING != WSAGetLastError()) {
+			ErrorDisplay("Send(SC_ATTACK_PACKET) Error");
+		}
+	}
 }
 
 void Client::SetPlayerType(PlayerType type)
@@ -96,7 +119,7 @@ void Client::SetBoundingBox(PlayerType type)
 
 Party::Party()
 {
-	for (size_t i = 0; i < MAX_IN_GAME_USER; ++i) {
+	for (size_t i = 0; i < MAX_INGAME_USER; ++i) {
 		m_members[i] = -1;
 	}
 }

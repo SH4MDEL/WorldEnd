@@ -2,9 +2,7 @@
 #include "stdafx.h"
 #include "object.h"
 #include "client.h"
-#include "Server.h"
 #include "monster.h"
-
 
 enum class GameRoomState { EMPTY, ACCEPT, INGAME };
 
@@ -18,7 +16,7 @@ public:
 
 	void SetType(EnvironmentType type) { m_type = type; }
 	void SetEvent(COLLISION_EVENT event);
-	void SetPlayer(INT player_id, Client* player);
+	void SetPlayer(INT player_id, const shared_ptr<Client>& player);
 	void SetState(GameRoomState state) { m_state = state; }
 
 	EnvironmentType GetType() const { return m_type; }
@@ -33,17 +31,17 @@ public:
 	void InitMonsters();
 	void InitEnvironment();
 
-	unordered_map<INT, Client*>& GetPlayers() { return m_players; }
+	unordered_map<INT, shared_ptr<Client>>& GetPlayers() { return m_players; }
 	vector<shared_ptr<Monster>>& GetMonsters() { return m_monsters; }
 
 private:
-	unordered_map<INT, Client*>	m_players;
-	vector<shared_ptr<Monster>>		m_monsters;
-	list<COLLISION_EVENT>			m_collision_events;
+	unordered_map<INT, shared_ptr<Client>>	m_players;
+	vector<shared_ptr<Monster>>				m_monsters;
+	list<COLLISION_EVENT>					m_collision_events;
 
-	EnvironmentType					m_type;
-	BYTE							m_floor;
-	GameRoomState					m_state;
+	EnvironmentType							m_type;
+	BYTE									m_floor;
+	GameRoomState							m_state;
 };
 
 class Town
@@ -66,7 +64,7 @@ public:
 	void Update(float elapsed_time);
 
 	void SetEvent(COLLISION_EVENT event, INT player_id);
-	void SetPlayer(INT index, INT player_id, Client* Player);
+	void SetPlayer(INT index, INT player_id, const shared_ptr<Client>& Player);
 
 	vector<shared_ptr<GameObject>>& GetStructures() { return m_structures; }
 	array<shared_ptr<GameRoom>, MAX_GAME_ROOM_NUM>& GetDungeons() { return m_game_rooms; }

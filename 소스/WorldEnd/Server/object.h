@@ -3,7 +3,7 @@
 
 struct SCORE_DATA
 {
-	string names[MAX_IN_GAME_USER];
+	string names[MAX_INGAME_USER];
 	USHORT score;
 
 	constexpr bool operator <(const SCORE_DATA& left)const
@@ -98,6 +98,7 @@ public:
 	void SetStateUnLock() { m_state_lock.unlock(); }
 	void SetState(State state) { m_state = state; }
 	void SetName(string name) { m_name = name; }
+	void SetName(const char* c);
 	void SetHp(INT hp) { m_hp = hp; }
 	void SetDamage(INT damage) { m_damage = damage; }
 	void SetRoomNum(USHORT room_num) { m_room_num = room_num; }
@@ -109,6 +110,12 @@ public:
 	INT GetHp() const { return m_hp; }
 	INT GetDamage() const { return m_damage; }
 	USHORT GetRoomNum() const { return m_room_num; }
+	
+
+	virtual PLAYER_DATA GetPlayerData() const { return PLAYER_DATA(); }
+	virtual PlayerType GetPlayerType() const { return PlayerType::UNKNOWN; }
+	virtual const SOCKET& GetSocket() const { return SOCKET(); }
+	virtual void DoSend(void* p) {}
 
 protected:
 	XMFLOAT3	m_velocity;

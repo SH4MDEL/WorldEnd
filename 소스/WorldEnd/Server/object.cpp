@@ -94,3 +94,8 @@ void MovementObject::SetVelocity(FLOAT x, FLOAT y, FLOAT z)
 	m_velocity.y = y;
 	m_velocity.z = z;
 }
+
+void MovementObject::SetName(const char* c)
+{
+	SetName(string(c));
+}

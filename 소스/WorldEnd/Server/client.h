@@ -11,17 +11,9 @@ public:
 	char          _send_buf[BUF_SIZE];
 	CompType     _comp_type;
 
-	ExpOver(CompType comp_type, char num_bytes, void* mess) : _comp_type{ comp_type }
-	{
-		ZeroMemory(&_wsa_over, sizeof(_wsa_over));
-		_wsa_buf.buf = reinterpret_cast<char*>(_send_buf);
-		_wsa_buf.len = num_bytes;
-		memcpy(_send_buf, mess, num_bytes);
-	}
-
-	ExpOver(CompType comp_type) : _comp_type{ comp_type } { }
-	ExpOver() : _comp_type{ OP_RECV } { }
-	~ExpOver() { }
+	ExpOver();
+	ExpOver(char* packet);
+	~ExpOver() = default;
 };
 
 class Client : public MovementObject
@@ -31,7 +23,7 @@ public:
 	~Client();
 
 	void DoRecv();
-	void DoSend();
+	virtual void DoSend(void* p) override;
 
 	void SetSocket(const SOCKET& socket) { m_socket = socket; }
 	void SetExpOver(const ExpOver& over) { m_recv_over = over; }
@@ -40,15 +32,15 @@ public:
 	void SetPlayerType(PlayerType type);
 	void SetSkillRatio(AttackType type, FLOAT ratio);
 
-	const SOCKET& GetSocket() const { return m_socket; }
+	const SOCKET& GetSocket() const override { return m_socket; }
 	ExpOver& GetExpOver() { return m_recv_over; }
 	INT GetRemainSize() const { return m_remain_size; }
 	bool GetReadyCheck() const { return m_ready_check; }
-	PlayerType GetPlayerType() const { return m_player_type; }
+	PlayerType GetPlayerType() const override { return m_player_type; }
 	const BoundingOrientedBox& GetWeaponBoundingBox() const { return m_weopon_bounding_box; }
 	FLOAT GetSkillRatio(AttackType type) const;
 
-	PLAYER_DATA GetPlayerData() const;
+	PLAYER_DATA GetPlayerData() const override;
 
 private:
 	// 통신 관련 변수
@@ -73,12 +65,12 @@ public:
 	Party();
 	~Party() = default;
 
-	array<INT, MAX_IN_GAME_USER>& GetMembers() { return m_members; }
+	array<INT, MAX_INGAME_USER>& GetMembers() { return m_members; }
 
 	bool Join(INT player_id);
 
 private:
-	array<INT, MAX_IN_GAME_USER> m_members;
+	array<INT, MAX_INGAME_USER> m_members;
 };
 
 class PartyManager

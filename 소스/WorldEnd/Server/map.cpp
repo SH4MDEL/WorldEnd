@@ -1,5 +1,6 @@
 #include <fstream> 
 #include <unordered_map>
+#include "Server.h"
 #include "map.h"
 
 void GameRoom::SetEvent(COLLISION_EVENT event)
@@ -7,7 +8,7 @@ void GameRoom::SetEvent(COLLISION_EVENT event)
 	m_collision_events.push_back(event);
 }
 
-void GameRoom::SetPlayer(INT player_id, Client* player)
+void GameRoom::SetPlayer(INT player_id, const shared_ptr<Client>& player)
 {
 	m_players.insert({ player_id, player });
 }
@@ -94,21 +95,11 @@ void GameRoom::SendMonsterData()
 		monster_packet[i].monster_data = MONSTER_DATA{ .id = -1 };
 	}
 
-	char buf[sizeof(monster_packet)];
-	memcpy(buf, reinterpret_cast<char*>(&monster_packet), sizeof(monster_packet));
-	WSABUF wsa_buf{ sizeof(buf), buf };
-	DWORD sent_byte;
-
 	for (const auto& data : m_players)
 	{
 		if (-1 == data.second->GetId()) continue;
-		const int retVal = WSASend(data.second->GetSocket(), &wsa_buf, 1, &sent_byte, 0, nullptr, nullptr);
-		if (retVal == SOCKET_ERROR)
-		{
-			if (WSAGetLastError() == WSAECONNRESET)
-				std::cout << "[" << static_cast<int>(data.second->GetId()) << " Client] Disconnect" << std::endl;
-			else ErrorDisplay("Send(SC_PACKET_UPDATE_MONSTER)");
-		}
+
+		data.second->DoSend(&monster_packet);
 	}
 }
 
@@ -128,18 +119,7 @@ void GameRoom::SendAddMonster(INT player_id)
 		monster_packet[i].monster_data = MONSTER_DATA{ .id = -1 };
 	}
 
-	char buf[sizeof(monster_packet)];
-	memcpy(buf, reinterpret_cast<char*>(&monster_packet), sizeof(monster_packet));
-	WSABUF wsa_buf{ sizeof(buf), buf };
-	DWORD sent_byte;
-
-	const int retVal = WSASend(m_players[static_cast<int>(player_id)]->GetSocket(), &wsa_buf, 1, &sent_byte, 0, nullptr, nullptr);
-	if (retVal == SOCKET_ERROR)
-	{
-		if (WSAGetLastError() == WSAECONNRESET)
-			std::cout << "[" << static_cast<int>(m_players[static_cast<int>(player_id)]->GetId()) << " Client] Disconnect" << std::endl;
-		else ErrorDisplay("Send(SC_PACKET_ADD_MONSTER)");
-	}
+	m_players[player_id]->DoSend(&monster_packet);
 }
 
 bool GameRoom::FindPlayer(INT player_id)
@@ -190,7 +170,7 @@ void GameRoomManager::SetEvent(COLLISION_EVENT event, INT player_id)
 	m_game_rooms[index]->SetEvent(event);
 }
 
-void GameRoomManager::SetPlayer(INT index, INT player_id, Client* player)
+void GameRoomManager::SetPlayer(INT index, INT player_id, const shared_ptr<Client>& player)
 {
 	m_game_rooms[index]->SetPlayer(player_id, player);
 }
@@ -261,12 +241,14 @@ bool GameRoomManager::EnterGameRoom(const shared_ptr<Party>& party)
 	if (-1 == room_num)
 		return false;
 
+	Server& server = Server::GetInstance();
+
 	auto& members = party->GetMembers();
-	for (size_t i = 0; i < MAX_IN_GAME_USER; ++i) {
+	for (size_t i = 0; i < MAX_INGAME_USER; ++i) {
 		if (-1 == members[i]) continue;
 
-		int& client_id = members[i];
-		m_game_rooms[room_num]->SetPlayer(client_id, &g_server.m_clients[client_id]);
+		auto client = dynamic_pointer_cast<Client>(server.m_clients[members[i]]);
+		m_game_rooms[room_num]->SetPlayer(members[i], client);
 	}
 	m_game_rooms[room_num]->SetState(GameRoomState::ACCEPT);
 

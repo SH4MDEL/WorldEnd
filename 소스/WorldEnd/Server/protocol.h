@@ -6,13 +6,28 @@ constexpr short SERVER_PORT = 9000;
 
 constexpr int BUF_SIZE = 5000;
 constexpr int NAME_SIZE = 20;
-constexpr int MAX_IN_GAME_USER = 3;
+constexpr int MAX_INGAME_USER = 3;
 constexpr int MAX_GAME_ROOM_NUM = 3000;
 constexpr int MAX_PARTY_NUM = 1000;
 constexpr int MAX_RECORD_NUM = 5;
 
+constexpr int MAX_USER = 10000;
+constexpr int MAX_WARRIOR_MONSTER = 30000;
+constexpr int MAX_ARCHER_MONSTER = 30000;
+constexpr int MAX_WIZARD_MONSTER = 30000;
+constexpr int MAX_OBJECT = MAX_USER + MAX_WARRIOR_MONSTER + MAX_ARCHER_MONSTER + MAX_WIZARD_MONSTER;
+
+constexpr int WARRIOR_MONSTER_START = MAX_USER;
+constexpr int WARRIOR_MONSTER_END = MAX_USER + MAX_WARRIOR_MONSTER;
+
+constexpr int ARCHER_MONSTER_START = WARRIOR_MONSTER_END;
+constexpr int ARCHER_MONSTER_END = WARRIOR_MONSTER_END + MAX_ARCHER_MONSTER;
+
+constexpr int WIZARD_MONSTER_START = ARCHER_MONSTER_END;
+constexpr int WIZARD_MONSTER_END = ARCHER_MONSTER_END + MAX_WIZARD_MONSTER;
+
+
 constexpr int MAX_MONSTER = 10;
-constexpr int MAX_USER = 3;
 
 constexpr char CS_PACKET_LOGIN = 1;
 constexpr char CS_PACKET_PLAYER_MOVE = 2;
@@ -216,7 +231,7 @@ struct SC_UPDATE_CLIENT_PACKET
 {
 	UCHAR size;
 	UCHAR type;
-	PLAYER_DATA	data[MAX_USER];
+	PLAYER_DATA	data[MAX_INGAME_USER];
 };
 
 struct SC_ADD_MONSTER_PACKET
