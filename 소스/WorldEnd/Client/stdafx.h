@@ -67,7 +67,6 @@ extern GameFramework       g_GameFramework;
 extern SOCKET               g_socket;                           // 소켓
 extern string				g_serverIP;							// 서버 아이피
 extern thread               g_networkThread;
-extern mutex                g_mutex;
 
 namespace DX
 {

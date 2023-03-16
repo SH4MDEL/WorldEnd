@@ -8,7 +8,7 @@ class Player : public AnimationObject
 {
 public:
 	Player();
-	~Player() = default;
+	~Player();
 
 	void OnProcessingKeyboardMessage(FLOAT timeElapsed);
 	void OnProcessingClickMessage(LPARAM lParam);

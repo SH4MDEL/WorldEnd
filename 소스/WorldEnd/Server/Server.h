@@ -16,8 +16,6 @@ struct TIMER_EVENT {
 	}
 };
 
-
-
 class Server
 {
 public:
@@ -41,6 +39,7 @@ public:
 	void Timer();
 
 	INT GetNewId();
+	INT GetNewMonsterId(MonsterType type);
 
 	// 플레이어 처리
 	void MovePlayer(shared_ptr<Client>& player, XMFLOAT3 velocity);

@@ -112,8 +112,13 @@ public:
 	USHORT GetRoomNum() const { return m_room_num; }
 	
 
+	virtual void Update(FLOAT elapsed_time) {};
+
 	virtual PLAYER_DATA GetPlayerData() const { return PLAYER_DATA(); }
 	virtual PlayerType GetPlayerType() const { return PlayerType::UNKNOWN; }
+	virtual FLOAT GetSkillRatio(AttackType type) const { return 0.f; }
+	virtual MONSTER_DATA GetMonsterData() const { return MONSTER_DATA(); }
+	virtual MonsterType GetMonsterType() const { return MonsterType::WARRIOR; }
 	virtual const SOCKET& GetSocket() const { return SOCKET(); }
 	virtual void DoSend(void* p) {}
 

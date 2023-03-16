@@ -40,7 +40,8 @@ public:
 	void ProcessPacket(char* ptr);
 	void PacketReassembly(char* net_buf, size_t io_byte);
 	void RecvLoginOkPacket(char* ptr);
-	void RecvAddPlayerPacket(char* ptr);
+	void RecvAddObjectPacket(char* ptr);
+	void RecvRemoveObjectPacket(char* ptr);
 	void RecvUpdateClient(char* ptr);
 	void RecvAddMonsterPacket(char* ptr);
 	void RecvUpdateMonster(char* ptr);

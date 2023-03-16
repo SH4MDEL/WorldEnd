@@ -117,6 +117,11 @@ void Shader::SetMonster(INT ID, const shared_ptr<Monster>& monster)
 	m_monsters.insert({ ID, monster });
 }
 
+void Shader::DeleteMultiPlayer(INT id)
+{
+	m_multiPlayers.erase(id);
+}
+
 DetailShader::DetailShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature)
 {
 	CreatePipelineState(device, rootSignature);

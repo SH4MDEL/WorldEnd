@@ -42,7 +42,7 @@ void Monster::SetTargetId(INT id)
 	m_target_id = id;
 }
 
-MONSTER_DATA Monster::GetData() const
+MONSTER_DATA Monster::GetMonsterData() const
 {
 	return MONSTER_DATA( m_id, m_position, m_velocity, m_yaw, m_hp );
 }

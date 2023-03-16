@@ -1,7 +1,7 @@
 #include "client.h"
 #include "stdafx.h"
 #include "object.h"
-
+#include "Server.h"
 
 ExpOver::ExpOver()
 {
@@ -56,8 +56,14 @@ void Client::DoSend(void* p)
 	ExpOver* ex_over = new ExpOver{ reinterpret_cast<char*>(p) };
 	int retval = WSASend(m_socket, &ex_over->_wsa_buf, 1, 0, 0, &ex_over->_wsa_over, nullptr);
 	if (SOCKET_ERROR == retval) {
-		if (ERROR_IO_PENDING != WSAGetLastError()) {
-			ErrorDisplay("Send(SC_ATTACK_PACKET) Error");
+		int error_num = WSAGetLastError();
+		if (ERROR_IO_PENDING != error_num) {
+			ErrorDisplay("Send Error");
+			
+			if (WSAECONNRESET == error_num) {
+				Server& server = Server::GetInstance();
+				server.Disconnect(m_id);
+			}
 		}
 	}
 }

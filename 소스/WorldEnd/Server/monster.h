@@ -8,13 +8,13 @@ public:
 	Monster();
 	virtual ~Monster() = default;
 
-	virtual void Update(FLOAT elapsed_time) {};
+	virtual void Update(FLOAT elapsed_time) override {};
 
 	void SetTargetId(INT player_id);
 
-	MONSTER_DATA GetData() const;
+	virtual MONSTER_DATA GetMonsterData() const override;
+	virtual MonsterType GetMonsterType() const override { return m_monster_type; }
 	UCHAR GetTargetId() const { return m_target_id; }
-	MonsterType GetType() const { return m_monster_type; }
 
 	void DecreaseHp(USHORT damage);
 

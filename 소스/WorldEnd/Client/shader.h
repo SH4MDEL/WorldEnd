@@ -29,6 +29,8 @@ public:
 	void SetMultiPlayer(INT ID, const shared_ptr<Player>& player);
 	void SetMonster(INT ID, const shared_ptr<Monster>& monster);
 
+	void DeleteMultiPlayer(INT id);
+
 protected:
 	ComPtr<ID3D12PipelineState>				m_pipelineState;
 	vector<D3D12_INPUT_ELEMENT_DESC>		m_inputLayout;

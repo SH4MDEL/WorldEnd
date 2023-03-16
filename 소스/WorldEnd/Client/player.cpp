@@ -6,6 +6,11 @@ Player::Player() : m_velocity{ 0.0f, 0.0f, 0.0f }, m_maxVelocity{ 10.0f }, m_fri
 
 }
 
+Player::~Player()
+{
+	m_hpBar.reset();
+}
+
 void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 {
 	XMFLOAT3 eye = m_camera->GetEye();

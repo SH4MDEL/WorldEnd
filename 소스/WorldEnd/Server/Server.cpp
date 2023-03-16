@@ -3,7 +3,7 @@
 
 Server& Server::GetInstance()
 {
-	static Server instance{};
+	static Server instance;
 	return instance;
 }
 
@@ -14,20 +14,19 @@ Server::Server()
 		m_clients[i] = make_shared<Client>();
 	}
 
-	for (size_t i = WARRIOR_MONSTER_START; i < WIZARD_MONSTER_END; ++i) {
+	for (size_t i = WARRIOR_MONSTER_START; i < WARRIOR_MONSTER_END; ++i) {
 		m_clients[i] = make_shared<WarriorMonster>();
 	}
 
-	for (size_t i = WARRIOR_MONSTER_START; i < WIZARD_MONSTER_END; ++i) {
+	for (size_t i = ARCHER_MONSTER_START; i < ARCHER_MONSTER_END; ++i) {
 		m_clients[i] = make_shared<ArcherMonster>();
 	}
 
-	for (size_t i = WARRIOR_MONSTER_START; i < WIZARD_MONSTER_END; ++i) {
+	for (size_t i = WIZARD_MONSTER_START; i < WIZARD_MONSTER_END; ++i) {
 		m_clients[i] = make_shared<WizardMonster>();
 	}
 
 	m_game_room_manager = make_unique<GameRoomManager>();
-	m_game_room_manager->InitGameRoom(0);	
 
 	// ----------------------- //
 
@@ -99,6 +98,8 @@ void Server::Network()
 	thread thread1{ &Server::Timer,this };
 	thread1.detach();
 
+	// 초기화 하는 함수는 싱글톤 문제로 생성자에서 호출할 수 없음
+	m_game_room_manager->InitGameRoom(0);
 
 	using frame = std::chrono::duration<int32_t, std::ratio<1, 60>>;
 	using ms = std::chrono::duration<float, std::milli>;
@@ -254,10 +255,10 @@ void Server::ProcessPacket(int id, char* p)
 
 		// 원래는 던전 진입 시 던전에 배치해야하지만
 		// 현재 마을이 없이 바로 던전에 진입하므로 던전에 입장시킴
-		m_game_room_manager->SetPlayer(0, id, cl);
+		m_game_room_manager->SetPlayer(0, id);
 		m_game_room_manager->SendAddMonster(id);
 
-		cout << packet->name << " is connect" << endl;
+		cout << cl->GetId() << " is connect" << endl;
 		break;
 	}
 	case CS_PACKET_PLAYER_MOVE:
@@ -344,12 +345,22 @@ void Server::ProcessPacket(int id, char* p)
 
 void Server::Disconnect(int id)
 {
-	// remain_size 를 0으로, ExpOver의 _comp_type을 OP_RECV 로 해야함
 	auto cl = dynamic_pointer_cast<Client>(m_clients[id]);
+	m_game_room_manager->DeletePlayer(cl->GetRoomNum(), cl->GetId());
+
 	cl->SetId(-1);
 	cl->SetPosition(0.f, 0.f, 0.f);
 	cl->SetVelocity(0.f, 0.f, 0.f);
 	cl->SetYaw(0.f);
+	
+	cl->SetRemainSize(0);
+	ExpOver& ex_over = cl->GetExpOver();
+	ex_over._comp_type = OP_RECV;
+	ex_over._wsa_buf.buf = ex_over._send_buf;
+	ex_over._wsa_buf.len = BUF_SIZE;
+	ZeroMemory(&ex_over._wsa_over, sizeof(ex_over._wsa_over));
+	
+
 	closesocket(cl->GetSocket());
 
 	lock_guard<mutex> lock{ cl->GetStateMutex() };
@@ -369,27 +380,27 @@ void Server::SendLoginOkPacket(const shared_ptr<Client>& player) const
 
 	player->DoSend(&packet);
 
-	packet.type = SC_PACKET_ADD_CHARACTER;
+	packet.type = SC_PACKET_ADD_OBJECT;
 
 	// 현재 접속해 있는 모든 클라이언트들에게 새로 로그인한 클라이언트들의 정보를 전송
-	for (const auto& other : m_clients){
-		if (-1 == other->GetId()) continue;
-		if (player->GetId() == other->GetId()) continue;
+	for (size_t i = 0; i < MAX_USER; ++i) {
+		if (-1 == m_clients[i]->GetId()) continue;
+		if (player->GetId() == m_clients[i]->GetId()) continue;
 		
-		other->DoSend(&packet);
+		m_clients[i]->DoSend(&packet);
 	}
 
 	// 새로 로그인한 클라이언트에게 현재 접속해 있는 모든 클라이언트들의 정보를 전송
-	for (const auto& other : m_clients){
-		if (-1 == other->GetId()) continue;
-		if (player->GetId() == other->GetId()) continue;
+	for (size_t i = 0; i < MAX_USER; ++i){
+		if (-1 == m_clients[i]->GetId()) continue;
+		if (player->GetId() == m_clients[i]->GetId()) continue;
 
 		SC_LOGIN_OK_PACKET sub_packet{};
 		sub_packet.size = sizeof(sub_packet);
-		sub_packet.type = SC_PACKET_ADD_CHARACTER;
-		sub_packet.player_data = other->GetPlayerData();
-		strcpy_s(sub_packet.name, sizeof(sub_packet.name), other->GetName().c_str());
-		sub_packet.player_type = other->GetPlayerType();
+		sub_packet.type = SC_PACKET_ADD_OBJECT;
+		sub_packet.player_data = m_clients[i]->GetPlayerData();
+		strcpy_s(sub_packet.name, sizeof(sub_packet.name), m_clients[i]->GetName().c_str());
+		sub_packet.player_type = m_clients[i]->GetPlayerType();
 
 		player->DoSend(&sub_packet);
 	}
@@ -404,21 +415,21 @@ void Server::SendPlayerDataPacket()
 	for (int i = 0; i < MAX_INGAME_USER; ++i)
 		packet.data[i] = m_clients[i]->GetPlayerData();
 
-	for (const auto& cl : m_clients){
-		if (State::ST_INGAME != cl->GetState()) continue; 
+	for (size_t i = 0; i < MAX_USER; ++i){
+		if (State::ST_INGAME != m_clients[i]->GetState()) continue;
 		
-		cl->DoSend(&packet);
+		m_clients[i]->DoSend(&packet);
 	}
 }
 
 void Server::PlayerCollisionCheck(shared_ptr<Client>& player)
 {
 	BoundingOrientedBox& player_obb = player->GetBoundingBox();
-	for (auto& cl : m_clients) {
-		if (-1 == cl->GetId()) continue;
-		if (cl->GetId() == player->GetId()) continue;
+	for (size_t i = 0; i < MAX_USER; ++i) {
+		if (-1 == m_clients[i]->GetId()) continue;
+		if (m_clients[i]->GetId() == player->GetId()) continue;
 
-		BoundingOrientedBox& obb = cl->GetBoundingBox();
+		BoundingOrientedBox& obb = m_clients[i]->GetBoundingBox();
 		if (player_obb.Intersects(obb)) {
 			CollideByStatic(player, obb);
 		}
@@ -437,6 +448,35 @@ void Server::PlayerCollisionCheck(shared_ptr<Client>& player)
 INT Server::GetNewId()
 {
 	for (size_t i = 0; i < MAX_USER; ++i) {
+		lock_guard<mutex> lock{ m_clients[i]->GetStateMutex() };
+		if (State::ST_FREE == m_clients[i]->GetState()) {
+			m_clients[i]->SetState(State::ST_ACCEPT);
+			return i;
+		}
+	}
+
+	return -1;
+}
+
+INT Server::GetNewMonsterId(MonsterType type)
+{
+	INT start_num{}, end_num{};
+	switch (type) {
+	case MonsterType::WARRIOR:
+		start_num = WARRIOR_MONSTER_START;
+		end_num = WARRIOR_MONSTER_END;
+		break;
+	case MonsterType::ARCHER:
+		start_num = ARCHER_MONSTER_START;
+		end_num = ARCHER_MONSTER_END;
+		break;
+	case MonsterType::WIZARD:
+		start_num = WIZARD_MONSTER_START;
+		end_num = WIZARD_MONSTER_END;
+		break;
+	}
+
+	for (size_t i = start_num; i < end_num; ++i) {
 		lock_guard<mutex> lock{ m_clients[i]->GetStateMutex() };
 		if (State::ST_FREE == m_clients[i]->GetState()) {
 			m_clients[i]->SetState(State::ST_ACCEPT);

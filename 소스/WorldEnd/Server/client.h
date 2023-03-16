@@ -38,7 +38,7 @@ public:
 	bool GetReadyCheck() const { return m_ready_check; }
 	PlayerType GetPlayerType() const override { return m_player_type; }
 	const BoundingOrientedBox& GetWeaponBoundingBox() const { return m_weopon_bounding_box; }
-	FLOAT GetSkillRatio(AttackType type) const;
+	virtual FLOAT GetSkillRatio(AttackType type) const override;
 
 	PLAYER_DATA GetPlayerData() const override;
 

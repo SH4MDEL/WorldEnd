@@ -7,7 +7,6 @@ GameFramework       g_GameFramework(1280, 720);
 SOCKET                  g_socket{};
 string					g_serverIP{ "127.0.0.1" };
 thread                  g_networkThread{};
-mutex                   g_mutex{};
 
 
 ComPtr<ID3D12Resource> CreateBufferResource(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList,

@@ -502,8 +502,11 @@ void TowerScene::ProcessPacket(char* ptr)
 	case SC_PACKET_LOGIN_OK:
 		RecvLoginOkPacket(ptr);
 		break;
-	case SC_PACKET_ADD_CHARACTER:
-		RecvAddPlayerPacket(ptr);
+	case SC_PACKET_ADD_OBJECT:
+		RecvAddObjectPacket(ptr);
+		break;
+	case SC_PACKET_REMOVE_OBJECT:
+		RecvRemoveObjectPacket(ptr);
 		break;
 	case SC_PACKET_UPDATE_CLIENT:
 		RecvUpdateClient(ptr);
@@ -556,9 +559,9 @@ void TowerScene::RecvLoginOkPacket(char* ptr)
 	m_player->SetID(login_packet->player_data.id);
 }
 
-void TowerScene::RecvAddPlayerPacket(char* ptr)
+void TowerScene::RecvAddObjectPacket(char* ptr)
 {
-	SC_ADD_PLAYER_PACKET* packet = reinterpret_cast<SC_ADD_PLAYER_PACKET*>(ptr);
+	SC_ADD_OBJECT_PACKET* packet = reinterpret_cast<SC_ADD_OBJECT_PACKET*>(ptr);
 
 	PLAYER_DATA player_data{};
 
@@ -585,11 +588,18 @@ void TowerScene::RecvAddPlayerPacket(char* ptr)
 
 }
 
+void TowerScene::RecvRemoveObjectPacket(char* ptr)
+{
+	SC_REMOVE_OBJECT_PACKET* packet = reinterpret_cast<SC_REMOVE_OBJECT_PACKET*>(ptr);
+
+	m_multiPlayers[packet->id]->SetPosition(XMFLOAT3(10000.f, 10000.f, 10000.f));
+	cout << "Erase" << endl;
+}
+
 void TowerScene::RecvUpdateClient(char* ptr)
 {
 	SC_UPDATE_CLIENT_PACKET* update_packet = reinterpret_cast<SC_UPDATE_CLIENT_PACKET*>(ptr);
 
-	unique_lock<mutex> lock{ g_mutex };
 	for (int i = 0; i < MAX_INGAME_USER; ++i) {
 		if (-1 == update_packet->data[i].id) {
 			continue;

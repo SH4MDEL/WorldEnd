@@ -16,32 +16,35 @@ public:
 
 	void SetType(EnvironmentType type) { m_type = type; }
 	void SetEvent(COLLISION_EVENT event);
-	void SetPlayer(INT player_id, const shared_ptr<Client>& player);
+	void SetPlayer(INT player_id);
 	void SetState(GameRoomState state) { m_state = state; }
 
 	EnvironmentType GetType() const { return m_type; }
 	GameRoomState GetState() const { return m_state; }
+	mutex& GetStateMutex() { return m_state_lock; }
 
 	void SendMonsterData();
 	void SendAddMonster(INT player_id);
 
 	bool FindPlayer(INT player_id);
+	void DeletePlayer(INT player_id);
 
 	void InitGameRoom();
 	void InitMonsters();
 	void InitEnvironment();
 
-	unordered_map<INT, shared_ptr<Client>>& GetPlayers() { return m_players; }
-	vector<shared_ptr<Monster>>& GetMonsters() { return m_monsters; }
+	array<INT, MAX_INGAME_USER>& GetPlayerIds() { return m_player_ids; }
+	array<INT, MAX_INGAME_MONSTER>& GetMonsters() { return m_monster_ids; }
 
 private:
-	unordered_map<INT, shared_ptr<Client>>	m_players;
-	vector<shared_ptr<Monster>>				m_monsters;
+	array<INT, MAX_INGAME_USER>				m_player_ids;
+	array<INT, MAX_INGAME_MONSTER>			m_monster_ids;
 	list<COLLISION_EVENT>					m_collision_events;
 
 	EnvironmentType							m_type;
 	BYTE									m_floor;
 	GameRoomState							m_state;
+	mutex									m_state_lock;
 };
 
 class Town
@@ -64,7 +67,7 @@ public:
 	void Update(float elapsed_time);
 
 	void SetEvent(COLLISION_EVENT event, INT player_id);
-	void SetPlayer(INT index, INT player_id, const shared_ptr<Client>& Player);
+	void SetPlayer(INT room_num, INT player_id);
 
 	vector<shared_ptr<GameObject>>& GetStructures() { return m_structures; }
 	array<shared_ptr<GameRoom>, MAX_GAME_ROOM_NUM>& GetDungeons() { return m_game_rooms; }
@@ -73,6 +76,7 @@ public:
 	void LoadMap();
 
 	bool EnterGameRoom(const shared_ptr<Party>& party);
+	void DeletePlayer(INT room_num, INT player_id);
 
 	void SendMonsterData();
 	void SendAddMonster(INT player_id);

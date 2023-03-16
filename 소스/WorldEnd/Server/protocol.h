@@ -7,6 +7,7 @@ constexpr short SERVER_PORT = 9000;
 constexpr int BUF_SIZE = 5000;
 constexpr int NAME_SIZE = 20;
 constexpr int MAX_INGAME_USER = 3;
+constexpr int MAX_INGAME_MONSTER = 10;
 constexpr int MAX_GAME_ROOM_NUM = 3000;
 constexpr int MAX_PARTY_NUM = 1000;
 constexpr int MAX_RECORD_NUM = 5;
@@ -36,8 +37,8 @@ constexpr char CS_PACKET_WEAPON_COLLISION = 5;
 constexpr char CS_PACKET_CHANGE_ANIMATION = 6;
 
 constexpr char SC_PACKET_LOGIN_OK = 1;
-constexpr char SC_PACKET_ADD_CHARACTER = 2;
-constexpr char SC_PACKET_REMOVE_CHARACTER = 3;
+constexpr char SC_PACKET_ADD_OBJECT = 2;
+constexpr char SC_PACKET_REMOVE_OBJECT = 3;
 constexpr char SC_PACKET_UPDATE_CLIENT = 4;
 constexpr char SC_PACKET_ADD_MONSTER = 6;
 constexpr char SC_PACKET_UPDATE_MONSTER = 7;
@@ -189,13 +190,20 @@ struct SC_LOGIN_OK_PACKET    // 로그인 성공을 알려주는 패킷
 	PlayerType player_type;
 };
 
-struct SC_ADD_PLAYER_PACKET
+struct SC_ADD_OBJECT_PACKET
 {
 	UCHAR size;
 	UCHAR type;
 	CHAR  name[NAME_SIZE];
 	PLAYER_DATA player_data;
 	PlayerType player_type;
+};
+
+struct SC_REMOVE_OBJECT_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+	INT id;
 };
 
 struct SC_LOGIN_FAIL_PACKET  // 로그인 실패를 알려주는 패킷
