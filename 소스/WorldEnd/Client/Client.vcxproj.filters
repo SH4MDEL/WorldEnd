@@ -46,6 +46,12 @@
     <Filter Include="소스 파일\Base">
       <UniqueIdentifier>{23f982d3-1e29-4b90-8480-09205a35a9a7}</UniqueIdentifier>
     </Filter>
+    <Filter Include="소스 파일\Singleton">
+      <UniqueIdentifier>{bfd9920d-0867-4b7b-92cc-66e7307da670}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\Singleton">
+      <UniqueIdentifier>{4dea132b-9f65-4155-a4ec-a54e8b3efeb6}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Client.h">
@@ -70,9 +76,6 @@
       <Filter>헤더 파일\Framework</Filter>
     </ClInclude>
     <ClInclude Include="targetver.h">
-      <Filter>헤더 파일\Framework</Filter>
-    </ClInclude>
-    <ClInclude Include="timer.h">
       <Filter>헤더 파일\Framework</Filter>
     </ClInclude>
     <ClInclude Include="towerScene.h">
@@ -111,8 +114,20 @@
     <ClInclude Include="mesh.h">
       <Filter>헤더 파일\Base</Filter>
     </ClInclude>
-    <ClInclude Include="text.h">
+    <ClInclude Include="particleMesh.h">
       <Filter>헤더 파일\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="singleton.h">
+      <Filter>헤더 파일\Singleton</Filter>
+    </ClInclude>
+    <ClInclude Include="particleSystem.h">
+      <Filter>헤더 파일\Singleton</Filter>
+    </ClInclude>
+    <ClInclude Include="timer.h">
+      <Filter>헤더 파일\Singleton</Filter>
+    </ClInclude>
+    <ClInclude Include="text.h">
+      <Filter>헤더 파일\Framework</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -129,9 +144,6 @@
       <Filter>소스 파일\Scene</Filter>
     </ClCompile>
     <ClCompile Include="stdafx.cpp">
-      <Filter>소스 파일\Framework</Filter>
-    </ClCompile>
-    <ClCompile Include="timer.cpp">
       <Filter>소스 파일\Framework</Filter>
     </ClCompile>
     <ClCompile Include="object.cpp">
@@ -170,8 +182,20 @@
     <ClCompile Include="mesh.cpp">
       <Filter>소스 파일\Base</Filter>
     </ClCompile>
-    <ClCompile Include="text.cpp">
+    <ClCompile Include="particleMesh.cpp">
       <Filter>소스 파일\Base</Filter>
+    </ClCompile>
+    <ClCompile Include="singleton.cpp">
+      <Filter>소스 파일\Singleton</Filter>
+    </ClCompile>
+    <ClCompile Include="particleSystem.cpp">
+      <Filter>소스 파일\Singleton</Filter>
+    </ClCompile>
+    <ClCompile Include="timer.cpp">
+      <Filter>소스 파일\Singleton</Filter>
+    </ClCompile>
+    <ClCompile Include="text.cpp">
+      <Filter>소스 파일\Framework</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -216,6 +240,9 @@
       <Filter>셰이더 파일</Filter>
     </FxCompile>
     <FxCompile Include="Resource\Shader\staticObject.hlsl">
+      <Filter>셰이더 파일</Filter>
+    </FxCompile>
+    <FxCompile Include="Resource\Shader\particle.hlsl">
       <Filter>셰이더 파일</Filter>
     </FxCompile>
   </ItemGroup>

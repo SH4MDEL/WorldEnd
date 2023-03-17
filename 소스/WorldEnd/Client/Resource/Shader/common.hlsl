@@ -24,9 +24,20 @@ cbuffer cbMaterial : register(b2)
 	float specularHighlight : packoffset(c4.w);
 	float glossyReflection : packoffset(c5.x);
 	uint textureMask : packoffset(c5.y);
+    float2 padding : packoffset(c5.z);
 };
 
 #define MAX_BONES					100
+
+#include "lighting.hlsl"
+
+
+cbuffer cbScene : register(b4)
+{
+    matrix lightView : packoffset(c0);
+    matrix lightProj : packoffset(c4);
+    matrix NDCspace : packoffset(c8);
+}
 
 // bone
 cbuffer cbBoneOffsets : register(b5)
@@ -40,14 +51,9 @@ cbuffer cbBoneTransforms : register(b6)
 };
 // ------------------------------
 
-#include "lighting.hlsl"
-
-
-cbuffer cbScene : register(b4)
+cbuffer cbFramework : register(b7)
 {
-    matrix lightView : packoffset(c0);
-    matrix lightProj : packoffset(c4);
-    matrix NDCspace : packoffset(c8);
+    float timeElapsed : packoffset(c0);
 }
 
 SamplerState g_samplerWrap : register(s0);

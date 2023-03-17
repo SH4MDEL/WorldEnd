@@ -7,6 +7,11 @@
 #include "loadingScene.h"
 #include "towerScene.h"
 
+struct FrameworkInfo
+{
+	FLOAT		timeElapsed;
+};
+
 class GameFramework
 {
 public:
@@ -55,6 +60,9 @@ public:
 
 	void CreateD2DRenderTarget();
 
+
+	void CreateShaderVariable();
+	void UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& commandList);
 
 	void BuildObjects();
 	void CreateThread();
@@ -136,6 +144,9 @@ private:
 	ComPtr<ID3D11Resource>										m_d3d11WrappedRenderTarget[SwapChainBufferCount];
 	ComPtr<ID2D1Bitmap1>										m_d2dRenderTarget[SwapChainBufferCount];
 
+	ComPtr<ID3D12Resource>										m_frameworkBuffer;
+	FrameworkInfo*												m_frameworkBufferPointer;
+
 	ComPtr<ID3D12Fence>										m_fence;
 	UINT													m_frameIndex;
 	UINT64													m_fenceValue;
@@ -145,6 +156,6 @@ private:
 
 	vector<unique_ptr<Scene>>								m_scenes;
 	INT														m_sceneIndex;
-	unique_ptr<Shadow>										m_shadow;
+	BOOL													m_shadowPass;
 };
 

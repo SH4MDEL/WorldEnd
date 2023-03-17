@@ -45,7 +45,7 @@ float4 PS_STATICOBJECT_MAIN(VS_STATICOBJECT_OUTPUT input) : SV_TARGET
 {
 	PhongMaterial material;
 	material.m_ambient = float4(0.1f, 0.1f, 0.1f, 1.0f);
-	material.m_diffuse = float4(1.0f, 1.0f, 1.0f, 1.0f);
+	material.m_diffuse = float4(0.5f, 0.5f, 0.5f, 1.0f);
 	material.m_specular = float4(0.1f, 0.1f, 0.1f, 0.0f);
 
 	float4 normalColor = float4(0.0f, 0.0f, 0.0f, 1.0f);		// ³ë¸»
@@ -65,6 +65,7 @@ float4 PS_STATICOBJECT_MAIN(VS_STATICOBJECT_OUTPUT input) : SV_TARGET
 	//float3 vNormal = normalize(normal * 2.0f - 1.0f); //[0, 1] ¡æ [-1, 1]
 	//normal = normalize(mul(vNormal, TBN));
 	float shadowFactor = CalcShadowFactor(input.shadowPosition);
+	//shadowFactor = 1.0f;
 	float4 light = Lighting(input.positionW, normal, material, shadowFactor);
 	color = lerp(color, light, 0.8);
 	return color;

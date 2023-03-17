@@ -3,6 +3,7 @@
 #include "object.h"
 #include "player.h"
 #include "camera.h"
+#include "particleMesh.h"
 
 class Shader
 {
@@ -114,4 +115,20 @@ class UIRenderShader : public Shader
 public:
 	UIRenderShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature);
 	~UIRenderShader() = default;
+};
+
+class EmitterParticleShader : public Shader
+{
+public:
+	EmitterParticleShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature);
+	~EmitterParticleShader() = default;
+
+	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const;
+
+	ComPtr<ID3D12PipelineState> GetStreamPipelineState() const { return m_streamPipelineState; }
+
+private:
+	ComPtr<ID3D12PipelineState> m_streamPipelineState;
+
+	vector<shared_ptr<EmitterParticleMesh>>		m_particles;
 };

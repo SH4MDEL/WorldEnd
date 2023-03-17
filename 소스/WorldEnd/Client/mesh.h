@@ -158,7 +158,6 @@ protected:
 
 class GameObject;
 
-
 class AnimationMesh : public MeshFromFile
 {
 public: 

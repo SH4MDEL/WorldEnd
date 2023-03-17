@@ -99,7 +99,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
     hInst = hInstance; // 인스턴스 핸들을 전역 변수에 저장합니다.
 
-    RECT rect{ 0, 0, g_GameFramework.GetWindowWidth(), g_GameFramework.GetWindowHeight() };
+    RECT rect{ 0, 0, (LONG)g_GameFramework.GetWindowWidth(), (LONG)g_GameFramework.GetWindowHeight() };
     DWORD dwStyle{ WS_OVERLAPPED | WS_CAPTION | WS_MINIMIZEBOX | WS_SYSMENU | WS_BORDER };
     AdjustWindowRect(&rect, dwStyle, false);
 

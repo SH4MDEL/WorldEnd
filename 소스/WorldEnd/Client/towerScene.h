@@ -30,10 +30,11 @@ public:
 	void RenderShadow(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) override;
 	void RenderText(const ComPtr< ID2D1DeviceContext2>& deviceContext) override;
 
+	shared_ptr<Shadow> GetShadow() override { return m_shadow; }
+
 	void LoadSceneFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, wstring fileName, wstring sceneName);
 	void LoadObjectFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, wstring fileName, const shared_ptr<GameObject>& object);
 	void LoadPlayerFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, const shared_ptr<Player>& player);
-
 
     // 서버 추가 코드
 	void InitServer(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList);
@@ -62,6 +63,7 @@ protected:
 	shared_ptr<Camera>						m_camera;
 
 	shared_ptr<LightSystem>					m_lightSystem;
+	shared_ptr<Shadow>						m_shadow;
 
 	// 서버 추가 코드
 	unordered_map<INT, shared_ptr<Player>>	            m_multiPlayers;

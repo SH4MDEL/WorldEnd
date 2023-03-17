@@ -60,7 +60,6 @@ void TowerScene::CreateShaderVariable(const ComPtr<ID3D12Device>& device, const 
 		nullptr,
 		IID_PPV_ARGS(&m_sceneBuffer)));
 
-	// 카메라 버퍼 포인터
 	m_sceneBuffer->Map(0, nullptr, reinterpret_cast<void**>(&m_sceneBufferPointer));
 }
 
@@ -93,6 +92,9 @@ void TowerScene::UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& c
 
 	D3D12_GPU_VIRTUAL_ADDRESS virtualAddress = m_sceneBuffer->GetGPUVirtualAddress();
 	commandList->SetGraphicsRootConstantBufferView(4, virtualAddress);
+
+	//if (m_camera) m_camera->UpdateShaderVariable(commandList);
+	//if (m_lightSystem) m_lightSystem->UpdateShaderVariable(commandList);
 }
 
 void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, const ComPtr<ID3D12RootSignature>& rootsignature)
@@ -123,6 +125,8 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	XMFLOAT4X4 projMatrix;
 	XMStoreFloat4x4(&projMatrix, XMMatrixPerspectiveFovLH(0.25f * XM_PI, g_GameFramework.GetAspectRatio(), 0.1f, 100.0f));
 	m_camera->SetProjMatrix(projMatrix);
+
+	m_shadow = make_shared<Shadow>(device, 4096 << 1, 4096 << 1);
 
 	// 씬 로드
 	LoadSceneFromFile(device, commandlist, TEXT("./Resource/Scene/TowerScene.bin"), TEXT("TowerScene"));
@@ -267,13 +271,6 @@ void TowerScene::Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12G
 	if (m_camera) m_camera->UpdateShaderVariable(commandList);
 	if (m_lightSystem) m_lightSystem->UpdateShaderVariable(commandList);
 
-	::memcpy(&m_sceneBufferPointer->lightView, &XMMatrixTranspose(m_lightView), sizeof(XMFLOAT4X4));
-	::memcpy(&m_sceneBufferPointer->lightProj, &XMMatrixTranspose(m_lightProj), sizeof(XMFLOAT4X4));
-	::memcpy(&m_sceneBufferPointer->NDCspace, &XMMatrixTranspose(m_NDCspace), sizeof(XMFLOAT4X4));
-
-	D3D12_GPU_VIRTUAL_ADDRESS virtualAddress = m_sceneBuffer->GetGPUVirtualAddress();
-	commandList->SetGraphicsRootConstantBufferView(4, virtualAddress);
-
 	switch (threadIndex)
 	{
 	case 0:
@@ -296,8 +293,10 @@ void TowerScene::Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12G
 	}
 }
 
+
 void TowerScene::RenderShadow(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex)
 {
+
 	switch (threadIndex)
 	{
 	case 0:

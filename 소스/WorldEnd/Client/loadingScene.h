@@ -5,8 +5,7 @@
 class LoadingScene : public Scene
 {
 public:
-	LoadingScene() = default;
-	LoadingScene(const ComPtr<ID3D12Device>& device);
+	LoadingScene();
 	~LoadingScene() override;
 
 	void OnCreate(const ComPtr<ID3D12Device>& device,
@@ -29,6 +28,8 @@ public:
 	void Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) const override;
 	void RenderShadow(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) override;
 	void RenderText(const ComPtr< ID2D1DeviceContext2>& deviceContext) override;
+
+	shared_ptr<Shadow> GetShadow() override { return nullptr; }
  
 	void LoadMeshFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, wstring fileName);
 	void LoadMaterialFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, wstring fileName);
@@ -37,8 +38,9 @@ public:
 private:
 	shared_ptr<LoadingText>				m_loadingText;
 
-	//thread								m_loadingThread;
-	//ComPtr<ID3D12GraphicsCommandList>	m_threadCommandList;
-	//ComPtr<ID3D12CommandAllocator>		m_threadCommandAllocator;
+	thread								m_loadingThread;
+	ComPtr<ID3D12GraphicsCommandList>	m_threadCommandList;
+	ComPtr<ID3D12CommandAllocator>		m_threadCommandAllocator;
+	BOOL								m_loadEnd;
 };
 

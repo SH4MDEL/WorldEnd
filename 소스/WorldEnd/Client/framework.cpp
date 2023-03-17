@@ -13,7 +13,8 @@ GameFramework::GameFramework(UINT width, UINT height) :
 	m_scissorRect{0, 0, (LONG)width, (LONG)height}, 
 	m_rtvDescriptorSize {0}, 
 	m_isGameEnd {false}, 
-	m_sceneIndex{static_cast<int>(SCENETAG::LoadingScene)}
+	m_sceneIndex{static_cast<int>(SCENETAG::LoadingScene)},
+	m_shadowPass{false}
 {
 	m_aspectRatio = (FLOAT)width / (FLOAT)height;
 	m_scenes.resize(static_cast<int>(SCENETAG::Count));
@@ -193,7 +194,7 @@ void GameFramework::CreateThreadCommandList()
 	}
 
 	// Batch up command lists for execution later.
-	const UINT batchSize = m_sceneCommandLists.size() + m_shadowCommandLists.size() + 3;
+	const UINT batchSize = (UINT)m_sceneCommandLists.size() + (UINT)m_shadowCommandLists.size() + 3;
 	m_batchSubmit[0] = m_commandLists[COMMANDLIST_PRE].Get();
 	memcpy(m_batchSubmit.data() + 1, m_shadowCommandLists.data(), m_shadowCommandLists.size() * sizeof(ID3D12CommandList*));
 	m_batchSubmit[m_shadowCommandLists.size() + 1] = m_commandLists[COMMANDLIST_MID].Get();
@@ -336,6 +337,7 @@ void GameFramework::CreateRootSignature()
 	
 	rootParameter[16].InitAsConstantBufferView(5, 0, D3D12_SHADER_VISIBILITY_VERTEX);		// 뼈대 오프셋
 	rootParameter[17].InitAsConstantBufferView(6, 0, D3D12_SHADER_VISIBILITY_VERTEX);		// 뼈대 변환행렬
+	//rootParameter[18].InitAsConstantBufferView(7, 0, D3D12_SHADER_VISIBILITY_VERTEX); // cbFramework
 
 
 	CD3DX12_STATIC_SAMPLER_DESC samplerDesc[2];
@@ -368,7 +370,8 @@ void GameFramework::CreateRootSignature()
 	);
 
 	CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc;
-	rootSignatureDesc.Init(_countof(rootParameter), rootParameter, _countof(samplerDesc), samplerDesc, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+	rootSignatureDesc.Init(_countof(rootParameter), rootParameter, _countof(samplerDesc), samplerDesc, 
+		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT | D3D12_ROOT_SIGNATURE_FLAG_ALLOW_STREAM_OUTPUT);
 
 	ComPtr<ID3DBlob> signature, error;
 	DX::ThrowIfFailed(D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, &signature, &error));
@@ -392,7 +395,7 @@ void GameFramework::Create11On12Device()
 		reinterpret_cast<IUnknown**>(m_commandQueue.GetAddressOf()),
 		1,
 		0, 
-		d3d11Device.GetAddressOf(),
+		&d3d11Device,
 		&m_deviceContext,
 		nullptr));
 
@@ -434,7 +437,7 @@ void GameFramework::CreateD2DRenderTarget()
 		DX::ThrowIfFailed(m_11On12Device->CreateWrappedResource(m_renderTargets[i].Get(),
 			&d3d11Flags, 
 			D3D12_RESOURCE_STATE_RENDER_TARGET,
-			D3D12_RESOURCE_STATE_PRESENT,
+			D3D12_RESOURCE_STATE_RENDER_TARGET,
 			IID_PPV_ARGS(&m_d3d11WrappedRenderTarget[i])));
 		ComPtr<IDXGISurface> dxgiSurface;
 		DX::ThrowIfFailed(m_d3d11WrappedRenderTarget[i]->QueryInterface(__uuidof(IDXGISurface), (void**)&dxgiSurface));
@@ -442,17 +445,38 @@ void GameFramework::CreateD2DRenderTarget()
 	}
 }
 
+void GameFramework::CreateShaderVariable()
+{
+	DX::ThrowIfFailed(m_device->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Buffer(sizeof(FrameworkInfo)),
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&m_frameworkBuffer)));
+
+	m_frameworkBuffer->Map(0, nullptr, reinterpret_cast<void**>(&m_frameworkBufferPointer));
+}
+
+void GameFramework::UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& commandList)
+{
+	FLOAT timeElapsed = m_timer.GetDeltaTime();
+	::memcpy(&m_frameworkBufferPointer->timeElapsed, &timeElapsed, sizeof(FLOAT));
+	D3D12_GPU_VIRTUAL_ADDRESS virtualAddress = m_frameworkBuffer->GetGPUVirtualAddress();
+	commandList->SetGraphicsRootConstantBufferView(18, virtualAddress);
+}
+
 void GameFramework::BuildObjects()
 {
-	DX::ThrowIfFailed(m_mainCommandAllocator->Reset());
+	//DX::ThrowIfFailed(m_mainCommandAllocator->Reset());
 	m_mainCommandList->Reset(m_mainCommandAllocator.Get(), nullptr);
 
-	m_scenes[static_cast<int>(SCENETAG::LoadingScene)] = make_unique<LoadingScene>(m_device);
+	//CreateShaderVariable();
+
+	m_scenes[static_cast<int>(SCENETAG::LoadingScene)] = make_unique<LoadingScene>();
 	m_scenes[static_cast<int>(SCENETAG::TowerScene)] = make_unique<TowerScene>();
 	//m_scenes[static_cast<int>(SCENETAG::LoadingScene)]->BuildObjects(m_device, m_mainCommandList, m_rootSignature);
 	//m_scenes[static_cast<int>(SCENETAG::TowerScene)]->BuildObjects(m_device, m_mainCommandList, m_rootSignature);
-
-	m_shadow = make_unique<Shadow>(m_device, 4096, 4096);
 
 	m_scenes[m_sceneIndex]->OnCreate(m_device, m_mainCommandList, m_rootSignature);
 
@@ -479,7 +503,7 @@ void GameFramework::ChangeScene(SCENETAG tag)
 {
 	m_scenes[m_sceneIndex]->OnDestroy();
 	m_scenes[m_sceneIndex = static_cast<int>(tag)]->OnCreate(m_device, m_mainCommandList, m_rootSignature);
-
+	m_shadowPass = true;
 	WaitForPreviousFrame();
 }
 
@@ -533,6 +557,7 @@ void GameFramework::WaitForGpu()
 	WaitForSingleObjectEx(m_fenceEvent, INFINITE, FALSE);
 }
 
+
 // Render the scene
 void GameFramework::Render()
 {
@@ -555,9 +580,13 @@ void GameFramework::Render()
 	WaitForMultipleObjects(THREAD_NUM, m_finishRender.data(), true, INFINITE);
 
 	// Submit remaining command lists.
-	m_commandQueue->ExecuteCommandLists(m_batchSubmit.size() - THREAD_NUM - 2, m_batchSubmit.data() + THREAD_NUM + 2);
 
 	RenderText();
+
+	m_commandQueue->ExecuteCommandLists(m_batchSubmit.size() - THREAD_NUM - 2, m_batchSubmit.data() + THREAD_NUM + 2);
+	// 커맨드 리스트 실행 순서
+	// Pre -> Shadow -> Mid -> Scene -> Post
+	// 때려 죽여도 안바뀜.
 
 	DX::ThrowIfFailed(m_swapChain->Present(1, 0));
 
@@ -573,10 +602,11 @@ void GameFramework::BeginFrame()
 		DX::ThrowIfFailed(m_commandLists[i]->Reset(m_commandAllocators[i].Get(), nullptr));
 	}
 
-	// Clear the depth stencil buffer in preparation for rendering the shadow map.
-	m_commandLists[COMMANDLIST_PRE]->ClearDepthStencilView(m_shadow->GetCpuDsv(),
-		D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.f, 0, 0, nullptr);
-
+	if (m_shadowPass) {
+		// Clear the depth stencil buffer in preparation for rendering the shadow map.
+		m_commandLists[COMMANDLIST_PRE]->ClearDepthStencilView(m_scenes[m_sceneIndex]->GetShadow()->GetCpuDsv(),
+			D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.f, 0, 0, nullptr);
+	}
 
 	// Reset the worker command allocators and lists.
 	for (int i = 0; i < THREAD_NUM; ++i) {
@@ -586,6 +616,8 @@ void GameFramework::BeginFrame()
 		DX::ThrowIfFailed(m_sceneCommandAllocators[i]->Reset());
 		DX::ThrowIfFailed(m_sceneCommandLists[i]->Reset(m_sceneCommandAllocators[i].Get(), nullptr));
 	}
+
+	//UpdateShaderVariable(m_commandLists[COMMANDLIST_PRE]);
 
 	// Indicate that the back buffer will be used as a render target.
 	m_commandLists[COMMANDLIST_PRE]->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_frameIndex].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
@@ -600,23 +632,27 @@ void GameFramework::BeginFrame()
 	m_commandLists[COMMANDLIST_PRE]->ClearDepthStencilView(dsvHandle, 
 		D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
+
 	DX::ThrowIfFailed(m_commandLists[COMMANDLIST_PRE]->Close());
 }
 
 void GameFramework::MidFrame()
 {
 	// Transition the shadow map from writeable to readable.
-	m_commandLists[COMMANDLIST_MID]->ResourceBarrier(1, 
-		&CD3DX12_RESOURCE_BARRIER::Transition(m_shadow->GetShadowMap().Get(), 
-		D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_GENERIC_READ));
-
+	if (m_shadowPass) {
+		m_commandLists[COMMANDLIST_MID]->ResourceBarrier(1,
+			&CD3DX12_RESOURCE_BARRIER::Transition(m_scenes[m_sceneIndex]->GetShadow()->GetShadowMap().Get(),
+				D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_GENERIC_READ));
+	}
 	DX::ThrowIfFailed(m_commandLists[COMMANDLIST_MID]->Close());
 }
 
 void GameFramework::EndFrame()
 {
-	m_commandLists[COMMANDLIST_POST]->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_shadow->GetShadowMap().Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_DEPTH_WRITE));
-	//m_commandLists[COMMANDLIST_POST]->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_frameIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
+	if (m_shadowPass) {
+		m_commandLists[COMMANDLIST_POST]->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_scenes[m_sceneIndex]->GetShadow()->GetShadowMap().Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_DEPTH_WRITE));
+	}
+	m_commandLists[COMMANDLIST_POST]->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_frameIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
 
 	DX::ThrowIfFailed(m_commandLists[COMMANDLIST_POST]->Close());
 }
@@ -631,19 +667,22 @@ void GameFramework::WorkerThread(UINT threadIndex)
 
 		m_shadowCommandLists[threadIndex]->SetGraphicsRootSignature(m_rootSignature.Get());
 
-		ID3D12DescriptorHeap* ppHeaps[] = { m_shadow->GetSrvDiscriptorHeap().Get() };
-		m_shadowCommandLists[threadIndex]->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
-		m_shadowCommandLists[threadIndex]->SetGraphicsRootDescriptorTable(8, m_shadow->GetGpuSrv());
+		if (m_shadowPass) {
+			ID3D12DescriptorHeap* ppHeaps[] = { m_scenes[m_sceneIndex]->GetShadow()->GetSrvDiscriptorHeap().Get() };
+			m_shadowCommandLists[threadIndex]->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
+			m_shadowCommandLists[threadIndex]->SetGraphicsRootDescriptorTable(8, m_scenes[m_sceneIndex]->GetShadow()->GetGpuSrv());
 
-		m_shadowCommandLists[threadIndex]->RSSetViewports(1, &m_shadow->GetViewport());
-		m_shadowCommandLists[threadIndex]->RSSetScissorRects(1, &m_shadow->GetScissorRect());
 
-		// 장면을 깊이 버퍼에만 렌더링할 것이므로 렌더 타겟은 nullptr로 설정한다.
-		// 이처럼 nullptr 렌더 타겟을 설정하면 색상 쓰기가 비활성화된다.
-		// 반드시 활성 PSO의 렌더 타겟 개수도 0으로 지정해야 함을 주의해야 한다.
+			m_shadowCommandLists[threadIndex]->RSSetViewports(1, &m_scenes[m_sceneIndex]->GetShadow()->GetViewport());
+			m_shadowCommandLists[threadIndex]->RSSetScissorRects(1, &m_scenes[m_sceneIndex]->GetShadow()->GetScissorRect());
 
-		m_shadowCommandLists[threadIndex]->OMSetRenderTargets(0, nullptr, true, &m_shadow->GetCpuDsv());
 
+			// 장면을 깊이 버퍼에만 렌더링할 것이므로 렌더 타겟은 nullptr로 설정한다.
+			// 이처럼 nullptr 렌더 타겟을 설정하면 색상 쓰기가 비활성화된다.
+			// 반드시 활성 PSO의 렌더 타겟 개수도 0으로 지정해야 함을 주의해야 한다.
+
+			m_shadowCommandLists[threadIndex]->OMSetRenderTargets(0, nullptr, true, &m_scenes[m_sceneIndex]->GetShadow()->GetCpuDsv());
+		}
 		if (m_scenes[m_sceneIndex]) {
 			m_scenes[m_sceneIndex]->UpdateShaderVariable(m_shadowCommandLists[threadIndex]);
 			m_scenes[m_sceneIndex]->RenderShadow(m_device, m_shadowCommandLists[threadIndex], threadIndex);
@@ -662,9 +701,11 @@ void GameFramework::WorkerThread(UINT threadIndex)
 		// passes for this frame have been submitted.
 		m_sceneCommandLists[threadIndex]->SetGraphicsRootSignature(m_rootSignature.Get());
 
-		m_sceneCommandLists[threadIndex]->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
-		m_sceneCommandLists[threadIndex]->SetGraphicsRootDescriptorTable(8, m_shadow->GetGpuSrv());
-
+		if (m_shadowPass) {
+			ID3D12DescriptorHeap* ppHeaps[] = { m_scenes[m_sceneIndex]->GetShadow()->GetSrvDiscriptorHeap().Get() };
+			m_sceneCommandLists[threadIndex]->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
+			m_sceneCommandLists[threadIndex]->SetGraphicsRootDescriptorTable(8, m_scenes[m_sceneIndex]->GetShadow()->GetGpuSrv());
+		}
 		m_sceneCommandLists[threadIndex]->RSSetViewports(1, &m_viewport);
 		m_sceneCommandLists[threadIndex]->RSSetScissorRects(1, &m_scissorRect);
 
@@ -674,6 +715,7 @@ void GameFramework::WorkerThread(UINT threadIndex)
 
 		// Scene을 Render한다.
 		if (m_scenes[m_sceneIndex]) {
+			m_scenes[m_sceneIndex]->UpdateShaderVariable(m_sceneCommandLists[threadIndex]);
 			m_scenes[m_sceneIndex]->Render(m_device, m_sceneCommandLists[threadIndex], threadIndex);
 		}
 

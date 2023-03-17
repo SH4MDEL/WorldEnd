@@ -24,6 +24,8 @@ struct MaterialInfo
 	FLOAT					glossyReflection;
 
 	UINT					type;
+
+	XMFLOAT2				padding;
 };
 
 // ÀçÁú(Material)

@@ -31,7 +31,7 @@
 #include <algorithm>
 #include <array>
 #include <functional>
-
+#include <random>
 
 // d3d12 헤더 파일입니다.
 #pragma comment(lib, "d2d1.lib")
@@ -63,7 +63,8 @@ using namespace std;
 
 class GameFramework;
 
-extern GameFramework       g_GameFramework;
+extern GameFramework        g_GameFramework;
+extern mt19937				g_randomEngine;
 
 extern SOCKET               g_socket;                           // 소켓
 extern string				g_serverIP;							// 서버 아이피
@@ -72,12 +73,17 @@ extern mutex                g_mutex;
 
 
 constexpr int MAX_PLAYERS = 2;
+constexpr int MAX_PARTICLE_COUNT = 10;
+constexpr int MAX_PARTICLE_MESH = 50;
 // Command list submissions from main thread.
 constexpr int COMMANDLIST_NUM = 3;
 constexpr int COMMANDLIST_PRE = 0;
 constexpr int COMMANDLIST_MID = 1;
 constexpr int COMMANDLIST_POST = 2;
+
 constexpr int THREAD_NUM = 3;
+
+
 
 
 namespace DX
@@ -89,6 +95,16 @@ namespace DX
             // Set a breakpoint on this line to catch DirectX API errors
             throw std::exception{};
         }
+    }
+    inline INT GetRandomINT(INT min, INT max)
+    {
+        uniform_int_distribution<INT> dis{ min, max };
+        return dis(g_randomEngine);
+    }
+    inline FLOAT GetRandomFLOAT(FLOAT min, FLOAT max)
+    {
+        uniform_real_distribution<FLOAT> dis{ min, max };
+        return dis(g_randomEngine);
     }
 }
 

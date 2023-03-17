@@ -46,6 +46,8 @@ public:
 	virtual void Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) const = 0;
 	virtual void RenderShadow(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) = 0;
 	virtual void RenderText(const ComPtr< ID2D1DeviceContext2>& deviceContext) = 0;
+	
+	virtual shared_ptr<Shadow> GetShadow() = 0;
 
 	static unordered_map<string, shared_ptr<Mesh>>			m_meshs;
 	static unordered_map<string, shared_ptr<Texture>>		m_textures;

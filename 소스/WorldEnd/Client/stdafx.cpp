@@ -2,7 +2,8 @@
 #include "framework.h"
 #include "scene.h"
 
-GameFramework       g_GameFramework(1280, 720);
+GameFramework			g_GameFramework(1280, 720);
+mt19937					g_randomEngine{ random_device{}() };
 
 SOCKET                  g_socket{};
 string					g_serverIP{ "127.0.0.1" };

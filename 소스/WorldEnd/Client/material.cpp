@@ -16,35 +16,16 @@ void Material::CreateShaderVariable(const ComPtr<ID3D12Device>& device, const Co
 
 void Material::UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& commandList) const
 {
-	XMFLOAT4 albedoColor = m_albedoColor;
-	::memcpy(&m_materialBufferPointer->albedoColor, &albedoColor, sizeof(XMFLOAT4));
-
-	XMFLOAT4 emissiveColor = m_emissiveColor;
-	::memcpy(&m_materialBufferPointer->emissiveColor, &emissiveColor, sizeof(XMFLOAT4));
-
-	XMFLOAT4 specularColor = m_specularColor;
-	::memcpy(&m_materialBufferPointer->specularColor, &specularColor, sizeof(XMFLOAT4));
-
-	XMFLOAT4 ambientColor = m_ambientColor;
-	::memcpy(&m_materialBufferPointer->ambientColor, &ambientColor, sizeof(XMFLOAT4));
-
-	FLOAT glossiness = m_glossiness;
-	::memcpy(&m_materialBufferPointer->glossiness, &glossiness, sizeof(FLOAT));
-
-	FLOAT smoothness = m_smoothness;
-	::memcpy(&m_materialBufferPointer->smoothness, &smoothness, sizeof(FLOAT));
-
-	FLOAT metallic = m_metallic;
-	::memcpy(&m_materialBufferPointer->metallic, &metallic, sizeof(FLOAT));
-
-	FLOAT specularHighlight = m_specularHighlight;
-	::memcpy(&m_materialBufferPointer->specularHighlight, &specularHighlight, sizeof(FLOAT));
-
-	FLOAT glossyReflection = m_glossyReflection;
-	::memcpy(&m_materialBufferPointer->glossyReflection, &glossyReflection, sizeof(FLOAT));
-
-	UINT type = m_type;
-	::memcpy(&m_materialBufferPointer->type, &type, sizeof(UINT));
+	::memcpy(&m_materialBufferPointer->albedoColor, &m_albedoColor, sizeof(XMFLOAT4));
+	::memcpy(&m_materialBufferPointer->emissiveColor, &m_emissiveColor, sizeof(XMFLOAT4));
+	::memcpy(&m_materialBufferPointer->specularColor, &m_specularColor, sizeof(XMFLOAT4));
+	::memcpy(&m_materialBufferPointer->ambientColor, &m_ambientColor, sizeof(XMFLOAT4));
+	::memcpy(&m_materialBufferPointer->glossiness, &m_glossiness, sizeof(FLOAT));
+	::memcpy(&m_materialBufferPointer->smoothness, &m_smoothness, sizeof(FLOAT));
+	::memcpy(&m_materialBufferPointer->metallic, &m_metallic, sizeof(FLOAT));
+	::memcpy(&m_materialBufferPointer->specularHighlight, &m_specularHighlight, sizeof(FLOAT));
+	::memcpy(&m_materialBufferPointer->glossyReflection, &m_glossyReflection, sizeof(FLOAT));
+	::memcpy(&m_materialBufferPointer->type, &m_type, sizeof(UINT));
 
 	D3D12_GPU_VIRTUAL_ADDRESS virtualAddress = m_materialBuffer->GetGPUVirtualAddress();
 	commandList->SetGraphicsRootConstantBufferView(2, virtualAddress);

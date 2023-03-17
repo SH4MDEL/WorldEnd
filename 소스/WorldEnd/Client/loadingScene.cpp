@@ -1,6 +1,6 @@
 ﻿#include "loadingScene.h"
 
-LoadingScene::LoadingScene(const ComPtr<ID3D12Device>& device)
+LoadingScene::LoadingScene() : m_loadEnd{false}
 {
 
 }
@@ -30,19 +30,16 @@ void LoadingScene::OnCreate(const ComPtr<ID3D12Device>& device,
 		TEXT("ko-kr"),
 		&textFormat
 	));
+
 	textFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
 	textFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
 	m_loadingText->SetTextFormat(textFormat);
 
-	BuildObjects(device, commandList, rootSignature);
+	DX::ThrowIfFailed(device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_threadCommandAllocator)));
+	DX::ThrowIfFailed(device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_threadCommandAllocator.Get(), nullptr, IID_PPV_ARGS(&m_threadCommandList)));
 
-	//for (UINT i = 0; i < MAX_THREAD; ++i) {
-	//	subThread[i] = thread{ &LoadingScene::BuildObjectsByThread, this, device, threadCommandList[i], rootSignature, i };
-	//	subThread[i].detach();
-	//}
-	//for (UINT i = 0; i < MAX_THREAD; ++i) {
-	//	subThread[i].join();
-	//}
+	m_loadingThread = thread{ &LoadingScene::BuildObjects, this, device, m_threadCommandList, rootSignature };
+	m_loadingThread.detach();
 }
 
 void LoadingScene::OnDestroy()
@@ -69,11 +66,11 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/WarriorMesh.bin"));
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/ArcherMesh.bin"));
 
-	LoadAnimationSetFromFile(TEXT("./Resource/Animation/WarriorAnimation.bin"), "WarriorAnimation");
-	LoadAnimationSetFromFile(TEXT("./Resource/Animation/ArcherAnimation.bin"), "ArcherAnimation");
-
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/WarriorTexture.bin"));
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/ArcherTexture.bin"));
+
+	LoadAnimationSetFromFile(TEXT("./Resource/Animation/WarriorAnimation.bin"), "WarriorAnimation");
+	LoadAnimationSetFromFile(TEXT("./Resource/Animation/ArcherAnimation.bin"), "ArcherAnimation");
 
 	auto objectShader{ make_shared<StaticObjectShader>(device, rootsignature) };
 
@@ -97,6 +94,9 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	// 그림자 셰이더 로딩
 	auto shadowShader{ make_shared<ShadowShader>(device, rootsignature) };
 	auto animationShadowShader{ make_shared<AnimationShadowShader>(device, rootsignature) };
+
+	// 파티클 셰이더 로딩
+	auto emitterParticleShader{ make_shared<EmitterParticleShader>(device, rootsignature) };
 
 	// 몬스터 로딩
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/Undead_WarriorMesh.bin"));
@@ -171,15 +171,21 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	m_shaders.insert({ "HPBAR", hpBarShader });
 	m_shaders.insert({ "SHADOW", shadowShader });
 	m_shaders.insert({ "ANIMATIONSHADOW", animationShadowShader });
+	m_shaders.insert({ "EMITTERPARTICLE", emitterParticleShader });
 	m_shaders.insert({ "DEBUG", debugShader });
 
+	commandlist->Close();
+	ID3D12CommandList* ppCommandList[]{ commandlist.Get() };
+	g_GameFramework.GetCommandQueue()->ExecuteCommandLists(_countof(ppCommandList), ppCommandList);
+	g_GameFramework.WaitForPreviousFrame();
 
-	g_GameFramework.ChangeScene(SCENETAG::TowerScene);
+	m_loadEnd = true;
 }
 
 void LoadingScene::Update(FLOAT timeElapsed) 
 {
 	m_loadingText->Update(timeElapsed);
+	if (m_loadEnd) g_GameFramework.ChangeScene(SCENETAG::TowerScene);
 }
 
 void LoadingScene::Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) const {}
