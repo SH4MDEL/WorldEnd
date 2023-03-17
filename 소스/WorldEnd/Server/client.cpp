@@ -20,6 +20,15 @@ ExpOver::ExpOver(char* packet)
 	memcpy(_send_buf, packet, packet[0]);
 }
 
+ExpOver::ExpOver(char* packet, INT packet_count)
+{
+	ZeroMemory(&_wsa_over, sizeof(_wsa_over));
+	_wsa_buf.buf = _send_buf;
+	_wsa_buf.len = packet[0] * packet_count;
+	_comp_type = OP_SEND;
+	memcpy(_send_buf, packet, static_cast<size_t>(packet[0] * packet_count));
+}
+
 Client::Client() : m_socket{}, m_ready_check{ false }, m_remain_size{ 0 },
 	m_recv_over{}
 {
@@ -60,6 +69,23 @@ void Client::DoSend(void* p)
 		if (ERROR_IO_PENDING != error_num) {
 			ErrorDisplay("Send Error");
 			
+			if (WSAECONNRESET == error_num) {
+				Server& server = Server::GetInstance();
+				server.Disconnect(m_id);
+			}
+		}
+	}
+}
+
+void Client::DoSend(void* p, INT packet_count)
+{
+	ExpOver* ex_over = new ExpOver{ reinterpret_cast<char*>(p), packet_count };
+	int retval = WSASend(m_socket, &ex_over->_wsa_buf, 1, 0, 0, &ex_over->_wsa_over, nullptr);
+	if (SOCKET_ERROR == retval) {
+		int error_num = WSAGetLastError();
+		if (ERROR_IO_PENDING != error_num) {
+			ErrorDisplay("Send Error");
+
 			if (WSAECONNRESET == error_num) {
 				Server& server = Server::GetInstance();
 				server.Disconnect(m_id);

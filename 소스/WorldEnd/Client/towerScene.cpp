@@ -531,6 +531,7 @@ void TowerScene::PacketReassembly(char* net_buf, size_t io_byte)
 	static size_t make_packet_size = 0;
 	static size_t saved_packet_size = 0;
 	static char packet_buffer[BUF_SIZE];
+	ZeroMemory(packet_buffer, BUF_SIZE);
 
 	while (io_byte != 0) {
 		if (make_packet_size == 0)
@@ -538,7 +539,6 @@ void TowerScene::PacketReassembly(char* net_buf, size_t io_byte)
 		if (io_byte + saved_packet_size >= make_packet_size) {
 			memcpy(packet_buffer + saved_packet_size, ptr, make_packet_size - saved_packet_size);
 			ProcessPacket(packet_buffer);
-			ZeroMemory(packet_buffer, BUF_SIZE);
 			ptr += make_packet_size - saved_packet_size;
 			io_byte -= make_packet_size - saved_packet_size;
 			//cout << "io byte - " << io_byte << endl;
@@ -652,7 +652,7 @@ void TowerScene::RecvAddMonsterPacket(char* ptr)
 
 void TowerScene::RecvUpdateMonster(char* ptr)
 {
-	SC_MONSTER_UPDATE_PACKET* monster_packet = reinterpret_cast<SC_MONSTER_UPDATE_PACKET*>(ptr);
+	SC_UPDATE_MONSTER_PACKET* monster_packet = reinterpret_cast<SC_UPDATE_MONSTER_PACKET*>(ptr);
 
 	if (monster_packet->monster_data.id < 0) return;
 

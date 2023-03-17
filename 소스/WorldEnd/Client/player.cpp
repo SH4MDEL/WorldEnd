@@ -66,7 +66,7 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 	if (GetAsyncKeyState('W') & 0x8000 || GetAsyncKeyState('A') & 0x8000 ||
 		GetAsyncKeyState('S') & 0x8000 || GetAsyncKeyState('D') & 0x8000)
 	{
-		AddVelocity(Vector3::Mul(GetFront(), timeElapsed * 10.0f));
+		AddVelocity(Vector3::Mul(GetFront(), timeElapsed * PLAYER_RUN_SPEED));
 
 #ifdef USE_NETWORK
 		CS_PLAYER_MOVE_PACKET move_packet;
@@ -77,8 +77,6 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 		move_packet.yaw = GetYaw();
 
 		send(g_socket, reinterpret_cast<char*>(&move_packet), sizeof(move_packet), 0);
-		cout << " x: " << move_packet.pos.x << " y: " << move_packet.pos.y <<
-			" z: " << move_packet.pos.z << endl;
 #endif // USE_NETWORK
 	}
 	if (GetAsyncKeyState('Q') & 0x8000)

@@ -107,36 +107,25 @@ void GameRoom::SendMonsterData()
 {
 	Server& server = Server::GetInstance();
 
-	SC_MONSTER_UPDATE_PACKET monster_packet[MAX_MONSTER];
+	SC_UPDATE_MONSTER_PACKET packet[MAX_MONSTER]{};
 
 	for (size_t i = 0; INT id : m_monster_ids) {
-		monster_packet[i].size = static_cast<UCHAR>(sizeof(SC_ADD_MONSTER_PACKET));
-		monster_packet[i].type = SC_PACKET_ADD_MONSTER;
+		packet[i].size = static_cast<UCHAR>(sizeof(SC_UPDATE_MONSTER_PACKET));
+		packet[i].type = SC_PACKET_UPDATE_MONSTER;
 
 		if (-1 == id) {
-			monster_packet[i].monster_data = MONSTER_DATA{ .id = -1 };
+			packet[i].monster_data = MONSTER_DATA{ .id = -1 };
 		}
 		else {
-			monster_packet[i].monster_data = server.m_clients[id]->GetMonsterData();
+			packet[i].monster_data = server.m_clients[id]->GetMonsterData();
 		}
 		++i;
 	}
 
-	/*for (size_t i = 0; i < m_monsters.size(); ++i) {
-		monster_packet[i].size = static_cast<UCHAR>(sizeof(SC_MONSTER_UPDATE_PACKET));
-		monster_packet[i].type = SC_PACKET_UPDATE_MONSTER;
-		monster_packet[i].monster_data = m_monsters[i]->GetData();
-	}
-	for (size_t i = m_monsters.size(); i < MAX_MONSTER; ++i) {
-		monster_packet[i].size = static_cast<UCHAR>(sizeof(SC_MONSTER_UPDATE_PACKET));
-		monster_packet[i].type = SC_PACKET_UPDATE_MONSTER;
-		monster_packet[i].monster_data = MONSTER_DATA{ .id = -1 };
-	}*/
-
 	for (INT id : m_player_ids){
 		if (-1 == id) continue;
 
-		server.m_clients[id]->DoSend(&monster_packet);
+		server.m_clients[id]->DoSend(&packet, MAX_MONSTER);
 	}
 }
 
@@ -144,35 +133,23 @@ void GameRoom::SendAddMonster(INT player_id)
 {
 	Server& server = Server::GetInstance();
 
-	SC_ADD_MONSTER_PACKET monster_packet[MAX_MONSTER];
+	SC_ADD_MONSTER_PACKET packet[MAX_MONSTER]{};
 
 	for (size_t i = 0; INT id : m_monster_ids) {
-		monster_packet[i].size = static_cast<UCHAR>(sizeof(SC_ADD_MONSTER_PACKET));
-		monster_packet[i].type = SC_PACKET_ADD_MONSTER;
+		packet[i].size = static_cast<UCHAR>(sizeof(SC_ADD_MONSTER_PACKET));
+		packet[i].type = SC_PACKET_ADD_MONSTER;
 
 		if (-1 == id) {
-			monster_packet[i].monster_data = MONSTER_DATA{ .id = -1 };
+			packet[i].monster_data = MONSTER_DATA{ .id = -1 };
 		}
 		else {
-			monster_packet[i].monster_data = server.m_clients[id]->GetMonsterData();
-			monster_packet[i].monster_type = server.m_clients[id]->GetMonsterType();
+			packet[i].monster_data = server.m_clients[id]->GetMonsterData();
+			packet[i].monster_type = server.m_clients[id]->GetMonsterType();
 		}
 		++i;
 	}
 
-	/*for (size_t i = 0; i < m_monsters.size(); ++i) {
-		monster_packet[i].size = static_cast<UCHAR>(sizeof(SC_ADD_MONSTER_PACKET));
-		monster_packet[i].type = SC_PACKET_ADD_MONSTER;
-		monster_packet[i].monster_data = m_monsters[i]->GetData();
-		monster_packet[i].monster_type = m_monsters[i]->GetType();
-	}
-	for (size_t i = m_monsters.size(); i < MAX_MONSTER; ++i) {
-		monster_packet[i].size = static_cast<UCHAR>(sizeof(SC_ADD_MONSTER_PACKET));
-		monster_packet[i].type = SC_PACKET_ADD_MONSTER;
-		monster_packet[i].monster_data = MONSTER_DATA{ .id = -1 };
-	}*/
-
-	server.m_clients[player_id]->DoSend(&monster_packet);
+	server.m_clients[player_id]->DoSend(&packet, MAX_MONSTER);
 }
 
 bool GameRoom::FindPlayer(INT player_id)

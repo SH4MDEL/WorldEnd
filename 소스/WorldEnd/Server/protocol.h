@@ -4,6 +4,9 @@
 
 constexpr short SERVER_PORT = 9000;
 
+constexpr float PLAYER_RUN_SPEED = 10.f;
+
+
 constexpr int BUF_SIZE = 5000;
 constexpr int NAME_SIZE = 20;
 constexpr int MAX_INGAME_USER = 3;
@@ -250,7 +253,7 @@ struct SC_ADD_MONSTER_PACKET
 	MonsterType monster_type;
 };
 
-struct SC_MONSTER_UPDATE_PACKET
+struct SC_UPDATE_MONSTER_PACKET
 {
 	UCHAR size;
 	UCHAR type;

@@ -101,7 +101,8 @@ void Server::Network()
 	// 초기화 하는 함수는 싱글톤 문제로 생성자에서 호출할 수 없음
 	m_game_room_manager->InitGameRoom(0);
 
-	using frame = std::chrono::duration<int32_t, std::ratio<1, 60>>;
+	constexpr int MAX_FAME = 60;
+	using frame = std::chrono::duration<int32_t, std::ratio<1, MAX_FAME>>;
 	using ms = std::chrono::duration<float, std::milli>;
 	std::chrono::time_point<std::chrono::steady_clock> fps_timer{ std::chrono::steady_clock::now() };
 
@@ -132,7 +133,7 @@ void Server::Network()
 		m_game_room_manager->Update(duration_cast<ms>(fps).count() / 1000.0f);
 
 		frame_count = duration_cast<frame>(frame_count + fps);
-		if (frame_count.count() >= 60) {
+		if (frame_count.count() >= MAX_FAME) {
 			frame_count = frame::zero();
 		}
 		else {

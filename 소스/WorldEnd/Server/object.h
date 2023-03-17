@@ -121,6 +121,7 @@ public:
 	virtual MonsterType GetMonsterType() const { return MonsterType::WARRIOR; }
 	virtual const SOCKET& GetSocket() const { return SOCKET(); }
 	virtual void DoSend(void* p) {}
+	virtual void DoSend(void* p, INT packet_count) {}
 
 protected:
 	XMFLOAT3	m_velocity;
