@@ -91,7 +91,7 @@ void TowerScene::UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& c
 	::memcpy(&m_sceneBufferPointer->NDCspace, &XMMatrixTranspose(m_NDCspace), sizeof(XMFLOAT4X4));
 
 	D3D12_GPU_VIRTUAL_ADDRESS virtualAddress = m_sceneBuffer->GetGPUVirtualAddress();
-	commandList->SetGraphicsRootConstantBufferView(4, virtualAddress);
+	commandList->SetGraphicsRootConstantBufferView((INT)ShaderRegister::Scene, virtualAddress);
 
 	//if (m_camera) m_camera->UpdateShaderVariable(commandList);
 	//if (m_lightSystem) m_lightSystem->UpdateShaderVariable(commandList);

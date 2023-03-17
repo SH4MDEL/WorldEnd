@@ -27,7 +27,7 @@ struct LIGHT
     float					padding;
 };
 
-cbuffer cbLight : register(b3)
+cbuffer cbLight : register(b5)
 {
     LIGHT       lights[MAX_LIGHTS];
     float4      globalAmbient;
@@ -103,7 +103,7 @@ float4 Lighting(float3 position, float3 normal, PhongMaterial material, float sh
 
 	float4 color = float4(0.0f, 0.0f, 0.0f, 0.0f);
 	[unroll(MAX_LIGHTS)] 
-	for (int i = 0; i < numLight; ++i) {
+	for (uint i = 0; i < numLight; ++i) {
 		if (lights[i].m_enable) {
 			if (lights[i].m_type == DIRECTIONAL_LIGHT)
 			{

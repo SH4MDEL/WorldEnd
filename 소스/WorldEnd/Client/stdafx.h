@@ -83,7 +83,43 @@ constexpr int COMMANDLIST_POST = 2;
 
 constexpr int THREAD_NUM = 3;
 
+enum class ShaderRegister : INT { 
+    GameObject, 
+    Camera,
+    Material,
+    BoneOffset,
+    BoneTransform,
+    Light,
+    Scene,
+    Framework,
+    BaseTexture,
+    SubTexture,
+    SkyboxTexture,
+    ShadowMap,
+    AlbedoTexture,
+    SpecularTexture,
+    NormalTexture,
+    MetallicTexture,
+    EmissionTexture,
+    DetailAlbedoTexture,
+    DetailNormalTexture,
+    Count
+};
 
+enum class DescriptorRange : INT {
+    BaseTexture,
+    SubTexture,
+    SkyboxTexture,
+    ShadowMap,
+    AlbedoTexture,
+    SpecularTexture,
+    NormalTexture,
+    MetallicTexture,
+    EmissionTexture,
+    DetailAlbedoTexture,
+    DetailNormalTexture,
+    Count
+};
 
 
 namespace DX

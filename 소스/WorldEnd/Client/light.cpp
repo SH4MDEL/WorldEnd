@@ -20,5 +20,5 @@ void LightSystem::UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& 
 	::memcpy(&m_lightBufferPointer->m_numLight, &m_numLight, sizeof(UINT));
 
 	D3D12_GPU_VIRTUAL_ADDRESS virtualAddress = m_lightBuffer->GetGPUVirtualAddress();
-	commandList->SetGraphicsRootConstantBufferView(3, virtualAddress);
+	commandList->SetGraphicsRootConstantBufferView((INT)ShaderRegister::Light, virtualAddress);
 }

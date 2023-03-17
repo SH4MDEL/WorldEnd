@@ -625,12 +625,12 @@ void AnimationMesh::UpdateShaderVariables(const ComPtr<ID3D12Device>& device, co
 
 	XMFLOAT4X4 worldMatrix;
 	XMStoreFloat4x4(&worldMatrix, XMMatrixTranspose(XMLoadFloat4x4(&rootObject->GetWorldMatrix())));
-	commandList->SetGraphicsRoot32BitConstants(0, 16, &worldMatrix, 0);
+	commandList->SetGraphicsRoot32BitConstants((INT)ShaderRegister::GameObject, 16, &worldMatrix, 0);
 
 	// 애니메이션 메쉬는 해시맵에서 이름을 통해 찾아 변환행렬을 채움
 	if (AnimationSetting::ANIMATION_MESH == m_meshType) {
 		D3D12_GPU_VIRTUAL_ADDRESS virtualAddress = m_bindPoseBoneOffsetBuffers->GetGPUVirtualAddress();
-		commandList->SetGraphicsRootConstantBufferView(16, virtualAddress);
+		commandList->SetGraphicsRootConstantBufferView((INT)ShaderRegister::BoneOffset, virtualAddress);
 
 		for (size_t i = 0; const string & boneName : m_skinningBoneNames) {
 			XMFLOAT4X4 transform;
@@ -641,7 +641,7 @@ void AnimationMesh::UpdateShaderVariables(const ComPtr<ID3D12Device>& device, co
 		}
 
 		virtualAddress = m_animationTransformBuffers[rootObject].first->GetGPUVirtualAddress();
-		commandList->SetGraphicsRootConstantBufferView(17, virtualAddress);
+		commandList->SetGraphicsRootConstantBufferView((INT)ShaderRegister::BoneTransform, virtualAddress);
 	}
 
 	// 일반 메쉬의 경우 넘겨받은 오브젝트로 직접 찾아서 해당 변환행렬만을 찾아옴
@@ -652,7 +652,7 @@ void AnimationMesh::UpdateShaderVariables(const ComPtr<ID3D12Device>& device, co
 		::memcpy(&m_animationTransformBuffers[rootObject].second[0], &transform, sizeof(XMFLOAT4X4));
 
 		D3D12_GPU_VIRTUAL_ADDRESS virtualAddress = m_animationTransformBuffers[rootObject].first->GetGPUVirtualAddress();
-		commandList->SetGraphicsRootConstantBufferView(17, virtualAddress);
+		commandList->SetGraphicsRootConstantBufferView((INT)ShaderRegister::BoneTransform, virtualAddress);
 	}
 
 }

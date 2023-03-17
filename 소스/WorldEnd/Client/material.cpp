@@ -28,7 +28,7 @@ void Material::UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& com
 	::memcpy(&m_materialBufferPointer->type, &m_type, sizeof(UINT));
 
 	D3D12_GPU_VIRTUAL_ADDRESS virtualAddress = m_materialBuffer->GetGPUVirtualAddress();
-	commandList->SetGraphicsRootConstantBufferView(2, virtualAddress);
+	commandList->SetGraphicsRootConstantBufferView((INT)ShaderRegister::Material, virtualAddress);
 
 	if (m_type & MATERIAL_ALBEDO_MAP) m_albedoMap->UpdateShaderVariable(commandList);
 	if (m_type & MATERIAL_SPECULAR_MAP) m_specularMap->UpdateShaderVariable(commandList);
@@ -81,7 +81,7 @@ void Materials::LoadMaterials(const ComPtr<ID3D12Device>& device, const ComPtr<I
 		}
 		else if (strToken == "<AlbedoMap>:") {
 			m_materials[materialIndex].m_albedoMap = make_shared<Texture>();
-			if (m_materials[materialIndex].m_albedoMap->LoadTextureFileHierarchy(device, commandList, in, 9)) {
+			if (m_materials[materialIndex].m_albedoMap->LoadTextureFileHierarchy(device, commandList, in, (INT)ShaderRegister::AlbedoTexture)) {
 				m_materials[materialIndex].m_type |= MATERIAL_ALBEDO_MAP;
 				m_materials[materialIndex].m_albedoMap->CreateSrvDescriptorHeap(device);
 				m_materials[materialIndex].m_albedoMap->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
@@ -90,7 +90,7 @@ void Materials::LoadMaterials(const ComPtr<ID3D12Device>& device, const ComPtr<I
 		}
 		else if (strToken == "<SpecularMap>:") {
 			m_materials[materialIndex].m_specularMap = make_shared<Texture>();
-			if (m_materials[materialIndex].m_specularMap->LoadTextureFileHierarchy(device, commandList, in, 10)) {
+			if (m_materials[materialIndex].m_specularMap->LoadTextureFileHierarchy(device, commandList, in, (INT)ShaderRegister::SpecularTexture)) {
 				m_materials[materialIndex].m_type |= MATERIAL_SPECULAR_MAP;
 				m_materials[materialIndex].m_specularMap->CreateSrvDescriptorHeap(device);
 				m_materials[materialIndex].m_specularMap->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
@@ -99,7 +99,7 @@ void Materials::LoadMaterials(const ComPtr<ID3D12Device>& device, const ComPtr<I
 		}
 		else if (strToken == "<NormalMap>:") {
 			m_materials[materialIndex].m_normalMap = make_shared<Texture>();
-			if (m_materials[materialIndex].m_normalMap->LoadTextureFileHierarchy(device, commandList, in, 11)) {
+			if (m_materials[materialIndex].m_normalMap->LoadTextureFileHierarchy(device, commandList, in, (INT)ShaderRegister::NormalTexture)) {
 				m_materials[materialIndex].m_type |= MATERIAL_NORMAL_MAP;
 				m_materials[materialIndex].m_normalMap->CreateSrvDescriptorHeap(device);
 				m_materials[materialIndex].m_normalMap->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
@@ -108,7 +108,7 @@ void Materials::LoadMaterials(const ComPtr<ID3D12Device>& device, const ComPtr<I
 		}
 		else if (strToken == "<MetallicMap>:") {
 			m_materials[materialIndex].m_metallicMap = make_shared<Texture>();
-			if (m_materials[materialIndex].m_metallicMap->LoadTextureFileHierarchy(device, commandList, in, 12)) {
+			if (m_materials[materialIndex].m_metallicMap->LoadTextureFileHierarchy(device, commandList, in, (INT)ShaderRegister::MetallicTexture)) {
 				m_materials[materialIndex].m_type |= MATERIAL_METALLIC_MAP;
 				m_materials[materialIndex].m_metallicMap->CreateSrvDescriptorHeap(device);
 				m_materials[materialIndex].m_metallicMap->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
@@ -117,7 +117,7 @@ void Materials::LoadMaterials(const ComPtr<ID3D12Device>& device, const ComPtr<I
 		}
 		else if (strToken == "<EmissionMap>:") {
 			m_materials[materialIndex].m_emissionMap = make_shared<Texture>();
-			if (m_materials[materialIndex].m_emissionMap->LoadTextureFileHierarchy(device, commandList, in, 13)) {
+			if (m_materials[materialIndex].m_emissionMap->LoadTextureFileHierarchy(device, commandList, in, (INT)ShaderRegister::EmissionTexture)) {
 				m_materials[materialIndex].m_type |= MATERIAL_EMISSION_MAP;
 				m_materials[materialIndex].m_emissionMap->CreateSrvDescriptorHeap(device);
 				m_materials[materialIndex].m_emissionMap->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
@@ -126,7 +126,7 @@ void Materials::LoadMaterials(const ComPtr<ID3D12Device>& device, const ComPtr<I
 		}
 		else if (strToken == "<DetailAlbedoMap>:") {
 			m_materials[materialIndex].m_detailAlbedoMap = make_shared<Texture>();
-			if (m_materials[materialIndex].m_detailAlbedoMap->LoadTextureFileHierarchy(device, commandList, in, 14)) {
+			if (m_materials[materialIndex].m_detailAlbedoMap->LoadTextureFileHierarchy(device, commandList, in, (INT)ShaderRegister::DetailAlbedoTexture)) {
 				m_materials[materialIndex].m_type |= MATERIAL_DETAIL_ALBEDO_MAP;
 				m_materials[materialIndex].m_detailAlbedoMap->CreateSrvDescriptorHeap(device);
 				m_materials[materialIndex].m_detailAlbedoMap->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
@@ -135,7 +135,7 @@ void Materials::LoadMaterials(const ComPtr<ID3D12Device>& device, const ComPtr<I
 		}
 		else if (strToken == "<DetailNormalMap>:") {
 			m_materials[materialIndex].m_detailNormalMap = make_shared<Texture>();
-			if (m_materials[materialIndex].m_detailNormalMap->LoadTextureFileHierarchy(device, commandList, in, 15)) {
+			if (m_materials[materialIndex].m_detailNormalMap->LoadTextureFileHierarchy(device, commandList, in, (INT)ShaderRegister::DetailNormalTexture)) {
 				m_materials[materialIndex].m_type |= MATERIAL_DETAIL_NORMAL_MAP;
 				m_materials[materialIndex].m_detailNormalMap->CreateSrvDescriptorHeap(device);
 				m_materials[materialIndex].m_detailNormalMap->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);

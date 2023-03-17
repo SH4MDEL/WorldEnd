@@ -38,7 +38,7 @@ void Camera::UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& comma
 	::memcpy(&m_cameraBufferPointer->eye, &eye, sizeof(XMFLOAT3));
 
 	D3D12_GPU_VIRTUAL_ADDRESS virtualAddress = m_cameraBuffer->GetGPUVirtualAddress();
-	commandList->SetGraphicsRootConstantBufferView(1, virtualAddress);
+	commandList->SetGraphicsRootConstantBufferView((INT)ShaderRegister::Camera, virtualAddress);
 }
 
 void Camera::UpdateLocalAxis()

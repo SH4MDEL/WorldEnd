@@ -27,29 +27,25 @@ cbuffer cbMaterial : register(b2)
     float2 padding : packoffset(c5.z);
 };
 
-#define MAX_BONES					100
+#define MAX_BONES 100
+cbuffer cbBoneOffsets : register(b3)
+{
+    float4x4 boneOffsets[MAX_BONES];
+};
+
+cbuffer cbBoneTransforms : register(b4)
+{
+    float4x4 boneTransforms[MAX_BONES];
+};
 
 #include "lighting.hlsl"
 
-
-cbuffer cbScene : register(b4)
+cbuffer cbScene : register(b6)
 {
     matrix lightView : packoffset(c0);
     matrix lightProj : packoffset(c4);
     matrix NDCspace : packoffset(c8);
 }
-
-// bone
-cbuffer cbBoneOffsets : register(b5)
-{
-    float4x4 boneOffsets[MAX_BONES];
-};
-
-cbuffer cbBoneTransforms : register(b6)
-{
-    float4x4 boneTransforms[MAX_BONES];
-};
-// ------------------------------
 
 cbuffer cbFramework : register(b7)
 {

@@ -26,7 +26,7 @@ void GameObject::Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12G
 {
 	XMFLOAT4X4 worldMatrix;
 	XMStoreFloat4x4(&worldMatrix, XMMatrixTranspose(XMLoadFloat4x4(&m_worldMatrix)));
-	commandList->SetGraphicsRoot32BitConstants(0, 16, &worldMatrix, 0);
+	commandList->SetGraphicsRoot32BitConstants((INT)ShaderRegister::GameObject, 16, &worldMatrix, 0);
 
 	if (m_texture) { m_texture->UpdateShaderVariable(commandList); }
 	if (m_materials) {
@@ -518,8 +518,8 @@ HpBar::HpBar() {}
 
 void HpBar::Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList)
 {
-	commandList->SetGraphicsRoot32BitConstants(0, 1, &(m_hp), 16);
-	commandList->SetGraphicsRoot32BitConstants(0, 1, &(m_maxHp), 17);
+	commandList->SetGraphicsRoot32BitConstants((INT)ShaderRegister::GameObject, 1, &(m_hp), 16);
+	commandList->SetGraphicsRoot32BitConstants((INT)ShaderRegister::GameObject, 1, &(m_maxHp), 17);
 
 	GameObject::Render(device, commandList);
 }

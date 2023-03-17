@@ -298,47 +298,65 @@ void GameFramework::CreateDepthStencilView()
 
 void GameFramework::CreateRootSignature()
 {
-	CD3DX12_DESCRIPTOR_RANGE descriptorRange[11];
-	descriptorRange[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);	// t0
-	descriptorRange[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);	// t1
-	descriptorRange[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2, 0, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);	// t2
-	descriptorRange[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3, 0, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);	// t3
+	CD3DX12_DESCRIPTOR_RANGE descriptorRange[(INT)DescriptorRange::Count];
+	descriptorRange[(INT)DescriptorRange::BaseTexture].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);	// t0
+	descriptorRange[(INT)DescriptorRange::SubTexture].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);	// t1
+	descriptorRange[(INT)DescriptorRange::SkyboxTexture].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2, 0, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);	// t2
+	descriptorRange[(INT)DescriptorRange::ShadowMap].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3, 0, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);	// t3
 
-	descriptorRange[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4, 0, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);	// t4
-	descriptorRange[5].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 5, 0, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);	// t5
-	descriptorRange[6].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 6, 0, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);	// t6
-	descriptorRange[7].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 7, 0, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);	// t7
-	descriptorRange[8].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 8, 0, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);	// t8
-	descriptorRange[9].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 9, 0, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);	// t9
-	descriptorRange[10].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 10, 0, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);	// t10
+	descriptorRange[(INT)DescriptorRange::AlbedoTexture].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4, 0, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);	// t4
+	descriptorRange[(INT)DescriptorRange::SpecularTexture].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 5, 0, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);	// t5
+	descriptorRange[(INT)DescriptorRange::NormalTexture].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 6, 0, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);	// t6
+	descriptorRange[(INT)DescriptorRange::MetallicTexture].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 7, 0, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);	// t7
+	descriptorRange[(INT)DescriptorRange::EmissionTexture].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 8, 0, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);	// t8
+	descriptorRange[(INT)DescriptorRange::DetailAlbedoTexture].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 9, 0, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);	// t9
+	descriptorRange[(INT)DescriptorRange::DetailNormalTexture].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 10, 0, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);	// t10
 
-	CD3DX12_ROOT_PARAMETER rootParameter[18];
+	CD3DX12_ROOT_PARAMETER rootParameter[(INT)ShaderRegister::Count];
 
 	// cbGameObject : 월드 변환 행렬(16) + float hp(1) + float maxHp(1)
-	rootParameter[0].InitAsConstants(18, 0, 0, D3D12_SHADER_VISIBILITY_ALL);
+	rootParameter[(INT)ShaderRegister::GameObject].InitAsConstants(
+		18, 0, 0, D3D12_SHADER_VISIBILITY_ALL);
 
-	rootParameter[1].InitAsConstantBufferView(1, 0, D3D12_SHADER_VISIBILITY_ALL); // cbCamera
-	rootParameter[2].InitAsConstantBufferView(2, 0, D3D12_SHADER_VISIBILITY_ALL); // cbMaterial
-	rootParameter[3].InitAsConstantBufferView(3, 0, D3D12_SHADER_VISIBILITY_ALL); // cbLight
-	rootParameter[4].InitAsConstantBufferView(4, 0, D3D12_SHADER_VISIBILITY_ALL); // cbScene
+	rootParameter[(INT)ShaderRegister::Camera].InitAsConstantBufferView(
+		1, 0, D3D12_SHADER_VISIBILITY_ALL);		// cbCamera
+	rootParameter[(INT)ShaderRegister::Material].InitAsConstantBufferView(
+		2, 0, D3D12_SHADER_VISIBILITY_ALL);		// cbMaterial
+	rootParameter[(INT)ShaderRegister::BoneOffset].InitAsConstantBufferView(
+		3, 0, D3D12_SHADER_VISIBILITY_ALL);		// cbBoneOffsets
+	rootParameter[(INT)ShaderRegister::BoneTransform].InitAsConstantBufferView(
+		4, 0, D3D12_SHADER_VISIBILITY_ALL);		// cbBoneTransforms
+	rootParameter[(INT)ShaderRegister::Light].InitAsConstantBufferView(
+		5, 0, D3D12_SHADER_VISIBILITY_ALL);		// cbLight
+	rootParameter[(INT)ShaderRegister::Scene].InitAsConstantBufferView(
+		6, 0, D3D12_SHADER_VISIBILITY_ALL);		// cbScene
+	rootParameter[(INT)ShaderRegister::Framework].InitAsConstantBufferView(
+		7, 0, D3D12_SHADER_VISIBILITY_ALL);		// cbFramework
 
-	rootParameter[5].InitAsDescriptorTable(1, &descriptorRange[0], D3D12_SHADER_VISIBILITY_PIXEL);
-	rootParameter[6].InitAsDescriptorTable(1, &descriptorRange[1], D3D12_SHADER_VISIBILITY_PIXEL);
-	rootParameter[7].InitAsDescriptorTable(1, &descriptorRange[2], D3D12_SHADER_VISIBILITY_PIXEL);
-	rootParameter[8].InitAsDescriptorTable(1, &descriptorRange[3], D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameter[(INT)ShaderRegister::BaseTexture].InitAsDescriptorTable(
+		1, &descriptorRange[(INT)DescriptorRange::BaseTexture], D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameter[(INT)ShaderRegister::SubTexture].InitAsDescriptorTable(
+		1, &descriptorRange[(INT)DescriptorRange::SubTexture], D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameter[(INT)ShaderRegister::SkyboxTexture].InitAsDescriptorTable(
+		1, &descriptorRange[(INT)DescriptorRange::SkyboxTexture], D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameter[(INT)ShaderRegister::ShadowMap].InitAsDescriptorTable(
+		1, &descriptorRange[(INT)DescriptorRange::ShadowMap], D3D12_SHADER_VISIBILITY_PIXEL);
 
-	rootParameter[9].InitAsDescriptorTable(1, &descriptorRange[4], D3D12_SHADER_VISIBILITY_PIXEL);
-	rootParameter[10].InitAsDescriptorTable(1, &descriptorRange[5], D3D12_SHADER_VISIBILITY_PIXEL);
-	rootParameter[11].InitAsDescriptorTable(1, &descriptorRange[6], D3D12_SHADER_VISIBILITY_PIXEL);
-	rootParameter[12].InitAsDescriptorTable(1, &descriptorRange[7], D3D12_SHADER_VISIBILITY_PIXEL);
-	rootParameter[13].InitAsDescriptorTable(1, &descriptorRange[8], D3D12_SHADER_VISIBILITY_PIXEL);
-	rootParameter[14].InitAsDescriptorTable(1, &descriptorRange[9], D3D12_SHADER_VISIBILITY_PIXEL);
-	rootParameter[15].InitAsDescriptorTable(1, &descriptorRange[10], D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameter[(INT)ShaderRegister::AlbedoTexture].InitAsDescriptorTable(
+		1, &descriptorRange[(INT)DescriptorRange::AlbedoTexture], D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameter[(INT)ShaderRegister::SpecularTexture].InitAsDescriptorTable(
+		1, &descriptorRange[(INT)DescriptorRange::SpecularTexture], D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameter[(INT)ShaderRegister::NormalTexture].InitAsDescriptorTable(
+		1, &descriptorRange[(INT)DescriptorRange::NormalTexture], D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameter[(INT)ShaderRegister::MetallicTexture].InitAsDescriptorTable(
+		1, &descriptorRange[(INT)DescriptorRange::MetallicTexture], D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameter[(INT)ShaderRegister::EmissionTexture].InitAsDescriptorTable(
+		1, &descriptorRange[(INT)DescriptorRange::EmissionTexture], D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameter[(INT)ShaderRegister::DetailAlbedoTexture].InitAsDescriptorTable(
+		1, &descriptorRange[(INT)DescriptorRange::DetailAlbedoTexture], D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameter[(INT)ShaderRegister::DetailNormalTexture].InitAsDescriptorTable(
+		1, &descriptorRange[(INT)DescriptorRange::DetailNormalTexture], D3D12_SHADER_VISIBILITY_PIXEL);
 	
-	rootParameter[16].InitAsConstantBufferView(5, 0, D3D12_SHADER_VISIBILITY_VERTEX);		// 뼈대 오프셋
-	rootParameter[17].InitAsConstantBufferView(6, 0, D3D12_SHADER_VISIBILITY_VERTEX);		// 뼈대 변환행렬
-	//rootParameter[18].InitAsConstantBufferView(7, 0, D3D12_SHADER_VISIBILITY_VERTEX); // cbFramework
-
 
 	CD3DX12_STATIC_SAMPLER_DESC samplerDesc[2];
 	samplerDesc[0].Init(									// s0
@@ -463,15 +481,14 @@ void GameFramework::UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>
 	FLOAT timeElapsed = m_timer.GetDeltaTime();
 	::memcpy(&m_frameworkBufferPointer->timeElapsed, &timeElapsed, sizeof(FLOAT));
 	D3D12_GPU_VIRTUAL_ADDRESS virtualAddress = m_frameworkBuffer->GetGPUVirtualAddress();
-	commandList->SetGraphicsRootConstantBufferView(18, virtualAddress);
+	commandList->SetGraphicsRootConstantBufferView((INT)ShaderRegister::Framework, virtualAddress);
 }
 
 void GameFramework::BuildObjects()
 {
-	//DX::ThrowIfFailed(m_mainCommandAllocator->Reset());
 	m_mainCommandList->Reset(m_mainCommandAllocator.Get(), nullptr);
 
-	//CreateShaderVariable();
+	CreateShaderVariable();
 
 	m_scenes[static_cast<int>(SCENETAG::LoadingScene)] = make_unique<LoadingScene>();
 	m_scenes[static_cast<int>(SCENETAG::TowerScene)] = make_unique<TowerScene>();
@@ -617,8 +634,6 @@ void GameFramework::BeginFrame()
 		DX::ThrowIfFailed(m_sceneCommandLists[i]->Reset(m_sceneCommandAllocators[i].Get(), nullptr));
 	}
 
-	//UpdateShaderVariable(m_commandLists[COMMANDLIST_PRE]);
-
 	// Indicate that the back buffer will be used as a render target.
 	m_commandLists[COMMANDLIST_PRE]->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_frameIndex].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
 
@@ -670,7 +685,7 @@ void GameFramework::WorkerThread(UINT threadIndex)
 		if (m_shadowPass) {
 			ID3D12DescriptorHeap* ppHeaps[] = { m_scenes[m_sceneIndex]->GetShadow()->GetSrvDiscriptorHeap().Get() };
 			m_shadowCommandLists[threadIndex]->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
-			m_shadowCommandLists[threadIndex]->SetGraphicsRootDescriptorTable(8, m_scenes[m_sceneIndex]->GetShadow()->GetGpuSrv());
+			m_shadowCommandLists[threadIndex]->SetGraphicsRootDescriptorTable((INT)ShaderRegister::ShadowMap, m_scenes[m_sceneIndex]->GetShadow()->GetGpuSrv());
 
 
 			m_shadowCommandLists[threadIndex]->RSSetViewports(1, &m_scenes[m_sceneIndex]->GetShadow()->GetViewport());
@@ -704,7 +719,7 @@ void GameFramework::WorkerThread(UINT threadIndex)
 		if (m_shadowPass) {
 			ID3D12DescriptorHeap* ppHeaps[] = { m_scenes[m_sceneIndex]->GetShadow()->GetSrvDiscriptorHeap().Get() };
 			m_sceneCommandLists[threadIndex]->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
-			m_sceneCommandLists[threadIndex]->SetGraphicsRootDescriptorTable(8, m_scenes[m_sceneIndex]->GetShadow()->GetGpuSrv());
+			m_sceneCommandLists[threadIndex]->SetGraphicsRootDescriptorTable((INT)ShaderRegister::ShadowMap, m_scenes[m_sceneIndex]->GetShadow()->GetGpuSrv());
 		}
 		m_sceneCommandLists[threadIndex]->RSSetViewports(1, &m_viewport);
 		m_sceneCommandLists[threadIndex]->RSSetScissorRects(1, &m_scissorRect);
@@ -712,6 +727,8 @@ void GameFramework::WorkerThread(UINT threadIndex)
 		CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle{ m_rtvHeap->GetCPUDescriptorHandleForHeapStart(), static_cast<INT>(m_frameIndex), m_rtvDescriptorSize };
 		CD3DX12_CPU_DESCRIPTOR_HANDLE dsvHandle{ m_dsvHeap->GetCPUDescriptorHandleForHeapStart() };
 		m_sceneCommandLists[threadIndex]->OMSetRenderTargets(1, &rtvHandle, true, &dsvHandle);
+
+		UpdateShaderVariable(m_sceneCommandLists[threadIndex]);
 
 		// Scene을 Render한다.
 		if (m_scenes[m_sceneIndex]) {
