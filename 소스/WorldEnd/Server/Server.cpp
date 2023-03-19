@@ -46,7 +46,11 @@ int Server::Network()
 	for (auto& th : m_worker_threads)
 		th.detach();
 
-	thread thread1{ &Server::Timer,this };
+	thread thread1{ &Server::Timer,this, m_target_id};
+
+	
+	AddMonsterAttackPacket(m_next_monster_id);
+
 	thread1.detach();
 
 
@@ -57,13 +61,6 @@ int Server::Network()
 	frame fps{}, frame_count{};
 	while (true) {
 
-		// 아무도 서버에 접속하지 않았으면 패스
-		//if (m_accept)
-		//{
-		//	// 이 부분이 없다면 첫 프레임 때 deltaTime이 '클라에서 처음 접속한 시각 - 서버를 켠 시각' 이 된다.
-		//	fps_timer = std::chrono::steady_clock::now();
-		//	continue;
-		//}
 
 		// 이전 사이클에 얼마나 시간이 걸렸는지 계산
 		fps = duration_cast<frame>(std::chrono::steady_clock::now() - fps_timer);
@@ -248,14 +245,13 @@ void Server::ProcessPacket(const int id, char* p)
 	case CS_PACKET_PLAYER_ATTACK:
 	{
 		CS_ATTACK_PACKET* attack_packet = reinterpret_cast<CS_ATTACK_PACKET*>(p);
-
 		
 		switch (attack_packet->key)
 		{
 			case INPUT_KEY_E:
 			{
 				cout << "공격!" << endl;
-				m_attack_check = true;
+				AddPlayerAttackPacket(m_clients[0].m_player_data.id);
 				break;
 		    }	
 	    }
@@ -438,10 +434,6 @@ UCHAR Server::RecognizePlayer(const XMFLOAT3& mon_pos)
 
 void Server::CreateMonsters(const float taketime)
 {
-	//if (m_floor_mob_count[m_floor - 1] <= 0) {
-	//	m_spawn_stop = g_spawm_stop;
-	//	return;
-	//}
 
 	unique_ptr<Monster> monsters;
 
@@ -464,10 +456,6 @@ void Server::CreateMonsters(const float taketime)
 
 		m_monsters.push_back(move(monsters));
 
-	/*	m_spawn_stop = g_spawm_stop;
-		--m_floor_mob_count[m_floor - 1];
-	}
-	m_spawn_stop -= taketime;*/
 }
 
 void Server::SendMonsterAddPacket()
@@ -558,27 +546,40 @@ void Server::MovePlayer(Session& player, XMFLOAT3 pos)
 	player.m_bounding_box.Center = player.m_player_data.pos;
 }
 
-void Server::Timer()
+void Server::Timer(int pl_id)
 {
 	using namespace chrono;
 	TimerEvent event;
 
 	while (true) {
 
-		if (!m_timer_queue.try_pop(event)) continue;
+		if (m_timer_queue.empty()) {
+			std::this_thread::sleep_for(10ms);
+			continue;
+		}
 
-		if (event.start_time <= system_clock::now()) {
+		if (!m_timer_queue.try_pop(event)) continue;
+		//if () {
 			
 			switch (event.event_type)
 			{
 			case EVENT_PLAYER_ATTACK:
-				cout << "공격 이벤트 중" << endl;
-			default:
+				cout << "Player" << event.targat_id << " attacked!" << endl;
+				break;
+			case EVENT_MONSTER_ATTACK:
+				cout << "Monster" << event.obj_id << " attacked!" << endl;
 				break;
 			}
-		}
+	//	}
+		/*else {
+			std::this_thread::sleep_for(5ms);
+		}*/
 
 	}
+
+
+
+
 	/*while (true) {
 		auto now = std::chrono::system_clock::now();
 		auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - event.start_time);
@@ -597,6 +598,42 @@ void Server::Timer()
 
 
 }
+
+void Server::AddPlayerAttackPacket(int pl_id)
+{
+	constexpr std::chrono::seconds PLAYER_COOLDOWN = std::chrono::seconds(5);
+	
+	TimerEvent event{
+		.event_type = EVENT_PLAYER_ATTACK,
+		//.start_time = std::chrono::system_clock::now() + PLAYER_COOLDOWN,
+		.targat_id = pl_id,
+	};
+	m_timer_queue.push(event);
+
+	auto now = std::chrono::system_clock::now();
+	auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - event.start_time);
+
+	if (elapsed.count() < 5.0f) {
+		
+	}
+	else {
+		SendPlayerAttackPacket(m_clients[0].m_player_data.id);
+		event.start_time = now;
+	}
+}
+
+void  Server::AddMonsterAttackPacket(int mon_id)
+{
+	constexpr std::chrono::milliseconds MONSTER_COOLDOWN = std::chrono::milliseconds(3000);
+	TimerEvent event{
+		.event_type = EVENT_MONSTER_ATTACK,
+		.start_time = std::chrono::system_clock::now() + MONSTER_COOLDOWN,
+		.obj_id = mon_id,
+	};
+	m_timer_queue.push(event);
+
+}
+
 
 void Server::RotatePlayer(Session& player, FLOAT yaw)
 {
@@ -669,4 +706,5 @@ void Server::CollideByMoveMent(Session& player1, Session& player2)
 	pos.z += velocity.z;
 	MovePlayer(player2, pos);
 }
+
 

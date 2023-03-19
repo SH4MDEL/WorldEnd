@@ -3,7 +3,7 @@
 #include "Server.h"
 
 
-void Monster::MonsterStateUpdate(XMVECTOR& look, float taketime)
+void Monster::MonsterStateUpdate(XMVECTOR& look, float taketime, UCHAR pl_id)
 {
 	XMFLOAT3 velocity{};
 
@@ -12,11 +12,12 @@ void Monster::MonsterStateUpdate(XMVECTOR& look, float taketime)
 
 	// 몬스터 이동
 
-	m_position.x += velocity.x * taketime;
-	m_position.y += velocity.y * taketime;
-	m_position.z += velocity.z * taketime;
+	if (Vector3::Length(Vector3::Sub(g_server.m_clients[pl_id].m_player_data.pos, m_position)) < 4.0f ) {
+		m_position.x += velocity.x * taketime;
+		m_position.y += velocity.y * taketime;
+		m_position.z += velocity.z * taketime;
+	}
 
-	//cout << "taketime - " << taketime << endl;
 }
 
 void Monster::MonsterRotateUpdate(const XMVECTOR& look)
@@ -118,7 +119,7 @@ void WarriorMonster::CreateMonster(float taketime)
 	XMVECTOR look{GetPlayerVector(m_target_id)};
 
 	// 플레이어를 향해서 이동
-	MonsterStateUpdate(look , taketime);
+	MonsterStateUpdate(look , taketime, m_target_id);
 
 	// 플레이어 방향으로 회전
 	MonsterRotateUpdate(look);

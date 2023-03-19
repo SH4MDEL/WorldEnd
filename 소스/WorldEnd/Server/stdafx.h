@@ -13,6 +13,7 @@
 #include <concurrent_queue.h>
 #include<concurrent_priority_queue.h>
 #include<concurrent_unordered_set.h>
+#include <condition_variable>
 #include "protocol.h"
 
 #pragma comment (lib, "opengl32.lib")

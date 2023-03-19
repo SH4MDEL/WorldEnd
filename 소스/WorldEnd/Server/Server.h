@@ -3,13 +3,16 @@
 #include "monster.h"
 
 struct TimerEvent {
+	eEventType event_type;
+//	std::chrono::time_point<std::chrono::steady_clock> start_time;
+	std::chrono::system_clock::time_point start_time;
 	int obj_id;
 	int targat_id;
-	std::chrono::system_clock::time_point start_time;
-	eEventType event_type;
+	
 
 	constexpr bool operator <(const TimerEvent& left)const
 	{
+		// priority_queue에서 작은 값이 먼저 나오도록 설정
 		return (start_time > left.start_time);
 	}
 };
@@ -45,8 +48,10 @@ private:
 	UCHAR                                   m_target_id;
 	float                                   m_length{ FLT_MAX };
 
+
+	// 여러 스레드에서 동시에 안전하게 우선수위 큐를 사용하기 위해서
+	// priority_queue 대신 concurrent_priority_queue를 사용
 	concurrency::concurrent_priority_queue<TimerEvent> m_timer_queue;
-	concurrency::concurrent_queue<ExpOver*>            m_exp_over;
 
 public:
 	Server();
@@ -67,7 +72,9 @@ public:
 	void Update(float taketime);
 	void CreateMonsters(float taketime);
 
-	void Timer();
+	void Timer(int pl_id);
+	void AddPlayerAttackPacket(int pl_id);
+	void AddMonsterAttackPacket(int mon_id);
 
 	UCHAR RecognizePlayer(const XMFLOAT3& mon_pos);
 	CHAR GetNewId() const;

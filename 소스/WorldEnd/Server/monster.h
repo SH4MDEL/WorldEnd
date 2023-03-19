@@ -18,7 +18,7 @@ protected:
 
 	XMFLOAT4X4                      m_worldmatrix;
 
-	void MonsterStateUpdate(XMVECTOR& look, float taketime);
+	void MonsterStateUpdate(XMVECTOR& look, float taketime, UCHAR pl_id);
 	void MonsterRotateUpdate(const XMVECTOR& look);
 	XMVECTOR GetPlayerVector(UCHAR pl_id);
 
