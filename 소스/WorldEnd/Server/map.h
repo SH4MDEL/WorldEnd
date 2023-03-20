@@ -6,7 +6,7 @@
 
 enum class GameRoomState { EMPTY, ACCEPT, INGAME };
 
-class GameRoom
+class GameRoom : public enable_shared_from_this<GameRoom>
 {
 public:
 	GameRoom();
@@ -18,10 +18,12 @@ public:
 	void SetEvent(COLLISION_EVENT event);
 	void SetPlayer(INT player_id);
 	void SetState(GameRoomState state) { m_state = state; }
+	void SetMonstersRoomNum(INT room_num);
 
 	EnvironmentType GetType() const { return m_type; }
 	GameRoomState GetState() const { return m_state; }
 	mutex& GetStateMutex() { return m_state_lock; }
+	shared_ptr<GameRoom> GetGameRoom() { return shared_from_this(); }
 
 	void SendMonsterData();
 	void SendAddMonster(INT player_id);
@@ -40,6 +42,7 @@ private:
 	array<INT, MAX_INGAME_USER>				m_player_ids;
 	array<INT, MAX_INGAME_MONSTER>			m_monster_ids;
 	list<COLLISION_EVENT>					m_collision_events;
+	// thread-unsafe 하므로 변경 필요함
 
 	EnvironmentType							m_type;
 	BYTE									m_floor;
@@ -55,7 +58,7 @@ public:
 
 private:
 	vector<shared_ptr<GameObject>>	m_structures;
-	array<Client, MAX_USER>		m_players;
+	array<Client, MAX_USER>			m_players;
 };
 
 class GameRoomManager
@@ -70,7 +73,8 @@ public:
 	void SetPlayer(INT room_num, INT player_id);
 
 	vector<shared_ptr<GameObject>>& GetStructures() { return m_structures; }
-	array<shared_ptr<GameRoom>, MAX_GAME_ROOM_NUM>& GetDungeons() { return m_game_rooms; }
+	array<shared_ptr<GameRoom>, MAX_GAME_ROOM_NUM>& GetGameRooms() { return m_game_rooms; }
+	shared_ptr<GameRoom> GetGameRoom(INT room_num) { return m_game_rooms[room_num]->GetGameRoom(); }
 
 	void InitGameRoom(INT room_num);
 	void LoadMap();

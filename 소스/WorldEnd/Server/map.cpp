@@ -20,6 +20,16 @@ void GameRoom::SetPlayer(INT player_id)
 	}
 }
 
+void GameRoom::SetMonstersRoomNum(INT room_num)
+{
+	Server& server = Server::GetInstance();
+	for (INT id : m_monster_ids) {
+		if (-1 == id) continue;
+
+		server.m_clients[id]->SetRoomNum(room_num);
+	}
+}
+
 GameRoom::GameRoom() : m_state{ GameRoomState::EMPTY }, m_floor{ 1 }, 
 	m_type{ EnvironmentType::FOG }
 {
@@ -216,7 +226,7 @@ void GameRoom::InitMonsters()
 		
 		auto monster = dynamic_pointer_cast<Monster>(server.m_clients[new_id]);
 		monster->SetId(new_id);
-		monster->SetTargetId(0);
+		monster->SetTarget(0);
 		monster->InitializePosition();
 	}
 }
@@ -256,6 +266,7 @@ void GameRoomManager::SetPlayer(INT room_num, INT player_id)
 void GameRoomManager::InitGameRoom(INT room_num)
 {
 	m_game_rooms[room_num]->InitGameRoom();
+	m_game_rooms[room_num]->SetMonstersRoomNum(room_num);
 }
 
 void GameRoomManager::LoadMap()
@@ -297,7 +308,7 @@ void GameRoomManager::LoadMap()
 
 		auto object = make_shared<GameObject>();
 		object->SetPosition(position);
-		object->SetYaw(yaw);
+		object->SetYaw(XMConvertToDegrees(yaw));
 
 		XMVECTOR vec = XMQuaternionRotationRollPitchYaw(0.f, yaw, 0.f);
 		XMFLOAT4 q{};

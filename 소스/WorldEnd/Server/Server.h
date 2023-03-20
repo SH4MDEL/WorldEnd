@@ -40,6 +40,7 @@ public:
 
 	INT GetNewId();
 	INT GetNewMonsterId(MonsterType type);
+	GameRoomManager* GetGameRoomManager() { return m_game_room_manager.get(); }
 
 	// 플레이어 처리
 	void MovePlayer(shared_ptr<Client>& player, XMFLOAT3 velocity);

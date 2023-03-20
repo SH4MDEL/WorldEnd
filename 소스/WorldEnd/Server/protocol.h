@@ -4,8 +4,12 @@
 
 constexpr short SERVER_PORT = 9000;
 
+// 플레이어 수치
 constexpr float PLAYER_RUN_SPEED = 10.f;
 
+// 몬스터 수치
+constexpr float WARRIOR_MONSTER_ATTACK_RANGE = 1.f;
+constexpr float WARRIOR_MONSTER_BORDER_RANGE = 2.f;
 
 constexpr int BUF_SIZE = 5000;
 constexpr int NAME_SIZE = 20;
@@ -30,7 +34,6 @@ constexpr int ARCHER_MONSTER_END = WARRIOR_MONSTER_END + MAX_ARCHER_MONSTER;
 constexpr int WIZARD_MONSTER_START = ARCHER_MONSTER_END;
 constexpr int WIZARD_MONSTER_END = ARCHER_MONSTER_END + MAX_WIZARD_MONSTER;
 
-
 constexpr int MAX_MONSTER = 10;
 
 constexpr char CS_PACKET_LOGIN = 1;
@@ -43,18 +46,21 @@ constexpr char SC_PACKET_LOGIN_OK = 1;
 constexpr char SC_PACKET_ADD_OBJECT = 2;
 constexpr char SC_PACKET_REMOVE_OBJECT = 3;
 constexpr char SC_PACKET_UPDATE_CLIENT = 4;
-constexpr char SC_PACKET_ADD_MONSTER = 6;
-constexpr char SC_PACKET_UPDATE_MONSTER = 7;
-constexpr char SC_PACKET_MONSTER_ATTACK = 8;
-constexpr char SC_PACKET_CHANGE_ANIMATION = 9;
+constexpr char SC_PACKET_ADD_MONSTER = 5;
+constexpr char SC_PACKET_UPDATE_MONSTER = 6;
+constexpr char SC_PACKET_CHANGE_MONSTER_BEHAVIOR = 7;
+constexpr char SC_PACKET_CHANGE_ANIMATION = 8;
 
 enum class PlayerType : char { WARRIOR, ARCHER, UNKNOWN };
 enum class AttackType : char { NORMAL, SKILL, ULTIMATE };
 enum class MonsterType : char { WARRIOR, ARCHER, WIZARD };
 enum class EnvironmentType : char { RAIN, FOG, GAS, TRAP };
 
-enum EventType : char { EVENT_PLAYER_ATTACK, EVENT_MONSTER_ATTACK};
-enum CollisionType : char { PERSISTENCE, ONE_OFF, MULTIPLE_TIMES };
+enum class EventType : char { EVENT_PLAYER_ATTACK, EVENT_MONSTER_ATTACK};
+enum class CollisionType : char { PERSISTENCE, ONE_OFF, MULTIPLE_TIMES };
+enum class MonsterBehavior : char {
+	CHASE, LOOKAROUND, PREPAREATTACK, ATTACK, NONE
+};
 
 namespace MonsterSetting 
 {
@@ -258,6 +264,14 @@ struct SC_UPDATE_MONSTER_PACKET
 	UCHAR size;
 	UCHAR type;
 	MONSTER_DATA monster_data;
+};
+
+struct SC_CHANGE_MONSTER_BEHAVIOR_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+	MonsterBehavior behavior;
+	USHORT animation;
 };
 
 struct SC_CHANGE_ANIMATION_PACKET

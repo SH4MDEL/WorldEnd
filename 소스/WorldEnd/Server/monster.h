@@ -10,27 +10,37 @@ public:
 
 	virtual void Update(FLOAT elapsed_time) override {};
 
-	void SetTargetId(INT player_id);
+	void SetTarget(INT player_id);
 
 	virtual MONSTER_DATA GetMonsterData() const override;
 	virtual MonsterType GetMonsterType() const override { return m_monster_type; }
 	UCHAR GetTargetId() const { return m_target_id; }
 
-	void DecreaseHp(USHORT damage);
-
 	bool ChangeAnimation(BYTE animation);
+
+	void ChangeBehavior(MonsterBehavior behavior);
+	void DoBehavior(FLOAT elapsed_time);
+
+	void UpdateTarget();					// 타게팅 설정
+	void ChasePlayer(FLOAT elapsed_time);	// 추격
+	void LookAround();						// 추격 중 대기
+	void PrepareAttack();					// 공격 준비
+	void Attack();							// 공격
+
 
 	// 나중에 던전 매니저로 옮겨야 할 함수
 	void InitializePosition();
 
 protected:
-	MonsterType		m_monster_type;
-	INT				m_target_id;
-	USHORT			m_current_animation;
+	MonsterType							m_monster_type;
+	INT									m_target_id;
+	USHORT								m_current_animation;
+	MonsterBehavior						m_current_behavior;
+	chrono::system_clock::time_point	m_last_behavior_time;
 
-	void UpdatePosition(XMVECTOR& dir, FLOAT elapsed_time);
-	void UpdateRotation(const XMVECTOR& dir);
-	XMVECTOR GetPlayerVector(INT player_id);
+	void UpdatePosition(const XMFLOAT3& dir, FLOAT elapsed_time);
+	void UpdateRotation(const XMFLOAT3& dir);
+	XMFLOAT3 GetPlayerDirection(INT player_id);
 };
 
 class WarriorMonster : public Monster

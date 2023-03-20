@@ -661,8 +661,7 @@ void TowerScene::RecvUpdateMonster(char* ptr)
 
 	FLOAT newYaw = monster_packet->monster_data.yaw;
 	FLOAT oldYaw = m_monsters[monster_packet->monster_data.id]->GetYaw();
-	m_monsters[monster_packet->monster_data.id]->Rotate(0.f, 0.f,
-		newYaw - oldYaw);
+	m_monsters[monster_packet->monster_data.id]->Rotate(0.f, 0.f, newYaw - oldYaw);
 }
 
 void TowerScene::RecvChangeAnimation(char* ptr)
