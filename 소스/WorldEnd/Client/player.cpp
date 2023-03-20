@@ -1,5 +1,6 @@
 ﻿#include "player.h"
 #include "camera.h"
+#include "particleSystem.h"
 
 Player::Player() : m_velocity{ 0.0f, 0.0f, 0.0f }, m_maxVelocity{ 10.0f }, m_friction{ 0.5f }, m_hp{ 100.f }, m_maxHp{ 100.f }, m_id { -1 }
 {
@@ -90,15 +91,14 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 	{
 
 	}
-	
-	if (GetAsyncKeyState('E') & 0x8000) {
-
-	}
 }
 
 void Player::OnProcessingClickMessage(LPARAM lParam)
 {
 	ChangeAnimation(ObjectAnimation::ATTACK);
+	XMFLOAT3 particlePosition = GetPosition();
+	particlePosition.y += 1.f;
+	g_particleSystem->CreateParticle(ParticleSystem::Type::EMITTER, particlePosition);
 
 #ifdef USE_NETWORK
 	CS_ATTACK_PACKET attack_packet;

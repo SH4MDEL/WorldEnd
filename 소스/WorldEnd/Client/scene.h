@@ -11,6 +11,7 @@
 #include "light.h"
 #include "shadow.h"
 #include "text.h"
+#include "particleSystem.h"
 
 struct SceneInfo
 {

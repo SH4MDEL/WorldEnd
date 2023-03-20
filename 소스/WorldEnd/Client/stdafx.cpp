@@ -1,14 +1,16 @@
 #include "stdafx.h"
 #include "framework.h"
 #include "scene.h"
+#include "particleSystem.h"
 
-GameFramework			g_GameFramework(1280, 720);
-mt19937					g_randomEngine{ random_device{}() };
+GameFramework					g_GameFramework(1280, 720);
+mt19937							g_randomEngine{ random_device{}() };
 
-SOCKET                  g_socket{};
-string					g_serverIP{ "127.0.0.1" };
-thread                  g_networkThread{};
-mutex                   g_mutex{};
+SOCKET							g_socket{};
+string							g_serverIP{ "127.0.0.1" };
+thread							g_networkThread{};
+mutex							g_mutex{};
+unique_ptr<ParticleSystem>		g_particleSystem;
 
 
 ComPtr<ID3D12Resource> CreateBufferResource(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList,

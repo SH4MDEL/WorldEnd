@@ -62,14 +62,16 @@ using namespace std;
 #include <thread>
 
 class GameFramework;
+class ParticleSystem;
 
-extern GameFramework        g_GameFramework;
-extern mt19937				g_randomEngine;
+extern GameFramework                g_GameFramework;
+extern mt19937				        g_randomEngine;
 
-extern SOCKET               g_socket;                           // 소켓
-extern string				g_serverIP;							// 서버 아이피
-extern thread               g_networkThread;
-extern mutex                g_mutex;
+extern SOCKET                       g_socket;                           // 소켓
+extern string				        g_serverIP;							// 서버 아이피
+extern thread                       g_networkThread;
+extern mutex                        g_mutex;
+extern unique_ptr<ParticleSystem>   g_particleSystem;
 
 
 constexpr int MAX_PLAYERS = 2;

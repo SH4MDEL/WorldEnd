@@ -314,9 +314,9 @@ void GameFramework::CreateRootSignature()
 
 	CD3DX12_ROOT_PARAMETER rootParameter[(INT)ShaderRegister::Count];
 
-	// cbGameObject : 월드 변환 행렬(16) + float hp(1) + float maxHp(1)
+	// cbGameObject : 월드 변환 행렬(16) + float hp(1) + float maxHp(1) + float age(1)
 	rootParameter[(INT)ShaderRegister::GameObject].InitAsConstants(
-		18, 0, 0, D3D12_SHADER_VISIBILITY_ALL);
+		19, 0, 0, D3D12_SHADER_VISIBILITY_ALL);
 
 	rootParameter[(INT)ShaderRegister::Camera].InitAsConstantBufferView(
 		1, 0, D3D12_SHADER_VISIBILITY_ALL);		// cbCamera
@@ -518,9 +518,16 @@ void GameFramework::CreateThread()
 
 void GameFramework::ChangeScene(SCENETAG tag)
 {
+	m_mainCommandList->Reset(m_mainCommandAllocator.Get(), nullptr);
+
 	m_scenes[m_sceneIndex]->OnDestroy();
 	m_scenes[m_sceneIndex = static_cast<int>(tag)]->OnCreate(m_device, m_mainCommandList, m_rootSignature);
 	m_shadowPass = true;
+
+	m_mainCommandList->Close();
+	ID3D12CommandList* ppCommandList[] = { m_mainCommandList.Get() };
+	m_commandQueue->ExecuteCommandLists(_countof(ppCommandList), ppCommandList);
+
 	WaitForPreviousFrame();
 }
 

@@ -3,6 +3,7 @@ cbuffer cbGameObject : register(b0)
 	matrix worldMatrix : packoffset(c0);
     float hp : packoffset(c4.x);
     float maxHp : packoffset(c4.y);
+    float g_age : packoffset(c4.z);
 };
 
 cbuffer cbCamera : register(b1)

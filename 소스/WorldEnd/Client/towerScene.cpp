@@ -137,6 +137,10 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	skybox->SetTexture(m_textures["SKYBOX"]);
 	m_shaders["SKYBOX"]->SetObject(skybox);
 
+	// 파티클 시스템 생성
+	g_particleSystem = make_unique<ParticleSystem>(device, commandlist, 
+		static_pointer_cast<ParticleShader>(m_shaders["EMITTERPARTICLE"]));
+
 	// 디버그 오브젝트 생성
 	auto debugObject{ make_shared<GameObject>() };
 	debugObject->SetMesh(m_meshs["DEBUG"]);
@@ -264,6 +268,7 @@ void TowerScene::Update(FLOAT timeElapsed)
 	if (m_shaders["SKYBOX"]) for (auto& skybox : m_shaders["SKYBOX"]->GetObjects()) skybox->SetPosition(m_camera->GetEye());
 	for (const auto& shader : m_shaders)
 		shader.second->Update(timeElapsed);
+	g_particleSystem->Update(timeElapsed);
 }
 
 void TowerScene::Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) const
@@ -287,6 +292,7 @@ void TowerScene::Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12G
 	{
 		m_shaders.at("SKYBOX")->Render(device, commandList);
 		m_shaders.at("HPBAR")->Render(device, commandList);
+		g_particleSystem->Render(commandList);
 		//m_shaders.at("DEBUG")->Render(device, commandList);
 		break;
 	}
@@ -296,7 +302,6 @@ void TowerScene::Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12G
 
 void TowerScene::RenderShadow(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex)
 {
-
 	switch (threadIndex)
 	{
 	case 0:

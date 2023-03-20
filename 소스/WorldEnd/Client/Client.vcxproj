@@ -149,6 +149,7 @@
     <ClInclude Include="light.h" />
     <ClInclude Include="loadingScene.h" />
     <ClInclude Include="monster.h" />
+    <ClInclude Include="particle.h" />
     <ClInclude Include="particleMesh.h" />
     <ClInclude Include="particleSystem.h" />
     <ClInclude Include="shadow.h" />
@@ -175,6 +176,7 @@
     <ClCompile Include="light.cpp" />
     <ClCompile Include="loadingScene.cpp" />
     <ClCompile Include="monster.cpp" />
+    <ClCompile Include="particle.cpp" />
     <ClCompile Include="particleMesh.cpp" />
     <ClCompile Include="particleSystem.cpp" />
     <ClCompile Include="shadow.cpp" />

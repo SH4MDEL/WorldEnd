@@ -8,7 +8,7 @@
 class Shader
 {
 public:
-	Shader() {};
+	Shader() = default;
 	Shader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature);
 	virtual ~Shader() = default;
 
@@ -117,18 +117,20 @@ public:
 	~UIRenderShader() = default;
 };
 
-class EmitterParticleShader : public Shader
+class ParticleShader : public Shader
+{
+public:
+	ParticleShader() = default;
+	~ParticleShader() = default;
+
+	ComPtr<ID3D12PipelineState> GetStreamPipelineState() const { return m_streamPipelineState; }
+protected:
+	ComPtr<ID3D12PipelineState> m_streamPipelineState;
+};
+
+class EmitterParticleShader : public ParticleShader
 {
 public:
 	EmitterParticleShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature);
 	~EmitterParticleShader() = default;
-
-	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const;
-
-	ComPtr<ID3D12PipelineState> GetStreamPipelineState() const { return m_streamPipelineState; }
-
-private:
-	ComPtr<ID3D12PipelineState> m_streamPipelineState;
-
-	vector<shared_ptr<EmitterParticleMesh>>		m_particles;
 };

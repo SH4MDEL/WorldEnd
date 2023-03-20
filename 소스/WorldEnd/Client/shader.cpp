@@ -598,14 +598,3 @@ EmitterParticleShader::EmitterParticleShader(const ComPtr<ID3D12Device>& device,
 	psoDesc.SampleDesc.Count = 1;
 	DX::ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
 }
-
-void EmitterParticleShader::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const
-{
-	for (auto& particle : m_particles) {
-		commandList->SetPipelineState(m_streamPipelineState.Get());
-		particle->RenderStreamOutput(commandList);
-
-		commandList->SetPipelineState(m_pipelineState.Get());
-		particle->Render(commandList);
-	}
-}

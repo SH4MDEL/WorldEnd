@@ -8,17 +8,19 @@ ParticleMesh::ParticleMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D
 }
 
 EmitterParticleMesh::EmitterParticleMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList) 
-	: ParticleMesh(device, commandList)
 {
+	m_nIndices = 0;
+	m_primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_POINTLIST;
+	m_isBinding = false;
+
 	vector<EmitterParticleVertex> vertices;
 
 	for (int i = 0; i < MAX_PARTICLE_MESH; ++i) {
 		vertices.emplace_back(
 			XMFLOAT3{ DX::GetRandomFLOAT(-1.f, 1.f), DX::GetRandomFLOAT(-1.f, 1.f), DX::GetRandomFLOAT(-1.f, 1.f) },
-			XMFLOAT3{ DX::GetRandomFLOAT(-1.f, 1.f) * 20.f, DX::GetRandomFLOAT(-1.f, 1.f) * 20.f , DX::GetRandomFLOAT(-1.f, 1.f) * 20.f },
-			0.f, 2.f);
+			XMFLOAT3{ DX::GetRandomFLOAT(-3.f, 3.f), DX::GetRandomFLOAT(-3.f, 3.f), DX::GetRandomFLOAT(-3.f, 3.f) },
+			0.f, 1.5f);
 	}
-
 	m_nVertices = (UINT)vertices.size();
 	m_vertexBuffer = CreateBufferResource(device, commandList, vertices.data(),
 		sizeof(EmitterParticleVertex) * vertices.size(), D3D12_HEAP_TYPE_DEFAULT,

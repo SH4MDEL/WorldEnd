@@ -31,10 +31,9 @@ void GS_EMITTERPARTICLE_STREAMOUTPUT(point VS_EMITTERPARTICLE_INPUT input[1], in
 {
 	VS_EMITTERPARTICLE_INPUT particle = input[0];
 
-	//input[0].age += timeElapsed;
-	particle.position.x = particle.velocity.x * input[0].age;
-	particle.position.y = particle.velocity.y * input[0].age;
-	particle.position.z = particle.velocity.z * input[0].age;
+	particle.position.x = particle.velocity.x * g_age;
+	particle.position.y = particle.velocity.y * g_age;
+	particle.position.z = particle.velocity.z * g_age;
 
 	output.Append(particle);
 }
@@ -48,8 +47,8 @@ void GS_EMITTERPARTICLE_DRAW(point VS_EMITTERPARTICLE_INPUT input[1], inout Tria
 	look.y = 0.0f;
 	look = normalize(look);
 	float3 right = cross(up, look);
-	float halfW = 0.2f;
-	float halfH = 0.2f;
+	float halfW = 0.04f;
+	float halfH = 0.04f;
 	float4 vertices[4] =
 	{
 		float4(positionW + (halfW * right) - (halfH * up), 1.0f), // LB
@@ -80,5 +79,5 @@ void GS_EMITTERPARTICLE_DRAW(point VS_EMITTERPARTICLE_INPUT input[1], inout Tria
 
 float4 PS_EMITTERPARTICLE_MAIN(GS_EMITTERPARTICLE_OUTPUT input) : SV_TARGET
 {
-	return float4(1.0f, 0.4f, 0.4f, 0.6f);
+	return float4(1.0f, 0.4f, 0.4f, 0.8f);
 }
