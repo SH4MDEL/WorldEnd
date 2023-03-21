@@ -3,9 +3,9 @@
 #include "Server.h"
 #include "map.h"
 
-void GameRoom::SetEvent(COLLISION_EVENT event)
+void GameRoom::SetEvent(COLLISION_EVENT ev)
 {
-	m_collision_events.push_back(event);
+	m_collision_events.push_back(ev);
 }
 
 // 파티 생성하지 않고 진입 시 사용하는 함수
@@ -203,21 +203,24 @@ void GameRoom::DeletePlayer(INT player_id)
 	}
 }
 
-void GameRoom::InitGameRoom()
+void GameRoom::InitGameRoom(INT room_num)
 {
 	{
 		lock_guard<mutex> lock{ m_state_lock };
 		m_state = GameRoomState::ACCEPT; 
 	}
-	InitMonsters();
+	InitMonsters(room_num);
 	InitEnvironment();
 }
 
-void GameRoom::InitMonsters()
+void GameRoom::InitMonsters(INT room_num)
 {
 	Server& server = Server::GetInstance();
 	// 파일을 읽어서 몬스터를 생성할 예정
 	
+	// Init 은 플레이어 진입 시 불려야함
+	// 전투 시작 시 INGAME, ChangeBehavior 가 호출되어야 함
+	// 현재는 방 생성 시 부르는 중, 나중에 옮길 것!
 	INT new_id{};
 	for (size_t i = 0; i < 5; ++i) {
 		new_id = server.GetNewMonsterId(MonsterType::WARRIOR);
@@ -226,8 +229,11 @@ void GameRoom::InitMonsters()
 		
 		auto monster = dynamic_pointer_cast<Monster>(server.m_clients[new_id]);
 		monster->SetId(new_id);
-		monster->SetTarget(0);
 		monster->InitializePosition();
+		monster->SetRoomNum(room_num);
+		monster->SetTarget(0);
+		monster->SetState(State::ST_INGAME);
+		monster->ChangeBehavior(MonsterBehavior::CHASE);
 	}
 }
 
@@ -244,10 +250,10 @@ GameRoomManager::GameRoomManager()
 	}
 }
 
-void GameRoomManager::SetEvent(COLLISION_EVENT event, INT player_id)
+void GameRoomManager::SetEvent(COLLISION_EVENT ev, INT player_id)
 {
 	int index = FindGameRoomInPlayer(player_id);
-	m_game_rooms[index]->SetEvent(event);
+	m_game_rooms[index]->SetEvent(ev);
 }
 
 // gameroom 의 Setplayer 와 마찬가지로 파티 생성 없이 진입할 때
@@ -265,7 +271,7 @@ void GameRoomManager::SetPlayer(INT room_num, INT player_id)
 
 void GameRoomManager::InitGameRoom(INT room_num)
 {
-	m_game_rooms[room_num]->InitGameRoom();
+	m_game_rooms[room_num]->InitGameRoom(room_num);
 	m_game_rooms[room_num]->SetMonstersRoomNum(room_num);
 }
 

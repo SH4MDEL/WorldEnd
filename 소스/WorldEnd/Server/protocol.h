@@ -4,13 +4,6 @@
 
 constexpr short SERVER_PORT = 9000;
 
-// 플레이어 수치
-constexpr float PLAYER_RUN_SPEED = 10.f;
-
-// 몬스터 수치
-constexpr float WARRIOR_MONSTER_ATTACK_RANGE = 1.f;
-constexpr float WARRIOR_MONSTER_BORDER_RANGE = 2.f;
-
 constexpr int BUF_SIZE = 5000;
 constexpr int NAME_SIZE = 20;
 constexpr int MAX_INGAME_USER = 3;
@@ -56,15 +49,38 @@ enum class AttackType : char { NORMAL, SKILL, ULTIMATE };
 enum class MonsterType : char { WARRIOR, ARCHER, WIZARD };
 enum class EnvironmentType : char { RAIN, FOG, GAS, TRAP };
 
-enum class EventType : char { EVENT_PLAYER_ATTACK, EVENT_MONSTER_ATTACK};
 enum class CollisionType : char { PERSISTENCE, ONE_OFF, MULTIPLE_TIMES };
-enum class MonsterBehavior : char {
-	CHASE, LOOKAROUND, PREPAREATTACK, ATTACK, NONE
+enum class CooltimeType : char {
+	NORMAL_ATTACK, SKILL, ULTIMATE, ROLL
 };
+enum class MonsterBehavior : char {
+	CHASE, LOOK_AROUND, PREPARE_ATTACK, ATTACK, NONE
+};
+
+namespace PlayerSetting
+{
+	using namespace std::literals;
+
+	constexpr float PLAYER_RUN_SPEED = 10.f;
+
+	constexpr auto WARRIOR_ATTACK_COOLTIME = 1s;
+	constexpr auto WARRIOR_SKILL_COOLTIME = 7s;
+	constexpr auto WARRIOR_ULTIMATE_COOLTIME = 20s;
+}
 
 namespace MonsterSetting 
 {
-	constexpr float MONSTER_WALK_SPEED = 1.2f;
+	using namespace std::literals;
+
+	constexpr float MONSTER_WALK_SPEED = 3.f;
+	constexpr auto MONSTER_LOOK_AROUND_TIME = 3s;
+	constexpr auto MONSTER_RETARGET_TIME = 10s;
+	constexpr auto MONSTER_PREPARE_ATTACK_TIME = 1s;
+	constexpr auto MONSTER_ATTACK_TIME = 625ms;
+
+	constexpr float WARRIOR_MONSTER_ATTACK_RANGE = 1.f;
+	constexpr float WARRIOR_MONSTER_BORDER_RANGE = 2.f;
+
 }
 
 // ----- 애니메이션 enum 클래스 -----
@@ -91,6 +107,15 @@ class ArcherAnimation : public ObjectAnimation
 public:
 	enum USHORT {
 		AIM = ObjectAnimation::END + 200
+	};
+};
+
+class MonsterAnimation : public ObjectAnimation
+{
+public:
+	enum USHORT {
+		LOOK_AROUND = ObjectAnimation::END + 300,
+		TAUNT
 	};
 };
 // ----------------------------------
@@ -270,6 +295,7 @@ struct SC_CHANGE_MONSTER_BEHAVIOR_PACKET
 {
 	UCHAR size;
 	UCHAR type;
+	INT id;
 	MonsterBehavior behavior;
 	USHORT animation;
 };

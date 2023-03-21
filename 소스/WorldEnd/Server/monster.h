@@ -15,11 +15,13 @@ public:
 	virtual MONSTER_DATA GetMonsterData() const override;
 	virtual MonsterType GetMonsterType() const override { return m_monster_type; }
 	UCHAR GetTargetId() const { return m_target_id; }
+	chrono::system_clock::time_point GetLastBehaviorTime() const;
 
 	bool ChangeAnimation(BYTE animation);
 
 	void ChangeBehavior(MonsterBehavior behavior);
 	void DoBehavior(FLOAT elapsed_time);
+	bool IsDoAttack();
 
 	void UpdateTarget();					// 타게팅 설정
 	void ChasePlayer(FLOAT elapsed_time);	// 추격
@@ -33,6 +35,7 @@ public:
 
 protected:
 	MonsterType							m_monster_type;
+	FLOAT								m_range;
 	INT									m_target_id;
 	USHORT								m_current_animation;
 	MonsterBehavior						m_current_behavior;
@@ -41,6 +44,7 @@ protected:
 	void UpdatePosition(const XMFLOAT3& dir, FLOAT elapsed_time);
 	void UpdateRotation(const XMFLOAT3& dir);
 	XMFLOAT3 GetPlayerDirection(INT player_id);
+	bool CanAttack();
 };
 
 class WarriorMonster : public Monster

@@ -43,9 +43,10 @@ public:
 	void RecvAddObjectPacket(char* ptr);
 	void RecvRemoveObjectPacket(char* ptr);
 	void RecvUpdateClient(char* ptr);
+	void RecvChangeAnimation(char* ptr);
 	void RecvAddMonsterPacket(char* ptr);
 	void RecvUpdateMonster(char* ptr);
-	void RecvChangeAnimation(char* ptr);
+	void RecvChangeMonsterBehavior(char* ptr);
 
 protected:
 	ComPtr<ID3D12Resource>					m_sceneBuffer;

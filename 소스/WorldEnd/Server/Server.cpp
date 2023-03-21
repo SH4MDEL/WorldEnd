@@ -233,6 +233,16 @@ void Server::WorkerThread()
 			break;
 		}
 
+		case OP_RESET_COOLTIME: {
+			// 해당 클라이언트의 쿨타임 초기화
+			CooltimeType type = static_cast<CooltimeType>(exp_over->_send_buf[0]);
+
+
+			delete exp_over;
+			break;
+		}
+
+
 		}
 	}
 }
@@ -243,8 +253,7 @@ void Server::ProcessPacket(int id, char* p)
 	auto cl = dynamic_pointer_cast<Client>(m_clients[id]);
 	
 	switch (type){
-	case CS_PACKET_LOGIN:
-	{
+	case CS_PACKET_LOGIN: {
 		CS_LOGIN_PACKET* packet = reinterpret_cast<CS_LOGIN_PACKET*>(p);
 		cl->SetPlayerType(packet->player_type);
 		cl->SetName(packet->name);
@@ -262,8 +271,7 @@ void Server::ProcessPacket(int id, char* p)
 		cout << cl->GetId() << " is connect" << endl;
 		break;
 	}
-	case CS_PACKET_PLAYER_MOVE:
-	{
+	case CS_PACKET_PLAYER_MOVE: {
 		CS_PLAYER_MOVE_PACKET* packet = reinterpret_cast<CS_PLAYER_MOVE_PACKET*>(p);
 
 		// 위치는 서버에서 저장하므로 굳이 받을 필요는 없을 것
@@ -282,45 +290,56 @@ void Server::ProcessPacket(int id, char* p)
 		SendPlayerDataPacket();
 		break;
 	}
-	case CS_PACKET_PLAYER_ATTACK:
-	{
+	case CS_PACKET_PLAYER_ATTACK: {
 		CS_ATTACK_PACKET* packet = reinterpret_cast<CS_ATTACK_PACKET*>(p);
 
+		TIMER_EVENT ev{ .event_type = EventType::RESET_COOLTIME, .obj_id = id };
+
+		// 쿨타임인지 검사 필요
+		switch (packet->attack_type) {
+		case AttackType::NORMAL: {
+			ev.cooltime_type = CooltimeType::NORMAL_ATTACK;
+			ev.event_time = chrono::system_clock::now() + PlayerSetting::WARRIOR_ATTACK_COOLTIME;
+			break; 
+		}
+		case AttackType::SKILL: {
+			ev.cooltime_type = CooltimeType::SKILL;
+			ev.event_time = chrono::system_clock::now() + PlayerSetting::WARRIOR_SKILL_COOLTIME;
+			break;
+		}
+		case AttackType::ULTIMATE: {
+			ev.cooltime_type = CooltimeType::ULTIMATE;
+			ev.event_time = chrono::system_clock::now() + PlayerSetting::WARRIOR_ULTIMATE_COOLTIME;
+			break;
+		}
+
+		}
+		m_timer_queue.push(ev);
 		
-		switch (packet->attack_type)
-		{
-			case AttackType::NORMAL:
-			{
-				cout << "공격!" << endl;
-				break;
-		    }	
-	    }
 		break;
 	}
 
-	case CS_PACKET_WEAPON_COLLISION:
-	{
+	case CS_PACKET_WEAPON_COLLISION: {
 		CS_WEAPON_COLLISION_PACKET* packet = reinterpret_cast<CS_WEAPON_COLLISION_PACKET*>(p);
 
 		// 이벤트를 생성한다
-		COLLISION_EVENT event{};
-		event.user_id = cl->GetId();
-		event.bounding_box.Center.x = packet->x;
-		event.bounding_box.Center.y = packet->y;
-		event.bounding_box.Center.z = packet->z;
-		event.bounding_box.Extents = cl->GetWeaponBoundingBox().Extents;
-		event.attack_type = packet->attack_type;
-		event.collision_type = packet->collision_type;
-		event.end_time = packet->end_time;
+		COLLISION_EVENT ev{};
+		ev.user_id = cl->GetId();
+		ev.bounding_box.Center.x = packet->x;
+		ev.bounding_box.Center.y = packet->y;
+		ev.bounding_box.Center.z = packet->z;
+		ev.bounding_box.Extents = cl->GetWeaponBoundingBox().Extents;
+		ev.attack_type = packet->attack_type;
+		ev.collision_type = packet->collision_type;
+		ev.end_time = packet->end_time;
 
 		// 이벤트를 해당 플레이어가 속한 던전에 추가한다
-		m_game_room_manager->SetEvent(event, cl->GetId());
+		m_game_room_manager->SetEvent(ev, cl->GetId());
 
 		break;
 	}
 
-	case CS_PACKET_CHANGE_ANIMATION:
-	{
+	case CS_PACKET_CHANGE_ANIMATION: {
 		CS_CHANGE_ANIMATION_PACKET* animation_packet = reinterpret_cast<CS_CHANGE_ANIMATION_PACKET*>(p);
 
 		SC_CHANGE_ANIMATION_PACKET packet{};
@@ -499,44 +518,81 @@ void Server::MovePlayer(shared_ptr<Client>& player, XMFLOAT3 pos)
 void Server::Timer()
 {
 	using namespace chrono;
-	TIMER_EVENT event;
+	TIMER_EVENT ev{};
+
+	// 지역 타이머 큐
+	priority_queue<TIMER_EVENT> timer_queue;
 
 	while (true) {
-		if (!m_timer_queue.try_pop(event)) {
-			std::this_thread::sleep_for(1ms);
-			continue;
-		}
+		auto current_time = system_clock::now();
 
-		if (event.event_time <= system_clock::now()) {
-			
-			switch (event.event_type)
-			{
-			case EVENT_PLAYER_ATTACK:
-				cout << "공격 이벤트 중" << endl;
-				break;
-			default:
-				break;
+		// 지역 타이머 큐의 처리
+		if (!timer_queue.empty()) {
+			if (timer_queue.top().event_time <= current_time) {
+				ev = timer_queue.top();
+				timer_queue.pop();
+				ProcessEvent(ev);
 			}
 		}
 
-	}
-	/*while (true) {
-		auto now = std::chrono::system_clock::now();
-		auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - event.start_time);
-		if (m_attack_check == true) {
-			if (elapsed.count() < 5.0f) {
+		// 전역 concurrent 타이머 큐의 처리
+		// 이벤트 시간이 안됐으면 지역큐에 넣고 기다린 후 while 문으로 돌아감
+		if (m_timer_queue.try_pop(ev)) {
+			if (ev.event_time > current_time) {
+				timer_queue.push(ev);
+				this_thread::sleep_for(5ms);
+				continue;
 			}
 			else {
-				m_attack_check = false;
-				m_start_cool_time = 0;
-				for (int i = 0; i < MAX_USER; ++i)
-					SendPlayerAttackPacket(m_clients[i].m_player_data.id);
-				event.start_time = now;
+				ProcessEvent(ev);
+				continue;
 			}
 		}
-	}*/
 
+		// 지역 큐가 비었고, 전역 타이머큐 try_pop 실패 시 대기
+		this_thread::sleep_for(5ms);
+	}
+}
 
+void Server::ProcessEvent(const TIMER_EVENT& ev)
+{
+	switch (ev.event_type) {
+	case EventType::RESET_COOLTIME: {
+		ExpOver* over = new ExpOver;
+		over->_comp_type = OP_RESET_COOLTIME;	
+		memcpy(&over->_send_buf, &ev.cooltime_type, sizeof(CooltimeType));
+
+		// 단순히 쿨타임 초기화만 필요하면 PQCS 로 넘기지 않아도 될 것 같음
+
+		PostQueuedCompletionStatus(m_handle_iocp, 1, ev.obj_id, &over->_wsa_over);
+
+		break;
+	}
+	case EventType::CHANGE_BEHAVIOR: {
+		auto monster = dynamic_pointer_cast<Monster>(m_clients[ev.obj_id]);
+		
+		// 마지막 행동 전환 후 리타겟 시간-1초 만큼 지나지 않았다면
+		// -> 추격이 9초 이상 이어지지 않으면 LOOK_AROUND 를 하지 않도록 한다는 것
+		// -> 공격 대기에 들어갔다가 추격에 들어갈 경우 잠시 후 LOOK_AROUND를 하는것을 방지함
+		auto last_time = monster->GetLastBehaviorTime();
+		if (MonsterBehavior::LOOK_AROUND == ev.behavior_type) {
+			if (chrono::system_clock::now() <= 
+				last_time + MonsterSetting::MONSTER_RETARGET_TIME - 1s)
+			{
+				return;
+			}
+		}
+
+		monster->ChangeBehavior(ev.behavior_type);
+		break;
+	}
+
+	}
+}
+
+void Server::SetTimerEvent(const TIMER_EVENT& ev)
+{
+	m_timer_queue.push(ev);
 }
 
 void Server::RotatePlayer(shared_ptr<Client>& player, FLOAT yaw)

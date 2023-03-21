@@ -517,6 +517,9 @@ void TowerScene::ProcessPacket(char* ptr)
 	case SC_PACKET_UPDATE_MONSTER:
 		RecvUpdateMonster(ptr);
 		break;
+	case SC_PACKET_CHANGE_MONSTER_BEHAVIOR:
+		RecvChangeMonsterBehavior(ptr);
+		break;
 	case SC_PACKET_CHANGE_ANIMATION:
 		RecvChangeAnimation(ptr);
 		break;
@@ -555,8 +558,8 @@ void TowerScene::PacketReassembly(char* net_buf, size_t io_byte)
 
 void TowerScene::RecvLoginOkPacket(char* ptr)
 {
-	SC_LOGIN_OK_PACKET* login_packet = reinterpret_cast<SC_LOGIN_OK_PACKET*>(ptr);
-	m_player->SetID(login_packet->player_data.id);
+	SC_LOGIN_OK_PACKET* packet = reinterpret_cast<SC_LOGIN_OK_PACKET*>(ptr);
+	m_player->SetID(packet->player_data.id);
 }
 
 void TowerScene::RecvAddObjectPacket(char* ptr)
@@ -598,43 +601,44 @@ void TowerScene::RecvRemoveObjectPacket(char* ptr)
 
 void TowerScene::RecvUpdateClient(char* ptr)
 {
-	SC_UPDATE_CLIENT_PACKET* update_packet = reinterpret_cast<SC_UPDATE_CLIENT_PACKET*>(ptr);
+	SC_UPDATE_CLIENT_PACKET* packet = reinterpret_cast<SC_UPDATE_CLIENT_PACKET*>(ptr);
 
 	for (int i = 0; i < MAX_INGAME_USER; ++i) {
-		if (-1 == update_packet->data[i].id) {
+		if (-1 == packet->data[i].id) {
 			continue;
 		}
 
-		if (update_packet->data[i].id == m_player->GetID()) {
-			m_player->SetPosition(update_packet->data[i].pos);
+		if (packet->data[i].id == m_player->GetID()) {
+			m_player->SetPosition(packet->data[i].pos);
 			continue;
 		}
 		else {
 			// towerScene의 multiPlayer를 업데이트 해도 shader의 multiPlayer도 업데이트 됨.
-			XMFLOAT3 playerPosition = update_packet->data[i].pos;			
-			m_multiPlayers[update_packet->data[i].id]->SetPosition(playerPosition);
-			m_multiPlayers[update_packet->data[i].id]->SetVelocity(update_packet->data[i].velocity);
-			m_multiPlayers[update_packet->data[i].id]->Rotate(0.f, 0.f, update_packet->data[i].yaw - m_multiPlayers[update_packet->data[i].id]->GetYaw());
-			m_multiPlayers[update_packet->data[i].id]->SetHp(update_packet->data[i].hp);
+			XMFLOAT3 playerPosition = packet->data[i].pos;
+			auto& player = m_multiPlayers[packet->data[i].id];
+			player->SetPosition(playerPosition);
+			player->SetVelocity(packet->data[i].velocity);
+			player->Rotate(0.f, 0.f, packet->data[i].yaw - player->GetYaw());
+			player->SetHp(packet->data[i].hp);
 		}
 	}
 }
 
 void TowerScene::RecvAddMonsterPacket(char* ptr)
 {
-	SC_ADD_MONSTER_PACKET* add_monster_packet = reinterpret_cast<SC_ADD_MONSTER_PACKET*>(ptr);
+	SC_ADD_MONSTER_PACKET* packet = reinterpret_cast<SC_ADD_MONSTER_PACKET*>(ptr);
 
 	MONSTER_DATA monster_data{};
 
-	monster_data.id = add_monster_packet->monster_data.id;
-	monster_data.pos = add_monster_packet->monster_data.pos;
-	monster_data.hp = add_monster_packet->monster_data.hp;
+	monster_data.id = packet->monster_data.id;
+	monster_data.pos = packet->monster_data.pos;
+	monster_data.hp = packet->monster_data.hp;
 
 	if (monster_data.id == -1)
 		return;
 
 	auto monster = make_shared<Monster>();
-	monster->SetType(add_monster_packet->monster_type);
+	monster->SetType(packet->monster_type);
 	LoadMonsterFromFile(monster);
 	monster->ChangeAnimation(ObjectAnimation::WALK);
 
@@ -652,16 +656,27 @@ void TowerScene::RecvAddMonsterPacket(char* ptr)
 
 void TowerScene::RecvUpdateMonster(char* ptr)
 {
-	SC_UPDATE_MONSTER_PACKET* monster_packet = reinterpret_cast<SC_UPDATE_MONSTER_PACKET*>(ptr);
+	SC_UPDATE_MONSTER_PACKET* packet = reinterpret_cast<SC_UPDATE_MONSTER_PACKET*>(ptr);
 
-	if (monster_packet->monster_data.id < 0) return;
+	if (packet->monster_data.id < 0) return;
 
-	m_monsters[monster_packet->monster_data.id]->SetPosition(monster_packet->monster_data.pos);
-	m_monsters[monster_packet->monster_data.id]->SetHp(monster_packet->monster_data.hp);
+	auto& monster = m_monsters[packet->monster_data.id];
+	monster->SetPosition(packet->monster_data.pos);
+	monster->SetHp(packet->monster_data.hp);
 
-	FLOAT newYaw = monster_packet->monster_data.yaw;
-	FLOAT oldYaw = m_monsters[monster_packet->monster_data.id]->GetYaw();
-	m_monsters[monster_packet->monster_data.id]->Rotate(0.f, 0.f, newYaw - oldYaw);
+	FLOAT newYaw = packet->monster_data.yaw;
+	FLOAT oldYaw = monster->GetYaw();
+	monster->Rotate(0.f, 0.f, newYaw - oldYaw);
+}
+
+void TowerScene::RecvChangeMonsterBehavior(char* ptr)
+{
+	SC_CHANGE_MONSTER_BEHAVIOR_PACKET* packet =
+		reinterpret_cast<SC_CHANGE_MONSTER_BEHAVIOR_PACKET*>(ptr);
+
+	auto& monster = m_monsters[packet->id];
+	monster->ChangeAnimation(packet->animation);
+	//monster->ChangeBehavior(packet->behavior);
 }
 
 void TowerScene::RecvChangeAnimation(char* ptr)

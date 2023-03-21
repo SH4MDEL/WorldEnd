@@ -15,7 +15,7 @@ public:
 	void Update(FLOAT elapsed_time);
 
 	void SetType(EnvironmentType type) { m_type = type; }
-	void SetEvent(COLLISION_EVENT event);
+	void SetEvent(COLLISION_EVENT ev);
 	void SetPlayer(INT player_id);
 	void SetState(GameRoomState state) { m_state = state; }
 	void SetMonstersRoomNum(INT room_num);
@@ -31,8 +31,8 @@ public:
 	bool FindPlayer(INT player_id);
 	void DeletePlayer(INT player_id);
 
-	void InitGameRoom();
-	void InitMonsters();
+	void InitGameRoom(INT room_num);
+	void InitMonsters(INT room_num);
 	void InitEnvironment();
 
 	array<INT, MAX_INGAME_USER>& GetPlayerIds() { return m_player_ids; }
@@ -69,7 +69,7 @@ public:
 
 	void Update(float elapsed_time);
 
-	void SetEvent(COLLISION_EVENT event, INT player_id);
+	void SetEvent(COLLISION_EVENT ev, INT player_id);
 	void SetPlayer(INT room_num, INT player_id);
 
 	vector<shared_ptr<GameObject>>& GetStructures() { return m_structures; }

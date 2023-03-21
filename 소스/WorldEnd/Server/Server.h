@@ -4,11 +4,16 @@
 #include "object.h"
 #include "map.h"
 
+
+enum class EventType : char { RESET_COOLTIME, CHANGE_BEHAVIOR };
+
 struct TIMER_EVENT {
-	INT obj_id;
-	INT targat_id;
 	std::chrono::system_clock::time_point event_time;
 	EventType event_type;
+	INT obj_id;
+	INT targat_id;
+	CooltimeType cooltime_type;
+	MonsterBehavior behavior_type;
 
 	constexpr bool operator <(const TIMER_EVENT& left)const
 	{
@@ -37,6 +42,9 @@ public:
 	void PlayerCollisionCheck(shared_ptr<Client>& player);
 
 	void Timer();
+	void ProcessEvent(const TIMER_EVENT& ev);
+
+	void SetTimerEvent(const TIMER_EVENT& ev);
 
 	INT GetNewId();
 	INT GetNewMonsterId(MonsterType type);

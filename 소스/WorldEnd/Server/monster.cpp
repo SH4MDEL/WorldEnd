@@ -2,7 +2,8 @@
 #include "stdafx.h"
 #include "Server.h"
 
-Monster::Monster() : m_target_id{ -1 }, m_current_animation{ ObjectAnimation::IDLE }
+Monster::Monster() : m_target_id{ -1 }, m_current_animation{ ObjectAnimation::IDLE },
+	m_current_behavior{ MonsterBehavior::CHASE }
 {
 }
 
@@ -38,7 +39,22 @@ XMFLOAT3 Monster::GetPlayerDirection(INT player_id)
 		return m_position;
 
 	Server& server = Server::GetInstance();
-	return Vector3::Sub(server.m_clients[player_id]->GetPosition(), m_position);
+	XMFLOAT3 sub = Vector3::Sub(server.m_clients[player_id]->GetPosition(), m_position);
+	return Vector3::Normalize(sub);
+}
+
+bool Monster::CanAttack()
+{
+	Server& server = Server::GetInstance();
+	if (-1 == server.m_clients[m_target_id]->GetId())
+		return false;
+
+	FLOAT dist = Vector3::Distance(server.m_clients[m_target_id]->GetPosition(), m_position);
+
+	if (dist <= m_range)
+		return true;
+
+	return false;
 }
 
 void Monster::SetTarget(INT id)
@@ -49,6 +65,11 @@ void Monster::SetTarget(INT id)
 MONSTER_DATA Monster::GetMonsterData() const
 {
 	return MONSTER_DATA( m_id, m_position, m_velocity, m_yaw, m_hp );
+}
+
+chrono::system_clock::time_point Monster::GetLastBehaviorTime() const
+{
+	return m_last_behavior_time;
 }
 
 bool Monster::ChangeAnimation(BYTE animation)
@@ -64,29 +85,56 @@ void Monster::ChangeBehavior(MonsterBehavior behavior)
 {
 	m_current_behavior = behavior;
 
-	// 애니메이션 추가가 가능하면
-	// LOOKAROUND 는 두리번거리기
-	// PREPAREATTACK 는 경계하기 로 변경하면 됨
+	TIMER_EVENT ev{};
+	ev.obj_id = m_id;
+	ev.event_type = EventType::CHANGE_BEHAVIOR;
+	auto current_time = std::chrono::system_clock::now();
+	m_last_behavior_time = current_time;
+
 	switch (m_current_behavior) {
 	case MonsterBehavior::CHASE:
+		// 추격으로 바뀌면 retarget 시간 이후 둘러보도록 함
+		// retarget 시간 이후 둘러보기로 변경
 		m_current_animation = ObjectAnimation::WALK;
+		ev.event_time = current_time + MonsterSetting::MONSTER_RETARGET_TIME;
+		ev.behavior_type = MonsterBehavior::LOOK_AROUND;
 		break;
-	case MonsterBehavior::LOOKAROUND:
+	case MonsterBehavior::LOOK_AROUND:
+		// Retarget 하면서 둘러보는 애니메이션 출력
+		// 둘러보는 시간 이후 CHASE 로 변경
 		m_current_animation = ObjectAnimation::IDLE;
+		ev.event_time = current_time + MonsterSetting::MONSTER_LOOK_AROUND_TIME;
+		ev.behavior_type = MonsterBehavior::CHASE;
 		break;
-	case MonsterBehavior::PREPAREATTACK:
+	case MonsterBehavior::PREPARE_ATTACK:
+		// 공격 준비 시간 이후 공격으로 변경
 		m_current_animation = ObjectAnimation::IDLE;
+		ev.event_time = current_time + MonsterSetting::MONSTER_PREPARE_ATTACK_TIME;
+		ev.behavior_type = MonsterBehavior::ATTACK;
 		break;
 	case MonsterBehavior::ATTACK:
-		m_current_animation = ObjectAnimation::ATTACK;
+		// 공격 가능하면 공격, 공격 이후 공격 준비 재전환 
+		// 불가능하면 바로 추격
+		
+		if (CanAttack()) {
+			m_current_animation = ObjectAnimation::ATTACK;
+			ev.event_time = current_time + MonsterSetting::MONSTER_ATTACK_TIME;
+			ev.behavior_type = MonsterBehavior::PREPARE_ATTACK;
+		}
+		else {
+			m_current_animation = ObjectAnimation::WALK;
+			ev.event_time = current_time;
+			ev.behavior_type = MonsterBehavior::CHASE;
+		}
+
 		break;
 	case MonsterBehavior::NONE:
 		break;
 	}
 
-	// 동작이 변할 때 해당 변화를 클라이언트에 전송
-	// 동작이 변할 때 애니메이션도 변하므로 같이 전송함
 	Server& server = Server::GetInstance();
+	server.SetTimerEvent(ev);
+
 	auto game_room = server.GetGameRoomManager()->GetGameRoom(m_room_num);
 	auto& ids = game_room->GetPlayerIds();
 
@@ -95,6 +143,7 @@ void Monster::ChangeBehavior(MonsterBehavior behavior)
 	packet.type = SC_PACKET_CHANGE_MONSTER_BEHAVIOR;
 	packet.behavior = m_current_behavior;
 	packet.animation = m_current_animation;
+	packet.id = m_id;
 
 	for (INT id : ids) {
 		if (-1 == id) continue;
@@ -109,10 +158,10 @@ void Monster::DoBehavior(FLOAT elapsed_time)
 	case MonsterBehavior::CHASE:
 		ChasePlayer(elapsed_time);
 		break;
-	case MonsterBehavior::LOOKAROUND:
+	case MonsterBehavior::LOOK_AROUND:
 		LookAround();
 		break;
-	case MonsterBehavior::PREPAREATTACK:
+	case MonsterBehavior::PREPARE_ATTACK:
 		PrepareAttack();
 		break;
 	case MonsterBehavior::ATTACK:
@@ -121,6 +170,23 @@ void Monster::DoBehavior(FLOAT elapsed_time)
 	case MonsterBehavior::NONE:
 		break;
 	}
+	
+	// 행동 후 PREPARE_ATTACK, ATTACK 이 아니면 공격 가능한지 체크
+	if (!IsDoAttack()){
+		if (CanAttack()) {
+			ChangeBehavior(MonsterBehavior::PREPARE_ATTACK);
+		}
+	}
+}
+
+bool Monster::IsDoAttack()
+{
+	if ((MonsterBehavior::PREPARE_ATTACK == m_current_behavior)||
+		(MonsterBehavior::ATTACK == m_current_behavior))
+	{
+		return true;
+	}
+	return false;
 }
 
 void Monster::UpdateTarget()
@@ -151,24 +217,21 @@ void Monster::ChasePlayer(FLOAT elapsed_time)
 
 	UpdatePosition(player_dir, elapsed_time);
 	UpdateRotation(player_dir);
-
-	// 타이머 큐에 이동주기(지정 필요) 후에 추격 행동을 이어가는 이벤트 추가
-	// ChangeBehavior가 불릴 필요 없음
 }
 
 void Monster::LookAround()
 {
 	// 타게팅 변경 중 두리번 거리는 행동
 	// 계속 추격하지 않고 일정 시간마다 멈춰서도록 함
-
-	// 타이머 큐에 0.5~1초 뒤에 추격 행동으로 전환하는 이벤트 추가
+	UpdateTarget();
 }
 
 void Monster::PrepareAttack()
 {
 	// 공격 전 공격함을 알리기 위한 행동
 
-	// 타이머 큐에 0.5~1초 뒤에 공격 행동으로 전환하는 이벤트 추가
+	XMFLOAT3 player_dir = GetPlayerDirection(m_target_id);
+	UpdateRotation(player_dir);
 }
 
 void Monster::Attack()
@@ -178,9 +241,7 @@ void Monster::Attack()
 	UpdateTarget();
 
 	Server& server = Server::GetInstance();
-	
 
-	FLOAT dist = Vector3::Distance(m_position, server.m_clients[m_target_id]->GetPosition());
 	
 	// 타겟과 거리가 멀면 추격 행동으로 전환
 	// 타겟과 거리가 가까우면 공격 범위 내 행동으로 전환
@@ -195,8 +256,8 @@ void Monster::InitializePosition()
 
 	constexpr DirectX::XMFLOAT3 monster_create_area[]
 	{
-		{ 4.0f,	0.0f, 5.0f }, { 2.0f, 0.0f, -6.0f },{ 4.0f,  0.0f, 6.0f },	{ -3.0f, 0.0f, 7.0f },
-		{ 5.0f, 0.0f, 7.0f }, { -1.0f, 0.0f,  5.0f },	{ 5.0f, 0.0f, 6.0f }, {  7.0f, 0.0f, -1.0f }
+		{ 14.0f, 0.0f, 15.0f }, { 12.0f, 0.0f, -16.0f },{ 14.0f, 0.0f, 16.0f },	{ -13.0f, 0.0f, 17.0f },
+		{ 15.0f, 0.0f, 17.0f }, { -11.0f, 0.0f, 15.0f },{ 15.0f, 0.0f, 16.0f }, { 17.0f, 0.0f, -11.0f }
 	};
 	std::uniform_int_distribution<int> area_distribution{ 0, static_cast<int>(std::size(monster_create_area) - 1) };
 	SetPosition(monster_create_area[area_distribution(g_random_engine)]);
@@ -208,6 +269,7 @@ WarriorMonster::WarriorMonster()
 	m_monster_type = MonsterType::WARRIOR;
 	m_hp = 200;
 	m_damage = 20;
+	m_range = 1.f;
 	m_bounding_box.Center = XMFLOAT3(0.028f, 1.27f, 0.f);
 	m_bounding_box.Extents = XMFLOAT3(0.8f, 1.3f, 0.5f);
 	m_bounding_box.Orientation = XMFLOAT4(0.f, 0.f, 0.f, 1.f);
@@ -215,7 +277,7 @@ WarriorMonster::WarriorMonster()
 
 void WarriorMonster::Update(FLOAT elapsed_time)
 {
-	if (m_hp <= 0) return;
+	if (State::ST_INGAME != m_state) return;
 
 	DoBehavior(elapsed_time);
 }

@@ -2,7 +2,7 @@
 #include "stdafx.h"
 #include "object.h"
 
-enum CompType { OP_RECV, OP_SEND, OP_ACCEPT, OP_COOLTIME_RESET };
+enum CompType { OP_RECV, OP_SEND, OP_ACCEPT, OP_RESET_COOLTIME };
 
 class ExpOver {
 public:

@@ -19,9 +19,7 @@ void Monster::Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw)
 
 void Monster::SetPosition(const XMFLOAT3& position)
 {
-	XMFLOAT3 right = GetRight();
-
-	GameObject::SetPosition(Vector3::Add(position, Vector3::Mul(right, 2.5)));
+	GameObject::SetPosition(position);
 
 	if (m_hpBar) {
 		XMFLOAT3 hpBarPosition = position;
