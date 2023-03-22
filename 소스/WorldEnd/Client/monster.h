@@ -18,9 +18,6 @@ public:
 
 
 
-	void SetID(INT id) { m_id = id; }
-	INT GetID() const { return m_id; }
-
 	MonsterType GetType() const { return m_type; }
 	void SetType(MonsterType type) { m_type = type; }
 
@@ -28,8 +25,6 @@ private:
 	FLOAT				m_hp;			// 체력
 	FLOAT				m_maxHp;		// 최대 체력
 	shared_ptr<HpBar>	m_hpBar;		// HP바
-
-	INT					m_id;			// 고유 아이디
 
 	MonsterType			m_type;
 };

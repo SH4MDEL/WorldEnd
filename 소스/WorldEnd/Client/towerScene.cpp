@@ -523,6 +523,9 @@ void TowerScene::ProcessPacket(char* ptr)
 	case SC_PACKET_CHANGE_ANIMATION:
 		RecvChangeAnimation(ptr);
 		break;
+	case SC_PACKET_RESET_COOLTIME:
+		RecvResetCooltime(ptr);
+		break;
 	}
 }
 
@@ -677,6 +680,12 @@ void TowerScene::RecvChangeMonsterBehavior(char* ptr)
 	auto& monster = m_monsters[packet->id];
 	monster->ChangeAnimation(packet->animation);
 	//monster->ChangeBehavior(packet->behavior);
+}
+
+void TowerScene::RecvResetCooltime(char* ptr)
+{
+	SC_RESET_COOLTIME_PACKET* packet = reinterpret_cast<SC_RESET_COOLTIME_PACKET*>(ptr);
+	m_player->ResetCooltime(packet->cooltime_type);
 }
 
 void TowerScene::RecvChangeAnimation(char* ptr)

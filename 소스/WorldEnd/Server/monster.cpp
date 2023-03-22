@@ -1,4 +1,5 @@
 #include "monster.h"
+#include <functional>
 #include "stdafx.h"
 #include "Server.h"
 
@@ -102,13 +103,13 @@ void Monster::ChangeBehavior(MonsterBehavior behavior)
 	case MonsterBehavior::LOOK_AROUND:
 		// Retarget 하면서 둘러보는 애니메이션 출력
 		// 둘러보는 시간 이후 CHASE 로 변경
-		m_current_animation = ObjectAnimation::IDLE;
+		m_current_animation = MonsterAnimation::LOOK_AROUND;
 		ev.event_time = current_time + MonsterSetting::MONSTER_LOOK_AROUND_TIME;
 		ev.behavior_type = MonsterBehavior::CHASE;
 		break;
 	case MonsterBehavior::PREPARE_ATTACK:
 		// 공격 준비 시간 이후 공격으로 변경
-		m_current_animation = ObjectAnimation::IDLE;
+		m_current_animation = MonsterAnimation::TAUNT;
 		ev.event_time = current_time + MonsterSetting::MONSTER_PREPARE_ATTACK_TIME;
 		ev.behavior_type = MonsterBehavior::ATTACK;
 		break;
@@ -189,6 +190,22 @@ bool Monster::IsDoAttack()
 	return false;
 }
 
+void Monster::DecreaseHp(FLOAT damage, INT id)
+{
+	m_hp -= damage;
+	if (m_hp <= 0) {
+		m_state = State::ST_DEAD;
+
+		// 죽은것 전송
+	}
+
+	// 일정 비율 이상 데미지가 들어오면 타겟 변경
+	if ((m_hp / 11.f - damage) <= numeric_limits<float>::epsilon()) {
+		SetTarget(id);
+		m_last_behavior_time = chrono::system_clock::now();
+	}
+}
+
 void Monster::UpdateTarget()
 {
 	// 거리를 계산하여 가장 가까운 플레이어를 타겟으로 함
@@ -217,6 +234,7 @@ void Monster::ChasePlayer(FLOAT elapsed_time)
 
 	UpdatePosition(player_dir, elapsed_time);
 	UpdateRotation(player_dir);
+	CollisionCheck();
 }
 
 void Monster::LookAround()
@@ -237,15 +255,24 @@ void Monster::PrepareAttack()
 void Monster::Attack()
 {
 	// 플레이어 공격
-	
-	UpdateTarget();
-
 	Server& server = Server::GetInstance();
 
 	
 	// 타겟과 거리가 멀면 추격 행동으로 전환
 	// 타겟과 거리가 가까우면 공격 범위 내 행동으로 전환
 	// 몬스터별 차이 둘 필요있음
+}
+
+void Monster::CollisionCheck()
+{
+	Server& server = Server::GetInstance(); 
+	auto game_room = server.GetGameRoomManager()->GetGameRoom(m_room_num);
+	auto& monster_ids = game_room->GetMonsterIds();
+	auto& player_ids = game_room->GetPlayerIds();
+
+	
+	server.CollisionCheck(shared_from_this(), monster_ids);
+	server.CollisionCheck(shared_from_this(), player_ids);
 }
 
 void Monster::InitializePosition()
@@ -267,11 +294,11 @@ void Monster::InitializePosition()
 WarriorMonster::WarriorMonster()
 {
 	m_monster_type = MonsterType::WARRIOR;
-	m_hp = 200;
+	m_hp = 200.f;
 	m_damage = 20;
 	m_range = 1.f;
 	m_bounding_box.Center = XMFLOAT3(0.028f, 1.27f, 0.f);
-	m_bounding_box.Extents = XMFLOAT3(0.8f, 1.3f, 0.5f);
+	m_bounding_box.Extents = XMFLOAT3(0.8f, 1.3f, 0.6f);
 	m_bounding_box.Orientation = XMFLOAT4(0.f, 0.f, 0.f, 1.f);
 }
 

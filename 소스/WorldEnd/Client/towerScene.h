@@ -47,6 +47,7 @@ public:
 	void RecvAddMonsterPacket(char* ptr);
 	void RecvUpdateMonster(char* ptr);
 	void RecvChangeMonsterBehavior(char* ptr);
+	void RecvResetCooltime(char* ptr);
 
 protected:
 	ComPtr<ID3D12Resource>					m_sceneBuffer;

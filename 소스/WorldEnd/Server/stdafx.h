@@ -9,6 +9,7 @@
 #include <MSWSock.h>
 #include <thread>
 #include <array>
+#include <span>
 #include <list>
 #include <vector>
 #include <unordered_map>

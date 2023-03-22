@@ -2,7 +2,7 @@
 #include "stdafx.h"
 #include "object.h"
 
-class Monster : public MovementObject
+class Monster : public MovementObject, public enable_shared_from_this<Monster>
 {
 public:
 	Monster();
@@ -22,13 +22,14 @@ public:
 	void ChangeBehavior(MonsterBehavior behavior);
 	void DoBehavior(FLOAT elapsed_time);
 	bool IsDoAttack();
+	void DecreaseHp(FLOAT damage, INT id);
 
 	void UpdateTarget();					// 타게팅 설정
 	void ChasePlayer(FLOAT elapsed_time);	// 추격
 	void LookAround();						// 추격 중 대기
 	void PrepareAttack();					// 공격 준비
 	void Attack();							// 공격
-
+	void CollisionCheck();
 
 	// 나중에 던전 매니저로 옮겨야 할 함수
 	void InitializePosition();

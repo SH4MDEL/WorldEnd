@@ -12,7 +12,7 @@ struct SCORE_DATA
 	}
 };
 
-enum class State { ST_FREE, ST_ACCEPT, ST_INGAME };
+enum class State { ST_FREE, ST_ACCEPT, ST_INGAME, ST_DEAD };
 
 class GameObject
 {
@@ -99,7 +99,7 @@ public:
 	void SetState(State state) { m_state = state; }
 	void SetName(string name) { m_name = name; }
 	void SetName(const char* c);
-	void SetHp(INT hp) { m_hp = hp; }
+	void SetHp(FLOAT hp) { m_hp = hp; }
 	void SetDamage(INT damage) { m_damage = damage; }
 	void SetRoomNum(USHORT room_num) { m_room_num = room_num; }
 
@@ -107,7 +107,7 @@ public:
 	std::mutex& GetStateMutex() { return m_state_lock; }
 	State GetState() const { return m_state; }
 	string GetName() const { return m_name; }
-	INT GetHp() const { return m_hp; }
+	FLOAT GetHp() const { return m_hp; }
 	INT GetDamage() const { return m_damage; }
 	USHORT GetRoomNum() const { return m_room_num; }
 	
@@ -130,7 +130,7 @@ protected:
 	State		m_state;
 
 	string		m_name;
-	INT			m_hp;
+	FLOAT		m_hp;
 	INT			m_damage;
 
 	USHORT		m_room_num;

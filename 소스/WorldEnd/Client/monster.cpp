@@ -1,6 +1,6 @@
 #include "monster.h"
 
-Monster::Monster() : m_hp{ 200.f }, m_maxHp{ 200.f }, m_id{ -1 }
+Monster::Monster() : m_hp{ 200.f }, m_maxHp{ 200.f }
 {
 
 }

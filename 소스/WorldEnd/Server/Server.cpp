@@ -235,8 +235,12 @@ void Server::WorkerThread()
 
 		case OP_RESET_COOLTIME: {
 			// 해당 클라이언트의 쿨타임 초기화
-			CooltimeType type = static_cast<CooltimeType>(exp_over->_send_buf[0]);
+			SC_RESET_COOLTIME_PACKET packet{};
+			packet.size = sizeof(packet);
+			packet.type = SC_PACKET_RESET_COOLTIME;
+			packet.cooltime_type = static_cast<CooltimeType>(exp_over->_send_buf[0]);
 
+			m_clients[static_cast<int>(key)]->DoSend(&packet);
 
 			delete exp_over;
 			break;
@@ -290,30 +294,29 @@ void Server::ProcessPacket(int id, char* p)
 		SendPlayerDataPacket();
 		break;
 	}
-	case CS_PACKET_PLAYER_ATTACK: {
-		CS_ATTACK_PACKET* packet = reinterpret_cast<CS_ATTACK_PACKET*>(p);
+	case CS_PACKET_SET_COOLTIME: {
+		CS_COOLTIME_PACKET* packet = reinterpret_cast<CS_COOLTIME_PACKET*>(p);
 
-		TIMER_EVENT ev{ .event_type = EventType::RESET_COOLTIME, .obj_id = id };
+		TIMER_EVENT ev{ .event_type = EventType::RESET_COOLTIME, .obj_id = id,
+				.cooltime_type = packet->cooltime_type };
 
-		// 쿨타임인지 검사 필요
-		switch (packet->attack_type) {
-		case AttackType::NORMAL: {
-			ev.cooltime_type = CooltimeType::NORMAL_ATTACK;
+		// 쿨타임 중인지 검사 필요
+		switch (packet->cooltime_type) {
+		case CooltimeType::NORMAL_ATTACK: {
 			ev.event_time = chrono::system_clock::now() + PlayerSetting::WARRIOR_ATTACK_COOLTIME;
 			break; 
 		}
-		case AttackType::SKILL: {
-			ev.cooltime_type = CooltimeType::SKILL;
+		case CooltimeType::SKILL: {
 			ev.event_time = chrono::system_clock::now() + PlayerSetting::WARRIOR_SKILL_COOLTIME;
 			break;
 		}
-		case AttackType::ULTIMATE: {
-			ev.cooltime_type = CooltimeType::ULTIMATE;
+		case CooltimeType::ULTIMATE: {
 			ev.event_time = chrono::system_clock::now() + PlayerSetting::WARRIOR_ULTIMATE_COOLTIME;
 			break;
 		}
 
 		}
+
 		m_timer_queue.push(ev);
 		
 		break;
@@ -442,25 +445,25 @@ void Server::SendPlayerDataPacket()
 	}
 }
 
-void Server::PlayerCollisionCheck(shared_ptr<Client>& player)
+void Server::PlayerCollisionCheck(const shared_ptr<Client>& player)
 {
 	BoundingOrientedBox& player_obb = player->GetBoundingBox();
-	for (size_t i = 0; i < MAX_USER; ++i) {
-		if (-1 == m_clients[i]->GetId()) continue;
-		if (m_clients[i]->GetId() == player->GetId()) continue;
 
-		BoundingOrientedBox& obb = m_clients[i]->GetBoundingBox();
-		if (player_obb.Intersects(obb)) {
-			CollideByStatic(player, obb);
-		}
-	}
+	auto game_room = m_game_room_manager->GetGameRoom(player->GetRoomNum());
+	auto& player_ids = game_room->GetPlayerIds();
+	auto& monster_ids = game_room->GetMonsterIds();
+
+	//CollisionCheck(player, monster_ids, CollideByStaticOBB);
+	//CollisionCheck(player, player_ids, CollideByStaticOBB);
+	CollisionCheck(player, player_ids);
+	CollisionCheck(player, monster_ids);
 
 	auto& v = m_game_room_manager->GetStructures();
 
 	for (auto& obj : v) {
-		BoundingOrientedBox& obb = obj->GetBoundingBox();
+		auto& obb = obj->GetBoundingBox();
 		if (player_obb.Intersects(obb)) {
-			CollideByStaticOBB(player, obb);
+			CollideByStaticOBB(player, obj);
 		}
 	}
 }
@@ -507,12 +510,12 @@ INT Server::GetNewMonsterId(MonsterType type)
 	return -1;
 }
 
-void Server::MovePlayer(shared_ptr<Client>& player, XMFLOAT3 pos)
+void Server::MovePlayer(const shared_ptr<GameObject>& object, XMFLOAT3 pos)
 {
-	player->SetPosition(pos);
+	object->SetPosition(pos);
 
 	// 바운드 박스 갱신
-	player->SetBoundingBoxCenter(pos);
+	object->SetBoundingBoxCenter(pos);
 }
 
 void Server::Timer()
@@ -595,10 +598,10 @@ void Server::SetTimerEvent(const TIMER_EVENT& ev)
 	m_timer_queue.push(ev);
 }
 
-void Server::RotatePlayer(shared_ptr<Client>& player, FLOAT yaw)
+void Server::RotatePlayer(const shared_ptr<GameObject>& object, FLOAT yaw)
 {
 	// 플레이어 회전, degree 값
-	player->SetYaw(yaw);
+	object->SetYaw(yaw);
 
 	float radian = XMConvertToRadians(yaw);
 	
@@ -606,32 +609,47 @@ void Server::RotatePlayer(shared_ptr<Client>& player, FLOAT yaw)
 	XMStoreFloat4(&q, XMQuaternionRotationRollPitchYaw(0.f, radian, 0.f));
 
 	// 바운드 박스 회전
-	player->SetBoundingBoxOrientation(q);
+	object->SetBoundingBoxOrientation(q);
 }
 
-void Server::CollideByStatic(shared_ptr<Client>& player, const BoundingOrientedBox& obb)
+// 연속적인 컨테이너, 여기선 array 를 상관없이 받도록 하기 위해 span 사용
+void Server::CollisionCheck(const shared_ptr<GameObject>& object, const span<INT> ids)
 {
-	BoundingOrientedBox& player_obb = player->GetBoundingBox();
+	for (INT id : ids) {
+		if (-1 == id) continue;
+		if (-1 == object->GetId()) continue;
+
+		if (object->GetBoundingBox().Intersects(m_clients[id]->GetBoundingBox())) {
+			CollideByStaticOBB(object, m_clients[id]);
+		}
+	}
+}
+
+void Server::CollideByStatic(const shared_ptr<GameObject>& object,
+	const shared_ptr<GameObject>& object1)
+{
+	BoundingOrientedBox& object_obb = object->GetBoundingBox();
+	BoundingOrientedBox& obb = object1->GetBoundingBox();
 
 	// length 는 바운드 박스의 길이 합
 	// dist 는 바운드 박스간의 거리
-	FLOAT x_length = player_obb.Extents.x + obb.Extents.x;
-	FLOAT x_dist = abs(player_obb.Center.x - obb.Center.x);
+	FLOAT x_length = object_obb.Extents.x + obb.Extents.x;
+	FLOAT x_dist = abs(object_obb.Center.x - obb.Center.x);
 
-	FLOAT z_length = player_obb.Extents.z + obb.Extents.z;
-	FLOAT z_dist = abs(player_obb.Center.z - obb.Center.z);
+	FLOAT z_length = object_obb.Extents.z + obb.Extents.z;
+	FLOAT z_dist = abs(object_obb.Center.z - obb.Center.z);
 
 	// 겹치는 정도
 	FLOAT x_bias = x_length - x_dist;
 	FLOAT z_bias = z_length - z_dist;
 
-	XMFLOAT3 pos = player->GetPosition();
+	XMFLOAT3 pos = object->GetPosition();
 
 	// z 방향으로 밀어내기
 	if (x_bias - z_bias >= numeric_limits<FLOAT>::epsilon()) {
 		
 		// player_obb 가 앞쪽으로 밀려남
-		if (player_obb.Center.z - obb.Center.z >= numeric_limits<FLOAT>::epsilon()) {
+		if (object_obb.Center.z - obb.Center.z >= numeric_limits<FLOAT>::epsilon()) {
 			pos.z += z_bias;
 		}
 		// player_obb 가 뒤쪽으로 밀려남
@@ -644,7 +662,7 @@ void Server::CollideByStatic(shared_ptr<Client>& player, const BoundingOrientedB
 	else {
 
 		// player_obb 가 앞쪽으로 밀려남
-		if (player_obb.Center.x - obb.Center.x >= numeric_limits<FLOAT>::epsilon()) {
+		if (object_obb.Center.x - obb.Center.x >= numeric_limits<FLOAT>::epsilon()) {
 			pos.x += x_bias;
 		}
 		// player_obb 가 뒤쪽으로 밀려남
@@ -653,26 +671,29 @@ void Server::CollideByStatic(shared_ptr<Client>& player, const BoundingOrientedB
 		}
 	}
 
-	MovePlayer(player, pos);
+	MovePlayer(object, pos);
 }
 
-void Server::CollideByMoveMent(shared_ptr<Client>& player1, shared_ptr<Client>& player2)
+void Server::CollideByMoveMent(const shared_ptr<GameObject>& object,
+	const shared_ptr<GameObject>& object1)
 {
 	// 충돌한 플레이어의 속도
-	XMFLOAT3 velocity = player1->GetVelocity();
+	auto obj = dynamic_pointer_cast<MovementObject>(object);
+	XMFLOAT3 velocity = obj->GetVelocity();
 
 	// 충돌된 오브젝트의 위치
-	XMFLOAT3 pos = player2->GetPosition();
+	XMFLOAT3 pos = object1->GetPosition();
 
 	// 충돌된 오브젝트를 충돌한 플레이어의 속도만큼 밀어냄
 	// 밀어내는 방향 고려할 필요 있음 ( 아직 X )
 	pos.x += velocity.x;
 	pos.y += velocity.y;
 	pos.z += velocity.z;
-	MovePlayer(player2, pos);
+	MovePlayer(object1, pos);
 }
 
-void Server::CollideByStaticOBB(shared_ptr<Client>& player, const BoundingOrientedBox& obb)
+void Server::CollideByStaticOBB(const shared_ptr<GameObject>& object,
+	const shared_ptr<GameObject>& object1)
 {
 	// 1. 오브젝트에서 충돌면을 구한다
 	// 2. 해당 충돌면의 법선 벡터를 구한다
@@ -681,6 +702,7 @@ void Server::CollideByStaticOBB(shared_ptr<Client>& player, const BoundingOrient
 
 	XMFLOAT3 corners[8]{};
 
+	BoundingOrientedBox& obb = object1->GetBoundingBox();
 	obb.GetCorners(corners);
 	
 	// 꼭짓점 시계방향 0,1,5,4
@@ -690,7 +712,7 @@ void Server::CollideByStaticOBB(shared_ptr<Client>& player, const BoundingOrient
 		{corners[5].x, 0.f, corners[5].z} ,
 		{corners[4].x, 0.f, corners[4].z} };
 
-	player->GetBoundingBox().GetCorners(corners);
+	object->GetBoundingBox().GetCorners(corners);
 
 	XMFLOAT3 p_square[4] = {
 		{corners[0].x, 0.f, corners[0].z},
@@ -729,7 +751,7 @@ void Server::CollideByStaticOBB(shared_ptr<Client>& player, const BoundingOrient
 			v = Vector3::Normalize(Vector3::Sub(o_square[0], o_square[1]));
 		}
 		v = Vector3::Mul(v, *min);
-		MovePlayer(player, Vector3::Add(player->GetPosition(), v));
+		MovePlayer(object, Vector3::Add(object->GetPosition(), v));
 		
 
 		//// 충돌한 오브젝트의 꼭짓점을 이용해 사각형의 테두리를 따라가는 벡터 4개를 구함

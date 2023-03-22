@@ -39,7 +39,7 @@ public:
 	void SendLoginOkPacket(const shared_ptr<Client>& player) const;
 	void SendPlayerDataPacket();
 
-	void PlayerCollisionCheck(shared_ptr<Client>& player);
+	void PlayerCollisionCheck(const shared_ptr<Client>& player);
 
 	void Timer();
 	void ProcessEvent(const TIMER_EVENT& ev);
@@ -51,12 +51,15 @@ public:
 	GameRoomManager* GetGameRoomManager() { return m_game_room_manager.get(); }
 
 	// 플레이어 처리
-	void MovePlayer(shared_ptr<Client>& player, XMFLOAT3 velocity);
-	void RotatePlayer(shared_ptr<Client>& player, FLOAT yaw);
+	void MovePlayer(const shared_ptr<GameObject>& object, XMFLOAT3 velocity);
+	void RotatePlayer(const shared_ptr<GameObject>& object, FLOAT yaw);
 
-	void CollideByStatic(shared_ptr<Client>& player, const BoundingOrientedBox& obb);
-	void CollideByMoveMent(shared_ptr<Client>& player1, shared_ptr<Client>& player2);
-	void CollideByStaticOBB(shared_ptr<Client>& player, const BoundingOrientedBox& obb);
+	/*void CollisionCheck(const shared_ptr<GameObject>& object, const span<INT> ids,
+		void (Server::*callable)(const shared_ptr<GameObject>&, const shared_ptr<GameObject>&));*/
+	void CollisionCheck(const shared_ptr<GameObject>& object, const span<INT> ids);
+	void CollideByStatic(const shared_ptr<GameObject>& object, const shared_ptr<GameObject>& object1);
+	void CollideByMoveMent(const shared_ptr<GameObject>& object, const shared_ptr<GameObject>& object1);
+	void CollideByStaticOBB(const shared_ptr<GameObject>& objec, const shared_ptr<GameObject>& object1);
 
 	array<shared_ptr<MovementObject>, MAX_OBJECT> m_clients;
 

@@ -558,6 +558,23 @@ bool AnimationObject::ChangeAnimation(int animation)
 	case ArcherAnimation::AIM:
 		m_animationController->SetTrackType(0, ANIMATION_TYPE_LOOP);
 		break;
+
+	case MonsterAnimation::LOOK_AROUND:
+		m_animationController->SetTrackType(0, ANIMATION_TYPE_LOOP);
+		animation -= MonsterAnimation::MONSTER_ANIMATION_START;
+		break;
+	case MonsterAnimation::TAUNT:
+		m_animationController->SetTrackType(0, ANIMATION_TYPE_LOOP);
+		animation -= MonsterAnimation::MONSTER_ANIMATION_START;
+		break;
+	case MonsterAnimation::BLOCK:
+		m_animationController->SetTrackType(0, ANIMATION_TYPE_LOOP);
+		animation -= MonsterAnimation::MONSTER_ANIMATION_START;
+		break;
+	case MonsterAnimation::BLOCKIDLE:
+		m_animationController->SetTrackType(0, ANIMATION_TYPE_LOOP);
+		animation -= MonsterAnimation::MONSTER_ANIMATION_START;
+		break;
 	}
 	m_currentAnimation = animation;
 	m_animationController->SetTrackAnimation(0, animation);

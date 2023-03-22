@@ -47,6 +47,7 @@ void GameRoom::Update(FLOAT elapsed_time)
 	// 몬스터 이동
 	for (INT id : m_monster_ids) {
 		if (-1 == id) continue;
+		if (State::ST_INGAME != server.m_clients[id]->GetState()) continue;
 
 		server.m_clients[id]->Update(elapsed_time);
 	}
@@ -59,7 +60,7 @@ void GameRoom::Update(FLOAT elapsed_time)
 		for (INT id : m_monster_ids) {
 			if (-1 == id) continue;
 
-			auto& monster = server.m_clients[id];
+			auto monster = dynamic_pointer_cast<Monster>(server.m_clients[id]);
 
 			if (-1 == monster->GetId()) continue;
 
@@ -80,7 +81,7 @@ void GameRoom::Update(FLOAT elapsed_time)
 					break;
 				}
 
-				monster->SetHp(static_cast<FLOAT>(monster->GetHp()) - damage);
+				monster->DecreaseHp(damage, c_it->user_id);
 
 				// 1회성 충돌 이벤트이면 이벤트 리스트에서 제거
 				// 제거 후 다음 이벤트 검사로 넘어가야 함

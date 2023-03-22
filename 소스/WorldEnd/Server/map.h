@@ -36,7 +36,7 @@ public:
 	void InitEnvironment();
 
 	array<INT, MAX_INGAME_USER>& GetPlayerIds() { return m_player_ids; }
-	array<INT, MAX_INGAME_MONSTER>& GetMonsters() { return m_monster_ids; }
+	array<INT, MAX_INGAME_MONSTER>& GetMonsterIds() { return m_monster_ids; }
 
 private:
 	array<INT, MAX_INGAME_USER>				m_player_ids;

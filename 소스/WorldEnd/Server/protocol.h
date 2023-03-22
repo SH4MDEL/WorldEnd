@@ -31,7 +31,7 @@ constexpr int MAX_MONSTER = 10;
 
 constexpr char CS_PACKET_LOGIN = 1;
 constexpr char CS_PACKET_PLAYER_MOVE = 2;
-constexpr char CS_PACKET_PLAYER_ATTACK = 4;
+constexpr char CS_PACKET_SET_COOLTIME = 4;
 constexpr char CS_PACKET_WEAPON_COLLISION = 5;
 constexpr char CS_PACKET_CHANGE_ANIMATION = 6;
 
@@ -43,6 +43,7 @@ constexpr char SC_PACKET_ADD_MONSTER = 5;
 constexpr char SC_PACKET_UPDATE_MONSTER = 6;
 constexpr char SC_PACKET_CHANGE_MONSTER_BEHAVIOR = 7;
 constexpr char SC_PACKET_CHANGE_ANIMATION = 8;
+constexpr char SC_PACKET_RESET_COOLTIME = 9;
 
 enum class PlayerType : char { WARRIOR, ARCHER, UNKNOWN };
 enum class AttackType : char { NORMAL, SKILL, ULTIMATE };
@@ -50,8 +51,8 @@ enum class MonsterType : char { WARRIOR, ARCHER, WIZARD };
 enum class EnvironmentType : char { RAIN, FOG, GAS, TRAP };
 
 enum class CollisionType : char { PERSISTENCE, ONE_OFF, MULTIPLE_TIMES };
-enum class CooltimeType : char {
-	NORMAL_ATTACK, SKILL, ULTIMATE, ROLL
+enum CooltimeType {
+	NORMAL_ATTACK, SKILL, ULTIMATE, ROLL, COUNT
 };
 enum class MonsterBehavior : char {
 	CHASE, LOOK_AROUND, PREPARE_ATTACK, ATTACK, NONE
@@ -97,25 +98,28 @@ public:
 class WarriorAnimation : public ObjectAnimation
 {
 public:
+	static constexpr int WARRIOR_ANIMATION_START = 100;
 	enum USHORT {
-		GUARD = ObjectAnimation::END + 100
+		GUARD = ObjectAnimation::END + WARRIOR_ANIMATION_START
 	};
 };
 
 class ArcherAnimation : public ObjectAnimation
 {
 public:
+	static constexpr int ARCHER_ANIMATION_START = 200;
 	enum USHORT {
-		AIM = ObjectAnimation::END + 200
+		AIM = ObjectAnimation::END + ARCHER_ANIMATION_START
 	};
 };
 
 class MonsterAnimation : public ObjectAnimation
 {
 public:
+	static constexpr int MONSTER_ANIMATION_START = 300;
 	enum USHORT {
-		LOOK_AROUND = ObjectAnimation::END + 300,
-		TAUNT
+		LOOK_AROUND = ObjectAnimation::END + MONSTER_ANIMATION_START,
+		TAUNT, BLOCK, BLOCKIDLE
 	};
 };
 // ----------------------------------
@@ -129,7 +133,7 @@ struct PLAYER_DATA
 	DirectX::XMFLOAT3	pos;			// 위치
 	DirectX::XMFLOAT3	velocity;		// 속도
 	FLOAT				yaw;			// 회전각
-	INT	                hp;
+	FLOAT               hp;
 };
 
 struct ARROW_DATA    
@@ -145,7 +149,7 @@ struct MONSTER_DATA
 	DirectX::XMFLOAT3	pos;		// 위치
 	DirectX::XMFLOAT3	velocity;	// 속도
 	FLOAT				yaw;		// 회전각
-	INT					hp;
+	FLOAT				hp;
 };
 //////////////////////////////////////////////////////
 // 클라에서 서버로
@@ -181,11 +185,11 @@ struct CS_READY_PACKET      // 파티 준비 완료를 알려주는 패킷
 	bool ready_check;
 };
 
-struct CS_ATTACK_PACKET
+struct CS_COOLTIME_PACKET
 {
 	UCHAR size;
 	UCHAR type;
-	AttackType attack_type; // 기본 공격인이 스킬 공격인지 구별해주는 열거체 변수
+	CooltimeType cooltime_type;
 };
 
 struct CS_ARROW_PACKET       // 공격키를 눌렀을때 투사체를 생성해주는 패킷
@@ -306,6 +310,13 @@ struct SC_CHANGE_ANIMATION_PACKET
 	UCHAR type;
 	INT id;
 	INT animation_type;
+};
+
+struct SC_RESET_COOLTIME_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+	CooltimeType cooltime_type;
 };
 
 #pragma pack (pop)

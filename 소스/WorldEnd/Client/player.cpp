@@ -1,7 +1,8 @@
 ﻿#include "player.h"
 #include "camera.h"
 
-Player::Player() : m_velocity{ 0.0f, 0.0f, 0.0f }, m_maxVelocity{ 10.0f }, m_friction{ 0.5f }, m_hp{ 100.f }, m_maxHp{ 100.f }, m_id { -1 }
+Player::Player() : m_velocity{ 0.0f, 0.0f, 0.0f }, m_maxVelocity{ 10.0f }, m_friction{ 0.5f }, 
+	m_hp{ 100.f }, m_maxHp{ 100.f }, m_id{ -1 }, m_cooltimeList{ false, }
 {
 
 }
@@ -81,9 +82,11 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 	}
 	if (GetAsyncKeyState('Q') & 0x8000)
 	{
-		SetPosition(XMFLOAT3{ GetPosition().x, GetPosition().y + 0.01f, GetPosition().z });
-		cout << GetPosition().x << ", " << GetPosition().y << ", " << GetPosition().z << endl;
+		if (m_cooltimeList[CooltimeType::ULTIMATE])
+			return;
 
+		cout << "Ultimate" << endl;
+		SendCooltimePacket(CooltimeType::ULTIMATE);
 	}
 	if (GetAsyncKeyState(VK_SPACE) & 0x8000)
 	{
@@ -95,21 +98,22 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 	}
 	
 	if (GetAsyncKeyState('E') & 0x8000) {
+		if (m_cooltimeList[CooltimeType::SKILL])
+			return;
 
+		cout << "Skill" << endl;
+		SendCooltimePacket(CooltimeType::SKILL);
 	}
 }
 
 void Player::OnProcessingClickMessage(LPARAM lParam)
 {
+	if (m_cooltimeList[CooltimeType::NORMAL_ATTACK])
+		return;
+
 	ChangeAnimation(ObjectAnimation::ATTACK);
 
-#ifdef USE_NETWORK
-	CS_ATTACK_PACKET attack_packet;
-	attack_packet.size = sizeof(attack_packet);
-	attack_packet.type = CS_PACKET_PLAYER_ATTACK;
-	attack_packet.attack_type = AttackType::NORMAL;
-	send(g_socket, reinterpret_cast<char*>(&attack_packet), sizeof(attack_packet), 0);
-#endif
+	SendCooltimePacket(CooltimeType::NORMAL_ATTACK);
 }
 
 void Player::Update(FLOAT timeElapsed)
@@ -123,16 +127,14 @@ void Player::Update(FLOAT timeElapsed)
 			auto& track = m_animationController->GetAnimationTrack(0);
 			auto& animation = m_animationController->GetAnimationSet()->GetAnimations()[track.GetAnimation()];
 
+			// 공격 애니메이션 종료 시 IDLE 로 변경
 			if (fabs(track.GetPosition() - animation->GetLength()) <= numeric_limits<float>::epsilon()) {
-				m_isAttackCheck = false;
 				ChangeAnimation(ObjectAnimation::IDLE);
 			}
 
 			// 공격이 수행되는 프레임에 충돌 패킷 전송
 #ifdef USE_NETWORK
 			else if (m_type == PlayerType::WARRIOR && fabs(track.GetPosition() - 0.21f) <= 0.01f) {
-				m_isAttackCheck = true;
-				
 				auto& obj = FindFrame("Warrior_WeaponSword");
 				/*XMFLOAT4X4 world = GetWorldMatrix();
 				XMFLOAT4X4 anim = obj->GetAnimationMatrix();
@@ -153,8 +155,6 @@ void Player::Update(FLOAT timeElapsed)
 				send(g_socket, reinterpret_cast<char*>(&packet), packet.size, 0);
 			}
 			else if (m_type == PlayerType::ARCHER && fabs(track.GetPosition() - 0.4f) <= 0.01f) {
-				m_isAttackCheck = true;
-
 				auto& obj = FindFrame("Archer_WeaponBow");
 				XMFLOAT4X4 world = GetWorldMatrix();
 				XMFLOAT4X4 anim = obj->GetAnimationMatrix();
@@ -245,6 +245,11 @@ void Player::AddVelocity(const XMFLOAT3& increase)
 	}
 }
 
+void Player::ResetCooltime(CooltimeType type)
+{
+	m_cooltimeList[type] = false;
+}
+
 bool Player::ChangeAnimation(int animation)
 {
 	if (!AnimationObject::ChangeAnimation(animation))
@@ -262,6 +267,19 @@ bool Player::ChangeAnimation(int animation)
 void Player::ChangeAnimation(int animation, bool other)
 {
 	AnimationObject::ChangeAnimation(animation);
+}
+
+void Player::SendCooltimePacket(CooltimeType type)
+{
+#ifdef USE_NETWORK
+	m_cooltimeList[type] = true;
+
+	CS_COOLTIME_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = CS_PACKET_SET_COOLTIME;
+	packet.cooltime_type = type;
+	send(g_socket, reinterpret_cast<char*>(&packet), sizeof(packet), 0);
+#endif
 }
 
 // ------------- 콜백 함수 -----------
