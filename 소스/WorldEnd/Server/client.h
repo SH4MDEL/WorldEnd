@@ -2,7 +2,11 @@
 #include "stdafx.h"
 #include "object.h"
 
-enum CompType { OP_RECV, OP_SEND, OP_ACCEPT, OP_RESET_COOLTIME };
+enum CompType 
+{
+	OP_RECV, OP_SEND, OP_ACCEPT, OP_RESET_COOLTIME, OP_REMOVE_MONSTER,
+	OP_CLEAR_FLOOR, OP_FAIL_FLOOR
+};
 
 class ExpOver {
 public:
@@ -67,12 +71,12 @@ public:
 	Party();
 	~Party() = default;
 
-	array<INT, MAX_INGAME_USER>& GetMembers() { return m_members; }
+	std::array<INT, MAX_INGAME_USER>& GetMembers() { return m_members; }
 
 	bool Join(INT player_id);
 
 private:
-	array<INT, MAX_INGAME_USER> m_members;
+	std::array<INT, MAX_INGAME_USER> m_members;
 };
 
 class PartyManager
@@ -84,5 +88,5 @@ public:
 	// 빈자리 찾기, 몇번 파티에 가입하기 등등의 함수 필요
 
 private:
-	array<shared_ptr<Party>, MAX_PARTY_NUM> m_parties;
+	std::array<std::shared_ptr<Party>, MAX_PARTY_NUM> m_parties;
 };

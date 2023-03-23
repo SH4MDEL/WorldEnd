@@ -1,5 +1,7 @@
 ﻿#include "towerScene.h"
 
+constexpr FLOAT FAR_POSITION = 10000.f;
+
 TowerScene::TowerScene() : 
 	m_NDCspace( 0.5f, 0.0f, 0.0f, 0.0f,
 				0.0f, -0.5f, 0.0f, 0.0f,
@@ -505,8 +507,11 @@ void TowerScene::ProcessPacket(char* ptr)
 	case SC_PACKET_ADD_OBJECT:
 		RecvAddObjectPacket(ptr);
 		break;
-	case SC_PACKET_REMOVE_OBJECT:
-		RecvRemoveObjectPacket(ptr);
+	case SC_PACKET_REMOVE_PLAYER:
+		RecvRemovePlayerPacket(ptr);
+		break;
+	case SC_PACKET_REMOVE_MONSTER:
+		RecvRemoveMonsterPacket(ptr);
 		break;
 	case SC_PACKET_UPDATE_CLIENT:
 		RecvUpdateClient(ptr);
@@ -525,6 +530,12 @@ void TowerScene::ProcessPacket(char* ptr)
 		break;
 	case SC_PACKET_RESET_COOLTIME:
 		RecvResetCooltime(ptr);
+		break;
+	case SC_PACKET_CLEAR_FLOOR:
+		RecvClearFloor(ptr);
+		break;
+	case SC_PACKET_FAIL_FLOOR:
+		RecvFailFloor(ptr);
 		break;
 	}
 }
@@ -594,12 +605,17 @@ void TowerScene::RecvAddObjectPacket(char* ptr)
 
 }
 
-void TowerScene::RecvRemoveObjectPacket(char* ptr)
+void TowerScene::RecvRemovePlayerPacket(char* ptr)
 {
-	SC_REMOVE_OBJECT_PACKET* packet = reinterpret_cast<SC_REMOVE_OBJECT_PACKET*>(ptr);
+	SC_REMOVE_PLAYER_PACKET* packet = reinterpret_cast<SC_REMOVE_PLAYER_PACKET*>(ptr);
 
-	m_multiPlayers[packet->id]->SetPosition(XMFLOAT3(10000.f, 10000.f, 10000.f));
-	cout << "Erase" << endl;
+	m_multiPlayers[packet->id]->SetPosition(XMFLOAT3(FAR_POSITION, FAR_POSITION, FAR_POSITION));
+}
+
+void TowerScene::RecvRemoveMonsterPacket(char* ptr)
+{
+	SC_REMOVE_MONSTER_PACKET* packet = reinterpret_cast<SC_REMOVE_MONSTER_PACKET*>(ptr);
+	m_monsters[packet->id]->SetPosition(XMFLOAT3(FAR_POSITION, FAR_POSITION, FAR_POSITION));
 }
 
 void TowerScene::RecvUpdateClient(char* ptr)
@@ -686,6 +702,18 @@ void TowerScene::RecvResetCooltime(char* ptr)
 {
 	SC_RESET_COOLTIME_PACKET* packet = reinterpret_cast<SC_RESET_COOLTIME_PACKET*>(ptr);
 	m_player->ResetCooltime(packet->cooltime_type);
+}
+
+void TowerScene::RecvClearFloor(char* ptr)
+{
+	SC_CLEAR_FLOOR_PACKET* packet = reinterpret_cast<SC_CLEAR_FLOOR_PACKET*>(ptr);
+	cout << packet->reward << endl;
+}
+
+void TowerScene::RecvFailFloor(char* ptr)
+{
+	SC_FAIL_FLOOR_PACKET* packet = reinterpret_cast<SC_FAIL_FLOOR_PACKET*>(ptr);
+	
 }
 
 void TowerScene::RecvChangeAnimation(char* ptr)

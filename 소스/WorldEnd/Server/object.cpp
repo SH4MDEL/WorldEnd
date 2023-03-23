@@ -31,7 +31,7 @@ void RecordBoard::SendEvent(INT player_id)
 
 void RecordBoard::SetRecord(const SCORE_DATA& record, INT player_num)
 {
-	array<SCORE_DATA, MAX_RECORD_NUM>* records{};
+	std::array<SCORE_DATA, MAX_RECORD_NUM>* records{};
 	switch (player_num) {
 	case 1:
 		records = &m_solo_squad_records;
@@ -53,7 +53,7 @@ void RecordBoard::SetRecord(const SCORE_DATA& record, INT player_num)
 	// DB Ã³¸®
 }
 
-array<SCORE_DATA, MAX_RECORD_NUM>& RecordBoard::GetRecord(INT player_num)
+std::array<SCORE_DATA, MAX_RECORD_NUM>& RecordBoard::GetRecord(INT player_num)
 {
 	switch (player_num) {
 	case 1:
@@ -62,6 +62,8 @@ array<SCORE_DATA, MAX_RECORD_NUM>& RecordBoard::GetRecord(INT player_num)
 		return m_duo_squad_records;
 	case 3:
 		return m_trio_squad_records;
+	default:
+		throw std::exception{};
 	}
 }
 
@@ -97,5 +99,5 @@ void MovementObject::SetVelocity(FLOAT x, FLOAT y, FLOAT z)
 
 void MovementObject::SetName(const char* c)
 {
-	SetName(string(c));
+	SetName(std::string(c));
 }

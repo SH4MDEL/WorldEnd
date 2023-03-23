@@ -3,7 +3,7 @@
 
 struct SCORE_DATA
 {
-	string names[MAX_INGAME_USER];
+	std::string names[MAX_INGAME_USER];
 	USHORT score;
 
 	constexpr bool operator <(const SCORE_DATA& left)const
@@ -69,12 +69,12 @@ public:
 
 	void SetRecord(const SCORE_DATA& record, INT player_num);
 
-	array<SCORE_DATA, MAX_RECORD_NUM>& GetRecord(INT player_num);
+	std::array<SCORE_DATA, MAX_RECORD_NUM>& GetRecord(INT player_num);
 
 private:
-	array<SCORE_DATA, MAX_RECORD_NUM> m_trio_squad_records;
-	array<SCORE_DATA, MAX_RECORD_NUM> m_duo_squad_records;
-	array<SCORE_DATA, MAX_RECORD_NUM> m_solo_squad_records;
+	std::array<SCORE_DATA, MAX_RECORD_NUM> m_trio_squad_records;
+	std::array<SCORE_DATA, MAX_RECORD_NUM> m_duo_squad_records;
+	std::array<SCORE_DATA, MAX_RECORD_NUM> m_solo_squad_records;
 };
 
 class Enhancment : public Npc
@@ -97,18 +97,18 @@ public:
 	void SetStateLock() { m_state_lock.lock(); }
 	void SetStateUnLock() { m_state_lock.unlock(); }
 	void SetState(State state) { m_state = state; }
-	void SetName(string name) { m_name = name; }
+	void SetName(std::string name) { m_name = name; }
 	void SetName(const char* c);
 	void SetHp(FLOAT hp) { m_hp = hp; }
-	void SetDamage(INT damage) { m_damage = damage; }
+	void SetDamage(FLOAT damage) { m_damage = damage; }
 	void SetRoomNum(USHORT room_num) { m_room_num = room_num; }
 
 	XMFLOAT3 GetVelocity() const { return m_velocity; }
 	std::mutex& GetStateMutex() { return m_state_lock; }
 	State GetState() const { return m_state; }
-	string GetName() const { return m_name; }
+	std::string GetName() const { return m_name; }
 	FLOAT GetHp() const { return m_hp; }
-	INT GetDamage() const { return m_damage; }
+	FLOAT GetDamage() const { return m_damage; }
 	USHORT GetRoomNum() const { return m_room_num; }
 	
 
@@ -129,9 +129,9 @@ protected:
 	std::mutex	m_state_lock;
 	State		m_state;
 
-	string		m_name;
+	std::string	m_name;
 	FLOAT		m_hp;
-	INT			m_damage;
+	FLOAT		m_damage;
 
 	USHORT		m_room_num;
 };

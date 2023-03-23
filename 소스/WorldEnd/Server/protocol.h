@@ -37,13 +37,16 @@ constexpr char CS_PACKET_CHANGE_ANIMATION = 6;
 
 constexpr char SC_PACKET_LOGIN_OK = 1;
 constexpr char SC_PACKET_ADD_OBJECT = 2;
-constexpr char SC_PACKET_REMOVE_OBJECT = 3;
-constexpr char SC_PACKET_UPDATE_CLIENT = 4;
-constexpr char SC_PACKET_ADD_MONSTER = 5;
-constexpr char SC_PACKET_UPDATE_MONSTER = 6;
-constexpr char SC_PACKET_CHANGE_MONSTER_BEHAVIOR = 7;
-constexpr char SC_PACKET_CHANGE_ANIMATION = 8;
-constexpr char SC_PACKET_RESET_COOLTIME = 9;
+constexpr char SC_PACKET_REMOVE_PLAYER = 3;
+constexpr char SC_PACKET_REMOVE_MONSTER = 4;
+constexpr char SC_PACKET_UPDATE_CLIENT = 5;
+constexpr char SC_PACKET_ADD_MONSTER = 6;
+constexpr char SC_PACKET_UPDATE_MONSTER = 7;
+constexpr char SC_PACKET_CHANGE_MONSTER_BEHAVIOR = 8;
+constexpr char SC_PACKET_CHANGE_ANIMATION = 9;
+constexpr char SC_PACKET_RESET_COOLTIME = 10;
+constexpr char SC_PACKET_CLEAR_FLOOR = 11;
+constexpr char SC_PACKET_FAIL_FLOOR = 12;
 
 enum class PlayerType : char { WARRIOR, ARCHER, UNKNOWN };
 enum class AttackType : char { NORMAL, SKILL, ULTIMATE };
@@ -55,7 +58,7 @@ enum CooltimeType {
 	NORMAL_ATTACK, SKILL, ULTIMATE, ROLL, COUNT
 };
 enum class MonsterBehavior : char {
-	CHASE, LOOK_AROUND, PREPARE_ATTACK, ATTACK, NONE
+	CHASE, LOOK_AROUND, PREPARE_ATTACK, ATTACK, DEAD
 };
 
 namespace PlayerSetting
@@ -78,6 +81,7 @@ namespace MonsterSetting
 	constexpr auto MONSTER_RETARGET_TIME = 10s;
 	constexpr auto MONSTER_PREPARE_ATTACK_TIME = 1s;
 	constexpr auto MONSTER_ATTACK_TIME = 625ms;
+	constexpr auto MONSTER_DEAD_TIME = 2s;
 
 	constexpr float WARRIOR_MONSTER_ATTACK_RANGE = 1.f;
 	constexpr float WARRIOR_MONSTER_BORDER_RANGE = 2.f;
@@ -90,7 +94,7 @@ class ObjectAnimation
 {
 public:
 	enum USHORT {
-		IDLE, WALK, ATTACK,
+		IDLE, WALK, ATTACK, DEAD,
 		END
 	};
 };
@@ -98,27 +102,27 @@ public:
 class WarriorAnimation : public ObjectAnimation
 {
 public:
-	static constexpr int WARRIOR_ANIMATION_START = 100;
+	static constexpr int ANIMATION_START = 100;
 	enum USHORT {
-		GUARD = ObjectAnimation::END + WARRIOR_ANIMATION_START
+		GUARD = ObjectAnimation::END + ANIMATION_START
 	};
 };
 
 class ArcherAnimation : public ObjectAnimation
 {
 public:
-	static constexpr int ARCHER_ANIMATION_START = 200;
+	static constexpr int ANIMATION_START = 200;
 	enum USHORT {
-		AIM = ObjectAnimation::END + ARCHER_ANIMATION_START
+		AIM = ObjectAnimation::END + ANIMATION_START
 	};
 };
 
 class MonsterAnimation : public ObjectAnimation
 {
 public:
-	static constexpr int MONSTER_ANIMATION_START = 300;
+	static constexpr int ANIMATION_START = 300;
 	enum USHORT {
-		LOOK_AROUND = ObjectAnimation::END + MONSTER_ANIMATION_START,
+		LOOK_AROUND = ObjectAnimation::END + ANIMATION_START,
 		TAUNT, BLOCK, BLOCKIDLE
 	};
 };
@@ -237,7 +241,14 @@ struct SC_ADD_OBJECT_PACKET
 	PlayerType player_type;
 };
 
-struct SC_REMOVE_OBJECT_PACKET
+struct SC_REMOVE_PLAYER_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+	INT id;
+};
+
+struct SC_REMOVE_MONSTER_PACKET
 {
 	UCHAR size;
 	UCHAR type;
@@ -317,6 +328,19 @@ struct SC_RESET_COOLTIME_PACKET
 	UCHAR size;
 	UCHAR type;
 	CooltimeType cooltime_type;
+};
+
+struct SC_CLEAR_FLOOR_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+	USHORT reward;
+};
+
+struct SC_FAIL_FLOOR_PACKET
+{
+	UCHAR size;
+	UCHAR type;
 };
 
 #pragma pack (pop)

@@ -545,14 +545,18 @@ bool AnimationObject::ChangeAnimation(int animation)
 		break;
 
 	case ObjectAnimation::ATTACK: 
-	{
 		m_animationController->SetTrackType(0, ANIMATION_TYPE_ONCE);
 		m_animationController->SetTrackPosition(0, 0.f);
-		break; 
-	}
+		break;
+
+	case ObjectAnimation::DEAD:
+		m_animationController->SetTrackType(0, ANIMATION_TYPE_ONCE);
+		m_animationController->SetTrackPosition(0, 0.f);
+		break;
 
 	case WarriorAnimation::GUARD:
 		m_animationController->SetTrackType(0, ANIMATION_TYPE_LOOP);
+		animation -= WarriorAnimation::ANIMATION_START;
 		break;
 
 	case ArcherAnimation::AIM:
@@ -561,19 +565,19 @@ bool AnimationObject::ChangeAnimation(int animation)
 
 	case MonsterAnimation::LOOK_AROUND:
 		m_animationController->SetTrackType(0, ANIMATION_TYPE_LOOP);
-		animation -= MonsterAnimation::MONSTER_ANIMATION_START;
+		animation -= MonsterAnimation::ANIMATION_START;
 		break;
 	case MonsterAnimation::TAUNT:
 		m_animationController->SetTrackType(0, ANIMATION_TYPE_LOOP);
-		animation -= MonsterAnimation::MONSTER_ANIMATION_START;
+		animation -= MonsterAnimation::ANIMATION_START;
 		break;
 	case MonsterAnimation::BLOCK:
-		m_animationController->SetTrackType(0, ANIMATION_TYPE_LOOP);
-		animation -= MonsterAnimation::MONSTER_ANIMATION_START;
+		m_animationController->SetTrackType(0, ANIMATION_TYPE_ONCE);
+		animation -= MonsterAnimation::ANIMATION_START;
 		break;
 	case MonsterAnimation::BLOCKIDLE:
 		m_animationController->SetTrackType(0, ANIMATION_TYPE_LOOP);
-		animation -= MonsterAnimation::MONSTER_ANIMATION_START;
+		animation -= MonsterAnimation::ANIMATION_START;
 		break;
 	}
 	m_currentAnimation = animation;

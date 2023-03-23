@@ -11,22 +11,22 @@ Server::Server()
 {	
 	// ------- 초기화 ------- //
 	for (size_t i = 0; i < MAX_USER; ++i) {
-		m_clients[i] = make_shared<Client>();
+		m_clients[i] = std::make_shared<Client>();
 	}
 
 	for (size_t i = WARRIOR_MONSTER_START; i < WARRIOR_MONSTER_END; ++i) {
-		m_clients[i] = make_shared<WarriorMonster>();
+		m_clients[i] = std::make_shared<WarriorMonster>();
 	}
 
 	for (size_t i = ARCHER_MONSTER_START; i < ARCHER_MONSTER_END; ++i) {
-		m_clients[i] = make_shared<ArcherMonster>();
+		m_clients[i] = std::make_shared<ArcherMonster>();
 	}
 
 	for (size_t i = WIZARD_MONSTER_START; i < WIZARD_MONSTER_END; ++i) {
-		m_clients[i] = make_shared<WizardMonster>();
+		m_clients[i] = std::make_shared<WizardMonster>();
 	}
 
-	m_game_room_manager = make_unique<GameRoomManager>();
+	m_game_room_manager = std::make_unique<GameRoomManager>();
 
 	// ----------------------- //
 
@@ -95,7 +95,7 @@ void Server::Network()
 	for (auto& th : m_worker_threads)
 		th.detach();
 
-	thread thread1{ &Server::Timer,this };
+	std::thread thread1{ &Server::Timer,this };
 	thread1.detach();
 
 	// 초기화 하는 함수는 싱글톤 문제로 생성자에서 호출할 수 없음
@@ -154,9 +154,10 @@ void Server::WorkerThread()
 		ExpOver* exp_over = reinterpret_cast<ExpOver*>(over);
 		
 		if (FALSE == ret) {
-			if (exp_over->_comp_type == OP_ACCEPT) cout << "Accept Error";
+			if (exp_over->_comp_type == OP_ACCEPT) 
+				std::cout << "Accept Error";
 			else {
-				cout << "GQCS Error on client[" << static_cast<INT>(key) << "]\n";
+				std::cout << "GQCS Error on client[" << static_cast<INT>(key) << "]\n";
 				//Disconnect(static_cast<int>(key));
 				if (exp_over->_comp_type == OP_SEND) delete exp_over;
 				continue;
@@ -174,7 +175,6 @@ void Server::WorkerThread()
 			}
 			else {
 				auto cl = dynamic_pointer_cast<Client>(m_clients[new_id]);
-
 				cl->SetId(new_id);
 				cl->SetSocket(c_socket);
 
@@ -245,7 +245,70 @@ void Server::WorkerThread()
 			delete exp_over;
 			break;
 		}
+		case OP_REMOVE_MONSTER: {
+			int monster_id = static_cast<int>(key);
+			auto monster = dynamic_pointer_cast<Monster>(m_clients[monster_id]);
+			int room_num = monster->GetRoomNum();
 
+			SC_REMOVE_MONSTER_PACKET packet{};
+			packet.size = sizeof(packet);
+			packet.type = SC_PACKET_REMOVE_MONSTER;
+			packet.id = monster_id;
+
+			m_game_room_manager->RemoveMonster(room_num, monster_id);
+			m_game_room_manager->DecreaseMonsterCount(room_num, 1);
+
+			auto game_room = m_game_room_manager->GetGameRoom(room_num);
+			auto& ids = game_room->GetPlayerIds();
+			for (int id : ids) {
+				if (-1 == id) continue;
+
+				m_clients[id]->DoSend(&packet);
+			}
+			delete exp_over;
+			break;
+		}
+		case OP_CLEAR_FLOOR: {
+			int room_num = static_cast<int>(key);
+			auto game_room = m_game_room_manager->GetGameRoom(room_num);
+			
+			auto now = std::chrono::system_clock::now();
+			auto exec = std::chrono::duration_cast<std::chrono::milliseconds>
+				(now - game_room->GetStartTime());
+			USHORT reward = static_cast<USHORT>(exec.count() / 100);
+
+			SC_CLEAR_FLOOR_PACKET packet{};
+			packet.size = sizeof(packet);
+			packet.type = SC_PACKET_CLEAR_FLOOR;
+			packet.reward = reward;
+
+			auto& ids = game_room->GetPlayerIds();
+			for (int id : ids) {
+				if (-1 == id) continue;
+
+				m_clients[id]->DoSend(&packet);
+			}
+			delete exp_over;
+			break;
+		}
+		case OP_FAIL_FLOOR: {
+			int room_num = static_cast<int>(key);
+			auto game_room = m_game_room_manager->GetGameRoom(room_num);
+
+
+			SC_FAIL_FLOOR_PACKET packet{};
+			packet.size = sizeof(packet);
+			packet.type = SC_PACKET_CLEAR_FLOOR;
+
+			auto& ids = game_room->GetPlayerIds();
+			for (int id : ids) {
+				if (-1 == id) continue;
+
+				m_clients[id]->DoSend(&packet);
+			}
+			delete exp_over;
+			break;
+		}
 
 		}
 	}
@@ -262,7 +325,7 @@ void Server::ProcessPacket(int id, char* p)
 		cl->SetPlayerType(packet->player_type);
 		cl->SetName(packet->name);
 		{
-			lock_guard<mutex> lock{ cl->GetStateMutex() };
+			std::lock_guard<std::mutex> lock{ cl->GetStateMutex() };
 			cl->SetState(State::ST_INGAME);
 		}
 		SendLoginOkPacket(cl);
@@ -272,7 +335,7 @@ void Server::ProcessPacket(int id, char* p)
 		m_game_room_manager->SetPlayer(0, id);
 		m_game_room_manager->SendAddMonster(id);
 
-		cout << cl->GetId() << " is connect" << endl;
+		std::cout << cl->GetId() << " is connect" << std::endl;
 		break;
 	}
 	case CS_PACKET_PLAYER_MOVE: {
@@ -287,8 +350,8 @@ void Server::ProcessPacket(int id, char* p)
 		pos.y += packet->velocity.y;
 		pos.z += packet->velocity.z;
 
-		MovePlayer(cl, pos);
-		RotatePlayer(cl, packet->yaw);
+		MoveObject(cl, pos);
+		RotateObject(cl, packet->yaw);
 
 		PlayerCollisionCheck(cl);
 		SendPlayerDataPacket();
@@ -303,15 +366,15 @@ void Server::ProcessPacket(int id, char* p)
 		// 쿨타임 중인지 검사 필요
 		switch (packet->cooltime_type) {
 		case CooltimeType::NORMAL_ATTACK: {
-			ev.event_time = chrono::system_clock::now() + PlayerSetting::WARRIOR_ATTACK_COOLTIME;
+			ev.event_time = std::chrono::system_clock::now() + PlayerSetting::WARRIOR_ATTACK_COOLTIME;
 			break; 
 		}
 		case CooltimeType::SKILL: {
-			ev.event_time = chrono::system_clock::now() + PlayerSetting::WARRIOR_SKILL_COOLTIME;
+			ev.event_time = std::chrono::system_clock::now() + PlayerSetting::WARRIOR_SKILL_COOLTIME;
 			break;
 		}
 		case CooltimeType::ULTIMATE: {
-			ev.event_time = chrono::system_clock::now() + PlayerSetting::WARRIOR_ULTIMATE_COOLTIME;
+			ev.event_time = std::chrono::system_clock::now() + PlayerSetting::WARRIOR_ULTIMATE_COOLTIME;
 			break;
 		}
 
@@ -369,8 +432,13 @@ void Server::ProcessPacket(int id, char* p)
 void Server::Disconnect(int id)
 {
 	auto cl = dynamic_pointer_cast<Client>(m_clients[id]);
-	m_game_room_manager->DeletePlayer(cl->GetRoomNum(), cl->GetId());
 
+	if (-1 != cl->GetRoomNum()) {
+		m_game_room_manager->RemovePlayer(cl->GetRoomNum(), cl->GetId());
+	}
+	else {
+		// 마을 내 플레이어 제거
+	}
 	cl->SetId(-1);
 	cl->SetPosition(0.f, 0.f, 0.f);
 	cl->SetVelocity(0.f, 0.f, 0.f);
@@ -386,11 +454,11 @@ void Server::Disconnect(int id)
 
 	closesocket(cl->GetSocket());
 
-	lock_guard<mutex> lock{ cl->GetStateMutex() };
+	std::lock_guard<std::mutex> lock{ cl->GetStateMutex() };
 	cl->SetState(State::ST_FREE);
 }
 
-void Server::SendLoginOkPacket(const shared_ptr<Client>& player) const
+void Server::SendLoginOkPacket(const std::shared_ptr<Client>& player) const
 {
 	SC_LOGIN_OK_PACKET packet{};
 	packet.size = sizeof(packet);
@@ -445,7 +513,7 @@ void Server::SendPlayerDataPacket()
 	}
 }
 
-void Server::PlayerCollisionCheck(const shared_ptr<Client>& player)
+void Server::PlayerCollisionCheck(const std::shared_ptr<Client>& player)
 {
 	BoundingOrientedBox& player_obb = player->GetBoundingBox();
 
@@ -453,10 +521,10 @@ void Server::PlayerCollisionCheck(const shared_ptr<Client>& player)
 	auto& player_ids = game_room->GetPlayerIds();
 	auto& monster_ids = game_room->GetMonsterIds();
 
-	//CollisionCheck(player, monster_ids, CollideByStaticOBB);
-	//CollisionCheck(player, player_ids, CollideByStaticOBB);
-	CollisionCheck(player, player_ids);
-	CollisionCheck(player, monster_ids);
+	CollisionCheck(player, monster_ids, Server::CollideByStaticOBB);
+	CollisionCheck(player, player_ids, Server::CollideByStaticOBB);
+	/*CollisionCheck(player, player_ids);
+	CollisionCheck(player, monster_ids);*/
 
 	auto& v = m_game_room_manager->GetStructures();
 
@@ -471,7 +539,7 @@ void Server::PlayerCollisionCheck(const shared_ptr<Client>& player)
 INT Server::GetNewId()
 {
 	for (size_t i = 0; i < MAX_USER; ++i) {
-		lock_guard<mutex> lock{ m_clients[i]->GetStateMutex() };
+		std::lock_guard<std::mutex> lock{ m_clients[i]->GetStateMutex() };
 		if (State::ST_FREE == m_clients[i]->GetState()) {
 			m_clients[i]->SetState(State::ST_ACCEPT);
 			return i;
@@ -500,7 +568,7 @@ INT Server::GetNewMonsterId(MonsterType type)
 	}
 
 	for (size_t i = start_num; i < end_num; ++i) {
-		lock_guard<mutex> lock{ m_clients[i]->GetStateMutex() };
+		std::lock_guard<std::mutex> lock{ m_clients[i]->GetStateMutex() };
 		if (State::ST_FREE == m_clients[i]->GetState()) {
 			m_clients[i]->SetState(State::ST_ACCEPT);
 			return i;
@@ -510,7 +578,7 @@ INT Server::GetNewMonsterId(MonsterType type)
 	return -1;
 }
 
-void Server::MovePlayer(const shared_ptr<GameObject>& object, XMFLOAT3 pos)
+void Server::MoveObject(const std::shared_ptr<GameObject>& object, XMFLOAT3 pos)
 {
 	object->SetPosition(pos);
 
@@ -520,11 +588,11 @@ void Server::MovePlayer(const shared_ptr<GameObject>& object, XMFLOAT3 pos)
 
 void Server::Timer()
 {
-	using namespace chrono;
+	using namespace std::chrono;
 	TIMER_EVENT ev{};
 
 	// 지역 타이머 큐
-	priority_queue<TIMER_EVENT> timer_queue;
+	std::priority_queue<TIMER_EVENT> timer_queue;
 
 	while (true) {
 		auto current_time = system_clock::now();
@@ -543,7 +611,7 @@ void Server::Timer()
 		if (m_timer_queue.try_pop(ev)) {
 			if (ev.event_time > current_time) {
 				timer_queue.push(ev);
-				this_thread::sleep_for(5ms);
+				std::this_thread::sleep_for(5ms);
 				continue;
 			}
 			else {
@@ -553,12 +621,14 @@ void Server::Timer()
 		}
 
 		// 지역 큐가 비었고, 전역 타이머큐 try_pop 실패 시 대기
-		this_thread::sleep_for(5ms);
+		std::this_thread::sleep_for(5ms);
 	}
 }
 
 void Server::ProcessEvent(const TIMER_EVENT& ev)
 {
+	using namespace std::literals;
+
 	switch (ev.event_type) {
 	case EventType::RESET_COOLTIME: {
 		ExpOver* over = new ExpOver;
@@ -573,13 +643,21 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 	}
 	case EventType::CHANGE_BEHAVIOR: {
 		auto monster = dynamic_pointer_cast<Monster>(m_clients[ev.obj_id]);
+		if (MonsterBehavior::DEAD == ev.behavior_type) {
+			ExpOver* over = new ExpOver;
+			over->_comp_type = OP_REMOVE_MONSTER;
+
+			PostQueuedCompletionStatus(m_handle_iocp, 1, ev.obj_id, &over->_wsa_over);
+			return;
+		}
 		
-		// 마지막 행동 전환 후 리타겟 시간-1초 만큼 지나지 않았다면
-		// -> 추격이 9초 이상 이어지지 않으면 LOOK_AROUND 를 하지 않도록 한다는 것
-		// -> 공격 대기에 들어갔다가 추격에 들어갈 경우 잠시 후 LOOK_AROUND를 하는것을 방지함
+		// 죽었다면 기존에 타이머큐에 있던 동작이 넘어오면 넘겨버림
+		if (MonsterBehavior::DEAD == monster->GetBehavior())
+			return;
+
 		auto last_time = monster->GetLastBehaviorTime();
 		if (MonsterBehavior::LOOK_AROUND == ev.behavior_type) {
-			if (chrono::system_clock::now() <= 
+			if (std::chrono::system_clock::now() <=
 				last_time + MonsterSetting::MONSTER_RETARGET_TIME - 1s)
 			{
 				return;
@@ -598,7 +676,7 @@ void Server::SetTimerEvent(const TIMER_EVENT& ev)
 	m_timer_queue.push(ev);
 }
 
-void Server::RotatePlayer(const shared_ptr<GameObject>& object, FLOAT yaw)
+void Server::RotateObject(const std::shared_ptr<GameObject>& object, FLOAT yaw)
 {
 	// 플레이어 회전, degree 값
 	object->SetYaw(yaw);
@@ -613,20 +691,21 @@ void Server::RotatePlayer(const shared_ptr<GameObject>& object, FLOAT yaw)
 }
 
 // 연속적인 컨테이너, 여기선 array 를 상관없이 받도록 하기 위해 span 사용
-void Server::CollisionCheck(const shared_ptr<GameObject>& object, const span<INT> ids)
+void Server::CollisionCheck(const std::shared_ptr<GameObject>& object, const std::span<INT> ids,
+	std::function<void(const std::shared_ptr<GameObject>&, const std::shared_ptr<GameObject>&)> func)
 {
 	for (INT id : ids) {
 		if (-1 == id) continue;
 		if (-1 == object->GetId()) continue;
 
 		if (object->GetBoundingBox().Intersects(m_clients[id]->GetBoundingBox())) {
-			CollideByStaticOBB(object, m_clients[id]);
+			func(object, m_clients[id]);
 		}
 	}
 }
 
-void Server::CollideByStatic(const shared_ptr<GameObject>& object,
-	const shared_ptr<GameObject>& object1)
+void Server::CollideByStatic(const std::shared_ptr<GameObject>& object,
+	const std::shared_ptr<GameObject>& object1)
 {
 	BoundingOrientedBox& object_obb = object->GetBoundingBox();
 	BoundingOrientedBox& obb = object1->GetBoundingBox();
@@ -646,10 +725,10 @@ void Server::CollideByStatic(const shared_ptr<GameObject>& object,
 	XMFLOAT3 pos = object->GetPosition();
 
 	// z 방향으로 밀어내기
-	if (x_bias - z_bias >= numeric_limits<FLOAT>::epsilon()) {
+	if (x_bias - z_bias >= std::numeric_limits<FLOAT>::epsilon()) {
 		
 		// player_obb 가 앞쪽으로 밀려남
-		if (object_obb.Center.z - obb.Center.z >= numeric_limits<FLOAT>::epsilon()) {
+		if (object_obb.Center.z - obb.Center.z >= std::numeric_limits<FLOAT>::epsilon()) {
 			pos.z += z_bias;
 		}
 		// player_obb 가 뒤쪽으로 밀려남
@@ -662,7 +741,7 @@ void Server::CollideByStatic(const shared_ptr<GameObject>& object,
 	else {
 
 		// player_obb 가 앞쪽으로 밀려남
-		if (object_obb.Center.x - obb.Center.x >= numeric_limits<FLOAT>::epsilon()) {
+		if (object_obb.Center.x - obb.Center.x >= std::numeric_limits<FLOAT>::epsilon()) {
 			pos.x += x_bias;
 		}
 		// player_obb 가 뒤쪽으로 밀려남
@@ -671,11 +750,11 @@ void Server::CollideByStatic(const shared_ptr<GameObject>& object,
 		}
 	}
 
-	MovePlayer(object, pos);
+	MoveObject(object, pos);
 }
 
-void Server::CollideByMoveMent(const shared_ptr<GameObject>& object,
-	const shared_ptr<GameObject>& object1)
+void Server::CollideByMoveMent(const std::shared_ptr<GameObject>& object,
+	const std::shared_ptr<GameObject>& object1)
 {
 	// 충돌한 플레이어의 속도
 	auto obj = dynamic_pointer_cast<MovementObject>(object);
@@ -689,11 +768,11 @@ void Server::CollideByMoveMent(const shared_ptr<GameObject>& object,
 	pos.x += velocity.x;
 	pos.y += velocity.y;
 	pos.z += velocity.z;
-	MovePlayer(object1, pos);
+	MoveObject(object1, pos);
 }
 
-void Server::CollideByStaticOBB(const shared_ptr<GameObject>& object,
-	const shared_ptr<GameObject>& object1)
+void Server::CollideByStaticOBB(const std::shared_ptr<GameObject>& object,
+	const std::shared_ptr<GameObject>& object1)
 {
 	// 1. 오브젝트에서 충돌면을 구한다
 	// 2. 해당 충돌면의 법선 벡터를 구한다
@@ -725,7 +804,7 @@ void Server::CollideByStaticOBB(const shared_ptr<GameObject>& object,
 	for (const XMFLOAT3& point : p_square) {
 		if (!obb.Contains(XMLoadFloat3(&point))) continue;
 
-		array<float, 4> dist{};
+		std::array<float, 4> dist{};
 		dist[0] = XMVectorGetX(XMVector3LinePointDistance(XMLoadFloat3(&o_square[0]), XMLoadFloat3(&o_square[1]), XMLoadFloat3(&point)));
 		dist[1] = XMVectorGetX(XMVector3LinePointDistance(XMLoadFloat3(&o_square[1]), XMLoadFloat3(&o_square[2]), XMLoadFloat3(&point)));
 		dist[2] = XMVectorGetX(XMVector3LinePointDistance(XMLoadFloat3(&o_square[2]), XMLoadFloat3(&o_square[3]), XMLoadFloat3(&point)));
@@ -751,7 +830,7 @@ void Server::CollideByStaticOBB(const shared_ptr<GameObject>& object,
 			v = Vector3::Normalize(Vector3::Sub(o_square[0], o_square[1]));
 		}
 		v = Vector3::Mul(v, *min);
-		MovePlayer(object, Vector3::Add(object->GetPosition(), v));
+		MoveObject(object, Vector3::Add(object->GetPosition(), v));
 		
 
 		//// 충돌한 오브젝트의 꼭짓점을 이용해 사각형의 테두리를 따라가는 벡터 4개를 구함

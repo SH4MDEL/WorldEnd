@@ -34,7 +34,7 @@ Client::Client() : m_socket{}, m_ready_check{ false }, m_remain_size{ 0 },
 {
 	m_name = "Player";
 	SetPlayerType(PlayerType::WARRIOR);
-	m_damage = 20;
+	m_damage = 100.f;
 	m_skill_ratio = 1.2f;
 }
 
@@ -171,7 +171,7 @@ bool Party::Join(INT player_id)
 PartyManager::PartyManager()
 {
 	for (auto& party : m_parties) {
-		party = make_shared<Party>();
+		party = std::make_shared<Party>();
 	}
 		
 }

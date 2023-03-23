@@ -33,7 +33,6 @@ void Monster::SetHp(FLOAT hp)
 	m_hp = hp;
 	if (m_hp <= 0)
 		m_hp = 0;
-	// 사망처리 필요함
 
 	if (m_hpBar) {
 		m_hpBar->SetMaxHp(m_maxHp);

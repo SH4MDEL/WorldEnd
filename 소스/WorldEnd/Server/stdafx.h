@@ -32,7 +32,6 @@
 #include <d3dcompiler.h>
 #include <DirectXCollision.h>
 
-using namespace std;
 using namespace DirectX;
 
 #pragma comment (lib, "WS2_32.LIB")

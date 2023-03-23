@@ -2,7 +2,7 @@
 #include "stdafx.h"
 #include "object.h"
 
-class Monster : public MovementObject, public enable_shared_from_this<Monster>
+class Monster : public MovementObject, public std::enable_shared_from_this<Monster>
 {
 public:
 	Monster();
@@ -15,7 +15,8 @@ public:
 	virtual MONSTER_DATA GetMonsterData() const override;
 	virtual MonsterType GetMonsterType() const override { return m_monster_type; }
 	UCHAR GetTargetId() const { return m_target_id; }
-	chrono::system_clock::time_point GetLastBehaviorTime() const;
+	std::chrono::system_clock::time_point GetLastBehaviorTime() const;
+	MonsterBehavior GetBehavior() const { return m_current_behavior; }
 
 	bool ChangeAnimation(BYTE animation);
 
@@ -35,12 +36,12 @@ public:
 	void InitializePosition();
 
 protected:
-	MonsterType							m_monster_type;
-	FLOAT								m_range;
-	INT									m_target_id;
-	USHORT								m_current_animation;
-	MonsterBehavior						m_current_behavior;
-	chrono::system_clock::time_point	m_last_behavior_time;
+	MonsterType								m_monster_type;
+	FLOAT									m_range;
+	INT										m_target_id;
+	USHORT									m_current_animation;
+	MonsterBehavior							m_current_behavior;
+	std::chrono::system_clock::time_point	m_last_behavior_time;
 
 	void UpdatePosition(const XMFLOAT3& dir, FLOAT elapsed_time);
 	void UpdateRotation(const XMFLOAT3& dir);

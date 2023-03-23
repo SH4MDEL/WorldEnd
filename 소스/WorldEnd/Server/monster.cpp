@@ -68,7 +68,7 @@ MONSTER_DATA Monster::GetMonsterData() const
 	return MONSTER_DATA( m_id, m_position, m_velocity, m_yaw, m_hp );
 }
 
-chrono::system_clock::time_point Monster::GetLastBehaviorTime() const
+std::chrono::system_clock::time_point Monster::GetLastBehaviorTime() const
 {
 	return m_last_behavior_time;
 }
@@ -129,8 +129,13 @@ void Monster::ChangeBehavior(MonsterBehavior behavior)
 		}
 
 		break;
-	case MonsterBehavior::NONE:
+	case MonsterBehavior::DEAD:
+		m_current_animation = ObjectAnimation::DEAD;
+		ev.event_time = current_time + MonsterSetting::MONSTER_DEAD_TIME;
+		ev.behavior_type = MonsterBehavior::DEAD;
 		break;
+	default:
+		return;
 	}
 
 	Server& server = Server::GetInstance();
@@ -168,8 +173,8 @@ void Monster::DoBehavior(FLOAT elapsed_time)
 	case MonsterBehavior::ATTACK:
 		Attack();
 		break;
-	case MonsterBehavior::NONE:
-		break;
+	default:
+		return;
 	}
 	
 	// 행동 후 PREPARE_ATTACK, ATTACK 이 아니면 공격 가능한지 체크
@@ -192,17 +197,24 @@ bool Monster::IsDoAttack()
 
 void Monster::DecreaseHp(FLOAT damage, INT id)
 {
+	if (m_hp <= 0)
+		return;
+
 	m_hp -= damage;
 	if (m_hp <= 0) {
-		m_state = State::ST_DEAD;
-
+		{
+			std::lock_guard<std::mutex> l{ m_state_lock };
+			m_state = State::ST_DEAD;
+		}
 		// 죽은것 전송
+		ChangeBehavior(MonsterBehavior::DEAD);
+		return;
 	}
 
 	// 일정 비율 이상 데미지가 들어오면 타겟 변경
-	if ((m_hp / 11.f - damage) <= numeric_limits<float>::epsilon()) {
+	if ((m_hp / 11.f - damage) <= std::numeric_limits<FLOAT>::epsilon()) {
 		SetTarget(id);
-		m_last_behavior_time = chrono::system_clock::now();
+		m_last_behavior_time = std::chrono::system_clock::now();
 	}
 }
 
@@ -271,8 +283,8 @@ void Monster::CollisionCheck()
 	auto& player_ids = game_room->GetPlayerIds();
 
 	
-	server.CollisionCheck(shared_from_this(), monster_ids);
-	server.CollisionCheck(shared_from_this(), player_ids);
+	server.CollisionCheck(shared_from_this(), monster_ids, Server::CollideByStaticOBB);
+	server.CollisionCheck(shared_from_this(), player_ids, Server::CollideByStaticOBB);
 }
 
 void Monster::InitializePosition()
