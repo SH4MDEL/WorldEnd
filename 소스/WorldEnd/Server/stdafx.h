@@ -50,6 +50,8 @@ struct COLLISION_EVENT {
     std::chrono::system_clock::time_point end_time;		// 충돌 이벤트 종료 시간
 };
 
+enum AggroLevel : BYTE { NORMAL_AGGRO, HIT_AGGRO, MAX_AGGRO };
+
 namespace Vector3
 {
     inline XMFLOAT3 Add(const XMFLOAT3& a, const XMFLOAT3& b)

@@ -309,6 +309,20 @@ void Server::WorkerThread()
 			delete exp_over;
 			break;
 		}
+		case OP_CHANGE_BEHAVIOR: {
+			auto monster = dynamic_pointer_cast<Monster>(m_clients[static_cast<int>(key)]);
+			monster->ChangeBehavior(static_cast<MonsterBehavior>(exp_over->_send_buf[0]));
+
+			delete exp_over;
+			break;
+		}
+		case OP_DECREASE_AGGRO_LEVEL: {
+			auto monster = dynamic_pointer_cast<Monster>(m_clients[static_cast<int>(key)]);
+			monster->DecreaseAggroLevel();
+
+			delete exp_over;
+			break;
+		}
 
 		}
 	}
@@ -643,7 +657,7 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 	}
 	case EventType::CHANGE_BEHAVIOR: {
 		auto monster = dynamic_pointer_cast<Monster>(m_clients[ev.obj_id]);
-		if (MonsterBehavior::DEAD == ev.behavior_type) {
+		if (MonsterBehavior::DEAD == ev.next_behavior_type) {
 			ExpOver* over = new ExpOver;
 			over->_comp_type = OP_REMOVE_MONSTER;
 
@@ -655,17 +669,28 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 		if (MonsterBehavior::DEAD == monster->GetBehavior())
 			return;
 
-		auto last_time = monster->GetLastBehaviorTime();
-		if (MonsterBehavior::LOOK_AROUND == ev.behavior_type) {
-			if (std::chrono::system_clock::now() <=
-				last_time + MonsterSetting::MONSTER_RETARGET_TIME - 1s)
-			{
+		// 어그로 낮은 행동 전환을 현재는 reterget 만 무시함
+		// 나중에 무시하면 될 것 같은 행동을 or 로 추가하면 될 것
+		if (MonsterBehavior::RETARGET == ev.next_behavior_type) {
+			if (ev.aggro_level < monster->GetAggroLevel()){
 				return;
 			}
 		}
 
-		monster->ChangeBehavior(ev.behavior_type);
+		ExpOver* over = new ExpOver;
+		over->_comp_type = OP_CHANGE_BEHAVIOR;
+		memcpy(&over->_send_buf, &ev.next_behavior_type, sizeof(MonsterBehavior));
+		PostQueuedCompletionStatus(m_handle_iocp, 1, ev.obj_id, &over->_wsa_over);
 		break;
+	}
+	case EventType::DECREASE_AGRO_LEVEL: {
+		auto monster = dynamic_pointer_cast<Monster>(m_clients[ev.obj_id]);
+		if (ev.aggro_level < monster->GetAggroLevel())
+			return;
+
+		ExpOver* over = new ExpOver;
+		over->_comp_type = OP_DECREASE_AGGRO_LEVEL;
+		PostQueuedCompletionStatus(m_handle_iocp, 1, ev.obj_id, &over->_wsa_over);
 	}
 
 	}

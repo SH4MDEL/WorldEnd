@@ -253,7 +253,7 @@ void GameRoom::InitMonsters(INT room_num)
 	// 전투 시작 시 INGAME, ChangeBehavior 가 호출되어야 함
 	// 현재는 방 생성 시 부르는 중, 나중에 옮길 것!
 	INT new_id{};
-	for (size_t i = 0; i < 5; ++i) {
+	for (size_t i = 0; i < 1; ++i) {
 		new_id = server.GetNewMonsterId(MonsterType::WARRIOR);
 		
 		m_monster_ids[i] = new_id;

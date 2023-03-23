@@ -58,7 +58,7 @@ enum CooltimeType {
 	NORMAL_ATTACK, SKILL, ULTIMATE, ROLL, COUNT
 };
 enum class MonsterBehavior : char {
-	CHASE, LOOK_AROUND, PREPARE_ATTACK, ATTACK, DEAD
+	CHASE, RETARGET, TAUNT, PREPARE_ATTACK, ATTACK, DEAD
 };
 
 namespace PlayerSetting
@@ -76,12 +76,14 @@ namespace MonsterSetting
 {
 	using namespace std::literals;
 
-	constexpr float MONSTER_WALK_SPEED = 3.f;
-	constexpr auto MONSTER_LOOK_AROUND_TIME = 3s;
-	constexpr auto MONSTER_RETARGET_TIME = 10s;
-	constexpr auto MONSTER_PREPARE_ATTACK_TIME = 1s;
-	constexpr auto MONSTER_ATTACK_TIME = 625ms;
-	constexpr auto MONSTER_DEAD_TIME = 2s;
+	constexpr float WALK_SPEED = 3.f;
+	constexpr auto LOOK_AROUND_TIME = 3s;
+	constexpr auto RETARGET_TIME = 10s;
+	constexpr auto TAUNT_TIME = 2s;
+	constexpr auto PREPARE_ATTACK_TIME = 1s;
+	constexpr auto ATTACK_TIME = 625ms;
+	constexpr auto DEAD_TIME = 2s;
+	constexpr auto DECREASE_AGRO_LEVEL_TIME = 5s;
 
 	constexpr float WARRIOR_MONSTER_ATTACK_RANGE = 1.f;
 	constexpr float WARRIOR_MONSTER_BORDER_RANGE = 2.f;

@@ -1,16 +1,22 @@
-#include "monster.h"
 #include <functional>
+#include <random>
+#include "monster.h"
 #include "stdafx.h"
 #include "Server.h"
 
+std::random_device rd;
+std::default_random_engine dre(rd());
+std::uniform_int_distribution<int> random_behavior(1, 100);
+std::uniform_int_distribution<int> random_retarget_time(5, 10);
+
 Monster::Monster() : m_target_id{ -1 }, m_current_animation{ ObjectAnimation::IDLE },
-	m_current_behavior{ MonsterBehavior::CHASE }
+	m_current_behavior{ MonsterBehavior::CHASE }, m_aggro_level{ 0 }
 {
 }
 
 void Monster::UpdatePosition(const XMFLOAT3& dir, FLOAT elapsed_time)
 {
-	m_velocity = Vector3::Mul(dir, MonsterSetting::MONSTER_WALK_SPEED);
+	m_velocity = Vector3::Mul(dir, MonsterSetting::WALK_SPEED);
 
 	// 몬스터 이동
 	m_position = Vector3::Add(m_position, Vector3::Mul(m_velocity, elapsed_time));
@@ -58,19 +64,35 @@ bool Monster::CanAttack()
 	return false;
 }
 
+void Monster::MakeDecreaseAggroLevelEvent()
+{
+	TIMER_EVENT ev{ .event_time = std::chrono::system_clock::now() +
+			MonsterSetting::DECREASE_AGRO_LEVEL_TIME,
+			.event_type = EventType::DECREASE_AGRO_LEVEL, .obj_id = m_id,
+		.aggro_level = m_aggro_level };
+
+	Server& server = Server::GetInstance();
+	server.SetTimerEvent(ev);
+}
+
 void Monster::SetTarget(INT id)
 {
 	m_target_id = id;
 }
 
+void Monster::SetAggroLevel(BYTE aggro_level)
+{
+	// 변경하려는 어그로 레벨이 더 클때만 변경하고 타이머 이벤트 생성
+	if (m_aggro_level < aggro_level) {
+		m_aggro_level = aggro_level;
+		
+		MakeDecreaseAggroLevelEvent();
+	}
+}
+
 MONSTER_DATA Monster::GetMonsterData() const
 {
 	return MONSTER_DATA( m_id, m_position, m_velocity, m_yaw, m_hp );
-}
-
-std::chrono::system_clock::time_point Monster::GetLastBehaviorTime() const
-{
-	return m_last_behavior_time;
 }
 
 bool Monster::ChangeAnimation(BYTE animation)
@@ -89,50 +111,59 @@ void Monster::ChangeBehavior(MonsterBehavior behavior)
 	TIMER_EVENT ev{};
 	ev.obj_id = m_id;
 	ev.event_type = EventType::CHANGE_BEHAVIOR;
+	ev.aggro_level = m_aggro_level;
 	auto current_time = std::chrono::system_clock::now();
-	m_last_behavior_time = current_time;
 
 	switch (m_current_behavior) {
-	case MonsterBehavior::CHASE:
-		// 추격으로 바뀌면 retarget 시간 이후 둘러보도록 함
-		// retarget 시간 이후 둘러보기로 변경
+	case MonsterBehavior::CHASE: {
 		m_current_animation = ObjectAnimation::WALK;
-		ev.event_time = current_time + MonsterSetting::MONSTER_RETARGET_TIME;
-		ev.behavior_type = MonsterBehavior::LOOK_AROUND;
+		int time = random_retarget_time(dre);
+		ev.event_time = current_time + static_cast<std::chrono::seconds>(time);
+
+		int percent = random_behavior(dre);
+		if (0 < percent && percent <= 50) {
+			ev.next_behavior_type = MonsterBehavior::RETARGET;
+		}
+		else {
+			ev.next_behavior_type = MonsterBehavior::TAUNT;
+		}
 		break;
-	case MonsterBehavior::LOOK_AROUND:
-		// Retarget 하면서 둘러보는 애니메이션 출력
-		// 둘러보는 시간 이후 CHASE 로 변경
+	}
+	case MonsterBehavior::RETARGET:
 		m_current_animation = MonsterAnimation::LOOK_AROUND;
-		ev.event_time = current_time + MonsterSetting::MONSTER_LOOK_AROUND_TIME;
-		ev.behavior_type = MonsterBehavior::CHASE;
+		ev.event_time = current_time + MonsterSetting::LOOK_AROUND_TIME;
+		ev.next_behavior_type = MonsterBehavior::CHASE;
+		break;
+	case MonsterBehavior::TAUNT:
+		m_current_animation = MonsterAnimation::TAUNT;
+		ev.event_time = current_time + MonsterSetting::TAUNT_TIME;
+		ev.next_behavior_type = MonsterBehavior::CHASE;
 		break;
 	case MonsterBehavior::PREPARE_ATTACK:
 		// 공격 준비 시간 이후 공격으로 변경
 		m_current_animation = MonsterAnimation::TAUNT;
-		ev.event_time = current_time + MonsterSetting::MONSTER_PREPARE_ATTACK_TIME;
-		ev.behavior_type = MonsterBehavior::ATTACK;
+		ev.event_time = current_time + MonsterSetting::PREPARE_ATTACK_TIME;
+		ev.next_behavior_type = MonsterBehavior::ATTACK;
 		break;
 	case MonsterBehavior::ATTACK:
 		// 공격 가능하면 공격, 공격 이후 공격 준비 재전환 
 		// 불가능하면 바로 추격
-		
 		if (CanAttack()) {
 			m_current_animation = ObjectAnimation::ATTACK;
-			ev.event_time = current_time + MonsterSetting::MONSTER_ATTACK_TIME;
-			ev.behavior_type = MonsterBehavior::PREPARE_ATTACK;
+			ev.event_time = current_time + MonsterSetting::ATTACK_TIME;
+			ev.next_behavior_type = MonsterBehavior::PREPARE_ATTACK;
 		}
 		else {
 			m_current_animation = ObjectAnimation::WALK;
 			ev.event_time = current_time;
-			ev.behavior_type = MonsterBehavior::CHASE;
+			ev.next_behavior_type = MonsterBehavior::CHASE;
 		}
 
 		break;
 	case MonsterBehavior::DEAD:
 		m_current_animation = ObjectAnimation::DEAD;
-		ev.event_time = current_time + MonsterSetting::MONSTER_DEAD_TIME;
-		ev.behavior_type = MonsterBehavior::DEAD;
+		ev.event_time = current_time + MonsterSetting::DEAD_TIME;
+		ev.next_behavior_type = MonsterBehavior::DEAD;
 		break;
 	default:
 		return;
@@ -164,8 +195,11 @@ void Monster::DoBehavior(FLOAT elapsed_time)
 	case MonsterBehavior::CHASE:
 		ChasePlayer(elapsed_time);
 		break;
-	case MonsterBehavior::LOOK_AROUND:
-		LookAround();
+	case MonsterBehavior::RETARGET:
+		Retarget();
+		break;
+	case MonsterBehavior::TAUNT:
+		Taunt();
 		break;
 	case MonsterBehavior::PREPARE_ATTACK:
 		PrepareAttack();
@@ -211,15 +245,34 @@ void Monster::DecreaseHp(FLOAT damage, INT id)
 		return;
 	}
 
+	if (AggroLevel::HIT_AGGRO < m_aggro_level)
+		return;
+
 	// 일정 비율 이상 데미지가 들어오면 타겟 변경
+	// 최대 체력으로 비교해야 함
 	if ((m_hp / 11.f - damage) <= std::numeric_limits<FLOAT>::epsilon()) {
 		SetTarget(id);
-		m_last_behavior_time = std::chrono::system_clock::now();
+		SetAggroLevel(AggroLevel::HIT_AGGRO);
 	}
+}
+
+void Monster::DecreaseAggroLevel()
+{
+	m_aggro_level -= 1;
+	if (m_aggro_level <= 0) {
+		m_aggro_level = 0;
+	}
+	else {
+		MakeDecreaseAggroLevelEvent();
+	}
+	
 }
 
 void Monster::UpdateTarget()
 {
+	if (AggroLevel::NORMAL_AGGRO < m_aggro_level)
+		return;
+
 	// 거리를 계산하여 가장 가까운 플레이어를 타겟으로 함
 	Server& server = Server::GetInstance();
 	auto game_room = server.GetGameRoomManager()->GetGameRoom(m_room_num);
@@ -237,6 +290,7 @@ void Monster::UpdateTarget()
 			m_target_id = id;
 		}
 	}
+	SetAggroLevel(AggroLevel::NORMAL_AGGRO);
 }
 
 void Monster::ChasePlayer(FLOAT elapsed_time)
@@ -249,11 +303,17 @@ void Monster::ChasePlayer(FLOAT elapsed_time)
 	CollisionCheck();
 }
 
-void Monster::LookAround()
+void Monster::Retarget()
 {
 	// 타게팅 변경 중 두리번 거리는 행동
 	// 계속 추격하지 않고 일정 시간마다 멈춰서도록 함
 	UpdateTarget();
+}
+
+void Monster::Taunt()
+{
+	XMFLOAT3 player_dir = GetPlayerDirection(m_target_id);
+	UpdateRotation(player_dir);
 }
 
 void Monster::PrepareAttack()

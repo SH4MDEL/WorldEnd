@@ -6,7 +6,7 @@
 #include "map.h"
 
 
-enum class EventType : char { RESET_COOLTIME, CHANGE_BEHAVIOR };
+enum class EventType : char { RESET_COOLTIME, CHANGE_BEHAVIOR, DECREASE_AGRO_LEVEL };
 
 struct TIMER_EVENT {
 	std::chrono::system_clock::time_point event_time;
@@ -14,7 +14,8 @@ struct TIMER_EVENT {
 	INT obj_id;
 	INT targat_id;
 	CooltimeType cooltime_type;
-	MonsterBehavior behavior_type;
+	MonsterBehavior next_behavior_type;
+	BYTE aggro_level;
 
 	constexpr bool operator <(const TIMER_EVENT& left)const
 	{
