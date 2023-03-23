@@ -117,6 +117,20 @@ public:
 	~UIRenderShader() = default;
 };
 
+class HorzBlurShader : public Shader
+{
+public:
+	HorzBlurShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature);
+	~HorzBlurShader() = default;
+};
+
+class VertBlurShader : public Shader
+{
+public:
+	VertBlurShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature);
+	~VertBlurShader() = default;
+};
+
 class ParticleShader : public Shader
 {
 public:

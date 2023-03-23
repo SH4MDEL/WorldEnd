@@ -12,6 +12,7 @@
 #include "shadow.h"
 #include "text.h"
 #include "particleSystem.h"
+#include "blurFilter.h"
 
 struct SceneInfo
 {
@@ -30,22 +31,25 @@ public:
 
 	virtual void OnCreate(const ComPtr<ID3D12Device>& device, 
 		const ComPtr<ID3D12GraphicsCommandList>& commandList, 
-		const ComPtr<ID3D12RootSignature>& rootSignature) = 0;			// 해당 씬으로 변경될 때 호출
+		const ComPtr<ID3D12RootSignature>& rootSignature, 
+		const ComPtr<ID3D12RootSignature>& postRootsignature) = 0;			// 해당 씬으로 변경될 때 호출
 	virtual void OnDestroy() = 0;			// 해당 씬에서 탈출할 때 호출
 	virtual void ReleaseUploadBuffer() = 0;
 
 	virtual void CreateShaderVariable(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList) = 0;
 	virtual void UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& commandList) = 0;
 
-	virtual void BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, const ComPtr<ID3D12RootSignature>& rootsignature) = 0;
+	virtual void BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, 
+		const ComPtr<ID3D12RootSignature>& rootsignature, const ComPtr<ID3D12RootSignature>& postRootsignature) = 0;
 	
 	virtual void OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime) const = 0;
 	virtual void OnProcessingClickMessage(LPARAM lParam) const = 0;
 	virtual void OnProcessingKeyboardMessage(FLOAT timeElapsed) const = 0;
 
 	virtual void Update(FLOAT timeElapsed) = 0;
-	virtual void Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) const = 0;
 	virtual void RenderShadow(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) = 0;
+	virtual void Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) const = 0;
+	virtual void PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList, const ComPtr<ID3D12Resource>& renderTarget) = 0;
 	virtual void RenderText(const ComPtr< ID2D1DeviceContext2>& deviceContext) = 0;
 	
 	virtual shared_ptr<Shadow> GetShadow() = 0;

@@ -141,6 +141,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="blurFilter.h" />
     <ClInclude Include="camera.h" />
     <ClInclude Include="Client.h" />
     <ClInclude Include="d3dx12.h" />
@@ -169,6 +170,7 @@
     <ClInclude Include="timer.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="blurFilter.cpp" />
     <ClCompile Include="camera.cpp" />
     <ClCompile Include="Client.cpp" />
     <ClCompile Include="DDSTextureLoader12.cpp" />
@@ -204,6 +206,9 @@
     <FxCompile Include="Resource\Shader\animation.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="Resource\Shader\blur.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </FxCompile>
     <FxCompile Include="Resource\Shader\common.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>

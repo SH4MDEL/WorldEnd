@@ -37,9 +37,11 @@ public:
 
 	// 4. 명령 큐, 명령 할당자, 명령 리스트 생성
 	void CreateMainCommandQueueAndList();
+
+	// 5. 멀티쓰레드 렌더링 전용 명령 리스트 생성
 	void CreateThreadCommandList();
 
-	// 5. 스왑 체인 생성
+	// 6. 스왑 체인 생성
 	void CreateSwapChain();
 
 	// 6. 서술자 힙 생성
@@ -53,6 +55,9 @@ public:
 
 	// 9. 루트 시그니처 생성
 	void CreateRootSignature();
+
+	// 10. 후처리 루트 시그니처 생성
+	void CreatePostRootSignature();
 
 	void Create11On12Device();
 
@@ -74,6 +79,7 @@ public:
 	void BeginFrame();
 	void MidFrame();
 	void EndFrame();
+	void PostProcess();
 	void WorkerThread(UINT threadIndex);
 	void RenderText();
 
@@ -133,6 +139,7 @@ private:
 	ComPtr<ID3D12Resource>										m_depthStencil;
 	ComPtr<ID3D12DescriptorHeap>								m_dsvHeap;
 	ComPtr<ID3D12RootSignature>									m_rootSignature;
+	ComPtr<ID3D12RootSignature>									m_postRootSignature;
 
 	// Text Write (UI Layer)
 	ComPtr<ID3D11DeviceContext>									m_deviceContext;
@@ -147,15 +154,15 @@ private:
 	ComPtr<ID3D12Resource>										m_frameworkBuffer;
 	FrameworkInfo*												m_frameworkBufferPointer;
 
-	ComPtr<ID3D12Fence>										m_fence;
-	UINT													m_frameIndex;
-	UINT64													m_fenceValue;
-	HANDLE													m_fenceEvent;
+	ComPtr<ID3D12Fence>											m_fence;
+	UINT														m_frameIndex;
+	UINT64														m_fenceValue;
+	HANDLE														m_fenceEvent;
 
-	Timer													m_timer;
+	Timer														m_timer;
 
-	vector<unique_ptr<Scene>>								m_scenes;
-	INT														m_sceneIndex;
-	BOOL													m_shadowPass;
+	vector<unique_ptr<Scene>>									m_scenes;
+	INT															m_sceneIndex;
+	BOOL														m_shadowPass;
 };
 

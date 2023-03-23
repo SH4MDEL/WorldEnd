@@ -5,9 +5,8 @@ class Shadow
 {
 public:
 	Shadow(const ComPtr<ID3D12Device>& device, UINT width, UINT height);
-
-	//Shadow(const Shadow& rhs) = delete;
-	//Shadow& operator=(const Shadow& rhs) = delete;
+	Shadow(const Shadow& rhs) = delete;
+	Shadow& operator=(const Shadow& rhs) = delete;
 	~Shadow() = default;
 
 	ComPtr<ID3D12DescriptorHeap> GetSrvDiscriptorHeap() const { return m_srvDiscriptorHeap; }

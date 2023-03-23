@@ -12,7 +12,8 @@ LoadingScene::~LoadingScene()
 
 void LoadingScene::OnCreate(const ComPtr<ID3D12Device>& device,
 	const ComPtr<ID3D12GraphicsCommandList>& commandList,
-	const ComPtr<ID3D12RootSignature>& rootSignature)
+	const ComPtr<ID3D12RootSignature>& rootSignature, 
+	const ComPtr<ID3D12RootSignature>& postRootsignature)
 {
 	m_loadingText = make_shared<LoadingText>(53);
 
@@ -38,7 +39,7 @@ void LoadingScene::OnCreate(const ComPtr<ID3D12Device>& device,
 	DX::ThrowIfFailed(device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_threadCommandAllocator)));
 	DX::ThrowIfFailed(device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_threadCommandAllocator.Get(), nullptr, IID_PPV_ARGS(&m_threadCommandList)));
 
-	m_loadingThread = thread{ &LoadingScene::BuildObjects, this, device, m_threadCommandList, rootSignature };
+	m_loadingThread = thread{ &LoadingScene::BuildObjects, this, device, m_threadCommandList, rootSignature, postRootsignature };
 	m_loadingThread.detach();
 }
 
@@ -59,7 +60,8 @@ void LoadingScene::OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, 
 void LoadingScene::OnProcessingClickMessage(LPARAM lParam) const {}
 void LoadingScene::OnProcessingKeyboardMessage(FLOAT timeElapsed) const {}
 
-void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, const ComPtr<ID3D12RootSignature>& rootsignature)
+void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, 
+	const ComPtr<ID3D12RootSignature>& rootsignature, const ComPtr<ID3D12RootSignature>& postRootsignature)
 {
 	// 플레이어 로딩
 	auto animationShader{ make_shared<AnimationShader>(device, rootsignature) };
@@ -97,6 +99,10 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 
 	// 파티클 셰이더 로딩
 	auto emitterParticleShader{ make_shared<EmitterParticleShader>(device, rootsignature) };
+
+	// 블러 셰이더 로딩
+	auto horzBlurShader{ make_shared<HorzBlurShader>(device, postRootsignature) };
+	auto vertBlurShader{ make_shared<VertBlurShader>(device, postRootsignature) };
 
 	// 몬스터 로딩
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/Undead_WarriorMesh.bin"));
@@ -172,6 +178,8 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	m_shaders.insert({ "SHADOW", shadowShader });
 	m_shaders.insert({ "ANIMATIONSHADOW", animationShadowShader });
 	m_shaders.insert({ "EMITTERPARTICLE", emitterParticleShader });
+	m_shaders.insert({ "HORZBLUR", horzBlurShader });
+	m_shaders.insert({ "VERTBLUR", vertBlurShader });
 	m_shaders.insert({ "DEBUG", debugShader });
 
 	commandlist->Close();
@@ -188,8 +196,9 @@ void LoadingScene::Update(FLOAT timeElapsed)
 	if (m_loadEnd) g_GameFramework.ChangeScene(SCENETAG::TowerScene);
 }
 
-void LoadingScene::Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) const {}
 void LoadingScene::RenderShadow(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) {}
+void LoadingScene::Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) const {}
+void LoadingScene::PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList, const ComPtr<ID3D12Resource>& renderTarget) {}
 
 void LoadingScene::RenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext)
 {

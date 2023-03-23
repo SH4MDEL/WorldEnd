@@ -40,17 +40,23 @@
     <Filter Include="소스 파일\Shader">
       <UniqueIdentifier>{8e08da9e-2b50-40d7-a5bf-f142314003c2}</UniqueIdentifier>
     </Filter>
-    <Filter Include="헤더 파일\Base">
-      <UniqueIdentifier>{1555a5e2-1f6b-431e-90ea-c3679a4f1b8a}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="소스 파일\Base">
-      <UniqueIdentifier>{23f982d3-1e29-4b90-8480-09205a35a9a7}</UniqueIdentifier>
-    </Filter>
     <Filter Include="소스 파일\Singleton">
       <UniqueIdentifier>{bfd9920d-0867-4b7b-92cc-66e7307da670}</UniqueIdentifier>
     </Filter>
     <Filter Include="헤더 파일\Singleton">
       <UniqueIdentifier>{4dea132b-9f65-4155-a4ec-a54e8b3efeb6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Mesh">
+      <UniqueIdentifier>{23f982d3-1e29-4b90-8480-09205a35a9a7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\Mesh">
+      <UniqueIdentifier>{1555a5e2-1f6b-431e-90ea-c3679a4f1b8a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Filter">
+      <UniqueIdentifier>{b61fc327-7ddc-4aad-900b-ed015efc14c9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\Filter">
+      <UniqueIdentifier>{b4b3f2e8-dce0-44e6-a053-e0c984b910f6}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -112,10 +118,10 @@
       <Filter>헤더 파일\Shader</Filter>
     </ClInclude>
     <ClInclude Include="mesh.h">
-      <Filter>헤더 파일\Base</Filter>
+      <Filter>헤더 파일\Mesh</Filter>
     </ClInclude>
     <ClInclude Include="particleMesh.h">
-      <Filter>헤더 파일\Base</Filter>
+      <Filter>헤더 파일\Mesh</Filter>
     </ClInclude>
     <ClInclude Include="singleton.h">
       <Filter>헤더 파일\Singleton</Filter>
@@ -131,6 +137,9 @@
     </ClInclude>
     <ClInclude Include="particle.h">
       <Filter>헤더 파일\Object</Filter>
+    </ClInclude>
+    <ClInclude Include="blurFilter.h">
+      <Filter>헤더 파일\Filter</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -183,10 +192,10 @@
       <Filter>소스 파일\Shader</Filter>
     </ClCompile>
     <ClCompile Include="mesh.cpp">
-      <Filter>소스 파일\Base</Filter>
+      <Filter>소스 파일\Mesh</Filter>
     </ClCompile>
     <ClCompile Include="particleMesh.cpp">
-      <Filter>소스 파일\Base</Filter>
+      <Filter>소스 파일\Mesh</Filter>
     </ClCompile>
     <ClCompile Include="singleton.cpp">
       <Filter>소스 파일\Singleton</Filter>
@@ -202,6 +211,9 @@
     </ClCompile>
     <ClCompile Include="particle.cpp">
       <Filter>소스 파일\Object</Filter>
+    </ClCompile>
+    <ClCompile Include="blurFilter.cpp">
+      <Filter>소스 파일\Filter</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -249,6 +261,9 @@
       <Filter>셰이더 파일</Filter>
     </FxCompile>
     <FxCompile Include="Resource\Shader\particle.hlsl">
+      <Filter>셰이더 파일</Filter>
+    </FxCompile>
+    <FxCompile Include="Resource\Shader\blur.hlsl">
       <Filter>셰이더 파일</Filter>
     </FxCompile>
   </ItemGroup>

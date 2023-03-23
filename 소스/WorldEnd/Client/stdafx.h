@@ -78,10 +78,11 @@ constexpr int MAX_PLAYERS = 2;
 constexpr int MAX_PARTICLE_COUNT = 10;
 constexpr int MAX_PARTICLE_MESH = 50;
 // Command list submissions from main thread.
-constexpr int COMMANDLIST_NUM = 3;
+constexpr int COMMANDLIST_NUM = 4;
 constexpr int COMMANDLIST_PRE = 0;
 constexpr int COMMANDLIST_MID = 1;
 constexpr int COMMANDLIST_POST = 2;
+constexpr int COMMANDLIST_END = 3;
 
 constexpr int THREAD_NUM = 3;
 
@@ -123,6 +124,18 @@ enum class DescriptorRange : INT {
     Count
 };
 
+enum class PostShaderRegister : INT {
+    Filter,
+    InputTexture,
+    OutputTexture,
+    Count
+};
+
+enum class PostDescriptorRange : INT {
+    InputTexture,
+    OutputTexture,
+    Count
+};
 
 namespace DX
 {

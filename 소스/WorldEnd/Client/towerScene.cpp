@@ -14,9 +14,10 @@ TowerScene::~TowerScene()
 
 void TowerScene::OnCreate(const ComPtr<ID3D12Device>& device,
 	const ComPtr<ID3D12GraphicsCommandList>& commandList,
-	const ComPtr<ID3D12RootSignature>& rootSignature)
+	const ComPtr<ID3D12RootSignature>& rootSignature, 
+	const ComPtr<ID3D12RootSignature>& postRootsignature)
 {
-	BuildObjects(device, commandList, rootSignature);
+	BuildObjects(device, commandList, rootSignature, postRootsignature);
 }
 
 void TowerScene::OnDestroy()
@@ -97,7 +98,8 @@ void TowerScene::UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& c
 	//if (m_lightSystem) m_lightSystem->UpdateShaderVariable(commandList);
 }
 
-void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, const ComPtr<ID3D12RootSignature>& rootsignature)
+void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, 
+	const ComPtr<ID3D12RootSignature>& rootsignature, const ComPtr<ID3D12RootSignature>& postRootsignature)
 {
 	CreateShaderVariable(device, commandlist);
 
@@ -140,6 +142,9 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	// 파티클 시스템 생성
 	g_particleSystem = make_unique<ParticleSystem>(device, commandlist, 
 		static_pointer_cast<ParticleShader>(m_shaders["EMITTERPARTICLE"]));
+
+	// 블러링 필터 생성
+	m_blurFilter = make_unique<BlurFilter>(device, g_GameFramework.GetWindowWidth(), g_GameFramework.GetWindowHeight());
 
 	// 디버그 오브젝트 생성
 	auto debugObject{ make_shared<GameObject>() };
@@ -271,6 +276,27 @@ void TowerScene::Update(FLOAT timeElapsed)
 	g_particleSystem->Update(timeElapsed);
 }
 
+void TowerScene::RenderShadow(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex)
+{
+	switch (threadIndex)
+	{
+	case 0:
+	{
+		m_shaders["ANIMATION"]->Render(device, commandList, m_shaders["ANIMATIONSHADOW"]);
+		break;
+	}
+	case 1:
+	{
+		m_shaders["OBJECT"]->Render(device, commandList, m_shaders["SHADOW"]);
+		break;
+	}
+	case 2:
+	{
+		break;
+	}
+	}
+}
+
 void TowerScene::Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) const
 {
 	if (m_camera) m_camera->UpdateShaderVariable(commandList);
@@ -299,26 +325,15 @@ void TowerScene::Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12G
 	}
 }
 
-
-void TowerScene::RenderShadow(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex)
+void TowerScene::PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList, const ComPtr<ID3D12Resource>& renderTarget)
 {
-	switch (threadIndex)
-	{
-	case 0:
-	{
-		m_shaders["ANIMATION"]->Render(device, commandList, m_shaders["ANIMATIONSHADOW"]);
-		break;
-	}
-	case 1:
-	{
-		m_shaders["OBJECT"]->Render(device, commandList, m_shaders["SHADOW"]);
-		break;
-	}
-	case 2:
-	{
-		break;
-	}
-	}
+	m_blurFilter->Execute(commandList, renderTarget, 5);
+
+	commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_COPY_DEST));
+	commandList->CopyResource(renderTarget.Get(), m_blurFilter->GetBlurMap().Get());
+	commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_RENDER_TARGET));
+
+	m_blurFilter->ResetResourceBarrier(commandList);
 }
 
 void TowerScene::RenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext)
