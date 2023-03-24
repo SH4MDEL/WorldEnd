@@ -318,7 +318,9 @@ void Server::ProcessPacket(int id, char* p)
 {
 	unsigned char type = p[1];
 	auto cl = dynamic_pointer_cast<Client>(m_clients[id]);
-	
+
+	//std::cout << "[Process Packet] Packet Type: " << (int)p[1] << std::endl;//test
+
 	switch (type){
 	case CS_PACKET_LOGIN: {
 		CS_LOGIN_PACKET* packet = reinterpret_cast<CS_LOGIN_PACKET*>(p);
@@ -333,7 +335,7 @@ void Server::ProcessPacket(int id, char* p)
 		// 원래는 던전 진입 시 던전에 배치해야하지만
 		// 현재 마을이 없이 바로 던전에 진입하므로 던전에 입장시킴
 		m_game_room_manager->SetPlayer(0, id);
-		m_game_room_manager->SendAddMonster(id);
+		//m_game_room_manager->SendAddMonster(id);
 
 		std::cout << cl->GetId() << " is connect" << std::endl;
 		break;
@@ -355,6 +357,7 @@ void Server::ProcessPacket(int id, char* p)
 
 		PlayerCollisionCheck(cl);
 		SendPlayerDataPacket();
+		//std::cout << "send end" << std::endl;
 		break;
 	}
 	case CS_PACKET_SET_COOLTIME: {
