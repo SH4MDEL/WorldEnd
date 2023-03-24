@@ -288,6 +288,9 @@ void Server::WorkerThread()
 
 				m_clients[id]->DoSend(&packet);
 			}
+
+			game_room->InitGameRoom(room_num);
+
 			delete exp_over;
 			break;
 		}
@@ -664,18 +667,21 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 			PostQueuedCompletionStatus(m_handle_iocp, 1, ev.obj_id, &over->_wsa_over);
 			return;
 		}
-		
+
+		if (ev.behavior_id != monster->GetLastBehaviorId())
+			return;
+
 		// 죽었다면 기존에 타이머큐에 있던 동작이 넘어오면 넘겨버림
 		if (MonsterBehavior::DEAD == monster->GetBehavior())
 			return;
 
-		// 어그로 낮은 행동 전환을 현재는 reterget 만 무시함
-		// 나중에 무시하면 될 것 같은 행동을 or 로 추가하면 될 것
-		if (MonsterBehavior::RETARGET == ev.next_behavior_type) {
-			if (ev.aggro_level < monster->GetAggroLevel()){
-				return;
-			}
-		}
+		//// 어그로 낮은 행동 전환을 현재는 reterget 만 무시함
+		//// 나중에 무시하면 될 것 같은 행동을 or 로 추가하면 될 것
+		//if (MonsterBehavior::RETARGET == ev.next_behavior_type) {
+		//	if (ev.aggro_level < monster->GetAggroLevel()){
+		//		return;
+		//	}
+		//}
 
 		ExpOver* over = new ExpOver;
 		over->_comp_type = OP_CHANGE_BEHAVIOR;

@@ -108,5 +108,9 @@ namespace Vector3
     {
         return Vector3::Length(Vector3::Sub(a, b));
     }
+    inline FLOAT Equal(const XMFLOAT3& a, const XMFLOAT3& b)
+    {
+        return XMVector3Equal(XMLoadFloat3(&a), XMLoadFloat3(&b));
+    }
 }
 

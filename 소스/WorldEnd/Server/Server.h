@@ -15,6 +15,7 @@ struct TIMER_EVENT {
 	INT targat_id;
 	CooltimeType cooltime_type;
 	MonsterBehavior next_behavior_type;
+	BYTE behavior_id;
 	BYTE aggro_level;
 
 	constexpr bool operator <(const TIMER_EVENT& left)const

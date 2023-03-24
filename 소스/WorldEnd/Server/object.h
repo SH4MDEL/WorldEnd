@@ -99,6 +99,7 @@ public:
 	void SetState(State state) { m_state = state; }
 	void SetName(std::string name) { m_name = name; }
 	void SetName(const char* c);
+	void SetMaxHp(FLOAT hp) { m_max_hp = hp; }
 	void SetHp(FLOAT hp) { m_hp = hp; }
 	void SetDamage(FLOAT damage) { m_damage = damage; }
 	void SetRoomNum(USHORT room_num) { m_room_num = room_num; }
@@ -107,6 +108,7 @@ public:
 	std::mutex& GetStateMutex() { return m_state_lock; }
 	State GetState() const { return m_state; }
 	std::string GetName() const { return m_name; }
+	FLOAT GetMaxHp() const { return m_max_hp; }
 	FLOAT GetHp() const { return m_hp; }
 	FLOAT GetDamage() const { return m_damage; }
 	USHORT GetRoomNum() const { return m_room_num; }
@@ -130,6 +132,7 @@ protected:
 	State		m_state;
 
 	std::string	m_name;
+	FLOAT		m_max_hp;
 	FLOAT		m_hp;
 	FLOAT		m_damage;
 

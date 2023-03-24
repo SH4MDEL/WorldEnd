@@ -10,8 +10,18 @@ std::uniform_int_distribution<int> random_behavior(1, 100);
 std::uniform_int_distribution<int> random_retarget_time(5, 10);
 
 Monster::Monster() : m_target_id{ -1 }, m_current_animation{ ObjectAnimation::IDLE },
-	m_current_behavior{ MonsterBehavior::CHASE }, m_aggro_level{ 0 }
+	m_current_behavior{ MonsterBehavior::CHASE }, m_aggro_level{ 0 },
+	m_last_behavior_id{ 0 }
 {
+}
+
+void Monster::Init()
+{
+	m_target_id = -1;
+	m_current_animation = ObjectAnimation::IDLE;
+	m_current_behavior = MonsterBehavior::NONE;
+	m_aggro_level = 0;
+	m_last_behavior_id = 0;
 }
 
 void Monster::UpdatePosition(const XMFLOAT3& dir, FLOAT elapsed_time)
@@ -43,9 +53,16 @@ void Monster::UpdateRotation(const XMFLOAT3& dir)
 XMFLOAT3 Monster::GetPlayerDirection(INT player_id)
 {
 	if (-1 == player_id)
-		return m_position;
+		return XMFLOAT3(0.f, 0.f, 0.f);
 
 	Server& server = Server::GetInstance();
+
+	// 타겟 플레이어가 사망 or 접속 종료되면 타겟 변경
+	if (State::ST_INGAME != server.m_clients[player_id]->GetState()) {
+		UpdateTarget();
+		return XMFLOAT3(0.f, 0.f, 0.f);
+	}
+
 	XMFLOAT3 sub = Vector3::Sub(server.m_clients[player_id]->GetPosition(), m_position);
 	return Vector3::Normalize(sub);
 }
@@ -113,6 +130,10 @@ void Monster::ChangeBehavior(MonsterBehavior behavior)
 	ev.event_type = EventType::CHANGE_BEHAVIOR;
 	ev.aggro_level = m_aggro_level;
 	auto current_time = std::chrono::system_clock::now();
+
+	if (std::numeric_limits<BYTE>::max() == m_last_behavior_id)
+		m_last_behavior_id = 0;
+	ev.behavior_id = ++m_last_behavior_id;
 
 	switch (m_current_behavior) {
 	case MonsterBehavior::CHASE: {
@@ -249,8 +270,7 @@ void Monster::DecreaseHp(FLOAT damage, INT id)
 		return;
 
 	// 일정 비율 이상 데미지가 들어오면 타겟 변경
-	// 최대 체력으로 비교해야 함
-	if ((m_hp / 11.f - damage) <= std::numeric_limits<FLOAT>::epsilon()) {
+	if ((m_max_hp / 11.f - damage) <= std::numeric_limits<FLOAT>::epsilon()) {
 		SetTarget(id);
 		SetAggroLevel(AggroLevel::HIT_AGGRO);
 	}
@@ -297,6 +317,9 @@ void Monster::ChasePlayer(FLOAT elapsed_time)
 {
 	// 타게팅한 플레이어 추격
 	XMFLOAT3 player_dir = GetPlayerDirection(m_target_id);
+
+	if (Vector3::Equal(player_dir, XMFLOAT3(0.f, 0.f, 0.f)))
+		return;
 
 	UpdatePosition(player_dir, elapsed_time);
 	UpdateRotation(player_dir);
@@ -362,16 +385,22 @@ void Monster::InitializePosition()
 	SetPosition(monster_create_area[area_distribution(g_random_engine)]);
 }
 
-
 WarriorMonster::WarriorMonster()
 {
-	m_monster_type = MonsterType::WARRIOR;
-	m_hp = 200.f;
+	m_max_hp = 200.f;
 	m_damage = 20;
 	m_range = 1.f;
+	m_monster_type = MonsterType::WARRIOR;
 	m_bounding_box.Center = XMFLOAT3(0.028f, 1.27f, 0.f);
 	m_bounding_box.Extents = XMFLOAT3(0.8f, 1.3f, 0.6f);
 	m_bounding_box.Orientation = XMFLOAT4(0.f, 0.f, 0.f, 1.f);
+}
+
+void WarriorMonster::Init()
+{
+	Monster::Init();
+
+	m_hp = 200.f;
 }
 
 void WarriorMonster::Update(FLOAT elapsed_time)
@@ -383,7 +412,11 @@ void WarriorMonster::Update(FLOAT elapsed_time)
 
 ArcherMonster::ArcherMonster()
 {
+}
 
+void ArcherMonster::Init()
+{
+	Monster::Init();
 }
 
 void ArcherMonster::Update(FLOAT elapsed_time)
@@ -393,7 +426,11 @@ void ArcherMonster::Update(FLOAT elapsed_time)
 
 WizardMonster::WizardMonster()
 {
+}
 
+void WizardMonster::Init()
+{
+	Monster::Init();
 }
 
 void WizardMonster::Update(FLOAT elapsed_time)

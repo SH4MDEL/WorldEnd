@@ -8,6 +8,7 @@ public:
 	Monster();
 	virtual ~Monster() = default;
 
+	virtual void Init();
 	virtual void Update(FLOAT elapsed_time) override {};
 
 	void SetTarget(INT player_id);
@@ -18,6 +19,7 @@ public:
 	UCHAR GetTargetId() const { return m_target_id; }
 	BYTE GetAggroLevel() const { return m_aggro_level; }
 	MonsterBehavior GetBehavior() const { return m_current_behavior; }
+	BYTE GetLastBehaviorId() const { return m_last_behavior_id; }
 
 	bool ChangeAnimation(BYTE animation);
 
@@ -45,6 +47,7 @@ protected:
 	USHORT				m_current_animation;
 	MonsterBehavior		m_current_behavior;
 	BYTE				m_aggro_level;
+	BYTE				m_last_behavior_id;
 
 	void UpdatePosition(const XMFLOAT3& dir, FLOAT elapsed_time);
 	void UpdateRotation(const XMFLOAT3& dir);
@@ -59,6 +62,7 @@ public:
 	WarriorMonster();
 	virtual ~WarriorMonster() = default;
 
+	virtual void Init() override;
 	virtual void Update(FLOAT elapsed_time) override;
 };
 
@@ -68,6 +72,7 @@ public:
 	ArcherMonster();
 	virtual ~ArcherMonster() = default;
 
+	virtual void Init() override;
 	virtual void Update(FLOAT elapsed_time) override;
 };
 
@@ -77,6 +82,7 @@ public:
 	WizardMonster();
 	virtual ~WizardMonster() = default;
 
+	virtual void Init() override;
 	virtual void Update(FLOAT elapsed_time) override;
 };
 

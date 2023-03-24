@@ -58,7 +58,7 @@ enum CooltimeType {
 	NORMAL_ATTACK, SKILL, ULTIMATE, ROLL, COUNT
 };
 enum class MonsterBehavior : char {
-	CHASE, RETARGET, TAUNT, PREPARE_ATTACK, ATTACK, DEAD
+	CHASE, RETARGET, TAUNT, PREPARE_ATTACK, ATTACK, DEAD, NONE
 };
 
 namespace PlayerSetting
@@ -83,7 +83,7 @@ namespace MonsterSetting
 	constexpr auto PREPARE_ATTACK_TIME = 1s;
 	constexpr auto ATTACK_TIME = 625ms;
 	constexpr auto DEAD_TIME = 2s;
-	constexpr auto DECREASE_AGRO_LEVEL_TIME = 5s;
+	constexpr auto DECREASE_AGRO_LEVEL_TIME = 10s;
 
 	constexpr float WARRIOR_MONSTER_ATTACK_RANGE = 1.f;
 	constexpr float WARRIOR_MONSTER_BORDER_RANGE = 2.f;
