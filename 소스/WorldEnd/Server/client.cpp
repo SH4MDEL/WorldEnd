@@ -112,6 +112,11 @@ void Client::SetSkillRatio(AttackType type, FLOAT ratio)
 	}
 }
 
+void Client::SetWeaponCenter(const XMFLOAT3& center)
+{
+	m_weopon_bounding_box.Center = center;
+}
+
 FLOAT Client::GetSkillRatio(AttackType type) const
 {
 	FLOAT ratio{};
@@ -122,6 +127,8 @@ FLOAT Client::GetSkillRatio(AttackType type) const
 	case AttackType::ULTIMATE:
 		ratio = m_ultimate_ratio;
 		break;
+	default:
+		return 1.f;
 	}
 
 	return ratio;

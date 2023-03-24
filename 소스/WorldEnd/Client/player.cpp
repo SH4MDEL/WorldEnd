@@ -113,7 +113,11 @@ void Player::OnProcessingClickMessage(LPARAM lParam)
 
 	ChangeAnimation(ObjectAnimation::ATTACK);
 
-	SendCooltimePacket(CooltimeType::NORMAL_ATTACK);
+	XMFLOAT3 front = GetFront();
+	XMFLOAT3 pos = Vector3::Add(front, GetPosition());
+	SendAttackPacket(pos, AttackType::NORMAL, CollisionType::MULTIPLE_TIMES,
+		chrono::system_clock::now() + PlayerSetting::WARRIOR_ATTACK_COLLISION_TIME,
+		CooltimeType::NORMAL_ATTACK);
 }
 
 void Player::Update(FLOAT timeElapsed)
@@ -131,50 +135,7 @@ void Player::Update(FLOAT timeElapsed)
 			if (fabs(track.GetPosition() - animation->GetLength()) <= numeric_limits<float>::epsilon()) {
 				ChangeAnimation(ObjectAnimation::IDLE);
 			}
-
-			// 공격이 수행되는 프레임에 충돌 패킷 전송
-#ifdef USE_NETWORK
-			else if (m_type == PlayerType::WARRIOR && fabs(track.GetPosition() - 0.21f) <= 0.01f) {
-				auto& obj = FindFrame("Warrior_WeaponSword");
-				/*XMFLOAT4X4 world = GetWorldMatrix();
-				XMFLOAT4X4 anim = obj->GetAnimationMatrix();
-				XMFLOAT4X4 mat = Matrix::Mul(world, anim);
-				XMFLOAT3 pos{ mat._41, mat._42, mat._43 };*/
-				XMFLOAT3 front = GetFront();
-				XMFLOAT3 pos = Vector3::Add(front, GetPosition());
-
-				CS_WEAPON_COLLISION_PACKET packet;
-				packet.size = sizeof(packet);
-				packet.type = CS_PACKET_WEAPON_COLLISION;
-				packet.x = pos.x;
-				packet.y = pos.y;
-				packet.z = pos.z;
-				packet.attack_type = AttackType::NORMAL;
-				packet.collision_type = CollisionType::MULTIPLE_TIMES;
-				packet.end_time = chrono::system_clock::now();
-				send(g_socket, reinterpret_cast<char*>(&packet), packet.size, 0);
-			}
-			else if (m_type == PlayerType::ARCHER && fabs(track.GetPosition() - 0.4f) <= 0.01f) {
-				auto& obj = FindFrame("Archer_WeaponBow");
-				XMFLOAT4X4 world = GetWorldMatrix();
-				XMFLOAT4X4 anim = obj->GetAnimationMatrix();
-				XMFLOAT4X4 mat = Matrix::Mul(world, anim);
-				XMFLOAT3 pos{ mat._41, mat._42, mat._43 };
-
-				CS_WEAPON_COLLISION_PACKET packet;
-				packet.size = sizeof(packet);
-				packet.type = CS_PACKET_WEAPON_COLLISION;
-				packet.x = pos.x;
-				packet.y = pos.y;
-				packet.z = pos.z;
-				packet.attack_type = AttackType::NORMAL;
-				packet.collision_type = CollisionType::ONE_OFF;
-				packet.end_time = chrono::system_clock::now();
-				send(g_socket, reinterpret_cast<char*>(&packet), packet.size, 0);
-			}
-#endif
 		}
-		
 		else {
 			float length = fabs(m_velocity.x) + fabs(m_velocity.z);
 			if (length <= numeric_limits<float>::epsilon()) {
@@ -279,6 +240,25 @@ void Player::SendCooltimePacket(CooltimeType type)
 	packet.type = CS_PACKET_SET_COOLTIME;
 	packet.cooltime_type = type;
 	send(g_socket, reinterpret_cast<char*>(&packet), sizeof(packet), 0);
+#endif
+}
+
+void Player::SendAttackPacket(const XMFLOAT3& pos, AttackType attackType,
+	CollisionType collisionType, chrono::system_clock::time_point eventTime,
+	CooltimeType cooltimeType)
+{
+#ifdef USE_NETWORK
+	m_cooltimeList[cooltimeType] = true;
+
+	CS_ATTACK_PACKET packet;
+	packet.size = sizeof(packet);
+	packet.type = CS_PACKET_ATTACK;
+	packet.position = pos;
+	packet.attack_type = attackType;
+	packet.collision_type = collisionType;
+	packet.event_time = eventTime;
+	packet.cooltime_type = cooltimeType;
+	send(g_socket, reinterpret_cast<char*>(&packet), packet.size, 0);
 #endif
 }
 

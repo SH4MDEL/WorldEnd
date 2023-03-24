@@ -58,6 +58,14 @@ XMFLOAT3 Monster::GetPlayerDirection(INT player_id)
 	Server& server = Server::GetInstance();
 
 	// 타겟 플레이어가 사망 or 접속 종료되면 타겟 변경
+	auto game_room = server.GetGameRoomManager()->GetGameRoom(m_room_num);
+	auto& ids = game_room->GetPlayerIds();
+	auto it = find(ids.begin(), ids.end(), player_id);
+	if (it == ids.end()) {
+		UpdateTarget();
+		return XMFLOAT3(0.f, 0.f, 0.f);
+	}
+
 	if (State::ST_INGAME != server.m_clients[player_id]->GetState()) {
 		UpdateTarget();
 		return XMFLOAT3(0.f, 0.f, 0.f);
@@ -83,9 +91,9 @@ bool Monster::CanAttack()
 
 void Monster::MakeDecreaseAggroLevelEvent()
 {
-	TIMER_EVENT ev{ .event_time = std::chrono::system_clock::now() +
-			MonsterSetting::DECREASE_AGRO_LEVEL_TIME,
-			.event_type = EventType::DECREASE_AGRO_LEVEL, .obj_id = m_id,
+	TIMER_EVENT ev{ .event_time = std::chrono::system_clock::now() + 
+			MonsterSetting::DECREASE_AGRO_LEVEL_TIME, .obj_id = m_id,
+			.event_type = EventType::AGRO_LEVEL_DECREASE,
 		.aggro_level = m_aggro_level };
 
 	Server& server = Server::GetInstance();
@@ -127,7 +135,7 @@ void Monster::ChangeBehavior(MonsterBehavior behavior)
 
 	TIMER_EVENT ev{};
 	ev.obj_id = m_id;
-	ev.event_type = EventType::CHANGE_BEHAVIOR;
+	ev.event_type = EventType::BEHAVIOR_CHANGE;
 	ev.aggro_level = m_aggro_level;
 	auto current_time = std::chrono::system_clock::now();
 
@@ -366,8 +374,8 @@ void Monster::CollisionCheck()
 	auto& player_ids = game_room->GetPlayerIds();
 
 	
-	server.CollisionCheck(shared_from_this(), monster_ids, Server::CollideByStaticOBB);
-	server.CollisionCheck(shared_from_this(), player_ids, Server::CollideByStaticOBB);
+	server.CollideObject(shared_from_this(), monster_ids, Server::CollideByStaticOBB);
+	server.CollideObject(shared_from_this(), player_ids, Server::CollideByStaticOBB);
 }
 
 void Monster::InitializePosition()

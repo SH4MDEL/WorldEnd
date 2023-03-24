@@ -4,8 +4,9 @@
 
 enum CompType 
 {
-	OP_RECV, OP_SEND, OP_ACCEPT, OP_RESET_COOLTIME, OP_REMOVE_MONSTER,
-	OP_CLEAR_FLOOR, OP_FAIL_FLOOR, OP_CHANGE_BEHAVIOR, OP_DECREASE_AGGRO_LEVEL
+	OP_RECV, OP_SEND, OP_ACCEPT, OP_COOLTIME_RESET, OP_MONSTER_REMOVE,
+	OP_FLOOR_CLEAR, OP_FLOOR_FAIL, OP_BEHAVIOR_CHANGE, OP_AGGRO_REDUCE,
+	OP_ATTACK_COLLISION
 };
 
 class ExpOver {
@@ -37,14 +38,15 @@ public:
 	void SetReadyCheck(bool ready_check) { m_ready_check = ready_check; }
 	void SetPlayerType(PlayerType type);
 	void SetSkillRatio(AttackType type, FLOAT ratio);
+	void SetWeaponCenter(const XMFLOAT3& center);
 
 	const SOCKET& GetSocket() const override { return m_socket; }
 	ExpOver& GetExpOver() { return m_recv_over; }
 	INT GetRemainSize() const { return m_remain_size; }
 	bool GetReadyCheck() const { return m_ready_check; }
 	PlayerType GetPlayerType() const override { return m_player_type; }
-	const BoundingOrientedBox& GetWeaponBoundingBox() const { return m_weopon_bounding_box; }
 	virtual FLOAT GetSkillRatio(AttackType type) const override;
+	const BoundingOrientedBox& GetWeaponBoundingBox() const { return m_weopon_bounding_box; }
 
 	PLAYER_DATA GetPlayerData() const override;
 

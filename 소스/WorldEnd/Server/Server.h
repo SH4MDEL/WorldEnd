@@ -6,17 +6,24 @@
 #include "map.h"
 
 
-enum class EventType : char { RESET_COOLTIME, CHANGE_BEHAVIOR, DECREASE_AGRO_LEVEL };
+enum class EventType : char 
+{
+	COOLTIME_RESET, BEHAVIOR_CHANGE, AGRO_LEVEL_DECREASE,
+	ATTACK_COLLISION
+};
 
 struct TIMER_EVENT {
 	std::chrono::system_clock::time_point event_time;
-	EventType event_type;
 	INT obj_id;
 	INT targat_id;
+	XMFLOAT3 position;
+	EventType event_type;
 	CooltimeType cooltime_type;
 	MonsterBehavior next_behavior_type;
 	BYTE behavior_id;
 	BYTE aggro_level;
+	AttackType attack_type;
+	CollisionType collision_type;
 
 	constexpr bool operator <(const TIMER_EVENT& left)const
 	{
@@ -58,7 +65,7 @@ public:
 	static void MoveObject(const std::shared_ptr<GameObject>& object, XMFLOAT3 velocity);
 	static void RotateObject(const std::shared_ptr<GameObject>& object, FLOAT yaw);
 
-	void CollisionCheck(const std::shared_ptr<GameObject>& object, const std::span<INT> ids,
+	void CollideObject(const std::shared_ptr<GameObject>& object, const std::span<INT> ids,
 		std::function<void(const std::shared_ptr<GameObject>&, const std::shared_ptr<GameObject>&)> func);
 	static void CollideByStatic(const std::shared_ptr<GameObject>& object,
 		const std::shared_ptr<GameObject>& object1);

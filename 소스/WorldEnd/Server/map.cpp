@@ -3,9 +3,25 @@
 #include "Server.h"
 #include "map.h"
 
-void GameRoom::SetEvent(COLLISION_EVENT ev)
+GameRoom::GameRoom() : m_state{ GameRoomState::EMPTY }, m_floor{ 1 },
+m_type{ EnvironmentType::FOG }, m_monster_count{ 0 }
 {
-	m_collision_events.push_back(ev);
+	for (INT& id : m_player_ids)
+		id = -1;
+
+	for (INT& id : m_monster_ids)
+		id = -1;
+}
+
+void GameRoom::Update(FLOAT elapsed_time)
+{
+	Server& server = Server::GetInstance();
+
+	for (INT id : m_monster_ids) {
+		if (-1 == id) continue;
+
+		server.m_clients[id]->Update(elapsed_time);
+	}
 }
 
 // 파티 생성하지 않고 진입 시 사용하는 함수
@@ -27,89 +43,6 @@ void GameRoom::SetMonstersRoomNum(INT room_num)
 		if (-1 == id) continue;
 
 		server.m_clients[id]->SetRoomNum(room_num);
-	}
-}
-
-GameRoom::GameRoom() : m_state{ GameRoomState::EMPTY }, m_floor{ 1 }, 
-	m_type{ EnvironmentType::FOG }, m_monster_count{ 0 }
-{
-	for (INT& id : m_player_ids)
-		id = -1;
-
-	for (INT& id : m_monster_ids)
-		id = -1;
-}
-
-void GameRoom::Update(FLOAT elapsed_time)
-{
-	Server& server = Server::GetInstance();
-
-	// 몬스터 이동
-	for (INT id : m_monster_ids) {
-		if (-1 == id) continue;
-
-		server.m_clients[id]->Update(elapsed_time);
-	}
-
-
-	// 충돌 이벤트에 대한 검사
-	for (auto c_it = m_collision_events.begin(); c_it != m_collision_events.end();) {
-		auto& player = server.m_clients[c_it->user_id];
-
-		for (INT id : m_monster_ids) {
-			if (-1 == id) continue;
-
-			auto monster = dynamic_pointer_cast<Monster>(server.m_clients[id]);
-
-			if (-1 == monster->GetId()) continue;
-
-			// 충돌 비교
-			if (monster->GetBoundingBox().Intersects(c_it->bounding_box)) {
-
-				// 충돌 발생 시 데미지 계산
-				FLOAT damage = player->GetDamage();
-
-				switch (c_it->attack_type) {
-				case AttackType::SKILL:
-					damage *= player->GetSkillRatio(AttackType::SKILL);
-					break;
-
-				case AttackType::ULTIMATE:
-					// 궁극기 계수는 추가 필요
-					;
-					break;
-				}
-
-				monster->DecreaseHp(damage, c_it->user_id);
-
-				// 1회성 충돌 이벤트이면 이벤트 리스트에서 제거
-				// 제거 후 다음 이벤트 검사로 넘어가야 함
-				if (CollisionType::ONE_OFF == c_it->collision_type) {
-					c_it = m_collision_events.erase(c_it);
-					break;
-				}
-			}
-		}
-		// 특정 이벤트에 대한 몬스터 검사 끝
-
-		// 해당 이벤트가 끝났으면 리스트에서 제거
-		switch (c_it->collision_type) {
-		case CollisionType::MULTIPLE_TIMES:
-			c_it = m_collision_events.erase(c_it);
-			break;
-
-		case CollisionType::PERSISTENCE:
-			// 시간을 검사하여 지났다면 이벤트에서 제거
-			// 아니면 다음 이벤트 검사
-			if (c_it->end_time < std::chrono::system_clock::now()) {
-				c_it = m_collision_events.erase(c_it);
-			}
-			else {
-				++c_it;
-			}
-			break;
-		}
-
 	}
 }
 
@@ -226,7 +159,7 @@ void GameRoom::DecreaseMonsterCount(INT room_num, BYTE count)
 		Server& server = Server::GetInstance();
 
 		ExpOver* over = new ExpOver();
-		over->_comp_type = OP_CLEAR_FLOOR;
+		over->_comp_type = OP_FLOOR_CLEAR;
 		PostQueuedCompletionStatus(server.GetIOCPHandle(), 1, room_num, &over->_wsa_over);
 	}
 }
@@ -282,12 +215,6 @@ GameRoomManager::GameRoomManager()
 	for (auto& game_room : m_game_rooms) {
 		game_room = std::make_shared<GameRoom>();
 	}
-}
-
-void GameRoomManager::SetEvent(COLLISION_EVENT ev, INT player_id)
-{
-	int index = FindGameRoomInPlayer(player_id);
-	m_game_rooms[index]->SetEvent(ev);
 }
 
 // gameroom 의 Setplayer 와 마찬가지로 파티 생성 없이 진입할 때

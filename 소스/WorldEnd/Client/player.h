@@ -40,6 +40,9 @@ public:
 	INT GetID() const { return m_id; }
 
 	void SendCooltimePacket(CooltimeType type);
+	void SendAttackPacket(const XMFLOAT3& pos, AttackType attackType,
+		CollisionType collisionType, chrono::system_clock::time_point eventTime,
+		CooltimeType cooltimeType);
 
 private:
 	XMFLOAT3			m_velocity;		// 속도
@@ -52,7 +55,7 @@ private:
 	shared_ptr<Camera>	m_camera;		// 카메라
 	shared_ptr<HpBar>	m_hpBar;		// HP바
 
-	INT					m_id;				// 플레이어 고유 아이디
+	INT					m_id;			// 플레이어 고유 아이디
 
 	PlayerType			m_type = PlayerType::WARRIOR;
 

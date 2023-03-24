@@ -15,7 +15,6 @@ public:
 	void Update(FLOAT elapsed_time);
 
 	void SetType(EnvironmentType type) { m_type = type; }
-	void SetEvent(COLLISION_EVENT ev);
 	void SetPlayer(INT player_id);
 	void SetState(GameRoomState state) { m_state = state; }
 	void SetMonstersRoomNum(INT room_num);
@@ -45,8 +44,6 @@ public:
 private:
 	std::array<INT, MAX_INGAME_USER>			m_player_ids;
 	std::array<INT, MAX_INGAME_MONSTER>			m_monster_ids;
-	std::list<COLLISION_EVENT>					m_collision_events;
-	// thread-unsafe 하므로 변경 필요함
 	std::chrono::system_clock::time_point		m_start_time;
 
 	EnvironmentType			m_type;
@@ -75,7 +72,6 @@ public:
 
 	void Update(float elapsed_time);
 
-	void SetEvent(COLLISION_EVENT ev, INT player_id);
 	void SetPlayer(INT room_num, INT player_id);
 
 	std::vector<std::shared_ptr<GameObject>>& GetStructures() { return m_structures; }

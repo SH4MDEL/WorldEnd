@@ -32,7 +32,7 @@ constexpr int MAX_MONSTER = 10;
 constexpr char CS_PACKET_LOGIN = 1;
 constexpr char CS_PACKET_PLAYER_MOVE = 2;
 constexpr char CS_PACKET_SET_COOLTIME = 4;
-constexpr char CS_PACKET_WEAPON_COLLISION = 5;
+constexpr char CS_PACKET_ATTACK = 5;
 constexpr char CS_PACKET_CHANGE_ANIMATION = 6;
 
 constexpr char SC_PACKET_LOGIN_OK = 1;
@@ -54,7 +54,7 @@ enum class MonsterType : char { WARRIOR, ARCHER, WIZARD };
 enum class EnvironmentType : char { RAIN, FOG, GAS, TRAP };
 
 enum class CollisionType : char { PERSISTENCE, ONE_OFF, MULTIPLE_TIMES };
-enum CooltimeType {
+enum CooltimeType : char {
 	NORMAL_ATTACK, SKILL, ULTIMATE, ROLL, COUNT
 };
 enum class MonsterBehavior : char {
@@ -67,9 +67,17 @@ namespace PlayerSetting
 
 	constexpr float PLAYER_RUN_SPEED = 10.f;
 
+
+	constexpr auto WARRIOR_ATTACK_COLLISION_TIME = 210ms;
 	constexpr auto WARRIOR_ATTACK_COOLTIME = 1s;
 	constexpr auto WARRIOR_SKILL_COOLTIME = 7s;
 	constexpr auto WARRIOR_ULTIMATE_COOLTIME = 20s;
+
+
+	constexpr auto ARCHER_ATTACK_COLLISION_TIME = 400ms;
+	constexpr auto ARCHER_ATTACK_COOLTIME = 1s;
+	constexpr auto ARCHER_SKILL_COOLTIME = 7s;
+	constexpr auto ARCHER_ULTIMATE_COOLTIME = 20s;
 }
 
 namespace MonsterSetting 
@@ -205,14 +213,15 @@ struct CS_ARROW_PACKET       // 공격키를 눌렀을때 투사체를 생성해
 	ARROW_DATA arrow_data;
 };
 
-struct CS_WEAPON_COLLISION_PACKET		// 전사 플레이어가 공격 시 무기의 충돌 프레임에 서버로 보낼 패밋
+struct CS_ATTACK_PACKET
 {
 	UCHAR size;
 	UCHAR type;
-	std::chrono::system_clock::time_point end_time;	// 충돌 판정 종료 시간
+	std::chrono::system_clock::time_point event_time;
 	AttackType attack_type;
 	CollisionType collision_type;
-	FLOAT x, y, z;
+	CooltimeType cooltime_type;
+	DirectX::XMFLOAT3 position;
 };
 
 struct CS_CHANGE_ANIMATION_PACKET

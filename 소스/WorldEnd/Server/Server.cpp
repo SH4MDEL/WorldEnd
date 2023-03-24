@@ -233,7 +233,7 @@ void Server::WorkerThread()
 			break;
 		}
 
-		case OP_RESET_COOLTIME: {
+		case OP_COOLTIME_RESET: {
 			// 해당 클라이언트의 쿨타임 초기화
 			SC_RESET_COOLTIME_PACKET packet{};
 			packet.size = sizeof(packet);
@@ -245,7 +245,7 @@ void Server::WorkerThread()
 			delete exp_over;
 			break;
 		}
-		case OP_REMOVE_MONSTER: {
+		case OP_MONSTER_REMOVE: {
 			int monster_id = static_cast<int>(key);
 			auto monster = dynamic_pointer_cast<Monster>(m_clients[monster_id]);
 			int room_num = monster->GetRoomNum();
@@ -268,7 +268,7 @@ void Server::WorkerThread()
 			delete exp_over;
 			break;
 		}
-		case OP_CLEAR_FLOOR: {
+		case OP_FLOOR_CLEAR: {
 			int room_num = static_cast<int>(key);
 			auto game_room = m_game_room_manager->GetGameRoom(room_num);
 			
@@ -294,7 +294,7 @@ void Server::WorkerThread()
 			delete exp_over;
 			break;
 		}
-		case OP_FAIL_FLOOR: {
+		case OP_FLOOR_FAIL: {
 			int room_num = static_cast<int>(key);
 			auto game_room = m_game_room_manager->GetGameRoom(room_num);
 
@@ -312,16 +312,57 @@ void Server::WorkerThread()
 			delete exp_over;
 			break;
 		}
-		case OP_CHANGE_BEHAVIOR: {
+		case OP_BEHAVIOR_CHANGE: {
 			auto monster = dynamic_pointer_cast<Monster>(m_clients[static_cast<int>(key)]);
 			monster->ChangeBehavior(static_cast<MonsterBehavior>(exp_over->_send_buf[0]));
 
 			delete exp_over;
 			break;
 		}
-		case OP_DECREASE_AGGRO_LEVEL: {
+		case OP_AGGRO_REDUCE: {
 			auto monster = dynamic_pointer_cast<Monster>(m_clients[static_cast<int>(key)]);
 			monster->DecreaseAggroLevel();
+
+			delete exp_over;
+			break;
+		}
+		case OP_ATTACK_COLLISION: {
+			auto client = dynamic_pointer_cast<Client>(m_clients[static_cast<int>(key)]);
+			AttackType attack_type = static_cast<AttackType>(exp_over->_send_buf[0]);
+			CollisionType collision_type = static_cast<CollisionType>(exp_over->_send_buf[1]);
+			XMFLOAT3* pos = reinterpret_cast<XMFLOAT3*>(&exp_over->_send_buf[2]);
+
+			int room_num = client->GetRoomNum();
+			auto game_room = m_game_room_manager->GetGameRoom(room_num);
+			auto& monter_ids = game_room->GetMonsterIds();
+
+			client->SetWeaponCenter(*pos);
+			
+			for (int id : monter_ids) {
+				if (-1 == id) continue;
+				if (State::ST_INGAME != m_clients[id]->GetState()) continue;
+				
+				if (client->GetBoundingBox().Intersects(m_clients[id]->GetBoundingBox())) {
+					auto monster = dynamic_pointer_cast<Monster>(m_clients[id]);
+
+					FLOAT damage = client->GetDamage();
+					damage *= client->GetSkillRatio(attack_type);
+					
+					monster->DecreaseHp(damage, client->GetId());
+
+					// 충돌이 한마리에게만 일어나면 빠져나오도록 함
+					if (CollisionType::ONE_OFF == collision_type) {
+						break;
+					}
+				}
+			}
+
+			// 지속성 공격이면 타이머로 넘겨서 지속적으로 충돌이 발생하도록 해야 함
+			// 공격의 주기가 필요할 것
+			//  -> 공격 주기는 스킬 클래스를 만들어 가지고 있던가 constexpr 로 정의하던가 해야 함
+			if (CollisionType::PERSISTENCE == collision_type) {
+				//
+			}
 
 			delete exp_over;
 			break;
@@ -377,24 +418,14 @@ void Server::ProcessPacket(int id, char* p)
 	case CS_PACKET_SET_COOLTIME: {
 		CS_COOLTIME_PACKET* packet = reinterpret_cast<CS_COOLTIME_PACKET*>(p);
 
-		TIMER_EVENT ev{ .event_type = EventType::RESET_COOLTIME, .obj_id = id,
+		TIMER_EVENT ev{ .obj_id = id, .event_type = EventType::COOLTIME_RESET,
 				.cooltime_type = packet->cooltime_type };
 
 		// 쿨타임 중인지 검사 필요
 		switch (packet->cooltime_type) {
-		case CooltimeType::NORMAL_ATTACK: {
-			ev.event_time = std::chrono::system_clock::now() + PlayerSetting::WARRIOR_ATTACK_COOLTIME;
-			break; 
-		}
-		case CooltimeType::SKILL: {
-			ev.event_time = std::chrono::system_clock::now() + PlayerSetting::WARRIOR_SKILL_COOLTIME;
-			break;
-		}
-		case CooltimeType::ULTIMATE: {
+		case CooltimeType::ROLL:
 			ev.event_time = std::chrono::system_clock::now() + PlayerSetting::WARRIOR_ULTIMATE_COOLTIME;
-			break;
-		}
-
+			// 공격 외 쿨타임 처리
 		}
 
 		m_timer_queue.push(ev);
@@ -402,23 +433,52 @@ void Server::ProcessPacket(int id, char* p)
 		break;
 	}
 
-	case CS_PACKET_WEAPON_COLLISION: {
-		CS_WEAPON_COLLISION_PACKET* packet = reinterpret_cast<CS_WEAPON_COLLISION_PACKET*>(p);
+	case CS_PACKET_ATTACK: {
+		CS_ATTACK_PACKET* packet = reinterpret_cast<CS_ATTACK_PACKET*>(p);
+		int room_num = m_clients[id]->GetRoomNum();
+	
+		// 공격 충돌 처리
+		TIMER_EVENT ev{ .event_time = packet->event_time, .obj_id = id,
+			.position = packet->position, .event_type = EventType::ATTACK_COLLISION,
+		.attack_type = packet->attack_type, .collision_type = packet->collision_type, };
+		
+		m_timer_queue.push(ev);
 
-		// 이벤트를 생성한다
-		COLLISION_EVENT ev{};
-		ev.user_id = cl->GetId();
-		ev.bounding_box.Center.x = packet->x;
-		ev.bounding_box.Center.y = packet->y;
-		ev.bounding_box.Center.z = packet->z;
-		ev.bounding_box.Extents = cl->GetWeaponBoundingBox().Extents;
-		ev.attack_type = packet->attack_type;
-		ev.collision_type = packet->collision_type;
-		ev.end_time = packet->end_time;
+		// 공격 쿨타임 처리
+		// 쿨타임인지 검사 필요함 (변조 방지)
+		ev.event_type = EventType::COOLTIME_RESET;
+		ev.obj_id = id;
+		ev.cooltime_type = packet->cooltime_type;
 
-		// 이벤트를 해당 플레이어가 속한 던전에 추가한다
-		m_game_room_manager->SetEvent(ev, cl->GetId());
+		if (PlayerType::WARRIOR == m_clients[id]->GetPlayerType()) {
+			switch (packet->cooltime_type) {
+			case CooltimeType::NORMAL_ATTACK:
+				ev.event_time = std::chrono::system_clock::now() + PlayerSetting::WARRIOR_ATTACK_COOLTIME;
+				break;
+			case CooltimeType::SKILL:
+				ev.event_time = std::chrono::system_clock::now() + PlayerSetting::WARRIOR_SKILL_COOLTIME;
+				break;
+			case CooltimeType::ULTIMATE:
+				ev.event_time = std::chrono::system_clock::now() + PlayerSetting::WARRIOR_ULTIMATE_COOLTIME;
+				break;
+			}
+		}
+		else if (PlayerType::ARCHER == m_clients[id]->GetPlayerType()) {
+			switch (packet->cooltime_type) {
+			case CooltimeType::NORMAL_ATTACK:
+				ev.event_time = std::chrono::system_clock::now() + PlayerSetting::ARCHER_ATTACK_COOLTIME;
+				break;
+			case CooltimeType::SKILL:
+				ev.event_time = std::chrono::system_clock::now() + PlayerSetting::ARCHER_SKILL_COOLTIME;
+				break;
+			case CooltimeType::ULTIMATE:
+				ev.event_time = std::chrono::system_clock::now() + PlayerSetting::ARCHER_ULTIMATE_COOLTIME;
+				break;
+			}
+		}
 
+		m_timer_queue.push(ev);
+		
 		break;
 	}
 
@@ -538,8 +598,8 @@ void Server::PlayerCollisionCheck(const std::shared_ptr<Client>& player)
 	auto& player_ids = game_room->GetPlayerIds();
 	auto& monster_ids = game_room->GetMonsterIds();
 
-	CollisionCheck(player, monster_ids, Server::CollideByStaticOBB);
-	CollisionCheck(player, player_ids, Server::CollideByStaticOBB);
+	CollideObject(player, monster_ids, Server::CollideByStaticOBB);
+	CollideObject(player, player_ids, Server::CollideByStaticOBB);
 	/*CollisionCheck(player, player_ids);
 	CollisionCheck(player, monster_ids);*/
 
@@ -647,9 +707,9 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 	using namespace std::literals;
 
 	switch (ev.event_type) {
-	case EventType::RESET_COOLTIME: {
+	case EventType::COOLTIME_RESET: {
 		ExpOver* over = new ExpOver;
-		over->_comp_type = OP_RESET_COOLTIME;	
+		over->_comp_type = OP_COOLTIME_RESET;	
 		memcpy(&over->_send_buf, &ev.cooltime_type, sizeof(CooltimeType));
 
 		// 단순히 쿨타임 초기화만 필요하면 PQCS 로 넘기지 않아도 될 것 같음
@@ -658,16 +718,17 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 
 		break;
 	}
-	case EventType::CHANGE_BEHAVIOR: {
+	case EventType::BEHAVIOR_CHANGE: {
 		auto monster = dynamic_pointer_cast<Monster>(m_clients[ev.obj_id]);
 		if (MonsterBehavior::DEAD == ev.next_behavior_type) {
 			ExpOver* over = new ExpOver;
-			over->_comp_type = OP_REMOVE_MONSTER;
+			over->_comp_type = OP_MONSTER_REMOVE;
 
 			PostQueuedCompletionStatus(m_handle_iocp, 1, ev.obj_id, &over->_wsa_over);
 			return;
 		}
 
+		// 가장 최근에 발생한 행동전환 이벤트가 아니면 return
 		if (ev.behavior_id != monster->GetLastBehaviorId())
 			return;
 
@@ -675,28 +736,30 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 		if (MonsterBehavior::DEAD == monster->GetBehavior())
 			return;
 
-		//// 어그로 낮은 행동 전환을 현재는 reterget 만 무시함
-		//// 나중에 무시하면 될 것 같은 행동을 or 로 추가하면 될 것
-		//if (MonsterBehavior::RETARGET == ev.next_behavior_type) {
-		//	if (ev.aggro_level < monster->GetAggroLevel()){
-		//		return;
-		//	}
-		//}
-
 		ExpOver* over = new ExpOver;
-		over->_comp_type = OP_CHANGE_BEHAVIOR;
+		over->_comp_type = OP_BEHAVIOR_CHANGE;
 		memcpy(&over->_send_buf, &ev.next_behavior_type, sizeof(MonsterBehavior));
 		PostQueuedCompletionStatus(m_handle_iocp, 1, ev.obj_id, &over->_wsa_over);
 		break;
 	}
-	case EventType::DECREASE_AGRO_LEVEL: {
+	case EventType::AGRO_LEVEL_DECREASE: {
 		auto monster = dynamic_pointer_cast<Monster>(m_clients[ev.obj_id]);
 		if (ev.aggro_level < monster->GetAggroLevel())
 			return;
 
 		ExpOver* over = new ExpOver;
-		over->_comp_type = OP_DECREASE_AGGRO_LEVEL;
+		over->_comp_type = OP_AGGRO_REDUCE;
 		PostQueuedCompletionStatus(m_handle_iocp, 1, ev.obj_id, &over->_wsa_over);
+		break;
+	}
+	case EventType::ATTACK_COLLISION: {
+		ExpOver* over = new ExpOver;
+		over->_comp_type = OP_ATTACK_COLLISION;
+		memcpy(&over->_send_buf[0], &ev.attack_type, sizeof(AttackType));
+		memcpy(&over->_send_buf[1], &ev.collision_type, sizeof(CollisionType));
+		memcpy(&over->_send_buf[2], &ev.position, sizeof(XMFLOAT3));
+		PostQueuedCompletionStatus(m_handle_iocp, 1, ev.obj_id, &over->_wsa_over);
+		break;
 	}
 
 	}
@@ -722,7 +785,7 @@ void Server::RotateObject(const std::shared_ptr<GameObject>& object, FLOAT yaw)
 }
 
 // 연속적인 컨테이너, 여기선 array 를 상관없이 받도록 하기 위해 span 사용
-void Server::CollisionCheck(const std::shared_ptr<GameObject>& object, const std::span<INT> ids,
+void Server::CollideObject(const std::shared_ptr<GameObject>& object, const std::span<INT> ids,
 	std::function<void(const std::shared_ptr<GameObject>&, const std::shared_ptr<GameObject>&)> func)
 {
 	for (INT id : ids) {
