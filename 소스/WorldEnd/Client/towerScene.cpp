@@ -285,12 +285,12 @@ void TowerScene::RenderShadow(const ComPtr<ID3D12GraphicsCommandList>& commandLi
 	{
 	case 0:
 	{
-		m_shaders["ANIMATION"]->Render(device, commandList, m_shaders["ANIMATIONSHADOW"]);
+		m_shaders["ANIMATION"]->Render(commandList, m_shaders["ANIMATIONSHADOW"]);
 		break;
 	}
 	case 1:
 	{
-		m_shaders["OBJECT"]->Render(device, commandList, m_shaders["SHADOW"]);
+		m_shaders["OBJECT"]->Render(commandList, m_shaders["SHADOW"]);
 		break;
 	}
 	case 2:
@@ -309,20 +309,20 @@ void TowerScene::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UI
 	{
 	case 0:
 	{
-		m_shaders.at("ANIMATION")->Render(device, commandList);
+		m_shaders.at("ANIMATION")->Render(commandList);
 		break;
 	}
 	case 1:
 	{
-		m_shaders.at("OBJECT")->Render(device, commandList);
+		m_shaders.at("OBJECT")->Render(commandList);
 		break;
 	}
 	case 2:
 	{
-		m_shaders.at("SKYBOX")->Render(device, commandList);
-		m_shaders.at("HPBAR")->Render(device, commandList);
+		m_shaders.at("SKYBOX")->Render(commandList);
+		m_shaders.at("HPBAR")->Render(commandList);
 		g_particleSystem->Render(commandList);
-		//m_shaders.at("DEBUG")->Render(device, commandList);
+		//m_shaders.at("DEBUG")->Render(commandList);
 		break;
 	}
 	}
@@ -332,7 +332,7 @@ void TowerScene::PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandLis
 {
 	m_sobelFilter->Execute(commandList, renderTarget);
 	commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET));
-	m_shaders["COMPOSITE"]->Render(g_GameFramework.GetDevice(), commandList);
+	m_shaders["COMPOSITE"]->Render(commandList);
 	commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE));
 
 	//m_blurFilter->Execute(commandList, renderTarget, 5);

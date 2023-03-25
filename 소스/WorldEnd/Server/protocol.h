@@ -65,7 +65,7 @@ namespace PlayerSetting
 {
 	using namespace std::literals;
 
-	constexpr float PLAYER_RUN_SPEED = 10.f;
+	constexpr float PLAYER_RUN_SPEED = 4.f;
 
 
 	constexpr auto WARRIOR_ATTACK_COLLISION_TIME = 210ms;

@@ -202,8 +202,8 @@ void LoadingScene::Update(FLOAT timeElapsed)
 	if (m_loadEnd) g_GameFramework.ChangeScene(SCENETAG::TowerScene);
 }
 
-void LoadingScene::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const {}
-void LoadingScene::RenderShadow(const ComPtr<ID3D12GraphicsCommandList>& commandList) {}
+void LoadingScene::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) const {}
+void LoadingScene::RenderShadow(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) {}
 void LoadingScene::PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList, const ComPtr<ID3D12Resource>& renderTarget) {}
 
 void LoadingScene::RenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext)
