@@ -3,6 +3,7 @@
 #include "object.h"
 #include "player.h"
 #include "camera.h"
+#include "monster.h"
 #include "particleMesh.h"
 
 class Shader
@@ -15,8 +16,8 @@ public:
 	virtual void UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& commandList) const;
 
 	virtual void Update(FLOAT timeElapsed);
-	virtual void Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList) const;
-	virtual void Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, const shared_ptr<Shader>& shader) const;
+	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const;
+	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, const shared_ptr<Shader>& shader) const;
 
 	shared_ptr<Player> GetPlayer() const { return m_player; }
 	shared_ptr<Camera> GetCamera() const { return m_camera; }
@@ -27,6 +28,9 @@ public:
 	void SetCamera(const shared_ptr<Camera>& camera);
 	void SetObject(const shared_ptr<GameObject>& object);
 	void SetMultiPlayer(INT ID, const shared_ptr<Player>& player);
+	void SetMonster(INT ID, const shared_ptr<Monster>& monster);
+
+	void DeleteMultiPlayer(INT id);
 
 protected:
 	ComPtr<ID3D12PipelineState>				m_pipelineState;
@@ -38,6 +42,7 @@ protected:
 	shared_ptr<Camera>						m_camera;
 
 	unordered_map<INT, shared_ptr<Player>>	m_multiPlayers;
+	unordered_map<INT, shared_ptr<Monster>>	m_monsters;
 };
 
 struct InstancingData

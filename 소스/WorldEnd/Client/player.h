@@ -9,7 +9,7 @@ class Player : public AnimationObject
 {
 public:
 	Player();
-	~Player() = default;
+	~Player();
 
 	void OnProcessingKeyboardMessage(FLOAT timeElapsed);
 	void OnProcessingClickMessage(LPARAM lParam);
@@ -32,10 +32,18 @@ public:
 	
 	PlayerType GetType() const { return m_type; }
 
+	void ResetCooltime(CooltimeType type);
+	virtual bool ChangeAnimation(int animation) override;
+	void ChangeAnimation(int animation, bool other);
+
 	// 추가
 	void SetID(INT id) { m_id = id; }
-	void SetKey(CHAR key) { m_key = key; }
 	INT GetID() const { return m_id; }
+
+	void SendCooltimePacket(CooltimeType type);
+	void SendAttackPacket(const XMFLOAT3& pos, AttackType attackType,
+		CollisionType collisionType, chrono::system_clock::time_point eventTime,
+		CooltimeType cooltimeType);
 
 private:
 	XMFLOAT3			m_velocity;		// 속도
@@ -48,10 +56,11 @@ private:
 	shared_ptr<Camera>	m_camera;		// 카메라
 	shared_ptr<HpBar>	m_hpBar;		// HP바
 
-	INT					m_id;				// 플레이어 고유 아이디
-	CHAR                m_key = INPUT_KEY_E;
+	INT					m_id;			// 플레이어 고유 아이디
 
 	PlayerType			m_type = PlayerType::WARRIOR;
+
+	array<bool, CooltimeType::COUNT> m_cooltimeList;	// 쿨타임이면 true, 쿨타임중이 아니면 false
 };
 
 class AttackCallbackHandler : public AnimationCallbackHandler

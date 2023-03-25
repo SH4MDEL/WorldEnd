@@ -48,8 +48,8 @@ public:
 	virtual void OnProcessingKeyboardMessage(FLOAT timeElapsed) const = 0;
 
 	virtual void Update(FLOAT timeElapsed) = 0;
-	virtual void RenderShadow(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) = 0;
-	virtual void Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) const = 0;
+	virtual void RenderShadow(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) = 0;
+	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) const = 0;
 	virtual void PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList, const ComPtr<ID3D12Resource>& renderTarget) = 0;
 	virtual void RenderText(const ComPtr< ID2D1DeviceContext2>& deviceContext) = 0;
 	

@@ -141,18 +141,21 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="map.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="monster.cpp" />
+    <ClCompile Include="object.cpp" />
     <ClCompile Include="Server.cpp" />
-    <ClCompile Include="session.cpp" />
+    <ClCompile Include="client.cpp" />
     <ClCompile Include="stdafx.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="main.h" />
+    <ClInclude Include="map.h" />
     <ClInclude Include="monster.h" />
+    <ClInclude Include="object.h" />
     <ClInclude Include="protocol.h" />
     <ClInclude Include="Server.h" />
-    <ClInclude Include="session.h" />
+    <ClInclude Include="client.h" />
     <ClInclude Include="stdafx.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

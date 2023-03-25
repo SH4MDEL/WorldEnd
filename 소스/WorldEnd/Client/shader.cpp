@@ -48,32 +48,41 @@ void Shader::Update(FLOAT timeElapsed)
 
 	for (const auto& elm : m_multiPlayers)
 		elm.second->UpdateAnimation(timeElapsed);
+
+	for (const auto& elm : m_monsters)
+		elm.second->UpdateAnimation(timeElapsed);
 }
 
-void Shader::Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList) const
+void Shader::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const
 {
 	Shader::UpdateShaderVariable(commandList);
 
-	if (m_player) m_player->Render(device, commandList);
+	if (m_player) m_player->Render(commandList);
 
 	for (const auto& elm : m_gameObjects)
-		if (elm) elm->Render(device, commandList);
+		if (elm) elm->Render(commandList);
 
 	for (const auto& elm : m_multiPlayers)
-		if (elm.second) elm.second->Render(device, commandList);
+		if (elm.second) elm.second->Render(commandList);
+
+	for (const auto& elm : m_monsters)
+		if (elm.second) elm.second->Render(commandList);
 }
 
-void Shader::Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, const shared_ptr<Shader>& shader) const
+void Shader::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, const shared_ptr<Shader>& shader) const
 {
 	shader->UpdateShaderVariable(commandList);
 	
-	if (m_player) m_player->Render(device, commandList);
+	if (m_player) m_player->Render(commandList);
 
 	for (const auto& elm : m_gameObjects)
-		if (elm) elm->Render(device, commandList);
+		if (elm) elm->Render(commandList);
 
 	for (const auto& elm : m_multiPlayers)
-		if (elm.second) elm.second->Render(device, commandList);
+		if (elm.second) elm.second->Render(commandList);
+
+	for (const auto& elm : m_monsters)
+		if (elm.second) elm.second->Render(commandList);
 }
 
 void Shader::UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& commandList) const
@@ -102,6 +111,17 @@ void Shader::SetMultiPlayer(INT ID, const shared_ptr<Player>& player)
 {
 	m_multiPlayers.insert({ ID, player });
 }
+
+void Shader::SetMonster(INT ID, const shared_ptr<Monster>& monster)
+{
+	m_monsters.insert({ ID, monster });
+}
+
+void Shader::DeleteMultiPlayer(INT id)
+{
+	m_multiPlayers.erase(id);
+}
+
 
 InstancingShader::InstancingShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature, const Mesh& mesh, UINT count) : 
 	m_instancingCount(count)

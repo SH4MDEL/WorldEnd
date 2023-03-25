@@ -27,8 +27,8 @@ public:
     void OnProcessingKeyboardMessage(FLOAT timeElapsed) const override;
 
 	void Update(FLOAT timeElapsed) override;
-	void RenderShadow(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) override;
-	void Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) const override;
+	void RenderShadow(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) override;
+	void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) const override;
 	void PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList, const ComPtr<ID3D12Resource>& renderTarget) override;
 	void RenderText(const ComPtr< ID2D1DeviceContext2>& deviceContext) override;
 

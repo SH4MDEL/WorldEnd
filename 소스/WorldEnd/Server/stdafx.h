@@ -2,15 +2,20 @@
 #pragma once
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
+#define NOMINMAX
+
 #include <iostream>
 #include <WS2tcpip.h>
 #include <MSWSock.h>
 #include <thread>
 #include <array>
+#include <span>
+#include <list>
 #include <vector>
+#include <unordered_map>
 #include <mutex>
 #include <random>
-#include <concurrent_queue.h>
+#include <queue>
 #include <concurrent_priority_queue.h>
 #include <concurrent_unordered_set.h>
 #include "protocol.h"
@@ -27,38 +32,51 @@
 #include <d3dcompiler.h>
 #include <DirectXCollision.h>
 
-using namespace std;
 using namespace DirectX;
 
 #pragma comment (lib, "WS2_32.LIB")
 #pragma comment (lib, "MSWSock.LIB")
 
-class Server;
-extern Server           g_server;
-extern SOCKET			g_socket;
-extern HANDLE           g_h_iocp;
-extern std::mt19937		g_random_engine;
+extern std::mt19937     g_random_engine;
 
 void ErrorDisplay(const char* msg);
 void ErrorDisplay(int err_no);
+
+struct COLLISION_EVENT {
+    INT user_id;										// 공격자 id
+    CollisionType collision_type;						// 충돌 타입 (일회성, 지속성)
+    AttackType attack_type;								// 공격 타입 (기본공격, 스킬)
+    BoundingOrientedBox bounding_box;					// 충돌 범위
+    std::chrono::system_clock::time_point end_time;		// 충돌 이벤트 종료 시간
+};
+
+enum AggroLevel : BYTE { NORMAL_AGGRO, HIT_AGGRO, MAX_AGGRO };
 
 namespace Vector3
 {
     inline XMFLOAT3 Add(const XMFLOAT3& a, const XMFLOAT3& b)
     {
-        return XMFLOAT3{ a.x + b.x, a.y + b.y, a.z + b.z };
+        XMFLOAT3 result{};
+        XMStoreFloat3(&result, XMVectorAdd(XMLoadFloat3(&a), XMLoadFloat3(&b)));
+        return result;
     }
     inline XMFLOAT3 Sub(const XMFLOAT3& a, const XMFLOAT3& b)
     {
-        return XMFLOAT3{ a.x - b.x, a.y - b.y, a.z - b.z };
+        XMFLOAT3 result{};
+        XMStoreFloat3(&result, XMVectorSubtract(XMLoadFloat3(&a), XMLoadFloat3(&b)));
+        return result;
     }
     inline XMFLOAT3 Mul(const XMFLOAT3& a, const FLOAT& scalar)
     {
-        return XMFLOAT3{ a.x * scalar, a.y * scalar, a.z * scalar };
+        XMFLOAT3 result{};
+        XMStoreFloat3(&result, XMVectorScale(XMLoadFloat3(&a), scalar));
+        return result;
     }
     inline FLOAT Dot(const XMFLOAT3& a, const XMFLOAT3& b)
     {
-        return a.x * b.x + a.y * b.y + a.z * b.z;
+        XMFLOAT3 result{};
+        XMStoreFloat3(&result, XMVector3Dot(XMLoadFloat3(&a), XMLoadFloat3(&b)));
+        return result.x;
     }
     inline XMFLOAT3 Cross(const XMFLOAT3& a, const XMFLOAT3& b)
     {
@@ -66,7 +84,7 @@ namespace Vector3
         XMStoreFloat3(&result, XMVector3Cross(XMLoadFloat3(&a), XMLoadFloat3(&b)));
         return result;
     }
-    inline XMFLOAT3 Angle(const XMFLOAT3& a, const XMFLOAT3& b, BOOL isNormalized = true)
+    inline XMFLOAT3 Angle(const XMFLOAT3& a, const XMFLOAT3& b, bool isNormalized = true)
     {
         XMFLOAT3 result;
         if (isNormalized) XMStoreFloat3(&result, XMVector3AngleBetweenNormals(XMLoadFloat3(&a), XMLoadFloat3(&b)));
@@ -85,6 +103,14 @@ namespace Vector3
         XMVECTOR v{ XMVector3Length(XMLoadFloat3(&a)) };
         XMStoreFloat3(&result, v);
         return result.x;
+    }
+    inline FLOAT Distance(const XMFLOAT3& a, const XMFLOAT3& b)
+    {
+        return Vector3::Length(Vector3::Sub(a, b));
+    }
+    inline FLOAT Equal(const XMFLOAT3& a, const XMFLOAT3& b)
+    {
+        return XMVector3Equal(XMLoadFloat3(&a), XMLoadFloat3(&b));
     }
 }
 

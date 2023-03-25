@@ -1,5 +1,7 @@
 ﻿#include "towerScene.h"
 
+constexpr FLOAT FAR_POSITION = 10000.f;
+
 TowerScene::TowerScene() : 
 	m_NDCspace( 0.5f, 0.0f, 0.0f, 0.0f,
 				0.0f, -0.5f, 0.0f, 0.0f,
@@ -106,7 +108,7 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	// 플레이어 생성
 	m_player = make_shared<Player>();
 	m_player->SetType(PlayerType::WARRIOR);
-	LoadPlayerFromFile(device, commandlist, m_player);
+	LoadPlayerFromFile(m_player);
 
 	m_player->SetPosition(XMFLOAT3{ 0.f, 0.f, 0.f });
 	m_shaders["ANIMATION"]->SetPlayer(m_player);
@@ -131,7 +133,7 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	m_shadow = make_shared<Shadow>(device, 4096 << 1, 4096 << 1);
 
 	// 씬 로드
-	LoadSceneFromFile(device, commandlist, TEXT("./Resource/Scene/TowerScene.bin"), TEXT("TowerScene"));
+	LoadSceneFromFile(TEXT("./Resource/Scene/TowerScene.bin"), TEXT("TowerScene"));
 
 	// 스카이 박스 생성
 	auto skybox{ make_shared<GameObject>() };
@@ -158,7 +160,7 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	// 조명 생성
 	CreateLight(device, commandlist);
 
-	InitServer(device, commandlist);
+	InitServer();
 }
 
 void TowerScene::CreateLight(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist)
@@ -277,7 +279,7 @@ void TowerScene::Update(FLOAT timeElapsed)
 	g_particleSystem->Update(timeElapsed);
 }
 
-void TowerScene::RenderShadow(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex)
+void TowerScene::RenderShadow(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex)
 {
 	switch (threadIndex)
 	{
@@ -298,7 +300,7 @@ void TowerScene::RenderShadow(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	}
 }
 
-void TowerScene::Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) const
+void TowerScene::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) const
 {
 	if (m_camera) m_camera->UpdateShaderVariable(commandList);
 	if (m_lightSystem) m_lightSystem->UpdateShaderVariable(commandList);
@@ -345,7 +347,7 @@ void TowerScene::RenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext)
 {
 }
 
-void TowerScene::LoadSceneFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, wstring fileName, wstring sceneName)
+void TowerScene::LoadSceneFromFile(wstring fileName, wstring sceneName)
 {
 	ifstream in{ fileName, std::ios::binary };
 	if (!in) return;
@@ -372,7 +374,7 @@ void TowerScene::LoadSceneFromFile(const ComPtr<ID3D12Device>& device, const Com
 		wstrToken.assign(objectName.begin(), objectName.end());
 		wstring strPath = L"./Resource/Model/" + sceneName + L"/" + wstrToken + L".bin";
 
-		LoadObjectFromFile(device, commandlist, strPath, object);
+		LoadObjectFromFile(strPath, object);
 
 		XMFLOAT4X4 worldMatrix;
 		in.read((CHAR*)(&worldMatrix), sizeof(XMFLOAT4X4));
@@ -383,7 +385,7 @@ void TowerScene::LoadSceneFromFile(const ComPtr<ID3D12Device>& device, const Com
 	}
 }
 
-void TowerScene::LoadObjectFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, wstring fileName, const shared_ptr<GameObject>& object)
+void TowerScene::LoadObjectFromFile(wstring fileName, const shared_ptr<GameObject>& object)
 {
 	ifstream in{ fileName, std::ios::binary };
 	if (!in) return;
@@ -396,7 +398,7 @@ void TowerScene::LoadObjectFromFile(const ComPtr<ID3D12Device>& device, const Co
 		in.read(&strToken[0], sizeof(char) * strLength);
 
 		if (strToken == "<Hierarchy>:") {
-			object->LoadObject(device, commandList, in);
+			object->LoadObject(in);
 		}
 		else if (strToken == "</Hierarchy>") {
 			break;
@@ -404,7 +406,7 @@ void TowerScene::LoadObjectFromFile(const ComPtr<ID3D12Device>& device, const Co
 	}
 }
 
-void TowerScene::LoadPlayerFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, const shared_ptr<Player>& player)
+void TowerScene::LoadPlayerFromFile(const shared_ptr<Player>& player)
 {
 	wstring filePath{};
 	string animationSet{};
@@ -421,7 +423,7 @@ void TowerScene::LoadPlayerFromFile(const ComPtr<ID3D12Device>& device, const Co
 		break;
 	}
 	
-	LoadObjectFromFile(device, commandList, filePath, player);
+	LoadObjectFromFile(filePath, player);
 
 	player->SetAnimationSet(m_animationSets[animationSet]);
 	player->SetAnimationOnTrack(0, ObjectAnimation::IDLE);
@@ -429,8 +431,38 @@ void TowerScene::LoadPlayerFromFile(const ComPtr<ID3D12Device>& device, const Co
 	player->GetAnimationController()->SetTrackEnable(2, false);
 }
 
+void TowerScene::LoadMonsterFromFile(const shared_ptr<Monster>& monster)
+{
+	wstring filePath{};
+	string animationSet{};
 
-void TowerScene::InitServer(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList)
+	switch (monster->GetType()) {
+	case MonsterType::WARRIOR:
+		filePath = TEXT("./Resource/Model/Undead_Warrior.bin");
+		animationSet = "Undead_WarriorAnimation";
+		break;
+
+	case MonsterType::ARCHER:
+		filePath = TEXT("./Resource/Model/Undead_Archer.bin");
+		animationSet = "Undead_ArcherAnimation";
+		break;
+
+	case MonsterType::WIZARD:
+		filePath = TEXT("./Resource/Model/Undead_Wizard.bin");
+		animationSet = "Undead_WizardAnimation";
+		break;
+	}
+
+	LoadObjectFromFile(filePath, monster);
+
+	monster->SetAnimationSet(m_animationSets[animationSet]);
+	monster->SetAnimationOnTrack(0, ObjectAnimation::IDLE);
+	monster->GetAnimationController()->SetTrackEnable(1, false);
+	monster->GetAnimationController()->SetTrackEnable(2, false);
+}
+
+
+void TowerScene::InitServer()
 {
 #ifdef USE_NETWORK
 
@@ -459,10 +491,11 @@ void TowerScene::InitServer(const ComPtr<ID3D12Device>& device, const ComPtr<ID3
 	CS_LOGIN_PACKET login_packet{};
 	login_packet.size = sizeof(login_packet);
 	login_packet.type = CS_PACKET_LOGIN;
+	login_packet.player_type = m_player->GetType();
 	memcpy(login_packet.name, name, sizeof(char) * 10);
 	send(g_socket, reinterpret_cast<char*>(&login_packet), sizeof(login_packet), NULL);
 
-	g_networkThread = thread{ &TowerScene::RecvPacket, this, device, commandList};
+	g_networkThread = thread{ &TowerScene::RecvPacket, this};
 	g_networkThread.detach();
 
 #endif
@@ -481,7 +514,7 @@ void TowerScene::SendPlayerData()
 #endif
 }
 
-void TowerScene::RecvPacket(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList)
+void TowerScene::RecvPacket()
 {
 	while (true) {
 
@@ -493,29 +526,32 @@ void TowerScene::RecvPacket(const ComPtr<ID3D12Device>& device, const ComPtr<ID3
 			ErrorDisplay("RecvSizeType");
 
 		if(recv_byte > 0)
-			PacketReassembly(device, commandList, wsabuf.buf, recv_byte);
+			PacketReassembly(wsabuf.buf, recv_byte);
 
 	}
 }
 
 
-void TowerScene::ProcessPacket(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, char* ptr)
+void TowerScene::ProcessPacket(char* ptr)
 {
-	cout << "[Process Packet] Packet Type: " << (int)ptr[1] << endl;//test
+	//cout << "[Process Packet] Packet Type: " << (int)ptr[1] << endl;//test
 
 	switch (ptr[1])
 	{
 	case SC_PACKET_LOGIN_OK:
 		RecvLoginOkPacket(ptr);
 		break;
-	case SC_PACKET_ADD_PLAYER:
-		RecvAddPlayerPacket(device, commandList, ptr);
+	case SC_PACKET_ADD_OBJECT:
+		RecvAddObjectPacket(ptr);
+		break;
+	case SC_PACKET_REMOVE_PLAYER:
+		RecvRemovePlayerPacket(ptr);
+		break;
+	case SC_PACKET_REMOVE_MONSTER:
+		RecvRemoveMonsterPacket(ptr);
 		break;
 	case SC_PACKET_UPDATE_CLIENT:
 		RecvUpdateClient(ptr);
-		break;
-	case SC_PACKET_PLAYER_ATTACK:
-		RecvAttackPacket(ptr);
 		break;
 	case SC_PACKET_ADD_MONSTER:
 		RecvAddMonsterPacket(ptr);
@@ -523,25 +559,40 @@ void TowerScene::ProcessPacket(const ComPtr<ID3D12Device>& device, const ComPtr<
 	case SC_PACKET_UPDATE_MONSTER:
 		RecvUpdateMonster(ptr);
 		break;
+	case SC_PACKET_CHANGE_MONSTER_BEHAVIOR:
+		RecvChangeMonsterBehavior(ptr);
+		break;
+	case SC_PACKET_CHANGE_ANIMATION:
+		RecvChangeAnimation(ptr);
+		break;
+	case SC_PACKET_RESET_COOLTIME:
+		RecvResetCooltime(ptr);
+		break;
+	case SC_PACKET_CLEAR_FLOOR:
+		RecvClearFloor(ptr);
+		break;
+	case SC_PACKET_FAIL_FLOOR:
+		RecvFailFloor(ptr);
+		break;
 	}
 }
 
 
 
-void TowerScene::PacketReassembly(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, char* net_buf, size_t io_byte)
+void TowerScene::PacketReassembly(char* net_buf, size_t io_byte)
 {
 	char* ptr = net_buf;
 	static size_t make_packet_size = 0;
 	static size_t saved_packet_size = 0;
 	static char packet_buffer[BUF_SIZE];
+	ZeroMemory(packet_buffer, BUF_SIZE);
 
 	while (io_byte != 0) {
 		if (make_packet_size == 0)
 			make_packet_size = ptr[0];
 		if (io_byte + saved_packet_size >= make_packet_size) {
 			memcpy(packet_buffer + saved_packet_size, ptr, make_packet_size - saved_packet_size);
-			ProcessPacket(device, commandList, packet_buffer);
-			ZeroMemory(packet_buffer, BUF_SIZE);
+			ProcessPacket(packet_buffer);
 			ptr += make_packet_size - saved_packet_size;
 			io_byte -= make_packet_size - saved_packet_size;
 			//cout << "io byte - " << io_byte << endl;
@@ -558,23 +609,23 @@ void TowerScene::PacketReassembly(const ComPtr<ID3D12Device>& device, const ComP
 
 void TowerScene::RecvLoginOkPacket(char* ptr)
 {
-	SC_LOGIN_OK_PACKET* login_packet = reinterpret_cast<SC_LOGIN_OK_PACKET*>(ptr);
-	m_player->SetID(login_packet->player_data.id);
+	SC_LOGIN_OK_PACKET* packet = reinterpret_cast<SC_LOGIN_OK_PACKET*>(ptr);
+	m_player->SetID(packet->player_data.id);
 }
 
-void TowerScene::RecvAddPlayerPacket(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, char* ptr)
+void TowerScene::RecvAddObjectPacket(char* ptr)
 {
-	SC_ADD_PLAYER_PACKET* add_pl_packet = reinterpret_cast<SC_ADD_PLAYER_PACKET*>(ptr);
+	SC_ADD_OBJECT_PACKET* packet = reinterpret_cast<SC_ADD_OBJECT_PACKET*>(ptr);
 
-	PlayerData player_data{};
+	PLAYER_DATA player_data{};
 
-	player_data.hp = add_pl_packet->player_data.hp;
-	player_data.id = add_pl_packet->player_data.id;
-	player_data.pos = add_pl_packet->player_data.pos;
+	player_data.hp = packet->player_data.hp;
+	player_data.id = packet->player_data.id;
+	player_data.pos = packet->player_data.pos;
 
 	auto multiPlayer = make_shared<Player>();
-	multiPlayer->SetType(PlayerType::ARCHER);
-	LoadPlayerFromFile(device, commandList, multiPlayer);
+	multiPlayer->SetType(packet->player_type);
+	LoadPlayerFromFile(multiPlayer);
 
 	multiPlayer->SetPosition(XMFLOAT3{ 0.f, 0.f, 0.f });
 
@@ -591,60 +642,64 @@ void TowerScene::RecvAddPlayerPacket(const ComPtr<ID3D12Device>& device, const C
 
 }
 
-void TowerScene::RecvUpdateClient(char* ptr)
+void TowerScene::RecvRemovePlayerPacket(char* ptr)
 {
-	SC_UPDATE_CLIENT_PACKET* update_packet = reinterpret_cast<SC_UPDATE_CLIENT_PACKET*>(ptr);
+	SC_REMOVE_PLAYER_PACKET* packet = reinterpret_cast<SC_REMOVE_PLAYER_PACKET*>(ptr);
 
-	for (int i = 0; i < MAX_USER; ++i) {
-		if (update_packet->data[i].id == -1) {
-			continue;
-		}
-		if (update_packet->data[i].id == m_player->GetID()) {
-			m_player->SetPosition(update_packet->data[i].pos);
-			continue;
-		}
-		if (update_packet->data[i].active_check) {
-			// towerScene의 multiPlayer를 업데이트 해도 shader의 multiPlayer도 업데이트 됨.
-			XMFLOAT3 playerPosition = update_packet->data[i].pos;			
-			m_multiPlayers[update_packet->data[i].id]->SetPosition(playerPosition);
-			m_multiPlayers[update_packet->data[i].id]->SetVelocity(update_packet->data[i].velocity);
-			m_multiPlayers[update_packet->data[i].id]->Rotate(0.f, 0.f, update_packet->data[i].yaw - m_multiPlayers[update_packet->data[i].id]->GetYaw());
-			m_multiPlayers[update_packet->data[i].id]->SetHp(update_packet->data[i].hp);
-		}
-	}
+	m_multiPlayers[packet->id]->SetPosition(XMFLOAT3(FAR_POSITION, FAR_POSITION, FAR_POSITION));
 }
 
-void TowerScene::RecvAttackPacket(char* ptr)
+void TowerScene::RecvRemoveMonsterPacket(char* ptr)
 {
-	SC_ATTACK_PACKET* attack_packet = reinterpret_cast<SC_ATTACK_PACKET*>(ptr);
-	m_player->SetKey(attack_packet->key);
+	SC_REMOVE_MONSTER_PACKET* packet = reinterpret_cast<SC_REMOVE_MONSTER_PACKET*>(ptr);
+	m_monsters[packet->id]->SetPosition(XMFLOAT3(FAR_POSITION, FAR_POSITION, FAR_POSITION));
+}
+
+void TowerScene::RecvUpdateClient(char* ptr)
+{
+	SC_UPDATE_CLIENT_PACKET* packet = reinterpret_cast<SC_UPDATE_CLIENT_PACKET*>(ptr);
+
+	for (int i = 0; i < MAX_INGAME_USER; ++i) {
+		if (-1 == packet->data[i].id) {
+			continue;
+		}
+
+		if (packet->data[i].id == m_player->GetID()) {
+			m_player->SetPosition(packet->data[i].pos);
+			continue;
+		}
+		else {
+			// towerScene의 multiPlayer를 업데이트 해도 shader의 multiPlayer도 업데이트 됨.
+			XMFLOAT3 playerPosition = packet->data[i].pos;
+			auto& player = m_multiPlayers[packet->data[i].id];
+			player->SetPosition(playerPosition);
+			player->SetVelocity(packet->data[i].velocity);
+			player->Rotate(0.f, 0.f, packet->data[i].yaw - player->GetYaw());
+			player->SetHp(packet->data[i].hp);
+		}
+	}
 }
 
 void TowerScene::RecvAddMonsterPacket(char* ptr)
 {
-	SC_ADD_MONSTER_PACKET* add_monster_packet = reinterpret_cast<SC_ADD_MONSTER_PACKET*>(ptr);
+	SC_ADD_MONSTER_PACKET* packet = reinterpret_cast<SC_ADD_MONSTER_PACKET*>(ptr);
 
-	MonsterData monster_data{};
+	MONSTER_DATA monster_data{};
 
-	//monster_data.hp = add_monster_packet->monster_data.hp;
-	monster_data.id = add_monster_packet->monster_data.id;
-	monster_data.pos = add_monster_packet->monster_data.pos;
+	monster_data.id = packet->monster_data.id;
+	monster_data.pos = packet->monster_data.pos;
+	monster_data.hp = packet->monster_data.hp;
+
+	if (monster_data.id == -1)
+		return;
 
 	auto monster = make_shared<Monster>();
-	switch (add_monster_packet->monster_type)
-	{
-	case MonsterType::WARRIOR:
-		LoadObjectFromFile(g_GameFramework.GetDevice(), g_GameFramework.GetCommandList(), TEXT("./Resource/Model/Undead_Warrior.bin"), monster);
-		break;
-	case MonsterType::ARCHER:
-		LoadObjectFromFile(g_GameFramework.GetDevice(), g_GameFramework.GetCommandList(), TEXT("./Resource/Model/Undead_Archer.bin"), monster);
-		break;
-	case MonsterType::WIZARD:
-		LoadObjectFromFile(g_GameFramework.GetDevice(), g_GameFramework.GetCommandList(), TEXT("./Resource/Model/Undead_Wizard.bin"), monster);
-		break;
-	}
-	monster->SetPosition(XMFLOAT3{ 0.f, 0.f, 0.f });
-	m_monsters.insert({ monster_data.id, monster });
+	monster->SetType(packet->monster_type);
+	LoadMonsterFromFile(monster);
+	monster->ChangeAnimation(ObjectAnimation::WALK);
+
+	monster->SetPosition(XMFLOAT3{ monster_data.pos.x, monster_data.pos.y, monster_data.pos.z });
+	m_monsters.insert({ static_cast<INT>(monster_data.id), monster });
 
 	auto hpBar = make_shared<HpBar>();
 	hpBar->SetMesh(m_meshs["HPBAR"]);
@@ -652,22 +707,55 @@ void TowerScene::RecvAddMonsterPacket(char* ptr)
 	m_shaders["HPBAR"]->SetObject(hpBar);
 	monster->SetHpBar(hpBar);
 
-	m_shaders["OBJECT"]->SetObject(monster);
-	cout << "add monster" << static_cast<int>(monster_data.id) << endl;
+	m_shaders["ANIMATION"]->SetMonster(monster_data.id, monster);
 }
 
 void TowerScene::RecvUpdateMonster(char* ptr)
 {
-	SC_MONSTER_UPDATE_PACKET* monster_packet = reinterpret_cast<SC_MONSTER_UPDATE_PACKET*>(ptr);
+	SC_UPDATE_MONSTER_PACKET* packet = reinterpret_cast<SC_UPDATE_MONSTER_PACKET*>(ptr);
 
-	if (monster_packet->monster_data.id < 0) return;
+	if (packet->monster_data.id < 0) return;
 
-	m_monsters[monster_packet->monster_data.id]->SetPosition(monster_packet->monster_data.pos);
+	auto& monster = m_monsters[packet->monster_data.id];
+	monster->SetPosition(packet->monster_data.pos);
+	monster->SetHp(packet->monster_data.hp);
 
-	/*cout << "monster id - " << (int)monster_packet->monster_data.id << endl;
-	cout << "monster pos (x: " << monster_packet->monster_data.pos.x <<
-			" y: " << monster_packet->monster_data.pos.y <<
-			" z: " << monster_packet->monster_data.pos.z << ")" << endl;*/
+	FLOAT newYaw = packet->monster_data.yaw;
+	FLOAT oldYaw = monster->GetYaw();
+	monster->Rotate(0.f, 0.f, newYaw - oldYaw);
+}
 
+void TowerScene::RecvChangeMonsterBehavior(char* ptr)
+{
+	SC_CHANGE_MONSTER_BEHAVIOR_PACKET* packet =
+		reinterpret_cast<SC_CHANGE_MONSTER_BEHAVIOR_PACKET*>(ptr);
+
+	auto& monster = m_monsters[packet->id];
+	monster->ChangeAnimation(packet->animation);
+	//monster->ChangeBehavior(packet->behavior);
+}
+
+void TowerScene::RecvResetCooltime(char* ptr)
+{
+	SC_RESET_COOLTIME_PACKET* packet = reinterpret_cast<SC_RESET_COOLTIME_PACKET*>(ptr);
+	m_player->ResetCooltime(packet->cooltime_type);
+}
+
+void TowerScene::RecvClearFloor(char* ptr)
+{
+	SC_CLEAR_FLOOR_PACKET* packet = reinterpret_cast<SC_CLEAR_FLOOR_PACKET*>(ptr);
+	cout << packet->reward << endl;
+}
+
+void TowerScene::RecvFailFloor(char* ptr)
+{
+	SC_FAIL_FLOOR_PACKET* packet = reinterpret_cast<SC_FAIL_FLOOR_PACKET*>(ptr);
 	
+}
+
+void TowerScene::RecvChangeAnimation(char* ptr)
+{
+	SC_CHANGE_ANIMATION_PACKET* packet = reinterpret_cast<SC_CHANGE_ANIMATION_PACKET*>(ptr);
+
+	m_multiPlayers[packet->id]->ChangeAnimation(packet->animation_type, false);
 }

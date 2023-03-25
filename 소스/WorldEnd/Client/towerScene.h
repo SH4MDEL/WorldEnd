@@ -28,29 +28,35 @@ public:
 	void OnProcessingKeyboardMessage(FLOAT timeElapsed) const override;
 	
 	void Update(FLOAT timeElapsed) override;
-	void RenderShadow(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) override;
-	void Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) const override;
+	void RenderShadow(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) override;
+	void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) const override;
 	void PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList, const ComPtr<ID3D12Resource>& renderTarget) override;
 	void RenderText(const ComPtr< ID2D1DeviceContext2>& deviceContext) override;
 
 	shared_ptr<Shadow> GetShadow() override { return m_shadow; }
-
-	void LoadSceneFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, wstring fileName, wstring sceneName);
-	void LoadObjectFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, wstring fileName, const shared_ptr<GameObject>& object);
-	void LoadPlayerFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, const shared_ptr<Player>& player);
+	void LoadSceneFromFile(wstring fileName, wstring sceneName);
+	void LoadObjectFromFile(wstring fileName, const shared_ptr<GameObject>& object);
+	void LoadPlayerFromFile(const shared_ptr<Player>& player);
+	void LoadMonsterFromFile(const shared_ptr<Monster>& monster);
 
     // 서버 추가 코드
-	void InitServer(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList);
+	void InitServer();
 	void SendPlayerData();
-	void RecvPacket(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList);
-	void ProcessPacket(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, char* ptr);
-	void PacketReassembly(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, char* net_buf, size_t io_byte);
+	void RecvPacket();
+	void ProcessPacket(char* ptr);
+	void PacketReassembly(char* net_buf, size_t io_byte);
 	void RecvLoginOkPacket(char* ptr);
-	void RecvAddPlayerPacket(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, char* ptr);
+	void RecvAddObjectPacket(char* ptr);
+	void RecvRemovePlayerPacket(char* ptr);
+	void RecvRemoveMonsterPacket(char* ptr);
 	void RecvUpdateClient(char* ptr);
-	void RecvAttackPacket(char* ptr);
+	void RecvChangeAnimation(char* ptr);
 	void RecvAddMonsterPacket(char* ptr);
 	void RecvUpdateMonster(char* ptr);
+	void RecvChangeMonsterBehavior(char* ptr);
+	void RecvResetCooltime(char* ptr);
+	void RecvClearFloor(char* ptr);
+	void RecvFailFloor(char* ptr);
 
 protected:
 	ComPtr<ID3D12Resource>					m_sceneBuffer;
