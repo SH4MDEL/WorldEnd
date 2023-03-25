@@ -11,7 +11,7 @@ public:
 	void OnCreate(const ComPtr<ID3D12Device>& device,
 		const ComPtr<ID3D12GraphicsCommandList>& commandList,
 		const ComPtr<ID3D12RootSignature>& rootSignature, 
-		const ComPtr<ID3D12RootSignature>& postRootsignature) override;
+		const ComPtr<ID3D12RootSignature>& postRootSignature) override;
 	void OnDestroy() override;
 
 	void ReleaseUploadBuffer() override;
@@ -20,7 +20,7 @@ public:
 	void UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& commandList) override;
 
 	void BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, 
-		const ComPtr<ID3D12RootSignature>& rootsignature, const ComPtr<ID3D12RootSignature>& postRootsignature) override;
+		const ComPtr<ID3D12RootSignature>& rootsignature, const ComPtr<ID3D12RootSignature>& postRootSignature) override;
 	
 	void OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime) const override;
 	void OnProcessingClickMessage(LPARAM lParam) const override;

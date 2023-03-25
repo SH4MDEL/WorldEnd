@@ -13,7 +13,7 @@ LoadingScene::~LoadingScene()
 void LoadingScene::OnCreate(const ComPtr<ID3D12Device>& device,
 	const ComPtr<ID3D12GraphicsCommandList>& commandList,
 	const ComPtr<ID3D12RootSignature>& rootSignature, 
-	const ComPtr<ID3D12RootSignature>& postRootsignature)
+	const ComPtr<ID3D12RootSignature>& postRootSignature)
 {
 	m_loadingText = make_shared<LoadingText>(53);
 
@@ -39,7 +39,7 @@ void LoadingScene::OnCreate(const ComPtr<ID3D12Device>& device,
 	DX::ThrowIfFailed(device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_threadCommandAllocator)));
 	DX::ThrowIfFailed(device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_threadCommandAllocator.Get(), nullptr, IID_PPV_ARGS(&m_threadCommandList)));
 
-	m_loadingThread = thread{ &LoadingScene::BuildObjects, this, device, m_threadCommandList, rootSignature, postRootsignature };
+	m_loadingThread = thread{ &LoadingScene::BuildObjects, this, device, m_threadCommandList, rootSignature, postRootSignature };
 	m_loadingThread.detach();
 }
 
@@ -61,7 +61,7 @@ void LoadingScene::OnProcessingClickMessage(LPARAM lParam) const {}
 void LoadingScene::OnProcessingKeyboardMessage(FLOAT timeElapsed) const {}
 
 void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, 
-	const ComPtr<ID3D12RootSignature>& rootsignature, const ComPtr<ID3D12RootSignature>& postRootsignature)
+	const ComPtr<ID3D12RootSignature>& rootsignature, const ComPtr<ID3D12RootSignature>& postRootSignature)
 {
 	// 플레이어 로딩
 	auto animationShader{ make_shared<AnimationShader>(device, rootsignature) };
@@ -100,9 +100,13 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	// 파티클 셰이더 로딩
 	auto emitterParticleShader{ make_shared<EmitterParticleShader>(device, rootsignature) };
 
-	// 블러 셰이더 로딩
-	auto horzBlurShader{ make_shared<HorzBlurShader>(device, postRootsignature) };
-	auto vertBlurShader{ make_shared<VertBlurShader>(device, postRootsignature) };
+	// 블러 필터 셰이더 로딩
+	auto horzBlurShader{ make_shared<HorzBlurShader>(device, postRootSignature) };
+	auto vertBlurShader{ make_shared<VertBlurShader>(device, postRootSignature) };
+
+	// 소벨 필터 셰이더 로딩
+	auto sobelShader{ make_shared<SobelShader>(device, postRootSignature) };
+	auto compositeShader{ make_shared<CompositeShader>(device, postRootSignature) };
 
 	// 몬스터 로딩
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/Undead_WarriorMesh.bin"));
@@ -180,6 +184,8 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	m_shaders.insert({ "EMITTERPARTICLE", emitterParticleShader });
 	m_shaders.insert({ "HORZBLUR", horzBlurShader });
 	m_shaders.insert({ "VERTBLUR", vertBlurShader });
+	m_shaders.insert({ "SOBEL", sobelShader });
+	m_shaders.insert({ "COMPOSITE", compositeShader });
 	m_shaders.insert({ "DEBUG", debugShader });
 
 	commandlist->Close();

@@ -155,6 +155,7 @@
     <ClInclude Include="particleSystem.h" />
     <ClInclude Include="shadow.h" />
     <ClInclude Include="singleton.h" />
+    <ClInclude Include="sobelFilter.h" />
     <ClInclude Include="text.h" />
     <ClInclude Include="towerScene.h" />
     <ClInclude Include="material.h" />
@@ -183,6 +184,7 @@
     <ClCompile Include="particleSystem.cpp" />
     <ClCompile Include="shadow.cpp" />
     <ClCompile Include="singleton.cpp" />
+    <ClCompile Include="sobelFilter.cpp" />
     <ClCompile Include="text.cpp" />
     <ClCompile Include="towerScene.cpp" />
     <ClCompile Include="material.cpp" />
@@ -214,6 +216,12 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </FxCompile>
+    <FxCompile Include="Resource\Shader\composite.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="Resource\Shader\compute.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </FxCompile>
     <FxCompile Include="Resource\Shader\debug.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -241,6 +249,9 @@
     <FxCompile Include="Resource\Shader\skybox.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="Resource\Shader\sobel.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </FxCompile>
     <FxCompile Include="Resource\Shader\standard.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>

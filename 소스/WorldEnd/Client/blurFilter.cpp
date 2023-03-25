@@ -48,7 +48,7 @@ void BlurFilter::Execute(const ComPtr<ID3D12GraphicsCommandList>& commandList, c
 
 		commandList->SetPipelineState(Scene::m_shaders["HORZBLUR"]->GetPipelineState().Get());
 
-		commandList->SetComputeRootDescriptorTable((INT)PostShaderRegister::InputTexture, m_horzBlurGpuSrv);
+		commandList->SetComputeRootDescriptorTable((INT)PostShaderRegister::BaseTexture, m_horzBlurGpuSrv);
 		commandList->SetComputeRootDescriptorTable((INT)PostShaderRegister::OutputTexture, m_vertBlurGpuUav);
 
 		// How many groups do we need to dispatch to cover a row of pixels, where each
@@ -68,7 +68,7 @@ void BlurFilter::Execute(const ComPtr<ID3D12GraphicsCommandList>& commandList, c
 
 		commandList->SetPipelineState(Scene::m_shaders["VERTBLUR"]->GetPipelineState().Get());
 
-		commandList->SetComputeRootDescriptorTable((INT)PostShaderRegister::InputTexture, m_vertBlurGpuSrv);
+		commandList->SetComputeRootDescriptorTable((INT)PostShaderRegister::BaseTexture, m_vertBlurGpuSrv);
 		commandList->SetComputeRootDescriptorTable((INT)PostShaderRegister::OutputTexture, m_horzBlurGpuUav);
 
 		// How many groups do we need to dispatch to cover a column of pixels, where each

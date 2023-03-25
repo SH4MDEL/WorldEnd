@@ -15,9 +15,9 @@ TowerScene::~TowerScene()
 void TowerScene::OnCreate(const ComPtr<ID3D12Device>& device,
 	const ComPtr<ID3D12GraphicsCommandList>& commandList,
 	const ComPtr<ID3D12RootSignature>& rootSignature, 
-	const ComPtr<ID3D12RootSignature>& postRootsignature)
+	const ComPtr<ID3D12RootSignature>& postRootSignature)
 {
-	BuildObjects(device, commandList, rootSignature, postRootsignature);
+	BuildObjects(device, commandList, rootSignature, postRootSignature);
 }
 
 void TowerScene::OnDestroy()
@@ -99,7 +99,7 @@ void TowerScene::UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& c
 }
 
 void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, 
-	const ComPtr<ID3D12RootSignature>& rootsignature, const ComPtr<ID3D12RootSignature>& postRootsignature)
+	const ComPtr<ID3D12RootSignature>& rootsignature, const ComPtr<ID3D12RootSignature>& postRootSignature)
 {
 	CreateShaderVariable(device, commandlist);
 
@@ -143,8 +143,9 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	g_particleSystem = make_unique<ParticleSystem>(device, commandlist, 
 		static_pointer_cast<ParticleShader>(m_shaders["EMITTERPARTICLE"]));
 
-	// 블러링 필터 생성
+	// 필터 생성
 	m_blurFilter = make_unique<BlurFilter>(device, g_GameFramework.GetWindowWidth(), g_GameFramework.GetWindowHeight());
+	m_sobelFilter = make_unique<SobelFilter>(device, g_GameFramework.GetWindowWidth(), g_GameFramework.GetWindowHeight(), postRootSignature);
 
 	// 디버그 오브젝트 생성
 	auto debugObject{ make_shared<GameObject>() };
@@ -327,13 +328,17 @@ void TowerScene::Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12G
 
 void TowerScene::PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList, const ComPtr<ID3D12Resource>& renderTarget)
 {
-	m_blurFilter->Execute(commandList, renderTarget, 5);
+	m_sobelFilter->Execute(commandList, renderTarget);
+	commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET));
+	m_shaders["COMPOSITE"]->Render(g_GameFramework.GetDevice(), commandList);
+	commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE));
+
+	//m_blurFilter->Execute(commandList, renderTarget, 5);
 
 	commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_COPY_DEST));
-	commandList->CopyResource(renderTarget.Get(), m_blurFilter->GetBlurMap().Get());
+	//commandList->CopyResource(renderTarget.Get(), m_blurFilter->GetBlurMap().Get());
 	commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_RENDER_TARGET));
-
-	m_blurFilter->ResetResourceBarrier(commandList);
+	//m_blurFilter->ResetResourceBarrier(commandList);
 }
 
 void TowerScene::RenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext)

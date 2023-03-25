@@ -1,11 +1,8 @@
+#include "compute.hlsl"
 
-cbuffer cbFilter : register(b0)
-{
-	int blurRadius;
-}
-
-Texture2D g_input : register(t0);
-RWTexture2D<float4> g_output : register(u0);
+/*
+ *  BLUR_SHADER
+ */
 
 static const int maxBlurRadius = 5;
 groupshared float4 g_cache[256 + 2 * maxBlurRadius];
@@ -29,17 +26,17 @@ void CS_HORZBLUR_MAIN(int3 groupThreadID : SV_GroupThreadID,
 	{
 		// Clamp out of bound samples that occur at image borders.
 		int x = max(dispatchThreadID.x - blurRadius, 0);
-		g_cache[groupThreadID.x] = g_input[int2(x, dispatchThreadID.y)];
+		g_cache[groupThreadID.x] = g_baseTexture[int2(x, dispatchThreadID.y)];
 	}
 	if (groupThreadID.x >= 256 - blurRadius)
 	{
 		// Clamp out of bound samples that occur at image borders.
-		int x = min(dispatchThreadID.x + blurRadius, g_input.Length.x - 1);
-		g_cache[groupThreadID.x + 2 * blurRadius] = g_input[int2(x, dispatchThreadID.y)];
+		int x = min(dispatchThreadID.x + blurRadius, g_baseTexture.Length.x - 1);
+		g_cache[groupThreadID.x + 2 * blurRadius] = g_baseTexture[int2(x, dispatchThreadID.y)];
 	}
 
 	// Clamp out of bound samples that occur at image borders.
-	g_cache[groupThreadID.x + blurRadius] = g_input[min(dispatchThreadID.xy, g_input.Length.xy - 1)];
+	g_cache[groupThreadID.x + blurRadius] = g_baseTexture[min(dispatchThreadID.xy, g_baseTexture.Length.xy - 1)];
 
 	// Wait for all threads to finish.
 	GroupMemoryBarrierWithGroupSync();
@@ -80,17 +77,17 @@ void CS_VERTBLUR_MAIN(int3 groupThreadID : SV_GroupThreadID,
 	{
 		// Clamp out of bound samples that occur at image borders.
 		int y = max(dispatchThreadID.y - blurRadius, 0);
-		g_cache[groupThreadID.y] = g_input[int2(dispatchThreadID.x, y)];
+		g_cache[groupThreadID.y] = g_baseTexture[int2(dispatchThreadID.x, y)];
 	}
 	if (groupThreadID.y >= 256 - blurRadius)
 	{
 		// Clamp out of bound samples that occur at image borders.
-		int y = min(dispatchThreadID.y + blurRadius, g_input.Length.y - 1);
-		g_cache[groupThreadID.y + 2 * blurRadius] = g_input[int2(dispatchThreadID.x, y)];
+		int y = min(dispatchThreadID.y + blurRadius, g_baseTexture.Length.y - 1);
+		g_cache[groupThreadID.y + 2 * blurRadius] = g_baseTexture[int2(dispatchThreadID.x, y)];
 	}
 
 	// Clamp out of bound samples that occur at image borders.
-	g_cache[groupThreadID.y + blurRadius] = g_input[min(dispatchThreadID.xy, g_input.Length.xy - 1)];
+	g_cache[groupThreadID.y + blurRadius] = g_baseTexture[min(dispatchThreadID.xy, g_baseTexture.Length.xy - 1)];
 
 
 	// Wait for all threads to finish.

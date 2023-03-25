@@ -501,6 +501,75 @@ VertBlurShader::VertBlurShader(const ComPtr<ID3D12Device>& device, const ComPtr<
 	DX::ThrowIfFailed(device->CreateComputePipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
 }
 
+SobelShader::SobelShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature)
+{
+	ComPtr<ID3DBlob> mcsByteCode;
+
+#if defined(_DEBUG)
+	UINT compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+#else
+	UINT compileFlags = 0;
+#endif
+
+	DX::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/sobel.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "CS_SOBEL_MAIN", "cs_5_1", compileFlags, 0, &mcsByteCode, nullptr));
+
+	D3D12_COMPUTE_PIPELINE_STATE_DESC psoDesc{};
+	psoDesc.pRootSignature = rootSignature.Get();
+	psoDesc.CS = CD3DX12_SHADER_BYTECODE(mcsByteCode.Get());
+	psoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
+	DX::ThrowIfFailed(device->CreateComputePipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
+}
+
+CompositeShader::CompositeShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature)
+{
+	ComPtr<ID3DBlob> mvsByteCode;
+	ComPtr<ID3DBlob> mpsByteCode;
+
+#if defined(_DEBUG)
+	UINT compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+#else
+	UINT compileFlags = 0;
+#endif
+
+	DX::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/composite.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "VS_COMPOSITE_MAIN", "vs_5_1", compileFlags, 0, &mvsByteCode, nullptr));
+	DX::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/composite.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "PS_COMPOSITE_MAIN", "ps_5_1", compileFlags, 0, &mpsByteCode, nullptr));
+
+	CD3DX12_DEPTH_STENCIL_DESC depthStencilState{ D3D12_DEFAULT };
+	// Disable depth test.
+	depthStencilState.DepthEnable = false;
+	depthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+	depthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc{};
+	psoDesc.InputLayout = { m_inputLayout.data(), (UINT)m_inputLayout.size() };
+	psoDesc.pRootSignature = rootSignature.Get();
+	psoDesc.VS = CD3DX12_SHADER_BYTECODE(mvsByteCode.Get());
+	psoDesc.PS = CD3DX12_SHADER_BYTECODE(mpsByteCode.Get());
+	psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+	psoDesc.DepthStencilState = depthStencilState;
+	psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+	psoDesc.SampleMask = UINT_MAX;
+	psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	psoDesc.NumRenderTargets = 1;
+	psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+	psoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	psoDesc.SampleDesc.Count = 1;
+	psoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
+	DX::ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
+}
+
+void CompositeShader::Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList) const
+{
+	Shader::UpdateShaderVariable(commandList);
+
+	// Null-out IA stage since we build the vertex off the SV_VertexID in the shader.
+	commandList->IASetVertexBuffers(0, 1, nullptr);
+	commandList->IASetIndexBuffer(nullptr);
+	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	commandList->DrawInstanced(6, 1, 0, 0);
+}
+
 UIRenderShader::UIRenderShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature)
 {
 	ComPtr<ID3DBlob> mvsByteCode;
@@ -636,4 +705,3 @@ EmitterParticleShader::EmitterParticleShader(const ComPtr<ID3D12Device>& device,
 	psoDesc.SampleDesc.Count = 1;
 	DX::ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
 }
-

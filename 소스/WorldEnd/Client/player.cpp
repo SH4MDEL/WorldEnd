@@ -62,7 +62,7 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 	if (GetAsyncKeyState('W') & 0x8000 || GetAsyncKeyState('A') & 0x8000 ||
 		GetAsyncKeyState('S') & 0x8000 || GetAsyncKeyState('D') & 0x8000)
 	{
-		AddVelocity(Vector3::Mul(GetFront(), timeElapsed * 10.0f));
+		AddVelocity(Vector3::Mul(GetFront(), timeElapsed * 4.0f));
 
 #ifdef USE_NETWORK
 		CS_PLAYER_MOVE_PACKET move_packet;

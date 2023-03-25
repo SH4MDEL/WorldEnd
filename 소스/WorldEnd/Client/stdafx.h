@@ -126,13 +126,15 @@ enum class DescriptorRange : INT {
 
 enum class PostShaderRegister : INT {
     Filter,
-    InputTexture,
+    BaseTexture,
+    SubTexture,
     OutputTexture,
     Count
 };
 
 enum class PostDescriptorRange : INT {
-    InputTexture,
+    BaseTexture,
+    SubTexture,
     OutputTexture,
     Count
 };

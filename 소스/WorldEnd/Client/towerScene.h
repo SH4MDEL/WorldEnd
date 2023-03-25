@@ -11,7 +11,7 @@ public:
 	void OnCreate(const ComPtr<ID3D12Device>& device,
 		const ComPtr<ID3D12GraphicsCommandList>& commandList,
 		const ComPtr<ID3D12RootSignature>& rootSignature, 
-		const ComPtr<ID3D12RootSignature>& postRootsignature) override;
+		const ComPtr<ID3D12RootSignature>& postRootSignature) override;
 	void OnDestroy() override;
 
 	void ReleaseUploadBuffer() override;
@@ -20,7 +20,7 @@ public:
 	void UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& commandList) override;
 
 	void BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, 
-		const ComPtr<ID3D12RootSignature>& rootsignature, const ComPtr<ID3D12RootSignature>& postRootsignature) override;
+		const ComPtr<ID3D12RootSignature>& rootsignature, const ComPtr<ID3D12RootSignature>& postRootSignature) override;
 	void CreateLight(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist);
 	
 	void OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime) const override;
@@ -68,6 +68,7 @@ protected:
 	shared_ptr<LightSystem>					m_lightSystem;
 	shared_ptr<Shadow>						m_shadow;
 	unique_ptr<BlurFilter>					m_blurFilter;
+	unique_ptr<SobelFilter>					m_sobelFilter;
 
 	// 서버 추가 코드
 	unordered_map<INT, shared_ptr<Player>>	            m_multiPlayers;

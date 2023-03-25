@@ -13,6 +13,7 @@
 #include "text.h"
 #include "particleSystem.h"
 #include "blurFilter.h"
+#include "sobelFilter.h"
 
 struct SceneInfo
 {
@@ -32,7 +33,7 @@ public:
 	virtual void OnCreate(const ComPtr<ID3D12Device>& device, 
 		const ComPtr<ID3D12GraphicsCommandList>& commandList, 
 		const ComPtr<ID3D12RootSignature>& rootSignature, 
-		const ComPtr<ID3D12RootSignature>& postRootsignature) = 0;			// 해당 씬으로 변경될 때 호출
+		const ComPtr<ID3D12RootSignature>& postRootSignature) = 0;			// 해당 씬으로 변경될 때 호출
 	virtual void OnDestroy() = 0;			// 해당 씬에서 탈출할 때 호출
 	virtual void ReleaseUploadBuffer() = 0;
 

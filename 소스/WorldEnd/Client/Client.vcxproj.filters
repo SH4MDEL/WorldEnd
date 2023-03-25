@@ -58,6 +58,15 @@
     <Filter Include="헤더 파일\Filter">
       <UniqueIdentifier>{b4b3f2e8-dce0-44e6-a053-e0c984b910f6}</UniqueIdentifier>
     </Filter>
+    <Filter Include="셰이더 파일\Header">
+      <UniqueIdentifier>{b64cf985-a952-42d1-bf77-9abbded3e723}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="셰이더 파일\Shader">
+      <UniqueIdentifier>{5463ab8f-28c6-4d1b-b67b-1f9c28f2ba10}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="셰이더 파일\Compute">
+      <UniqueIdentifier>{8808d3f5-7db0-4252-aa11-b9b8dbf44cc6}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Client.h">
@@ -141,6 +150,9 @@
     <ClInclude Include="blurFilter.h">
       <Filter>헤더 파일\Filter</Filter>
     </ClInclude>
+    <ClInclude Include="sobelFilter.h">
+      <Filter>헤더 파일\Filter</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Client.cpp">
@@ -215,6 +227,9 @@
     <ClCompile Include="blurFilter.cpp">
       <Filter>소스 파일\Filter</Filter>
     </ClCompile>
+    <ClCompile Include="sobelFilter.cpp">
+      <Filter>소스 파일\Filter</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Client.rc">
@@ -230,41 +245,50 @@
     </Image>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Resource\Shader\animation.hlsl">
-      <Filter>셰이더 파일</Filter>
-    </FxCompile>
     <FxCompile Include="Resource\Shader\common.hlsl">
-      <Filter>셰이더 파일</Filter>
+      <Filter>셰이더 파일\Header</Filter>
     </FxCompile>
-    <FxCompile Include="Resource\Shader\debug.hlsl">
-      <Filter>셰이더 파일</Filter>
+    <FxCompile Include="Resource\Shader\compute.hlsl">
+      <Filter>셰이더 파일\Header</Filter>
     </FxCompile>
-    <FxCompile Include="Resource\Shader\hpbar.hlsl">
-      <Filter>셰이더 파일</Filter>
+    <FxCompile Include="Resource\Shader\animation.hlsl">
+      <Filter>셰이더 파일\Shader</Filter>
     </FxCompile>
-    <FxCompile Include="Resource\Shader\instance.hlsl">
-      <Filter>셰이더 파일</Filter>
-    </FxCompile>
-    <FxCompile Include="Resource\Shader\lighting.hlsl">
-      <Filter>셰이더 파일</Filter>
-    </FxCompile>
-    <FxCompile Include="Resource\Shader\shadow.hlsl">
-      <Filter>셰이더 파일</Filter>
-    </FxCompile>
-    <FxCompile Include="Resource\Shader\skybox.hlsl">
-      <Filter>셰이더 파일</Filter>
-    </FxCompile>
-    <FxCompile Include="Resource\Shader\standard.hlsl">
-      <Filter>셰이더 파일</Filter>
-    </FxCompile>
-    <FxCompile Include="Resource\Shader\staticObject.hlsl">
-      <Filter>셰이더 파일</Filter>
-    </FxCompile>
-    <FxCompile Include="Resource\Shader\particle.hlsl">
-      <Filter>셰이더 파일</Filter>
+    <FxCompile Include="Resource\Shader\composite.hlsl">
+      <Filter>셰이더 파일\Compute</Filter>
     </FxCompile>
     <FxCompile Include="Resource\Shader\blur.hlsl">
-      <Filter>셰이더 파일</Filter>
+      <Filter>셰이더 파일\Compute</Filter>
+    </FxCompile>
+    <FxCompile Include="Resource\Shader\debug.hlsl">
+      <Filter>셰이더 파일\Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Resource\Shader\hpbar.hlsl">
+      <Filter>셰이더 파일\Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Resource\Shader\instance.hlsl">
+      <Filter>셰이더 파일\Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Resource\Shader\lighting.hlsl">
+      <Filter>셰이더 파일\Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Resource\Shader\sobel.hlsl">
+      <Filter>셰이더 파일\Compute</Filter>
+    </FxCompile>
+    <FxCompile Include="Resource\Shader\staticObject.hlsl">
+      <Filter>셰이더 파일\Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Resource\Shader\skybox.hlsl">
+      <Filter>셰이더 파일\Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Resource\Shader\standard.hlsl">
+      <Filter>셰이더 파일\Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Resource\Shader\particle.hlsl">
+      <Filter>셰이더 파일\Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Resource\Shader\shadow.hlsl">
+      <Filter>셰이더 파일\Shader</Filter>
     </FxCompile>
   </ItemGroup>
 </Project>

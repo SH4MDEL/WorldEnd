@@ -45,7 +45,7 @@ public:
 	void CreateSwapChain();
 
 	// 6. 서술자 힙 생성
-	void CreateRtvDsvDescriptorHeap();
+	void CreateRtvSrvDsvDescriptorHeap();
 
 	// 7. 후면 버퍼에 대한 렌더 타겟 뷰 생성
 	void CreateRenderTargetView();

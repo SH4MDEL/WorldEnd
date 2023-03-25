@@ -96,7 +96,7 @@ void GameFramework::StartPipeline()
 	CreateSwapChain();
 
 	// 7. 서술자 힙 생성
-	CreateRtvDsvDescriptorHeap();
+	CreateRtvSrvDsvDescriptorHeap();
 
 	// 8. 후면 버퍼에 대한 렌더 타겟 뷰 생성
 	CreateRenderTargetView();
@@ -231,7 +231,7 @@ void GameFramework::CreateSwapChain()
 	m_frameIndex = m_swapChain->GetCurrentBackBufferIndex();
 }
 
-void GameFramework::CreateRtvDsvDescriptorHeap()
+void GameFramework::CreateRtvSrvDsvDescriptorHeap()
 {
 	D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc{};
 	rtvHeapDesc.NumDescriptors = SwapChainBufferCount;
@@ -406,8 +406,10 @@ void GameFramework::CreatePostRootSignature()
 {
 	CD3DX12_DESCRIPTOR_RANGE descriptorRange[(INT)PostDescriptorRange::Count];
 
-	descriptorRange[(INT)PostDescriptorRange::InputTexture].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 
+	descriptorRange[(INT)PostDescriptorRange::BaseTexture].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
 		1, 0, 0, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);	// t0
+	descriptorRange[(INT)PostDescriptorRange::SubTexture].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
+		1, 1, 0, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);	// t1
 	descriptorRange[(INT)PostDescriptorRange::OutputTexture].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 
 		1, 0, 0, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);	// u0
 
@@ -416,13 +418,33 @@ void GameFramework::CreatePostRootSignature()
 	// cbFilter : blurRadius(1)
 	rootParameter[(INT)PostShaderRegister::Filter].InitAsConstants(
 		1, 0, 0, D3D12_SHADER_VISIBILITY_ALL);
-	rootParameter[(INT)PostShaderRegister::InputTexture].InitAsDescriptorTable(
-		1, &descriptorRange[(INT)PostDescriptorRange::InputTexture], D3D12_SHADER_VISIBILITY_ALL);
+	rootParameter[(INT)PostShaderRegister::BaseTexture].InitAsDescriptorTable(
+		1, &descriptorRange[(INT)PostDescriptorRange::BaseTexture], D3D12_SHADER_VISIBILITY_ALL);
+	rootParameter[(INT)PostShaderRegister::SubTexture].InitAsDescriptorTable(
+		1, &descriptorRange[(INT)PostDescriptorRange::SubTexture], D3D12_SHADER_VISIBILITY_ALL);
 	rootParameter[(INT)PostShaderRegister::OutputTexture].InitAsDescriptorTable(
-		1, &descriptorRange[(INT)DescriptorRange::SubTexture], D3D12_SHADER_VISIBILITY_ALL);
+		1, &descriptorRange[(INT)PostDescriptorRange::OutputTexture], D3D12_SHADER_VISIBILITY_ALL);
+
+	CD3DX12_STATIC_SAMPLER_DESC samplerDesc[1];
+	samplerDesc[0].Init(									// s0
+		0,								 					// ShaderRegister
+		D3D12_FILTER_MIN_MAG_MIP_POINT, 					// filter
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 					// addressU
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 					// addressV
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 					// addressW
+		0.0f,												// mipLODBias
+		1,													// maxAnisotropy
+		D3D12_COMPARISON_FUNC_ALWAYS,						// comparisonFunc
+		D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK,		// borderColor
+		0.0f,												// minLOD
+		D3D12_FLOAT32_MAX,									// maxLOD
+		D3D12_SHADER_VISIBILITY_PIXEL,						// shaderVisibility
+		0													// registerSpace
+	);
 
 	CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc;
-	rootSignatureDesc.Init(_countof(rootParameter), rootParameter, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+	rootSignatureDesc.Init(_countof(rootParameter), rootParameter, _countof(samplerDesc), samplerDesc, 
+		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
 	ComPtr<ID3DBlob> signature, error;
 	DX::ThrowIfFailed(D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, &signature, &error));
@@ -717,6 +739,13 @@ void GameFramework::EndFrame()
 void GameFramework::PostProcess()
 {
 	m_commandLists[COMMANDLIST_POST]->SetComputeRootSignature(m_postRootSignature.Get());
+
+	m_commandLists[COMMANDLIST_POST]->RSSetViewports(1, &m_viewport);
+	m_commandLists[COMMANDLIST_POST]->RSSetScissorRects(1, &m_scissorRect);
+
+	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle{ m_rtvHeap->GetCPUDescriptorHandleForHeapStart(), static_cast<INT>(m_frameIndex), m_rtvDescriptorSize };
+	CD3DX12_CPU_DESCRIPTOR_HANDLE dsvHandle{ m_dsvHeap->GetCPUDescriptorHandleForHeapStart() };
+	m_commandLists[COMMANDLIST_POST]->OMSetRenderTargets(1, &rtvHandle, true, &dsvHandle);
 
 	m_scenes[m_sceneIndex]->PostProcess(m_commandLists[COMMANDLIST_POST], m_renderTargets[m_frameIndex].Get());
 

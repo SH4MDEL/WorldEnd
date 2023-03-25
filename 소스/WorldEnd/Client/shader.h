@@ -131,6 +131,22 @@ public:
 	~VertBlurShader() = default;
 };
 
+class SobelShader : public Shader
+{
+public:
+	SobelShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature);
+	~SobelShader() = default;
+};
+
+class CompositeShader : public Shader
+{
+public:
+	CompositeShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature);
+	~CompositeShader() = default;
+
+	void Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList) const override;
+};
+
 class ParticleShader : public Shader
 {
 public:
