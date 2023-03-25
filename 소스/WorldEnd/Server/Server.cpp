@@ -335,20 +335,52 @@ void Server::WorkerThread()
 			int room_num = client->GetRoomNum();
 			auto game_room = m_game_room_manager->GetGameRoom(room_num);
 			auto& monter_ids = game_room->GetMonsterIds();
+			auto& player_ids = game_room->GetPlayerIds();
 
-			client->SetWeaponCenter(*pos);
+			// 충돌된 몬스터 빼내는 컨테이너
+			std::vector<int> v;
+			v.reserve(MAX_INGAME_MONSTER);
+
+			BoundingOrientedBox obb{};
 			
+			// 전사 공격은 무기 바운드 박스 따라가도록 하면 됨
+			if (PlayerType::WARRIOR == client->GetPlayerType()) {
+
+				// 무기의 바운드 박스는 항상 회전할 필요 없이 공격이 일어날때만 해주면 됨
+				float yaw = client->GetYaw();
+				float radian = XMConvertToRadians(yaw);
+				XMFLOAT4 q{};
+				XMStoreFloat4(&q, XMQuaternionRotationRollPitchYaw(0.f, radian, 0.f));
+				client->SetWeaponOrientation(q);
+
+				switch (attack_type) {
+				case AttackType::NORMAL:
+					obb = client->GetWeaponBoundingBox();
+					obb.Center = *pos;
+					break;
+
+				case AttackType::SKILL:
+
+					break;
+
+				case AttackType::ULTIMATE:
+
+					break;
+				}
+			}
+
 			for (int id : monter_ids) {
 				if (-1 == id) continue;
 				if (State::ST_INGAME != m_clients[id]->GetState()) continue;
 				
-				if (client->GetBoundingBox().Intersects(m_clients[id]->GetBoundingBox())) {
+				if (m_clients[id]->GetBoundingBox().Intersects(obb)) {
 					auto monster = dynamic_pointer_cast<Monster>(m_clients[id]);
 
 					FLOAT damage = client->GetDamage();
 					damage *= client->GetSkillRatio(attack_type);
 					
 					monster->DecreaseHp(damage, client->GetId());
+					v.push_back(id);
 
 					// 충돌이 한마리에게만 일어나면 빠져나오도록 함
 					if (CollisionType::ONE_OFF == collision_type) {
@@ -362,6 +394,22 @@ void Server::WorkerThread()
 			//  -> 공격 주기는 스킬 클래스를 만들어 가지고 있던가 constexpr 로 정의하던가 해야 함
 			if (CollisionType::PERSISTENCE == collision_type) {
 				//
+			}
+
+			// 일반 공격만 파티클 생성이 되는지?
+			// 파티클은 충돌할 때마다 생성되는지?
+			SC_CREATE_PARTICLE_PACKET packet{};
+			packet.size = sizeof(packet);
+			packet.type = SC_PACKET_CREATE_PARTICLE;
+
+			for (int player_id : player_ids) {
+				if (-1 == player_id) continue;
+				if (State::ST_INGAME != m_clients[player_id]->GetState()) continue;
+
+				for (int monster_id : v) {
+					packet.position = m_clients[monster_id]->GetPosition();
+					m_clients[player_id]->DoSend(&packet);
+				}
 			}
 
 			delete exp_over;
@@ -598,10 +646,8 @@ void Server::PlayerCollisionCheck(const std::shared_ptr<Client>& player)
 	auto& player_ids = game_room->GetPlayerIds();
 	auto& monster_ids = game_room->GetMonsterIds();
 
-	CollideObject(player, monster_ids, Server::CollideByStaticOBB);
-	CollideObject(player, player_ids, Server::CollideByStaticOBB);
-	/*CollisionCheck(player, player_ids);
-	CollisionCheck(player, monster_ids);*/
+	CollideObject(player, monster_ids, Server::CollideByStatic);
+	CollideObject(player, player_ids, Server::CollideByStatic);
 
 	auto& v = m_game_room_manager->GetStructures();
 
@@ -661,6 +707,20 @@ void Server::MoveObject(const std::shared_ptr<GameObject>& object, XMFLOAT3 pos)
 
 	// 바운드 박스 갱신
 	object->SetBoundingBoxCenter(pos);
+}
+
+void Server::RotateObject(const std::shared_ptr<GameObject>& object, FLOAT yaw)
+{
+	// 플레이어 회전, degree 값
+	object->SetYaw(yaw);
+
+	float radian = XMConvertToRadians(yaw);
+
+	XMFLOAT4 q{};
+	XMStoreFloat4(&q, XMQuaternionRotationRollPitchYaw(0.f, radian, 0.f));
+
+	// 바운드 박스 회전
+	object->SetBoundingBoxOrientation(q);
 }
 
 void Server::Timer()
@@ -770,27 +830,13 @@ void Server::SetTimerEvent(const TIMER_EVENT& ev)
 	m_timer_queue.push(ev);
 }
 
-void Server::RotateObject(const std::shared_ptr<GameObject>& object, FLOAT yaw)
-{
-	// 플레이어 회전, degree 값
-	object->SetYaw(yaw);
-
-	float radian = XMConvertToRadians(yaw);
-	
-	XMFLOAT4 q{};
-	XMStoreFloat4(&q, XMQuaternionRotationRollPitchYaw(0.f, radian, 0.f));
-
-	// 바운드 박스 회전
-	object->SetBoundingBoxOrientation(q);
-}
-
 // 연속적인 컨테이너, 여기선 array 를 상관없이 받도록 하기 위해 span 사용
 void Server::CollideObject(const std::shared_ptr<GameObject>& object, const std::span<INT> ids,
 	std::function<void(const std::shared_ptr<GameObject>&, const std::shared_ptr<GameObject>&)> func)
 {
 	for (INT id : ids) {
 		if (-1 == id) continue;
-		if (-1 == object->GetId()) continue;
+		if (id == object->GetId()) continue;
 
 		if (object->GetBoundingBox().Intersects(m_clients[id]->GetBoundingBox())) {
 			func(object, m_clients[id]);
@@ -799,33 +845,51 @@ void Server::CollideObject(const std::shared_ptr<GameObject>& object, const std:
 }
 
 void Server::CollideByStatic(const std::shared_ptr<GameObject>& object,
-	const std::shared_ptr<GameObject>& object1)
+	const std::shared_ptr<GameObject>& static_object)
 {
-	BoundingOrientedBox& object_obb = object->GetBoundingBox();
-	BoundingOrientedBox& obb = object1->GetBoundingBox();
+	BoundingOrientedBox& static_obb = static_object->GetBoundingBox();
+	BoundingOrientedBox& obb = object->GetBoundingBox();
 
-	// length 는 바운드 박스의 길이 합
-	// dist 는 바운드 박스간의 거리
-	FLOAT x_length = object_obb.Extents.x + obb.Extents.x;
-	FLOAT x_dist = abs(object_obb.Center.x - obb.Center.x);
+	FLOAT obb_left = obb.Center.x - obb.Extents.x;
+	FLOAT obb_right = obb.Center.x + obb.Extents.x;
+	FLOAT obb_front = obb.Center.z + obb.Extents.z;
+	FLOAT obb_back = obb.Center.z - obb.Extents.z;
 
-	FLOAT z_length = object_obb.Extents.z + obb.Extents.z;
-	FLOAT z_dist = abs(object_obb.Center.z - obb.Center.z);
+	FLOAT static_obb_left = static_obb.Center.x - static_obb.Extents.x;
+	FLOAT static_obb_right = static_obb.Center.x + static_obb.Extents.x;
+	FLOAT static_obb_front = static_obb.Center.z + static_obb.Extents.z;
+	FLOAT static_obb_back = static_obb.Center.z - static_obb.Extents.z;
 
-	// 겹치는 정도
-	FLOAT x_bias = x_length - x_dist;
-	FLOAT z_bias = z_length - z_dist;
+	FLOAT x_bias{}, z_bias{};
+	bool push_out_x_plus{ false }, push_out_z_plus{ false };
+
+	// 충돌한 물체의 중심이 x가 더 크면
+	if (obb.Center.x - static_obb.Center.x <= std::numeric_limits<FLOAT>::epsilon()) {
+		x_bias = obb_right - static_obb_left;
+	}
+	else {
+		x_bias = static_obb_right - obb_left;
+		push_out_x_plus = true;
+	}
+
+	// 충돌한 물체의 중심이 z가 더 크면
+	if (obb.Center.z - static_obb.Center.z <= std::numeric_limits<FLOAT>::epsilon()) {
+		z_bias = obb_front - static_obb_back;
+	}
+	else {
+		z_bias = static_obb_front - obb_back;
+		push_out_z_plus = true;
+	}
 
 	XMFLOAT3 pos = object->GetPosition();
 
 	// z 방향으로 밀어내기
 	if (x_bias - z_bias >= std::numeric_limits<FLOAT>::epsilon()) {
-		
-		// player_obb 가 앞쪽으로 밀려남
-		if (object_obb.Center.z - obb.Center.z >= std::numeric_limits<FLOAT>::epsilon()) {
+		// object가 +z 방향으로
+		if (push_out_z_plus) {
 			pos.z += z_bias;
 		}
-		// player_obb 가 뒤쪽으로 밀려남
+		// object가 -z 방향으로
 		else {
 			pos.z -= z_bias;
 		}
@@ -833,12 +897,11 @@ void Server::CollideByStatic(const std::shared_ptr<GameObject>& object,
 
 	// x 방향으로 밀어내기
 	else {
-
-		// player_obb 가 앞쪽으로 밀려남
-		if (object_obb.Center.x - obb.Center.x >= std::numeric_limits<FLOAT>::epsilon()) {
+		// object가 +x 방향으로
+		if (push_out_x_plus) {
 			pos.x += x_bias;
 		}
-		// player_obb 가 뒤쪽으로 밀려남
+		// object가 -x 방향으로
 		else {
 			pos.x -= x_bias;
 		}
@@ -848,25 +911,25 @@ void Server::CollideByStatic(const std::shared_ptr<GameObject>& object,
 }
 
 void Server::CollideByMoveMent(const std::shared_ptr<GameObject>& object,
-	const std::shared_ptr<GameObject>& object1)
+	const std::shared_ptr<GameObject>& movement_object)
 {
 	// 충돌한 플레이어의 속도
 	auto obj = dynamic_pointer_cast<MovementObject>(object);
 	XMFLOAT3 velocity = obj->GetVelocity();
 
 	// 충돌된 오브젝트의 위치
-	XMFLOAT3 pos = object1->GetPosition();
+	XMFLOAT3 pos = movement_object->GetPosition();
 
 	// 충돌된 오브젝트를 충돌한 플레이어의 속도만큼 밀어냄
 	// 밀어내는 방향 고려할 필요 있음 ( 아직 X )
 	pos.x += velocity.x;
 	pos.y += velocity.y;
 	pos.z += velocity.z;
-	MoveObject(object1, pos);
+	MoveObject(movement_object, pos);
 }
 
 void Server::CollideByStaticOBB(const std::shared_ptr<GameObject>& object,
-	const std::shared_ptr<GameObject>& object1)
+	const std::shared_ptr<GameObject>& static_object)
 {
 	// 1. 오브젝트에서 충돌면을 구한다
 	// 2. 해당 충돌면의 법선 벡터를 구한다
@@ -875,7 +938,7 @@ void Server::CollideByStaticOBB(const std::shared_ptr<GameObject>& object,
 
 	XMFLOAT3 corners[8]{};
 
-	BoundingOrientedBox& obb = object1->GetBoundingBox();
+	BoundingOrientedBox& obb = static_object->GetBoundingBox();
 	obb.GetCorners(corners);
 	
 	// 꼭짓점 시계방향 0,1,5,4

@@ -50,7 +50,7 @@ void GameRoom::SendMonsterData()
 {
 	Server& server = Server::GetInstance();
 
-	SC_UPDATE_MONSTER_PACKET packet[MAX_MONSTER]{};
+	SC_UPDATE_MONSTER_PACKET packet[MAX_INGAME_MONSTER]{};
 
 	for (size_t i = 0; INT id : m_monster_ids) {
 		packet[i].size = static_cast<UCHAR>(sizeof(SC_UPDATE_MONSTER_PACKET));
@@ -68,7 +68,7 @@ void GameRoom::SendMonsterData()
 	for (INT id : m_player_ids){
 		if (-1 == id) continue;
 
-		server.m_clients[id]->DoSend(&packet, MAX_MONSTER);
+		server.m_clients[id]->DoSend(&packet, MAX_INGAME_MONSTER);
 	}
 }
 
@@ -76,7 +76,7 @@ void GameRoom::SendAddMonster(INT player_id)
 {
 	Server& server = Server::GetInstance();
 
-	SC_ADD_MONSTER_PACKET packet[MAX_MONSTER]{};
+	SC_ADD_MONSTER_PACKET packet[MAX_INGAME_MONSTER]{};
 
 	for (size_t i = 0; INT id : m_monster_ids) {
 		packet[i].size = static_cast<UCHAR>(sizeof(SC_ADD_MONSTER_PACKET));
@@ -92,7 +92,7 @@ void GameRoom::SendAddMonster(INT player_id)
 		++i;
 	}
 
-	server.m_clients[player_id]->DoSend(&packet, MAX_MONSTER);
+	server.m_clients[player_id]->DoSend(&packet, MAX_INGAME_MONSTER);
 }
 
 bool GameRoom::FindPlayer(INT player_id)

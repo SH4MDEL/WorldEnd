@@ -374,8 +374,8 @@ void Monster::CollisionCheck()
 	auto& player_ids = game_room->GetPlayerIds();
 
 	
-	server.CollideObject(shared_from_this(), monster_ids, Server::CollideByStaticOBB);
-	server.CollideObject(shared_from_this(), player_ids, Server::CollideByStaticOBB);
+	server.CollideObject(shared_from_this(), monster_ids, Server::CollideByStatic);
+	server.CollideObject(shared_from_this(), player_ids, Server::CollideByStatic);
 }
 
 void Monster::InitializePosition()
@@ -386,8 +386,8 @@ void Monster::InitializePosition()
 
 	constexpr DirectX::XMFLOAT3 monster_create_area[]
 	{
-		{ 14.0f, 0.0f, 15.0f }, { 12.0f, 0.0f, -16.0f },{ 14.0f, 0.0f, 16.0f },	{ -13.0f, 0.0f, 17.0f },
-		{ 15.0f, 0.0f, 17.0f }, { -11.0f, 0.0f, 15.0f },{ 15.0f, 0.0f, 16.0f }, { 17.0f, 0.0f, -11.0f }
+		{ 9.f, 0.f, 36.f }, { 17.f, 0.f, 28.f }, { 17.f, 0.f, 20.f }, { 9.f, 0.f, 12.f },
+		{ -9.f, 0.f, 36.f }, { -17.f, 0.f, 28.f }, { -17.f, 0.f, 20.f }, { -9.f, 0.f, 12.f },
 	};
 	std::uniform_int_distribution<int> area_distribution{ 0, static_cast<int>(std::size(monster_create_area) - 1) };
 	SetPosition(monster_create_area[area_distribution(g_random_engine)]);

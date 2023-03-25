@@ -87,7 +87,11 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 			return;
 
 		cout << "Ultimate" << endl;
-		SendCooltimePacket(CooltimeType::ULTIMATE);
+		// 임시 위치
+		XMFLOAT3 pos = GetPosition();
+		SendAttackPacket(pos, AttackType::ULTIMATE, CollisionType::MULTIPLE_TIMES,
+			chrono::system_clock::now() + PlayerSetting::WARRIOR_ULTIMATE_COLLISION_TIME,
+			CooltimeType::ULTIMATE);
 	}
 	if (GetAsyncKeyState(VK_SPACE) & 0x8000)
 	{
@@ -103,7 +107,11 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 			return;
 
 		cout << "Skill" << endl;
-		SendCooltimePacket(CooltimeType::SKILL);
+		// 임시 위치
+		XMFLOAT3 pos = GetPosition();
+		SendAttackPacket(pos, AttackType::SKILL, CollisionType::MULTIPLE_TIMES,
+			chrono::system_clock::now() + PlayerSetting::WARRIOR_SKILL_COLLISION_TIME,
+			CooltimeType::SKILL);
 	}
 }
 
@@ -113,15 +121,16 @@ void Player::OnProcessingClickMessage(LPARAM lParam)
 		return;
 
 	ChangeAnimation(ObjectAnimation::ATTACK);
-	XMFLOAT3 particlePosition = GetPosition();
-	particlePosition.y += 1.f;
-	g_particleSystem->CreateParticle(ParticleSystem::Type::EMITTER, particlePosition);
 
-	XMFLOAT3 front = GetFront();
-	XMFLOAT3 pos = Vector3::Add(front, GetPosition());
-	SendAttackPacket(pos, AttackType::NORMAL, CollisionType::MULTIPLE_TIMES,
-		chrono::system_clock::now() + PlayerSetting::WARRIOR_ATTACK_COLLISION_TIME,
-		CooltimeType::NORMAL_ATTACK);
+	if (PlayerType::WARRIOR == m_type) {
+		XMFLOAT3 pos = Vector3::Add(Vector3::Mul(m_front, 0.8f), GetPosition());
+		SendAttackPacket(pos, AttackType::NORMAL, CollisionType::MULTIPLE_TIMES,
+			chrono::system_clock::now() + PlayerSetting::WARRIOR_ATTACK_COLLISION_TIME,
+			CooltimeType::NORMAL_ATTACK);
+	}
+	else if (PlayerType::ARCHER == m_type) {
+
+	}
 }
 
 void Player::Update(FLOAT timeElapsed)

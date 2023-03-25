@@ -39,6 +39,7 @@ public:
 	void SetPlayerType(PlayerType type);
 	void SetSkillRatio(AttackType type, FLOAT ratio);
 	void SetWeaponCenter(const XMFLOAT3& center);
+	void SetWeaponOrientation(const XMFLOAT4& orientation);
 
 	const SOCKET& GetSocket() const override { return m_socket; }
 	ExpOver& GetExpOver() { return m_recv_over; }

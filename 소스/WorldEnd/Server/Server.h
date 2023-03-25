@@ -68,11 +68,11 @@ public:
 	void CollideObject(const std::shared_ptr<GameObject>& object, const std::span<INT> ids,
 		std::function<void(const std::shared_ptr<GameObject>&, const std::shared_ptr<GameObject>&)> func);
 	static void CollideByStatic(const std::shared_ptr<GameObject>& object,
-		const std::shared_ptr<GameObject>& object1);
+		const std::shared_ptr<GameObject>& static_object);
 	static void CollideByMoveMent(const std::shared_ptr<GameObject>& object,
-		const std::shared_ptr<GameObject>& object1);
-	static void CollideByStaticOBB(const std::shared_ptr<GameObject>& objec,
-		const std::shared_ptr<GameObject>& object1);
+		const std::shared_ptr<GameObject>& movement_object);
+	static void CollideByStaticOBB(const std::shared_ptr<GameObject>& object,
+		const std::shared_ptr<GameObject>& static_object);
 
 	std::array<std::shared_ptr<MovementObject>, MAX_OBJECT> m_clients;
 

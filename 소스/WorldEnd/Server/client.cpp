@@ -34,7 +34,7 @@ Client::Client() : m_socket{}, m_ready_check{ false }, m_remain_size{ 0 },
 {
 	m_name = "Player";
 	SetPlayerType(PlayerType::WARRIOR);
-	m_damage = 30.f;
+	m_damage = 90.f;
 	m_skill_ratio = 1.2f;
 }
 
@@ -117,6 +117,11 @@ void Client::SetWeaponCenter(const XMFLOAT3& center)
 	m_weopon_bounding_box.Center = center;
 }
 
+void Client::SetWeaponOrientation(const XMFLOAT4& orientation)
+{
+	m_weopon_bounding_box.Orientation = orientation;
+}
+
 FLOAT Client::GetSkillRatio(AttackType type) const
 {
 	FLOAT ratio{};
@@ -143,14 +148,14 @@ PLAYER_DATA Client::GetPlayerData() const
 void Client::SetBoundingBox(PlayerType type)
 {
 	switch (type) {
-	case PlayerType::ARCHER:
-		m_bounding_box = BoundingOrientedBox{ m_position, XMFLOAT3{0.37f, 0.65f, 0.37f}, XMFLOAT4{0.f, 0.f, 0.f, 1.f } };
-		m_weopon_bounding_box = BoundingOrientedBox{ m_position, XMFLOAT3{0.18f, 0.04f, 0.68f}, XMFLOAT4{0.f, 0.f, 0.f, 1.f } };
-		break;
-
 	case PlayerType::WARRIOR:
 		m_bounding_box = BoundingOrientedBox{ m_position, XMFLOAT3{0.37f, 0.65f, 0.37f}, XMFLOAT4{0.f, 0.f, 0.f, 1.f } };
 		m_weopon_bounding_box = BoundingOrientedBox{ m_position, XMFLOAT3{0.13f, 0.03f, 0.68f}, XMFLOAT4{0.f, 0.f, 0.f, 1.f } };
+		break;
+
+	case PlayerType::ARCHER:
+		m_bounding_box = BoundingOrientedBox{ m_position, XMFLOAT3{0.37f, 0.65f, 0.37f}, XMFLOAT4{0.f, 0.f, 0.f, 1.f } };
+		m_weopon_bounding_box = BoundingOrientedBox{ m_position, XMFLOAT3{0.18f, 0.04f, 0.68f}, XMFLOAT4{0.f, 0.f, 0.f, 1.f } };
 		// 화살 바운드 박스로 교체 필요함, 활은 충돌하지 않을 것이기 때문
 		break;
 	}

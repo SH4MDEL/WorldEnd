@@ -79,6 +79,6 @@ void GS_EMITTERPARTICLE_DRAW(point VS_EMITTERPARTICLE_INPUT input[1], inout Tria
 
 float4 PS_EMITTERPARTICLE_MAIN(GS_EMITTERPARTICLE_OUTPUT input) : SV_TARGET
 {
-	if (g_age < 0.01f) return float4(0.f, 0.f, 0.f, 0.f);
+	if (g_age < 0.05f) return float4(0.f, 0.f, 0.f, 0.f);
 	return float4(1.0f, 0.4f, 0.4f, 0.8f);
 }

@@ -27,8 +27,6 @@ constexpr int ARCHER_MONSTER_END = WARRIOR_MONSTER_END + MAX_ARCHER_MONSTER;
 constexpr int WIZARD_MONSTER_START = ARCHER_MONSTER_END;
 constexpr int WIZARD_MONSTER_END = ARCHER_MONSTER_END + MAX_WIZARD_MONSTER;
 
-constexpr int MAX_MONSTER = 10;
-
 constexpr char CS_PACKET_LOGIN = 1;
 constexpr char CS_PACKET_PLAYER_MOVE = 2;
 constexpr char CS_PACKET_SET_COOLTIME = 4;
@@ -47,6 +45,7 @@ constexpr char SC_PACKET_CHANGE_ANIMATION = 9;
 constexpr char SC_PACKET_RESET_COOLTIME = 10;
 constexpr char SC_PACKET_CLEAR_FLOOR = 11;
 constexpr char SC_PACKET_FAIL_FLOOR = 12;
+constexpr char SC_PACKET_CREATE_PARTICLE = 13;
 
 enum class PlayerType : char { WARRIOR, ARCHER, UNKNOWN };
 enum class AttackType : char { NORMAL, SKILL, ULTIMATE };
@@ -69,6 +68,8 @@ namespace PlayerSetting
 
 
 	constexpr auto WARRIOR_ATTACK_COLLISION_TIME = 210ms;
+	constexpr auto WARRIOR_SKILL_COLLISION_TIME = 800ms;
+	constexpr auto WARRIOR_ULTIMATE_COLLISION_TIME = 1000ms;
 	constexpr auto WARRIOR_ATTACK_COOLTIME = 1s;
 	constexpr auto WARRIOR_SKILL_COOLTIME = 7s;
 	constexpr auto WARRIOR_ULTIMATE_COOLTIME = 20s;
@@ -352,6 +353,13 @@ struct SC_FAIL_FLOOR_PACKET
 {
 	UCHAR size;
 	UCHAR type;
+};
+
+struct SC_CREATE_PARTICLE_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+	DirectX::XMFLOAT3 position;
 };
 
 #pragma pack (pop)

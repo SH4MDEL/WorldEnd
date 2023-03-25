@@ -574,6 +574,9 @@ void TowerScene::ProcessPacket(char* ptr)
 	case SC_PACKET_FAIL_FLOOR:
 		RecvFailFloor(ptr);
 		break;
+	case SC_PACKET_CREATE_PARTICLE:
+		RecvCreateParticle(ptr);
+		break;
 	}
 }
 
@@ -751,6 +754,15 @@ void TowerScene::RecvFailFloor(char* ptr)
 {
 	SC_FAIL_FLOOR_PACKET* packet = reinterpret_cast<SC_FAIL_FLOOR_PACKET*>(ptr);
 	
+}
+
+void TowerScene::RecvCreateParticle(char* ptr)
+{
+	SC_CREATE_PARTICLE_PACKET* packet = reinterpret_cast<SC_CREATE_PARTICLE_PACKET*>(ptr);
+
+	XMFLOAT3 particlePosition = packet->position;
+	particlePosition.y += 1.f;
+	g_particleSystem->CreateParticle(ParticleSystem::Type::EMITTER, particlePosition);
 }
 
 void TowerScene::RecvChangeAnimation(char* ptr)
