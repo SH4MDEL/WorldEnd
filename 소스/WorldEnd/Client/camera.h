@@ -37,6 +37,7 @@ public:
 	void SetProjMatrix(const XMFLOAT4X4& projMatrix) { m_projMatrix = projMatrix; }
 
 	XMFLOAT3 GetEye() const { return m_eye; }
+	XMFLOAT3 GetRight() const { return m_right; }
 	XMFLOAT3 GetUp() const { return m_up; }
 	XMFLOAT3 GetLook() const { return m_look; }
 	void SetEye(const XMFLOAT3& eye) { m_eye = eye; UpdateLocalAxis(); }

@@ -8,7 +8,6 @@
 // experiment based on eye sensitivity to different wavelengths of light.
 float CalcLuminance(float3 color)
 {
-	//return dot(color, float3(0.099f, 0.087f, 0.014f));
 	return dot(color, float3(0.299f, 0.587f, 0.114f));
 }
 
@@ -16,8 +15,6 @@ float CalcLuminance(float3 color)
 void CS_SOBEL_MAIN(int3 dispatchThreadID : SV_DispatchThreadID)
 {
 	// Sample the pixels in the neighborhood of this pixel.
-	//g_output[dispatchThreadID.xy] = g_baseTexture[dispatchThreadID.xy];
-	//return;
 	float4 c[3][3];
 	for (int i = 0; i < 3; ++i)
 	{

@@ -513,14 +513,14 @@ void Skybox::Update(FLOAT timeElapsed)
 
 }
 
-HpBar::HpBar() : m_border{ 0.f } {}
+GaugeBar::GaugeBar() : m_border{ 0.f } {}
 
-HpBar::HpBar(FLOAT hpStart) : m_border{ hpStart } {}
+GaugeBar::GaugeBar(FLOAT hpStart) : m_border{ hpStart } {}
 
-void HpBar::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList)
+void GaugeBar::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList)
 {
-	commandList->SetGraphicsRoot32BitConstants((INT)ShaderRegister::GameObject, 1, &(m_hp), 16);
-	commandList->SetGraphicsRoot32BitConstants((INT)ShaderRegister::GameObject, 1, &(m_maxHp), 17);
+	commandList->SetGraphicsRoot32BitConstants((INT)ShaderRegister::GameObject, 1, &(m_gauge), 16);
+	commandList->SetGraphicsRoot32BitConstants((INT)ShaderRegister::GameObject, 1, &(m_maxGauge), 17);
 	commandList->SetGraphicsRoot32BitConstants((INT)ShaderRegister::GameObject, 1, &(m_border), 18);
 
 	GameObject::Render(commandList);

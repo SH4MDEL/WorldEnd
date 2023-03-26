@@ -24,7 +24,8 @@ public:
 	void AddVelocity(const XMFLOAT3& increase);
 	void SetHp(FLOAT hp) { m_hp = hp; }
 	void SetCamera(const shared_ptr<Camera>& camera) { m_camera = camera; }
-	void SetHpBar(const shared_ptr<HpBar>& hpBar) { m_hpBar = hpBar; }
+	void SetHpBar(const shared_ptr<GaugeBar>& hpBar) { m_hpBar = hpBar; }
+	void SetStaminaBar(const shared_ptr<GaugeBar>& staminaBar) { m_staminaBar = staminaBar; }
 	void SetType(PlayerType type) { m_type = type; }
 
 	XMFLOAT3 GetVelocity() const { return m_velocity; }
@@ -46,19 +47,20 @@ public:
 		CooltimeType cooltimeType);
 
 private:
-	XMFLOAT3			m_velocity;		// 속도
-	FLOAT				m_maxVelocity;	// 최대속도
-	FLOAT				m_friction;		// 마찰력
+	XMFLOAT3				m_velocity;		// 속도
+	FLOAT					m_maxVelocity;	// 최대속도
+	FLOAT					m_friction;		// 마찰력
 
-	FLOAT				m_hp;			// 플레이어 체력
-	FLOAT				m_maxHp;		// 플레이어 최대 체력
+	FLOAT					m_hp;			// 플레이어 체력
+	FLOAT					m_maxHp;		// 플레이어 최대 체력
 
-	shared_ptr<Camera>	m_camera;		// 카메라
-	shared_ptr<HpBar>	m_hpBar;		// HP바
+	shared_ptr<Camera>		m_camera;		// 카메라
+	shared_ptr<GaugeBar>	m_hpBar;		// HP바
+	shared_ptr<GaugeBar>	m_staminaBar;	// 스테미너 바
 
-	INT					m_id;			// 플레이어 고유 아이디
+	INT						m_id;			// 플레이어 고유 아이디
 
-	PlayerType			m_type = PlayerType::WARRIOR;
+	PlayerType				m_type = PlayerType::WARRIOR;
 
 	array<bool, CooltimeType::COUNT> m_cooltimeList;	// 쿨타임이면 true, 쿨타임중이 아니면 false
 };

@@ -114,11 +114,18 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	m_shaders["ANIMATION"]->SetPlayer(m_player);
 
 	// 체력 바 생성
-	auto hpBar = make_shared<HpBar>(0.16f);
+	auto hpBar = make_shared<GaugeBar>(0.16f);
 	hpBar->SetMesh(m_meshs["HPBAR"]);
 	hpBar->SetTexture(m_textures["HPBAR"]);
 	m_shaders["HORZGAUGE"]->SetObject(hpBar);
 	m_player->SetHpBar(hpBar);
+
+	// 스테미나 바 생성
+	auto staminaBar = make_shared<GaugeBar>(0.015f);
+	staminaBar->SetMesh(m_meshs["STAMINABAR"]);
+	staminaBar->SetTexture(m_textures["STAMINABAR"]);
+	m_shaders["VERTGAUGE"]->SetObject(staminaBar);
+	m_player->SetStaminaBar(staminaBar);
 
 	// 카메라 생성
 	m_camera = make_shared<ThirdPersonCamera>();
@@ -321,6 +328,7 @@ void TowerScene::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UI
 	{
 		m_shaders.at("SKYBOX")->Render(commandList);
 		m_shaders.at("HORZGAUGE")->Render(commandList);
+		m_shaders.at("VERTGAUGE")->Render(commandList);
 		g_particleSystem->Render(commandList);
 		//m_shaders.at("DEBUG")->Render(commandList);
 		break;
@@ -634,7 +642,7 @@ void TowerScene::RecvAddObjectPacket(char* ptr)
 
 	m_multiPlayers.insert({ player_data.id, multiPlayer });
 
-	auto hpBar = make_shared<HpBar>();
+	auto hpBar = make_shared<GaugeBar>();
 	hpBar->SetMesh(m_meshs["HPBAR"]);
 	hpBar->SetTexture(m_textures["HPBAR"]);
 	m_shaders["HORZGAUGE"]->SetObject(hpBar);
@@ -704,7 +712,7 @@ void TowerScene::RecvAddMonsterPacket(char* ptr)
 	monster->SetPosition(XMFLOAT3{ monster_data.pos.x, monster_data.pos.y, monster_data.pos.z });
 	m_monsters.insert({ static_cast<INT>(monster_data.id), monster });
 
-	auto hpBar = make_shared<HpBar>();
+	auto hpBar = make_shared<GaugeBar>();
 	hpBar->SetMesh(m_meshs["HPBAR"]);
 	hpBar->SetTexture(m_textures["HPBAR"]);
 	m_shaders["HORZGAUGE"]->SetObject(hpBar);

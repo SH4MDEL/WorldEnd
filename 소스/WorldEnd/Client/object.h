@@ -159,21 +159,21 @@ public:
 	virtual void Update(FLOAT timeElapsed);
 };
 
-class HpBar : public GameObject
+class GaugeBar : public GameObject
 {
 public:
-	HpBar();
-	HpBar(FLOAT hpStart);
-	~HpBar() = default;
+	GaugeBar();
+	GaugeBar(FLOAT hpStart);
+	~GaugeBar() = default;
 
 	void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) override;
 
-	void SetHp(FLOAT hp) { m_hp = hp; }
-	void SetMaxHp(FLOAT maxHp) { m_maxHp = maxHp; }
+	void SetGauge(FLOAT gauge) { m_gauge = gauge; }
+	void SetMaxGauge(FLOAT maxGauge) { m_maxGauge = maxGauge; }
 
 private:
-	FLOAT	m_hp;
-	FLOAT	m_maxHp;
+	FLOAT	m_gauge;
+	FLOAT	m_maxGauge;
 
 	FLOAT	m_border;
 };

@@ -169,13 +169,24 @@ void Player::Update(FLOAT timeElapsed)
 	}
 
 	if (m_hpBar) {
-		m_hpBar->SetMaxHp(m_maxHp);
-		m_hpBar->SetHp(dummy);
+		m_hpBar->SetMaxGauge(m_maxHp);
+		m_hpBar->SetGauge(dummy);
 		XMFLOAT3 hpBarPosition = GetPosition();
 		hpBarPosition.y += 1.8f;
 		m_hpBar->SetPosition(hpBarPosition);
 	}
 
+	if (m_staminaBar) {
+		m_staminaBar->SetMaxGauge(m_maxHp);
+		m_staminaBar->SetGauge(dummy);
+		XMFLOAT3 hpBarPosition = GetPosition();
+		XMFLOAT3 cameraRight = m_camera->GetRight();
+		hpBarPosition.x += cameraRight.x;
+		hpBarPosition.y += cameraRight.y;
+		hpBarPosition.z += cameraRight.z;
+		hpBarPosition.y += 1.f;
+		m_staminaBar->SetPosition(hpBarPosition);
+	}
 #ifndef USE_NETWORK
 	Move(m_velocity);
 #endif // !USE_NETWORK

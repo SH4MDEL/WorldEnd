@@ -84,6 +84,14 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	hpBarTexture->CreateSrvDescriptorHeap(device);
 	hpBarTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
 
+	// 스테미너 바 로딩
+	auto staminaBarMesh{ make_shared<BillboardMesh>(device, commandlist, XMFLOAT3{ 0.f, 0.f, 0.f }, XMFLOAT2{ 0.1f, 0.89f }) };
+	auto staminaBarTexture{ make_shared<Texture>() };
+	staminaBarTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/Full_StaminaBar.dds"), (INT)ShaderRegister::BaseTexture); // BaseTexture
+	staminaBarTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/Empty_StaminaBar.dds"), (INT)ShaderRegister::SubTexture); // SubTexture
+	staminaBarTexture->CreateSrvDescriptorHeap(device);
+	staminaBarTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+
 	// 스카이박스 로딩
 	auto skyboxShader{ make_shared<SkyboxShader>(device, rootsignature) };
 	auto skyboxMesh{ make_shared <SkyboxMesh>(device, commandlist, 20.0f, 20.0f, 20.0f)};
@@ -170,12 +178,14 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 
 	// 메쉬 설정
 	m_meshs.insert({ "HPBAR", hpBarMesh });
+	m_meshs.insert({ "STAMINABAR", staminaBarMesh });
 	m_meshs.insert({ "SKYBOX", skyboxMesh });
 	m_meshs.insert({ "DEBUG", debugMesh });
 
 	// 텍스처 설정
 	m_textures.insert({ "SKYBOX", skyboxTexture });
 	m_textures.insert({ "HPBAR", hpBarTexture });
+	m_textures.insert({ "STAMINABAR", staminaBarTexture });
 
 	// 셰이더 설정
 	m_shaders.insert({ "ANIMATION", animationShader });

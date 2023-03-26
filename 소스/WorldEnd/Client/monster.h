@@ -13,7 +13,7 @@ public:
 
 	void SetPosition(const XMFLOAT3& position) override;
 	void SetHp(FLOAT hp);
-	void SetHpBar(const shared_ptr<HpBar>& hpBar) { m_hpBar = hpBar; }
+	void SetHpBar(const shared_ptr<GaugeBar>& hpBar) { m_hpBar = hpBar; }
 	void SetVelocity(XMFLOAT3& velocity);
 
 
@@ -24,7 +24,7 @@ public:
 private:
 	FLOAT				m_hp;			// 체력
 	FLOAT				m_maxHp;		// 최대 체력
-	shared_ptr<HpBar>	m_hpBar;		// HP바
+	shared_ptr<GaugeBar>	m_hpBar;		// HP바
 
 	MonsterType			m_type;
 };

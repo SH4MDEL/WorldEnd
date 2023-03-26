@@ -72,7 +72,7 @@ float4 PS_HORZGAUGE_MAIN(GS_GAUGE_OUTPUT input) : SV_TARGET
 [earlydepthstencil]
 float4 PS_VERTGAUGE_MAIN(GS_GAUGE_OUTPUT input) : SV_TARGET
 {
-	if (input.uv0.y <= g_age + (1 - g_age) * (hp / maxHp)) {
+	if (1 - input.uv0.y <= g_age + (1 - g_age) * (hp / maxHp)) {
 		return g_baseTexture.Sample(g_samplerWrap, input.uv0);
 	}
 	return g_subTexture.Sample(g_samplerWrap, input.uv1);
