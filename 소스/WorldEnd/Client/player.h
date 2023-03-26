@@ -61,6 +61,11 @@ private:
 	PlayerType			m_type = PlayerType::WARRIOR;
 
 	array<bool, CooltimeType::COUNT> m_cooltimeList;	// 쿨타임이면 true, 쿨타임중이 아니면 false
+	
+	chrono::system_clock::time_point	m_startDash;
+	bool								m_dashed;
+	FLOAT								m_moveSpeed;
+
 };
 
 class AttackCallbackHandler : public AnimationCallbackHandler

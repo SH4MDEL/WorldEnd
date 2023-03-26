@@ -3,7 +3,8 @@
 #include "particleSystem.h"
 
 Player::Player() : m_velocity{ 0.0f, 0.0f, 0.0f }, m_maxVelocity{ 10.0f }, m_friction{ 0.5f }, 
-	m_hp{ 100.f }, m_maxHp{ 100.f }, m_id{ -1 }, m_cooltimeList{ false, }
+	m_hp{ 100.f }, m_maxHp{ 100.f }, m_id{ -1 }, m_cooltimeList{ false, }, m_dashed{ false },
+	m_moveSpeed{ PlayerSetting::PLAYER_WALK_SPEED }
 {
 
 }
@@ -17,8 +18,7 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 {
 	XMFLOAT3 eye = m_camera->GetEye();
 	XMFLOAT3 direction{ Vector3::Normalize(Vector3::Sub(GetPosition(), eye)) };
-	if (GetAsyncKeyState('W') & 0x8000)
-	{
+	if (GetAsyncKeyState('W') & 0x8000) {
 		XMFLOAT3 front{ Vector3::Normalize(Vector3::Sub(GetPosition(), eye)) };
 		XMFLOAT3 angle{ Vector3::Angle(GetFront(), front) };
 		XMFLOAT3 clockwise{ Vector3::Cross(GetFront(), front) };
@@ -29,8 +29,7 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 			Rotate(0.f, 0.f, -timeElapsed * XMConvertToDegrees(angle.y) * 10.f);
 		}
 	}
-	if (GetAsyncKeyState('A') & 0x8000)
-	{
+	if (GetAsyncKeyState('A') & 0x8000) {
 		XMFLOAT3 left{ Vector3::Normalize(Vector3::Cross(direction, GetUp())) };
 		XMFLOAT3 angle{ Vector3::Angle(GetFront(), left) };
 		XMFLOAT3 clockwise{ Vector3::Cross(GetFront(), left) };
@@ -41,8 +40,7 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 			Rotate(0.f, 0.f, -timeElapsed * XMConvertToDegrees(angle.y) * 10.f);
 		}
 	}
-	if (GetAsyncKeyState('S') & 0x8000)
-	{
+	if (GetAsyncKeyState('S') & 0x8000) {
 		XMFLOAT3 back{ Vector3::Normalize(Vector3::Sub(eye, GetPosition())) };
 		XMFLOAT3 angle{ Vector3::Angle(GetFront(), back) };
 		XMFLOAT3 clockwise{ Vector3::Cross(GetFront(), back) };
@@ -53,8 +51,7 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 			Rotate(0.f, 0.f, -timeElapsed * XMConvertToDegrees(angle.y) * 10.f);
 		}
 	}
-	if (GetAsyncKeyState('D') & 0x8000)
-	{
+	if (GetAsyncKeyState('D') & 0x8000) {
 		XMFLOAT3 right{ Vector3::Normalize(Vector3::Cross(GetUp(), direction)) };
 		XMFLOAT3 angle{ Vector3::Angle(GetFront(), right) };
 		XMFLOAT3 clockwise{ Vector3::Cross(GetFront(), right)};
@@ -68,7 +65,7 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 	if (GetAsyncKeyState('W') & 0x8000 || GetAsyncKeyState('A') & 0x8000 ||
 		GetAsyncKeyState('S') & 0x8000 || GetAsyncKeyState('D') & 0x8000)
 	{
-		AddVelocity(Vector3::Mul(GetFront(), timeElapsed * PlayerSetting::PLAYER_RUN_SPEED));
+		AddVelocity(Vector3::Mul(GetFront(), timeElapsed * m_moveSpeed));
 
 #ifdef USE_NETWORK
 		CS_PLAYER_MOVE_PACKET move_packet;
@@ -81,8 +78,7 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 		send(g_socket, reinterpret_cast<char*>(&move_packet), sizeof(move_packet), 0);
 #endif // USE_NETWORK
 	}
-	if (GetAsyncKeyState('Q') & 0x8000)
-	{
+	if (GetAsyncKeyState('Q') & 0x8000) {
 		if (m_cooltimeList[CooltimeType::ULTIMATE])
 			return;
 
@@ -93,13 +89,20 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 			chrono::system_clock::now() + PlayerSetting::WARRIOR_ULTIMATE_COLLISION_TIME,
 			CooltimeType::ULTIMATE);
 	}
-	if (GetAsyncKeyState(VK_SPACE) & 0x8000)
-	{
+	if (GetAsyncKeyState(VK_SPACE) & 0x8000) {
 
 	}
-	if (GetAsyncKeyState(VK_SHIFT) & 0x8000)
-	{
-
+	
+	if (!m_dashed && GetAsyncKeyState(VK_SHIFT) & 0x8000) {
+		m_dashed = true;
+		ChangeAnimation(PlayerAnimation::DASH);
+		m_moveSpeed = PlayerSetting::PLAYER_DASH_SPEED;
+		m_startDash = chrono::system_clock::now();
+	}
+	if (m_dashed && GetAsyncKeyState(VK_SHIFT) == 0x0000) {
+		m_dashed = false;
+		ChangeAnimation(ObjectAnimation::WALK);
+		m_moveSpeed = PlayerSetting::PLAYER_WALK_SPEED;
 	}
 	
 	if (GetAsyncKeyState('E') & 0x8000) {
@@ -149,13 +152,24 @@ void Player::Update(FLOAT timeElapsed)
 				ChangeAnimation(ObjectAnimation::IDLE);
 			}
 		}
+		else if (PlayerAnimation::DASH == m_currentAnimation) {
+			if (chrono::system_clock::now() > m_startDash + PlayerSetting::PLAYER_DASH_DURATION) {
+				ChangeAnimation(ObjectAnimation::RUN);
+				m_moveSpeed = PlayerSetting::PLAYER_RUN_SPEED;
+			}
+		}
 		else {
 			float length = fabs(m_velocity.x) + fabs(m_velocity.z);
 			if (length <= numeric_limits<float>::epsilon()) {
 				ChangeAnimation(ObjectAnimation::IDLE);
 			}
 			else {
-				ChangeAnimation(ObjectAnimation::WALK);
+				if (m_dashed) {
+					ChangeAnimation(ObjectAnimation::RUN);
+				}
+				else {
+					ChangeAnimation(ObjectAnimation::WALK);
+				}
 			}
 		}
 	}

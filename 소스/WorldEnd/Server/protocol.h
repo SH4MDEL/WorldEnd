@@ -64,8 +64,11 @@ namespace PlayerSetting
 {
 	using namespace std::literals;
 
-	constexpr float PLAYER_RUN_SPEED = 4.f;
+	constexpr float PLAYER_WALK_SPEED = 4.f;
+	constexpr float	PLAYER_RUN_SPEED = 10.f;
+	constexpr float	PLAYER_DASH_SPEED = 12.f;
 
+	constexpr auto PLAYER_DASH_DURATION = 300ms;
 
 	constexpr auto WARRIOR_ATTACK_COLLISION_TIME = 210ms;
 	constexpr auto WARRIOR_SKILL_COLLISION_TIME = 800ms;
@@ -105,33 +108,25 @@ class ObjectAnimation
 {
 public:
 	enum USHORT {
-		IDLE, WALK, ATTACK, DEAD,
+		IDLE, WALK, RUN, ATTACK, DEAD,
 		END
 	};
 };
 
-class WarriorAnimation : public ObjectAnimation
+class PlayerAnimation : public ObjectAnimation
 {
 public:
 	static constexpr int ANIMATION_START = 100;
 	enum USHORT {
-		GUARD = ObjectAnimation::END + ANIMATION_START
-	};
-};
-
-class ArcherAnimation : public ObjectAnimation
-{
-public:
-	static constexpr int ANIMATION_START = 200;
-	enum USHORT {
-		AIM = ObjectAnimation::END + ANIMATION_START
+		DASH = ObjectAnimation::END + ANIMATION_START,
+		
 	};
 };
 
 class MonsterAnimation : public ObjectAnimation
 {
 public:
-	static constexpr int ANIMATION_START = 300;
+	static constexpr int ANIMATION_START = 200;
 	enum USHORT {
 		LOOK_AROUND = ObjectAnimation::END + ANIMATION_START,
 		TAUNT, BLOCK, BLOCKIDLE

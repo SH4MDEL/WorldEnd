@@ -535,12 +535,17 @@ bool AnimationObject::ChangeAnimation(int animation)
 	if (m_currentAnimation == animation)
 		return false;
 
+	int start_num{};
 	switch (animation) {
 	case ObjectAnimation::IDLE:
 		m_animationController->SetTrackType(0, ANIMATION_TYPE_LOOP);
 		break;
 
 	case ObjectAnimation::WALK:
+		m_animationController->SetTrackType(0, ANIMATION_TYPE_LOOP);
+		break;
+
+	case ObjectAnimation::RUN:
 		m_animationController->SetTrackType(0, ANIMATION_TYPE_LOOP);
 		break;
 
@@ -554,34 +559,31 @@ bool AnimationObject::ChangeAnimation(int animation)
 		m_animationController->SetTrackPosition(0, 0.f);
 		break;
 
-	case WarriorAnimation::GUARD:
+	case PlayerAnimation::DASH:
 		m_animationController->SetTrackType(0, ANIMATION_TYPE_LOOP);
-		animation -= WarriorAnimation::ANIMATION_START;
-		break;
-
-	case ArcherAnimation::AIM:
-		m_animationController->SetTrackType(0, ANIMATION_TYPE_LOOP);
+		start_num = PlayerAnimation::ANIMATION_START;
+		m_animationController->SetTrackPosition(0, 0.f);
 		break;
 
 	case MonsterAnimation::LOOK_AROUND:
 		m_animationController->SetTrackType(0, ANIMATION_TYPE_LOOP);
-		animation -= MonsterAnimation::ANIMATION_START;
+		start_num = MonsterAnimation::ANIMATION_START;
 		break;
 	case MonsterAnimation::TAUNT:
 		m_animationController->SetTrackType(0, ANIMATION_TYPE_LOOP);
-		animation -= MonsterAnimation::ANIMATION_START;
+		start_num = MonsterAnimation::ANIMATION_START;
 		break;
 	case MonsterAnimation::BLOCK:
 		m_animationController->SetTrackType(0, ANIMATION_TYPE_ONCE);
-		animation -= MonsterAnimation::ANIMATION_START;
+		start_num = MonsterAnimation::ANIMATION_START;
 		break;
 	case MonsterAnimation::BLOCKIDLE:
 		m_animationController->SetTrackType(0, ANIMATION_TYPE_LOOP);
-		animation -= MonsterAnimation::ANIMATION_START;
+		start_num = MonsterAnimation::ANIMATION_START;
 		break;
 	}
 	m_currentAnimation = animation;
-	m_animationController->SetTrackAnimation(0, animation);
+	m_animationController->SetTrackAnimation(0, animation - start_num);
 	
 	return true;
 }
