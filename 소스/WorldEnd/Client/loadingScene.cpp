@@ -77,7 +77,6 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	auto objectShader{ make_shared<StaticObjectShader>(device, rootsignature) };
 
 	// 체력 바 로딩
-	auto hpBarShader{ make_shared<HpBarShader>(device, rootsignature) };
 	auto hpBarMesh{ make_shared<BillboardMesh>(device, commandlist, XMFLOAT3{ 0.f, 0.f, 0.f }, XMFLOAT2{ 0.75f, 0.15f }) };
 	auto hpBarTexture{ make_shared<Texture>() };
 	hpBarTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/Full_HpBar.dds"), (INT)ShaderRegister::BaseTexture); // BaseTexture
@@ -92,6 +91,10 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	skyboxTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/SkyBox.dds"), (INT)ShaderRegister::SkyboxTexture);	// Skybox
 	skyboxTexture->CreateSrvDescriptorHeap(device);
 	skyboxTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURECUBE);
+
+	// 게이지 셰이더 로딩
+	auto horzGaugeShader{ make_shared<HorzGaugeShader>(device, rootsignature) };
+	auto vertGaugeShader{ make_shared<VertGaugeShader>(device, rootsignature) };
 
 	// 그림자 셰이더 로딩
 	auto shadowShader{ make_shared<ShadowShader>(device, rootsignature) };
@@ -178,7 +181,8 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	m_shaders.insert({ "ANIMATION", animationShader });
 	m_shaders.insert({ "OBJECT", objectShader });
 	m_shaders.insert({ "SKYBOX", skyboxShader });
-	m_shaders.insert({ "HPBAR", hpBarShader });
+	m_shaders.insert({ "HORZGAUGE", horzGaugeShader });
+	m_shaders.insert({ "VERTGAUGE", vertGaugeShader });
 	m_shaders.insert({ "SHADOW", shadowShader });
 	m_shaders.insert({ "ANIMATIONSHADOW", animationShadowShader });
 	m_shaders.insert({ "EMITTERPARTICLE", emitterParticleShader });

@@ -163,6 +163,7 @@ class HpBar : public GameObject
 {
 public:
 	HpBar();
+	HpBar(FLOAT hpStart);
 	~HpBar() = default;
 
 	void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) override;
@@ -173,6 +174,8 @@ public:
 private:
 	FLOAT	m_hp;
 	FLOAT	m_maxHp;
+
+	FLOAT	m_border;
 };
 
 class AnimationObject : public GameObject

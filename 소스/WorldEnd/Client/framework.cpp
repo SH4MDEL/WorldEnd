@@ -433,12 +433,12 @@ void GameFramework::CreatePostRootSignature()
 		D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 					// addressV
 		D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 					// addressW
 		0.0f,												// mipLODBias
-		1,													// maxAnisotropy
-		D3D12_COMPARISON_FUNC_ALWAYS,						// comparisonFunc
-		D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK,		// borderColor
+		16,													// maxAnisotropy
+		D3D12_COMPARISON_FUNC_LESS_EQUAL,					// comparisonFunc
+		D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE,				// borderColor
 		0.0f,												// minLOD
 		D3D12_FLOAT32_MAX,									// maxLOD
-		D3D12_SHADER_VISIBILITY_PIXEL,						// shaderVisibility
+		D3D12_SHADER_VISIBILITY_ALL,						// shaderVisibility
 		0													// registerSpace
 	);
 

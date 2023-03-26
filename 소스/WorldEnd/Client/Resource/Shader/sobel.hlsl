@@ -8,6 +8,7 @@
 // experiment based on eye sensitivity to different wavelengths of light.
 float CalcLuminance(float3 color)
 {
+	//return dot(color, float3(0.099f, 0.087f, 0.014f));
 	return dot(color, float3(0.299f, 0.587f, 0.114f));
 }
 
@@ -15,24 +16,44 @@ float CalcLuminance(float3 color)
 void CS_SOBEL_MAIN(int3 dispatchThreadID : SV_DispatchThreadID)
 {
 	// Sample the pixels in the neighborhood of this pixel.
+	//g_output[dispatchThreadID.xy] = g_baseTexture[dispatchThreadID.xy];
+	//return;
 	float4 c[3][3];
 	for (int i = 0; i < 3; ++i)
 	{
 		for (int j = 0; j < 3; ++j)
 		{
 			int2 xy = dispatchThreadID.xy + int2(-1 + j, -1 + i);
+			if (xy.x < 0 || xy.y < 0) {
+				c[i][j] = g_baseTexture[xy];
+			}
+			//else {
+			//	c[i][j] = g_baseTexture[xy];
+			//}
 			c[i][j] = g_baseTexture[xy];
 		}
 	}
 
+
 	// For each color channel, estimate partial x derivative using Sobel scheme.
-	float4 Gx = -1.0f * c[0][0] - 2.0f * c[1][0] - 1.0f * c[2][0] + 1.0f * c[0][2] + 2.0f * c[1][2] + 1.0f * c[2][2];
+	float4 Gx =		-1.0f * c[0][0] 
+					- 2.0f * c[1][0] 
+					- 1.0f * c[2][0] 
+					+ 1.0f * c[0][2] 
+					+ 2.0f * c[1][2] 
+					+ 1.0f * c[2][2];
 
 	// For each color channel, estimate partial y derivative using Sobel scheme.
-	//float4 Gy = -1.0f * c[2][0] - 2.0f * c[2][1] - 1.0f * c[2][1] + 1.0f * c[0][0] + 2.0f * c[0][1] + 1.0f * c[0][2];
+	float4 Gy =		-1.0f * c[0][0] 
+					- 2.0f * c[0][1] 
+					- 1.0f * c[0][2] 
+					+ 1.0f * c[2][0] 
+					+ 2.0f * c[2][1] 
+					+ 1.0f * c[2][2];
 
 	// Gradient is (Gx, Gy).  For each color channel, compute magnitude to get maximum rate of change.
-	float4 mag = sqrt(Gx * Gx/*+ Gy * Gy*/);
+	//float4 mag = Gx;
+	float4 mag = sqrt(Gx * Gx + Gy * Gy);
 
 	// Make edges black, and nonedges white.
 	mag = 1.0f - saturate(CalcLuminance(mag.rgb));

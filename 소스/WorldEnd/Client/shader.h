@@ -94,11 +94,18 @@ public:
 	~SkyboxShader() = default;
 };
 
-class HpBarShader : public Shader
+class HorzGaugeShader : public Shader
 {
 public:
-	HpBarShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature);
-	~HpBarShader() = default;
+	HorzGaugeShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature);
+	~HorzGaugeShader() = default;
+};
+
+class VertGaugeShader : public Shader
+{
+public:
+	VertGaugeShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature);
+	~VertGaugeShader() = default;
 };
 
 class ShadowShader : public Shader
