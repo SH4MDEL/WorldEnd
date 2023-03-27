@@ -502,9 +502,12 @@ void Server::SendLoginOkPacket(const std::shared_ptr<Client>& player) const
 
 void Server::SendPlayerDataPacket()
 {
+	using namespace std::chrono;
+
 	SC_UPDATE_CLIENT_PACKET packet{};
 	packet.size = sizeof(packet);
 	packet.type = SC_PACKET_UPDATE_CLIENT;
+	packet.move_time = static_cast<unsigned>(duration_cast<milliseconds>(high_resolution_clock::now().time_since_epoch()).count());
 	
 	for (int i = 0; i < MAX_INGAME_USER; ++i)
 		packet.data[i] = m_clients[i]->GetPlayerData();
