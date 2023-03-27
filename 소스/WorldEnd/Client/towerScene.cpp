@@ -577,6 +577,9 @@ void TowerScene::ProcessPacket(char* ptr)
 	case SC_PACKET_CREATE_PARTICLE:
 		RecvCreateParticle(ptr);
 		break;
+	case SC_PACKET_CHANGE_STAMINA:
+		RecvChangeStamina(ptr);
+		break;
 	}
 }
 
@@ -770,4 +773,10 @@ void TowerScene::RecvChangeAnimation(char* ptr)
 	SC_CHANGE_ANIMATION_PACKET* packet = reinterpret_cast<SC_CHANGE_ANIMATION_PACKET*>(ptr);
 
 	m_multiPlayers[packet->id]->ChangeAnimation(packet->animation_type, false);
+}
+
+void TowerScene::RecvChangeStamina(char* ptr)
+{
+	SC_CHANGE_STAMINA_PACKET* packet = reinterpret_cast<SC_CHANGE_STAMINA_PACKET*>(ptr);
+	m_player->SetStamina(packet->stamina);
 }

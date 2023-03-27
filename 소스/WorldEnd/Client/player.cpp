@@ -4,7 +4,7 @@
 
 Player::Player() : m_velocity{ 0.0f, 0.0f, 0.0f }, m_maxVelocity{ 10.0f }, m_friction{ 0.5f }, 
 	m_hp{ 100.f }, m_maxHp{ 100.f }, m_id{ -1 }, m_cooltimeList{ false, }, m_dashed{ false },
-	m_moveSpeed{ PlayerSetting::PLAYER_WALK_SPEED }
+	m_moveSpeed{ PlayerSetting::PLAYER_WALK_SPEED }, m_stamina{ PlayerSetting::PLAYER_MAX_STAMINA }
 {
 
 }
@@ -94,10 +94,12 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 	}
 	
 	if (!m_dashed && GetAsyncKeyState(VK_SHIFT) & 0x8000) {
-		m_dashed = true;
-		ChangeAnimation(PlayerAnimation::DASH);
-		m_moveSpeed = PlayerSetting::PLAYER_DASH_SPEED;
-		m_startDash = chrono::system_clock::now();
+		if (m_stamina >= PlayerSetting::MINIMUM_DASH_STAMINA) {
+			m_dashed = true;
+			ChangeAnimation(PlayerAnimation::DASH);
+			m_moveSpeed = PlayerSetting::PLAYER_DASH_SPEED;
+			m_startDash = chrono::system_clock::now();
+		}
 	}
 	if (m_dashed && GetAsyncKeyState(VK_SHIFT) == 0x0000) {
 		m_dashed = false;
@@ -139,6 +141,7 @@ void Player::OnProcessingClickMessage(LPARAM lParam)
 void Player::Update(FLOAT timeElapsed)
 {
 	AnimationObject::Update(timeElapsed);
+	cout << m_stamina << endl;
 
 	// 애니메이션 상태 머신에 들어갈 내용
 	// 상태 전환을 하는 함수를 작성하고 해당 함수를 호출하도록 해야 함
@@ -165,6 +168,11 @@ void Player::Update(FLOAT timeElapsed)
 			}
 			else {
 				if (m_dashed) {
+					if (m_stamina <= numeric_limits<float>::epsilon()) {
+						m_dashed = false;
+						m_moveSpeed = PlayerSetting::PLAYER_WALK_SPEED;
+						ChangeAnimation(ObjectAnimation::WALK);
+					}
 					ChangeAnimation(ObjectAnimation::RUN);
 				}
 				else {

@@ -46,6 +46,7 @@ constexpr char SC_PACKET_RESET_COOLTIME = 10;
 constexpr char SC_PACKET_CLEAR_FLOOR = 11;
 constexpr char SC_PACKET_FAIL_FLOOR = 12;
 constexpr char SC_PACKET_CREATE_PARTICLE = 13;
+constexpr char SC_PACKET_CHANGE_STAMINA = 14;
 
 enum class PlayerType : char { WARRIOR, ARCHER, UNKNOWN };
 enum class AttackType : char { NORMAL, SKILL, ULTIMATE };
@@ -69,6 +70,9 @@ namespace PlayerSetting
 	constexpr float	PLAYER_DASH_SPEED = 12.f;
 
 	constexpr auto PLAYER_DASH_DURATION = 300ms;
+	constexpr float PLAYER_MAX_STAMINA = 120.f;
+	constexpr float MINIMUM_DASH_STAMINA = 10.f;
+	constexpr float STAMINA_REDUCTION_PER_SECOND = 10.f;
 
 	constexpr auto WARRIOR_ATTACK_COLLISION_TIME = 210ms;
 	constexpr auto WARRIOR_SKILL_COLLISION_TIME = 800ms;
@@ -355,6 +359,13 @@ struct SC_CREATE_PARTICLE_PACKET
 	UCHAR size;
 	UCHAR type;
 	DirectX::XMFLOAT3 position;
+};
+
+struct SC_CHANGE_STAMINA_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+	FLOAT stamina;
 };
 
 #pragma pack (pop)

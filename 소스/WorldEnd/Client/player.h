@@ -26,6 +26,7 @@ public:
 	void SetCamera(const shared_ptr<Camera>& camera) { m_camera = camera; }
 	void SetHpBar(const shared_ptr<HpBar>& hpBar) { m_hpBar = hpBar; }
 	void SetType(PlayerType type) { m_type = type; }
+	void SetStamina(FLOAT stamina) { m_stamina = stamina; }
 
 	XMFLOAT3 GetVelocity() const { return m_velocity; }
 	FLOAT GetHp() const { return m_hp; }
@@ -65,7 +66,7 @@ private:
 	chrono::system_clock::time_point	m_startDash;
 	bool								m_dashed;
 	FLOAT								m_moveSpeed;
-
+	FLOAT								m_stamina;
 };
 
 class AttackCallbackHandler : public AnimationCallbackHandler

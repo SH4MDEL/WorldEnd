@@ -397,7 +397,7 @@ WarriorMonster::WarriorMonster()
 {
 	m_max_hp = 200.f;
 	m_damage = 20;
-	m_range = 1.f;
+	m_range = 1.5f;
 	m_monster_type = MonsterType::WARRIOR;
 	m_bounding_box.Center = XMFLOAT3(0.028f, 1.27f, 0.f);
 	m_bounding_box.Extents = XMFLOAT3(0.8f, 1.3f, 0.6f);

@@ -9,7 +9,7 @@
 enum class EventType : char 
 {
 	COOLTIME_RESET, BEHAVIOR_CHANGE, AGRO_LEVEL_DECREASE,
-	ATTACK_COLLISION
+	ATTACK_COLLISION, STAMINA_CHANGE
 };
 
 struct TIMER_EVENT {
@@ -24,6 +24,7 @@ struct TIMER_EVENT {
 	BYTE aggro_level;
 	AttackType attack_type;
 	CollisionType collision_type;
+	bool is_stamina_increase;
 
 	constexpr bool operator <(const TIMER_EVENT& left)const
 	{

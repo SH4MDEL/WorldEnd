@@ -415,6 +415,55 @@ void Server::WorkerThread()
 			delete exp_over;
 			break;
 		}
+		case OP_STAMINA_CHANGE: {
+			int id = static_cast<int>(key);
+			auto client = dynamic_pointer_cast<Client>(m_clients[id]);
+			bool is_stamina_increase = static_cast<bool>(exp_over->_send_buf[0]);
+			
+			TIMER_EVENT ev{ .event_time = std::chrono::system_clock::now() + std::chrono::seconds(1),
+				.obj_id = id, .event_type = EventType::STAMINA_CHANGE};
+			
+			SC_CHANGE_STAMINA_PACKET packet{};
+			packet.size = sizeof(packet);
+			packet.type = SC_PACKET_CHANGE_STAMINA;
+
+			if (is_stamina_increase) {
+				// 스태미너 증가는 대쉬중이면 반복X
+				if (client->GetIsDash()) {
+					delete exp_over;
+					break;
+				}
+
+				// 대쉬중이 아니면 최대에 다다르면 끝내기
+				client->ChangeStamina(PlayerSetting::STAMINA_REDUCTION_PER_SECOND);
+				if (client->GetStamina() >= PlayerSetting::PLAYER_MAX_STAMINA) {
+					client->SetStamina(PlayerSetting::PLAYER_MAX_STAMINA);
+					packet.stamina = PlayerSetting::PLAYER_MAX_STAMINA;
+					client->DoSend(&packet);
+					delete exp_over;
+					break;
+				}
+				ev.is_stamina_increase = true;
+			}
+			else {
+				// 대쉬중이 아니면 감소 끝냄
+				client->ChangeStamina(-PlayerSetting::STAMINA_REDUCTION_PER_SECOND);
+				if (!client->GetIsDash()) {
+					packet.stamina = client->GetStamina();
+					client->DoSend(&packet);
+					delete exp_over;
+					break;
+				}
+				ev.is_stamina_increase = false;
+			}
+			m_timer_queue.push(ev);
+
+			packet.stamina = client->GetStamina();
+			client->DoSend(&packet);
+
+			delete exp_over;
+			break;
+		}
 
 		}
 	}
@@ -531,20 +580,43 @@ void Server::ProcessPacket(int id, char* p)
 	}
 
 	case CS_PACKET_CHANGE_ANIMATION: {
+		auto client = dynamic_pointer_cast<Client>(m_clients[id]);
+
 		CS_CHANGE_ANIMATION_PACKET* animation_packet = reinterpret_cast<CS_CHANGE_ANIMATION_PACKET*>(p);
 
 		SC_CHANGE_ANIMATION_PACKET packet{};
 		packet.size = sizeof(packet);
 		packet.type = SC_PACKET_CHANGE_ANIMATION;
-		packet.id = cl->GetId();
+		packet.id = id;
 		packet.animation_type = animation_packet->animation_type;
 
 		// 마을, 게임룸 구분하여 보낼 필요 있음
-		for (const auto& cl : m_clients) {
-			if (-1 == cl->GetId()) continue;
-			if (cl->GetId() == id) continue;
+		for (const auto& client : m_clients) {
+			if (-1 == client->GetId()) continue;
+			if (client->GetId() == id) continue;
 			
-			cl->DoSend(&packet);
+			client->DoSend(&packet);
+		}
+
+		TIMER_EVENT ev{ .obj_id = id, .event_type = EventType::STAMINA_CHANGE };
+
+		if (!client->GetIsDash() &&
+			PlayerAnimation::DASH == animation_packet->animation_type) 
+		{
+			ev.event_time = std::chrono::system_clock::now() + std::chrono::seconds(1);
+			ev.is_stamina_increase = false;
+			client->SetIsDash(true);
+			m_timer_queue.push(ev);
+		}
+		else if ( client->GetIsDash() &&
+			PlayerAnimation::DASH != animation_packet->animation_type &&
+			ObjectAnimation::RUN != animation_packet->animation_type) 
+		{
+			ev.event_time = std::chrono::system_clock::now() + std::chrono::seconds(2);
+			ev.is_stamina_increase = true;
+			auto client = dynamic_pointer_cast<Client>(m_clients[id]);
+			client->SetIsDash(false);
+			m_timer_queue.push(ev);
 		}
 
 		break;
@@ -818,6 +890,13 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 		memcpy(&over->_send_buf[0], &ev.attack_type, sizeof(AttackType));
 		memcpy(&over->_send_buf[1], &ev.collision_type, sizeof(CollisionType));
 		memcpy(&over->_send_buf[2], &ev.position, sizeof(XMFLOAT3));
+		PostQueuedCompletionStatus(m_handle_iocp, 1, ev.obj_id, &over->_wsa_over);
+		break;
+	}
+	case EventType::STAMINA_CHANGE: {
+		ExpOver* over = new ExpOver;
+		over->_comp_type = OP_STAMINA_CHANGE;
+		memcpy(&over->_send_buf[0], &ev.is_stamina_increase, sizeof(bool));
 		PostQueuedCompletionStatus(m_handle_iocp, 1, ev.obj_id, &over->_wsa_over);
 		break;
 	}

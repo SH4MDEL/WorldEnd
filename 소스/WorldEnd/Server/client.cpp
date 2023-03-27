@@ -30,7 +30,7 @@ ExpOver::ExpOver(char* packet, INT packet_count)
 }
 
 Client::Client() : m_socket{}, m_ready_check{ false }, m_remain_size{ 0 },
-	m_recv_over{}
+	m_recv_over{}, m_stamina{ PlayerSetting::PLAYER_MAX_STAMINA }, m_is_dash{ false }
 {
 	m_name = "Player";
 	SetPlayerType(PlayerType::WARRIOR);
@@ -122,6 +122,16 @@ void Client::SetWeaponOrientation(const XMFLOAT4& orientation)
 	m_weopon_bounding_box.Orientation = orientation;
 }
 
+void Client::SetStamina(FLOAT stamina)
+{
+	m_stamina = stamina;
+}
+
+void Client::SetIsDash(bool val)
+{
+	m_is_dash = val;
+}
+
 FLOAT Client::GetSkillRatio(AttackType type) const
 {
 	FLOAT ratio{};
@@ -142,6 +152,13 @@ FLOAT Client::GetSkillRatio(AttackType type) const
 PLAYER_DATA Client::GetPlayerData() const
 {
 	return PLAYER_DATA(m_id, m_position, m_velocity, m_yaw, m_hp);
+}
+
+void Client::ChangeStamina(FLOAT value)
+{
+	m_stamina += value;
+	if (m_stamina <= 0.f)
+		m_stamina = 0.f;
 }
 
 
