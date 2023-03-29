@@ -120,6 +120,14 @@ MONSTER_DATA Monster::GetMonsterData() const
 	return MONSTER_DATA( m_id, m_position, m_velocity, m_yaw, m_hp );
 }
 
+XMFLOAT3 Monster::GetFront() const
+{
+	XMFLOAT3 front{ 0.f, 0.f, 1.f };
+	XMMATRIX rotate{ XMMatrixRotationRollPitchYaw(0.f, XMConvertToRadians(m_yaw), 0.f) };
+	XMStoreFloat3(&front, XMVector3TransformNormal(XMLoadFloat3(&front), rotate));
+	return front;
+}
+
 bool Monster::ChangeAnimation(BYTE animation)
 {
 	if (m_current_animation == animation)

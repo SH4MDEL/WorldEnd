@@ -15,11 +15,13 @@ public:
 	void SetHp(FLOAT hp);
 	void SetHpBar(const shared_ptr<HpBar>& hpBar) { m_hpBar = hpBar; }
 	void SetVelocity(XMFLOAT3& velocity);
-
-
-
-	MonsterType GetType() const { return m_type; }
 	void SetType(MonsterType type) { m_type = type; }
+
+	FLOAT GetMaxHp() const { return m_maxHp; }
+	FLOAT GetHp() const { return m_hp; }
+	MonsterType GetType() const { return m_type; }
+
+
 
 private:
 	FLOAT				m_hp;			// Ã¼·Â

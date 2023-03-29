@@ -36,6 +36,9 @@ Client::Client() : m_socket{}, m_ready_check{ false }, m_remain_size{ 0 },
 	SetPlayerType(PlayerType::WARRIOR);
 	m_damage = 90.f;
 	m_skill_ratio = 1.2f;
+
+	m_max_hp = 100.f;
+	m_hp = 100.f;
 }
 
 Client::~Client()

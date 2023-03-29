@@ -415,6 +415,55 @@ void Server::WorkerThread()
 			delete exp_over;
 			break;
 		}
+		case OP_MONSTER_ATTACK_COLLISION: {
+			auto monster = dynamic_pointer_cast<WarriorMonster>(m_clients[static_cast<int>(key)]);
+			AttackType attack_type = static_cast<AttackType>(exp_over->_send_buf[0]);
+			CollisionType collision_type = static_cast<CollisionType>(exp_over->_send_buf[1]);
+			XMFLOAT3* pos = reinterpret_cast<XMFLOAT3*>(&exp_over->_send_buf[2]);		// 몬스터 공격 당시 위치
+
+			int room_num = monster->GetRoomNum();
+			auto game_room = m_game_room_manager->GetGameRoom(room_num);
+			auto& player_ids = game_room->GetPlayerIds();
+
+			BoundingOrientedBox obb{};
+			float damage{ 0.f };	// 스킬이 있다면 계수 더하는 용도
+
+			if (MonsterType::WARRIOR == monster->GetMonsterType()) {
+				obb.Center = Vector3::Add(*pos, monster->GetFront());
+				obb.Extents = XMFLOAT3{ 0.2f, 0.2f, 0.2f };
+				damage = monster->GetDamage();
+			}
+
+			SC_MONSTER_ATTACK_COLLISION_PACKET packet{};
+			packet.size = sizeof(packet);
+			packet.type = SC_PACKET_MONSTER_ATTACK_COLLISION;
+			for (int i = 0; i < MAX_INGAME_USER; ++i) {
+				packet.ids[i] = -1;
+				packet.hps[i] = 0.f;
+			}
+
+			for (size_t i = 0; int id : player_ids) {
+				if (-1 == id) continue;
+				if (State::ST_INGAME != m_clients[id]->GetState()) continue;
+
+				// 충돌했을 경우에만 index 증가
+				if (obb.Intersects(m_clients[id]->GetBoundingBox())) {
+					m_clients[id]->SetHp(m_clients[id]->GetHp() - damage);
+					packet.ids[i] = id;
+					packet.hps[i] = m_clients[id]->GetHp();
+					++i;
+				}
+			}
+
+			for (size_t i = 0; int id : packet.ids) {
+				if (-1 == id) break;
+
+				m_clients[id]->DoSend(&packet);
+			}
+
+			delete exp_over;
+			break;
+		}
 		case OP_STAMINA_CHANGE: {
 			int id = static_cast<int>(key);
 			auto client = dynamic_pointer_cast<Client>(m_clients[id]);
@@ -836,7 +885,7 @@ void Server::Timer()
 
 void Server::ProcessEvent(const TIMER_EVENT& ev)
 {
-	using namespace std::literals;
+	using namespace std::chrono;
 
 	switch (ev.event_type) {
 	case EventType::COOLTIME_RESET: {
@@ -868,6 +917,15 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 		if (MonsterBehavior::DEAD == monster->GetBehavior())
 			return;
 
+		if (MonsterBehavior::ATTACK == ev.next_behavior_type) {
+			TIMER_EVENT attack_ev{ .event_time = system_clock::now() + MonsterSetting::WARRIOR_MONSTER_ATK_COLLISION_TIME,
+				.obj_id = ev.obj_id, .targat_id = monster->GetRoomNum(), .position = monster->GetPosition(),
+				.event_type = EventType::MONSTER_ATTACK_COLLISION, .attack_type = AttackType::NORMAL,
+				.collision_type = CollisionType::MULTIPLE_TIMES };
+
+			m_timer_queue.push(attack_ev);
+		}
+
 		ExpOver* over = new ExpOver;
 		over->_comp_type = OP_BEHAVIOR_CHANGE;
 		memcpy(&over->_send_buf, &ev.next_behavior_type, sizeof(MonsterBehavior));
@@ -893,6 +951,15 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 		PostQueuedCompletionStatus(m_handle_iocp, 1, ev.obj_id, &over->_wsa_over);
 		break;
 	}
+	case EventType::MONSTER_ATTACK_COLLISION: {
+		ExpOver* over = new ExpOver;
+		over->_comp_type = OP_MONSTER_ATTACK_COLLISION;
+		memcpy(&over->_send_buf[0], &ev.attack_type, sizeof(AttackType));
+		memcpy(&over->_send_buf[1], &ev.collision_type, sizeof(CollisionType));
+		memcpy(&over->_send_buf[2], &ev.position, sizeof(XMFLOAT3));
+		PostQueuedCompletionStatus(m_handle_iocp, 1, ev.obj_id, &over->_wsa_over);
+		break;
+	}
 	case EventType::STAMINA_CHANGE: {
 		ExpOver* over = new ExpOver;
 		over->_comp_type = OP_STAMINA_CHANGE;
@@ -900,7 +967,7 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 		PostQueuedCompletionStatus(m_handle_iocp, 1, ev.obj_id, &over->_wsa_over);
 		break;
 	}
-
+	
 	}
 }
 

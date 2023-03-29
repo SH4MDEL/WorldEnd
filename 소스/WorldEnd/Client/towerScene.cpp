@@ -117,6 +117,8 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	auto hpBar = make_shared<HpBar>();
 	hpBar->SetMesh(m_meshs["HPBAR"]);
 	hpBar->SetTexture(m_textures["HPBAR"]);
+	hpBar->SetMaxHp(m_player->GetMaxHp());
+	hpBar->SetHp(m_player->GetHp());
 	m_shaders["HPBAR"]->SetObject(hpBar);
 	m_player->SetHpBar(hpBar);
 
@@ -580,6 +582,9 @@ void TowerScene::ProcessPacket(char* ptr)
 	case SC_PACKET_CHANGE_STAMINA:
 		RecvChangeStamina(ptr);
 		break;
+	case SC_PACKET_MONSTER_ATTACK_COLLISION:
+		RecvMonsterAttackCollision(ptr);
+		break;
 	}
 }
 
@@ -708,10 +713,13 @@ void TowerScene::RecvAddMonsterPacket(char* ptr)
 	m_monsters.insert({ static_cast<INT>(monster_data.id), monster });
 
 	auto hpBar = make_shared<HpBar>();
+	hpBar->SetMaxHp(monster->GetMaxHp());
+	hpBar->SetHp(monster->GetHp());
 	hpBar->SetMesh(m_meshs["HPBAR"]);
 	hpBar->SetTexture(m_textures["HPBAR"]);
 	m_shaders["HPBAR"]->SetObject(hpBar);
 	monster->SetHpBar(hpBar);
+	
 
 	m_shaders["ANIMATION"]->SetMonster(monster_data.id, monster);
 }
@@ -779,4 +787,24 @@ void TowerScene::RecvChangeStamina(char* ptr)
 {
 	SC_CHANGE_STAMINA_PACKET* packet = reinterpret_cast<SC_CHANGE_STAMINA_PACKET*>(ptr);
 	m_player->SetStamina(packet->stamina);
+}
+
+void TowerScene::RecvMonsterAttackCollision(char* ptr)
+{
+	SC_MONSTER_ATTACK_COLLISION_PACKET* packet =
+		reinterpret_cast<SC_MONSTER_ATTACK_COLLISION_PACKET*>(ptr);
+
+	for (size_t i = 0; INT id : packet->ids) {
+		if (-1 == id) break;
+
+		if (id == m_player->GetID()) {
+			//m_player->ChangeAnimation(ObjectAnimation::HIT);
+			m_player->SetHp(packet->hps[i]);
+		}
+		else {
+			//m_multiPlayers[id]->ChangeAnimation(ObjectAnimation::HIT, true);
+			m_multiPlayers[id]->SetHp(packet->hps[i]);
+		}
+		++i;
+	}
 }

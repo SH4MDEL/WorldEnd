@@ -47,6 +47,7 @@ constexpr char SC_PACKET_CLEAR_FLOOR = 11;
 constexpr char SC_PACKET_FAIL_FLOOR = 12;
 constexpr char SC_PACKET_CREATE_PARTICLE = 13;
 constexpr char SC_PACKET_CHANGE_STAMINA = 14;
+constexpr char SC_PACKET_MONSTER_ATTACK_COLLISION = 15;
 
 enum class PlayerType : char { WARRIOR, ARCHER, UNKNOWN };
 enum class AttackType : char { NORMAL, SKILL, ULTIMATE };
@@ -103,6 +104,7 @@ namespace MonsterSetting
 
 	constexpr float WARRIOR_MONSTER_ATTACK_RANGE = 1.f;
 	constexpr float WARRIOR_MONSTER_BORDER_RANGE = 2.f;
+	constexpr auto WARRIOR_MONSTER_ATK_COLLISION_TIME = 300ms;
 
 }
 
@@ -366,6 +368,14 @@ struct SC_CHANGE_STAMINA_PACKET
 	UCHAR size;
 	UCHAR type;
 	FLOAT stamina;
+};
+
+struct SC_MONSTER_ATTACK_COLLISION_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+	INT ids[MAX_INGAME_USER];
+	FLOAT hps[MAX_INGAME_USER];
 };
 
 #pragma pack (pop)

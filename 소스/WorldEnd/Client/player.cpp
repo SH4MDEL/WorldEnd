@@ -141,7 +141,6 @@ void Player::OnProcessingClickMessage(LPARAM lParam)
 void Player::Update(FLOAT timeElapsed)
 {
 	AnimationObject::Update(timeElapsed);
-	cout << m_stamina << endl;
 
 	// 애니메이션 상태 머신에 들어갈 내용
 	// 상태 전환을 하는 함수를 작성하고 해당 함수를 호출하도록 해야 함
@@ -182,17 +181,7 @@ void Player::Update(FLOAT timeElapsed)
 		}
 	}
 
-	static FLOAT dummy = 50.f;
-	if (dummy > 100.f) {
-		dummy -= 100.f;
-	}
-	else {
-		dummy += timeElapsed * 10.f;
-	}
-
 	if (m_hpBar) {
-		m_hpBar->SetMaxHp(m_maxHp);
-		m_hpBar->SetHp(dummy);
 		XMFLOAT3 hpBarPosition = GetPosition();
 		hpBarPosition.y += 1.8f;
 		m_hpBar->SetPosition(hpBarPosition);
@@ -239,6 +228,16 @@ void Player::AddVelocity(const XMFLOAT3& increase)
 		FLOAT ratio{ m_maxVelocity / length };
 		m_velocity = Vector3::Mul(m_velocity, ratio);
 	}
+}
+
+void Player::SetHp(FLOAT hp)
+{
+	m_hp = hp;
+	if (m_hp <= 0)
+		m_hp = 0;
+
+	if (m_hpBar)
+		m_hpBar->SetHp(m_hp);
 }
 
 void Player::ResetCooltime(CooltimeType type)

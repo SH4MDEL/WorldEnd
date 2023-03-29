@@ -22,7 +22,7 @@ public:
 	void SetPosition(const XMFLOAT3& position) override;
 	void SetVelocity(const XMFLOAT3& velocity) { m_velocity = velocity; }
 	void AddVelocity(const XMFLOAT3& increase);
-	void SetHp(FLOAT hp) { m_hp = hp; }
+	void SetHp(FLOAT hp);
 	void SetCamera(const shared_ptr<Camera>& camera) { m_camera = camera; }
 	void SetHpBar(const shared_ptr<HpBar>& hpBar) { m_hpBar = hpBar; }
 	void SetType(PlayerType type) { m_type = type; }
@@ -30,6 +30,7 @@ public:
 
 	XMFLOAT3 GetVelocity() const { return m_velocity; }
 	FLOAT GetHp() const { return m_hp; }
+	FLOAT GetMaxHp() const { return m_maxHp; }
 	
 	PlayerType GetType() const { return m_type; }
 
