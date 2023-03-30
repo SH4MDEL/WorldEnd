@@ -108,6 +108,19 @@ namespace MonsterSetting
 
 }
 
+namespace RoomSetting
+{
+	constexpr float DEFAULT_HEIGHT = 0.f;
+
+	constexpr float DOWNSIDE_STAIRS_HEIGHT = 4.4f;
+	constexpr float DOWNSIDE_STAIRS_FRONT = -7.f;
+	constexpr float DOWNSIDE_STAIRS_BACK = -17.f;
+
+	constexpr float TOPSIDE_STAIRS_HEIGHT = 4.67f;
+	constexpr float TOPSIDE_STAIRS_FRONT = 53.f;
+	constexpr float TOPSIDE_STAIRS_BACK = 43.f;
+}
+
 // ----- 애니메이션 enum 클래스 -----
 // 애니메이션이 100개 이하로 떨어질 것이라 생각하여 100을 단위로 잡음
 class ObjectAnimation

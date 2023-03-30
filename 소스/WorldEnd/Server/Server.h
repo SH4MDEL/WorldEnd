@@ -65,6 +65,7 @@ public:
 	// 플레이어 처리
 	static void MoveObject(const std::shared_ptr<GameObject>& object, XMFLOAT3 velocity);
 	static void RotateObject(const std::shared_ptr<GameObject>& object, FLOAT yaw);
+	void SetPositionOnStairs(const std::shared_ptr<GameObject>& object);
 
 	void CollideObject(const std::shared_ptr<GameObject>& object, const std::span<INT> ids,
 		std::function<void(const std::shared_ptr<GameObject>&, const std::shared_ptr<GameObject>&)> func);

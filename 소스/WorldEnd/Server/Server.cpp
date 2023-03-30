@@ -555,6 +555,7 @@ void Server::ProcessPacket(int id, char* p)
 		pos.z += packet->velocity.z;
 
 		MoveObject(cl, pos);
+		SetPositionOnStairs(cl);
 		RotateObject(cl, packet->yaw);
 
 		PlayerCollisionCheck(cl);
@@ -842,6 +843,27 @@ void Server::RotateObject(const std::shared_ptr<GameObject>& object, FLOAT yaw)
 
 	// 바운드 박스 회전
 	object->SetBoundingBoxOrientation(q);
+}
+
+void Server::SetPositionOnStairs(const std::shared_ptr<GameObject>& object)
+{
+	XMFLOAT3 pos = object->GetPosition();
+	float ratio{};
+	if (pos.z >= RoomSetting::DOWNSIDE_STAIRS_BACK &&
+		pos.z <= RoomSetting::DOWNSIDE_STAIRS_FRONT) 
+	{
+		ratio = RoomSetting::DOWNSIDE_STAIRS_FRONT - pos.z;
+		pos.y = RoomSetting::DEFAULT_HEIGHT - 
+			RoomSetting::DOWNSIDE_STAIRS_HEIGHT * ratio / 10.f;
+	}
+	else if (pos.z >= RoomSetting::TOPSIDE_STAIRS_BACK &&
+			pos.z <= RoomSetting::TOPSIDE_STAIRS_FRONT) 
+	{
+		ratio = pos.z - RoomSetting::TOPSIDE_STAIRS_BACK;
+		pos.y = RoomSetting::DEFAULT_HEIGHT +
+			RoomSetting::TOPSIDE_STAIRS_HEIGHT * ratio / 10.f;
+	}
+	MoveObject(object, pos);
 }
 
 void Server::Timer()
