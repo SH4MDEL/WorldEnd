@@ -4,6 +4,7 @@
 #include "player.h"
 #include "camera.h"
 #include "monster.h"
+#include "ui.h"
 #include "particleMesh.h"
 
 class Shader
@@ -29,6 +30,7 @@ public:
 	void SetObject(const shared_ptr<GameObject>& object);
 	void SetMultiPlayer(INT ID, const shared_ptr<Player>& player);
 	void SetMonster(INT ID, const shared_ptr<Monster>& monster);
+	virtual void SetUI(const shared_ptr<UI>& ui) {};
 
 	void DeleteMultiPlayer(INT id);
 
@@ -175,4 +177,18 @@ class EmitterParticleShader : public ParticleShader
 public:
 	EmitterParticleShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature);
 	~EmitterParticleShader() = default;
+};
+
+class UIShader : public Shader
+{
+public:
+	UIShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature);
+	~UIShader() = default;
+
+	void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const override;
+
+	void SetUI(const shared_ptr<UI>& ui) override { m_ui.push_back(ui); }
+
+private:
+	vector<shared_ptr<UI>>	m_ui;
 };

@@ -1,7 +1,7 @@
 #include "compute.hlsl"
 
 /*
- *  COMPOSITEL_SHADER
+ *  COMPOSITE_SHADER
  */
 
 static const float2 g_texCoords[6] =

@@ -12,7 +12,7 @@ public:
 	~Player();
 
 	void OnProcessingKeyboardMessage(FLOAT timeElapsed);
-	void OnProcessingClickMessage(LPARAM lParam);
+	void OnProcessingMouseMessage(UINT message, LPARAM lParam);
 
 	void Update(FLOAT timeElapsed) override;
 	void Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw) override;

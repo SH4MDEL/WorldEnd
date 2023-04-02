@@ -10,6 +10,7 @@
 #include "material.h"
 #include "light.h"
 #include "shadow.h"
+#include "ui.h"
 #include "text.h"
 #include "particleSystem.h"
 #include "blurFilter.h"
@@ -43,14 +44,14 @@ public:
 	virtual void BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, 
 		const ComPtr<ID3D12RootSignature>& rootsignature, const ComPtr<ID3D12RootSignature>& postRootsignature) = 0;
 	
-	virtual void OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime) const = 0;
-	virtual void OnProcessingClickMessage(LPARAM lParam) const = 0;
-	virtual void OnProcessingKeyboardMessage(FLOAT timeElapsed) const = 0;
+	virtual void OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime) = 0;
+	virtual void OnProcessingMouseMessage(UINT message, LPARAM lParam) = 0;
+	virtual void OnProcessingKeyboardMessage(FLOAT timeElapsed) = 0;
 
 	virtual void Update(FLOAT timeElapsed) = 0;
 	virtual void RenderShadow(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) = 0;
 	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) const = 0;
-	virtual void PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList, const ComPtr<ID3D12Resource>& renderTarget) = 0;
+	virtual void PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList, const ComPtr<ID3D12Resource>& renderTarget, UINT threadIndex) = 0;
 	virtual void RenderText(const ComPtr< ID2D1DeviceContext2>& deviceContext) = 0;
 	
 	virtual shared_ptr<Shadow> GetShadow() = 0;

@@ -25,9 +25,6 @@ void BlurFilter::Execute(const ComPtr<ID3D12GraphicsCommandList>& commandList, c
 
 	commandList->SetComputeRoot32BitConstants((INT)PostShaderRegister::Filter, 1, &blurRadius, 0);
 
-	commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(),
-		D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE));
-
 	commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_horzBlurMap.Get(),
 		D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST));
 

@@ -22,7 +22,7 @@ public:
 	void OnCreate(HINSTANCE hInstance, HWND hWnd);
 	void OnDestroy();
 	void OnProcessingMouseMessage() const;
-	void OnProcessingClickMessage(LPARAM lParam) const;
+	void OnProcessingMouseMessage(UINT message, LPARAM lParam) const;
 	void OnProcessingKeyboardMessage() const;
 	void StartPipeline();
 	
@@ -78,8 +78,8 @@ public:
 	void Render();
 	void BeginFrame();
 	void MidFrame();
+	void PostFrame();
 	void EndFrame();
-	void PostProcess();
 	void WorkerThread(UINT threadIndex);
 	void RenderText();
 
@@ -121,17 +121,20 @@ private:
 	ComPtr<ID3D12GraphicsCommandList>							m_mainCommandList;
 
 	// For Multithread Rendering
-	array<ID3D12CommandList*, THREAD_NUM * 2 + COMMANDLIST_NUM>	m_batchSubmit;
+	array<ID3D12CommandList*, THREAD_NUM * 3 + COMMANDLIST_NUM>	m_batchSubmit;
 	array<thread, THREAD_NUM>									m_thread;
 	array<HANDLE, THREAD_NUM>									m_beginRender;
 	array<HANDLE, THREAD_NUM>									m_finishShadowPass;
 	array<HANDLE, THREAD_NUM>									m_finishRender;
+	array<HANDLE, THREAD_NUM>									m_finishPostProcess;
 	array<ComPtr<ID3D12CommandAllocator>, COMMANDLIST_NUM>		m_commandAllocators;
 	array<ComPtr<ID3D12GraphicsCommandList>, COMMANDLIST_NUM>	m_commandLists;
 	array<ComPtr<ID3D12CommandAllocator>, THREAD_NUM>			m_shadowCommandAllocators;
 	array<ComPtr<ID3D12GraphicsCommandList>, THREAD_NUM>		m_shadowCommandLists;
 	array<ComPtr<ID3D12CommandAllocator>, THREAD_NUM>			m_sceneCommandAllocators;
 	array<ComPtr<ID3D12GraphicsCommandList>, THREAD_NUM>		m_sceneCommandLists;
+	array<ComPtr<ID3D12CommandAllocator>, THREAD_NUM>			m_postCommandAllocators;
+	array<ComPtr<ID3D12GraphicsCommandList>, THREAD_NUM>		m_postCommandLists;
 
 	ComPtr<ID3D12Resource>										m_renderTargets[SwapChainBufferCount];
 	ComPtr<ID3D12DescriptorHeap>								m_rtvHeap;

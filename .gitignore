@@ -20,6 +20,7 @@ mono_crash.*
 *.bin
 *.txt
 *.dds
+*.zip
 
 # Build results
 [Dd]ebug/

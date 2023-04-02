@@ -121,13 +121,18 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+    RECT rect; GetWindowRect(hWnd, &rect);
+    GetCursorPos(&g_mousePosition);
+    g_mousePosition.x -= rect.left + 8;
+    g_mousePosition.y -= rect.top + 30;
+
     switch (message)
     {
     case WM_ACTIVATE:
         g_GameFramework.SetIsActive((BOOL)wParam);
         break;
     case WM_LBUTTONDOWN:
-        g_GameFramework.OnProcessingClickMessage(lParam);
+        g_GameFramework.OnProcessingMouseMessage(message, lParam);
         break;
     case WM_DESTROY:
         PostQuitMessage(0);

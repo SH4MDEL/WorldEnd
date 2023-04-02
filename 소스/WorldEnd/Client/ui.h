@@ -1,5 +1,92 @@
 #pragma once
 #include "stdafx.h"
+#include "texture.h"
+#include "text.h"
+
+class UI : public enable_shared_from_this<UI>
+{
+public:
+	enum class Type {
+		STANDARD,
+		BACKGROUND,
+		TEXT,
+		BUTTON
+	};
+	UI(XMFLOAT2 position, XMFLOAT2 size);
+	~UI() = default;
+
+	virtual void OnProcessingMouseMessage(UINT message, LPARAM lParam);
+
+	virtual void Update(FLOAT timeElapsed);
+	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, const shared_ptr<UI>& parent);
+	virtual void RenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext);
+
+	void SetEnable() { m_enable = true; }
+	void SetDisable() { m_enable = false; }
+
+	void SetTexture(const shared_ptr<Texture>& texture);
+	void SetText(const wstring& text);
+	void SetChild(const shared_ptr<UI>& ui);
+	void SetClickEvent(function<void()> chickEvent);
+
+	XMFLOAT4X4 GetUIMatrix();
+
+protected:
+	BOOL m_enable;
+	Type m_type;
+
+	XMFLOAT4X4 m_uiMatrix;
+
+	XMFLOAT2 m_position;
+	XMFLOAT2 m_size;
+
+	shared_ptr<Texture> m_texture;
+	shared_ptr<Text> m_text;
+
+	vector<shared_ptr<UI>> m_children;
+
+	function<void()> m_clickEvent;
+};
+
+class StandardUI : public UI
+{
+public:
+	StandardUI(XMFLOAT2 position, XMFLOAT2 size);
+	~StandardUI() = default;
+
+private:
+};
+
+class BackgroundUI : public UI
+{
+public:
+	BackgroundUI(XMFLOAT2 position, XMFLOAT2 size);
+	~BackgroundUI() = default;
+
+private:
+};
+
+class TextUI : public UI
+{
+public:
+	TextUI(XMFLOAT2 position, XMFLOAT2 size);
+	~TextUI() = default;
+
+	void OnProcessingMouseMessage(UINT message, LPARAM lParam) override;
+
+	void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, const shared_ptr<UI>& parent) override;
+	void RenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext);
+private:
+};
+
+class ButtonUI : public UI
+{
+public:
+	ButtonUI(XMFLOAT2 position, XMFLOAT2 size);
+	~ButtonUI() = default;
+
+private:
+};
 
 // UI
 // 
@@ -27,9 +114,28 @@
 // 이러한 정보를 어떻게 셰이더로 보낼지 생각해보자.
 // 중요한건 셰이더에 보내는 위치와 크기
 // UI가 직접 가지고 있는 위치와 크기가 다르다는 것이다.
+// 
+// 
+// Render 시 자식으로 '셰이더로 보낼' 위치와 크기를 보낸다.
+// (루트 UI를 렌더할 때는 당연히 nullptr을 보낸다.)
+// 셰이더로 보낼 위치와 크기, 내가 가진 위치와 크기를 기반으로
+// 내가 셰이더로 보낼 위치와 크기를 결정한다.
+// 
+// 루트 UI
+// 크기 (0.3, 0.6), 위치 (0.0, 0.0)
+// 얘는 셰이더로 걍 보내면 된다.
+// 
+// 취소 UI 
+// 크기 (0.1, 0.1), 위치 (0.5, 0.8)
+// 부모 UI의 크기와 위치 역시 가지고 있다.
+// 부모 UI의 시작 좌표, 끝 좌표를 구한다.
+// 대략 (-0.3, -0.6) ~ (0.3, 0.6)이 될 것이다.
+// 이를 기반으로 내 좌표를 구한다.
+// 크기는 (0.03, 0.06) 위치는 (0.15, 0.36)
+// 
+// 딱봐도 문제가 있다.
+// 크기가 부모 오브젝트의 스케일에 맞춰진다.
+// 그렇다면 크기는 루트 UI의 크기를 따르지 말고
+// 절대 크기를 정해두도록 하자.
+// 위치는 문제가 없어 보인다. 이대로 가자.
 //
-
-class UI
-{
-};
-

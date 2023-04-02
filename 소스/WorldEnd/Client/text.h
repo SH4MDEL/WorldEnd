@@ -5,13 +5,18 @@ class Text
 {
 public:
 	Text();
+	Text(XMFLOAT2 position, FLOAT width, FLOAT height);
 	~Text() = default;
 
 	virtual void Render(const ComPtr<ID2D1DeviceContext2>& device);
 	virtual void Update(FLOAT timeElapsed);
 
+	void SetText(const wstring& text) { m_text = text; }
 	void SetTextBrush(const ComPtr<ID2D1SolidColorBrush>& textBrush) { m_textBrush = textBrush; }
 	void SetTextFormat(const ComPtr<IDWriteTextFormat>& textFormat) { m_textFormat = textFormat; }
+
+	void SetPosition(XMFLOAT2 position);
+	void UpdateTransform();
 
 protected:
 	wstring								m_text;
@@ -19,6 +24,7 @@ protected:
 
 	FLOAT								m_width;
 	FLOAT								m_height;
+	XMFLOAT2							m_position;
 	D2D1_RECT_F							m_layoutRect;
 
 	ComPtr<ID2D1SolidColorBrush>	m_textBrush;
@@ -31,7 +37,6 @@ public:
 	LoadingText(UINT maxFileNum);
 	~LoadingText() = default;
 
-	void Render(const ComPtr<ID2D1DeviceContext2>& device) override;
 	void Update(FLOAT timeElapsed) override;
 
 	void SetFileName(const wstring& fileName) { m_fileName = fileName; }

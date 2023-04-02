@@ -925,28 +925,3 @@ BillboardMesh::BillboardMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID
 	m_vertexBufferView.SizeInBytes = sizeof(TextureVertex);
 	m_vertexBufferView.StrideInBytes = sizeof(TextureVertex);
 }
-
-UIMesh::UIMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList)
-{
-	m_primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-	m_nVertices = 6;
-	m_nIndices = 0;
-
-	vector<TextureVertex> vertices;
-
-	vertices.emplace_back(XMFLOAT3(-1.f, -1.f, +0.f), XMFLOAT2(0.f, 1.f));
-	vertices.emplace_back(XMFLOAT3(-1.f, +1.f, +0.f), XMFLOAT2(0.f, 0.f));
-	vertices.emplace_back(XMFLOAT3(+1.f, -1.f, +0.f), XMFLOAT2(1.f, 1.f));
-	vertices.emplace_back(XMFLOAT3(+1.f, -1.f, +0.f), XMFLOAT2(1.f, 1.f));
-	vertices.emplace_back(XMFLOAT3(-1.f, +1.f, +0.f), XMFLOAT2(0.f, 0.f));
-	vertices.emplace_back(XMFLOAT3(+1.f, +1.f, +0.f), XMFLOAT2(1.f, 0.f));
-
-	m_nVertices = vertices.size();
-	m_vertexBuffer = CreateBufferResource(device, commandList, vertices.data(),
-		sizeof(TextureVertex) * vertices.size(), D3D12_HEAP_TYPE_DEFAULT,
-		D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, m_vertexUploadBuffer);
-
-	m_vertexBufferView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
-	m_vertexBufferView.StrideInBytes = sizeof(TextureVertex);
-	m_vertexBufferView.SizeInBytes = sizeof(TextureVertex) * vertices.size();
-}

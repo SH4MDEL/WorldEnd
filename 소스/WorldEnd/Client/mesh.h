@@ -261,10 +261,3 @@ public:
 		XMFLOAT3 position, XMFLOAT2 size);
 	~BillboardMesh() = default;
 };
-
-class UIMesh : public Mesh
-{
-public:
-	UIMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList);
-	~UIMesh() = default;
-};

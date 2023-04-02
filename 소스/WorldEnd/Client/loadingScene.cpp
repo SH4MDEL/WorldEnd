@@ -56,9 +56,9 @@ void LoadingScene::ReleaseUploadBuffer()
 
 void LoadingScene::CreateShaderVariable(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList) {}
 void LoadingScene::UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& commandList) {}
-void LoadingScene::OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime) const {}
-void LoadingScene::OnProcessingClickMessage(LPARAM lParam) const {}
-void LoadingScene::OnProcessingKeyboardMessage(FLOAT timeElapsed) const {}
+void LoadingScene::OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime) {}
+void LoadingScene::OnProcessingMouseMessage(UINT message, LPARAM lParam) {}
+void LoadingScene::OnProcessingKeyboardMessage(FLOAT timeElapsed) {}
 
 void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, 
 	const ComPtr<ID3D12RootSignature>& rootsignature, const ComPtr<ID3D12RootSignature>& postRootSignature)
@@ -100,6 +100,22 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	skyboxTexture->CreateSrvDescriptorHeap(device);
 	skyboxTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURECUBE);
 
+	// UI 로딩
+	auto uiShader{ make_shared<UIShader>(device, rootsignature) };
+	auto postUiShader{ make_shared<UIShader>(device, rootsignature) };
+	auto exitUITexture{ make_shared<Texture>() };
+	exitUITexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/UI_Background.dds"), (INT)ShaderRegister::BaseTexture); // SubTexture
+	exitUITexture->CreateSrvDescriptorHeap(device);
+	exitUITexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+	auto cancelUITexture{ make_shared<Texture>() };
+	cancelUITexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/UI_Cancel.dds"), (INT)ShaderRegister::BaseTexture); // SubTexture
+	cancelUITexture->CreateSrvDescriptorHeap(device);
+	cancelUITexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+	auto buttonUITexture{ make_shared<Texture>() };
+	buttonUITexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/UI_Button.dds"), (INT)ShaderRegister::BaseTexture); // SubTexture
+	buttonUITexture->CreateSrvDescriptorHeap(device);
+	buttonUITexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+
 	// 게이지 셰이더 로딩
 	auto horzGaugeShader{ make_shared<HorzGaugeShader>(device, rootsignature) };
 	auto vertGaugeShader{ make_shared<VertGaugeShader>(device, rootsignature) };
@@ -110,6 +126,7 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 
 	// 파티클 셰이더 로딩
 	auto emitterParticleShader{ make_shared<EmitterParticleShader>(device, rootsignature) };
+
 
 	// 블러 필터 셰이더 로딩
 	auto horzBlurShader{ make_shared<HorzBlurShader>(device, postRootSignature) };
@@ -172,20 +189,19 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/AD_Wall_C_01Texture.bin"));
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/AD_Wall_D_01Texture.bin"));
 
-	// 디버그용 메쉬와 셰이더
-	auto debugMesh{ make_shared<UIMesh>(device, commandlist) };
-	auto debugShader{ make_shared<UIRenderShader>(device, rootsignature) };
-
 	// 메쉬 설정
+	m_meshs.insert({ "SKYBOX", skyboxMesh });
 	m_meshs.insert({ "HPBAR", hpBarMesh });
 	m_meshs.insert({ "STAMINABAR", staminaBarMesh });
-	m_meshs.insert({ "SKYBOX", skyboxMesh });
-	m_meshs.insert({ "DEBUG", debugMesh });
 
 	// 텍스처 설정
 	m_textures.insert({ "SKYBOX", skyboxTexture });
 	m_textures.insert({ "HPBAR", hpBarTexture });
 	m_textures.insert({ "STAMINABAR", staminaBarTexture });
+	// UI 관련 텍스처
+	m_textures.insert({ "EXITUI", exitUITexture });
+	m_textures.insert({ "CANCELUI", cancelUITexture });
+	m_textures.insert({ "BUTTONUI", buttonUITexture });
 
 	// 셰이더 설정
 	m_shaders.insert({ "ANIMATION", animationShader });
@@ -196,11 +212,11 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	m_shaders.insert({ "SHADOW", shadowShader });
 	m_shaders.insert({ "ANIMATIONSHADOW", animationShadowShader });
 	m_shaders.insert({ "EMITTERPARTICLE", emitterParticleShader });
+	m_shaders.insert({ "POSTUI", postUiShader });
 	m_shaders.insert({ "HORZBLUR", horzBlurShader });
 	m_shaders.insert({ "VERTBLUR", vertBlurShader });
 	m_shaders.insert({ "SOBEL", sobelShader });
 	m_shaders.insert({ "COMPOSITE", compositeShader });
-	m_shaders.insert({ "DEBUG", debugShader });
 
 	commandlist->Close();
 	ID3D12CommandList* ppCommandList[]{ commandlist.Get() };
@@ -218,7 +234,7 @@ void LoadingScene::Update(FLOAT timeElapsed)
 
 void LoadingScene::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) const {}
 void LoadingScene::RenderShadow(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) {}
-void LoadingScene::PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList, const ComPtr<ID3D12Resource>& renderTarget) {}
+void LoadingScene::PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList, const ComPtr<ID3D12Resource>& renderTarget, UINT threadIndex) {}
 
 void LoadingScene::RenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext)
 {

@@ -23,15 +23,15 @@ public:
 		const ComPtr<ID3D12RootSignature>& rootsignature, const ComPtr<ID3D12RootSignature>& postRootSignature) override;
 	void CreateLight(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist);
 	
-	void OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime) const override;
-	void OnProcessingClickMessage(LPARAM lParam) const override;
-	void OnProcessingKeyboardMessage(FLOAT timeElapsed) const override;
+	void OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime) override;
+	void OnProcessingMouseMessage(UINT message, LPARAM lParam) override;
+	void OnProcessingKeyboardMessage(FLOAT timeElapsed) override;
 	
 	void Update(FLOAT timeElapsed) override;
 	void RenderShadow(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) override;
 	void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) const override;
-	void PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList, const ComPtr<ID3D12Resource>& renderTarget) override;
-	void RenderText(const ComPtr< ID2D1DeviceContext2>& deviceContext) override;
+	void PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList, const ComPtr<ID3D12Resource>& renderTarget, UINT threadIndex) override;
+	void RenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext) override;
 
 	shared_ptr<Shadow> GetShadow() override { return m_shadow; }
 	void LoadSceneFromFile(wstring fileName, wstring sceneName);
@@ -63,6 +63,8 @@ protected:
 	ComPtr<ID3D12Resource>					m_sceneBuffer;
 	SceneInfo*								m_sceneBufferPointer;
 
+	BOOL									m_playerControl;
+
 	XMMATRIX								m_lightView;
 	XMMATRIX								m_lightProj;
 	XMMATRIX								m_NDCspace;
@@ -76,6 +78,8 @@ protected:
 	shared_ptr<Shadow>						m_shadow;
 	unique_ptr<BlurFilter>					m_blurFilter;
 	unique_ptr<SobelFilter>					m_sobelFilter;
+
+	shared_ptr<UI>							m_exitUI;
 
 	// 서버 추가 코드
 	unordered_map<INT, shared_ptr<Player>>	            m_multiPlayers;

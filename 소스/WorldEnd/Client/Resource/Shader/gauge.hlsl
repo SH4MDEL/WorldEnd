@@ -34,7 +34,7 @@ VS_GAUGE_OUTPUT VS_GAUGE_MAIN(VS_GAUGE_INPUT input)
 }
 
 [maxvertexcount(4)]
-void GS_GAUGE_MAIN(point VS_GAUGE_OUTPUT input[1], uint primID : SV_PrimitiveID, inout TriangleStream<GS_GAUGE_OUTPUT> outStream)
+void GS_GAUGE_MAIN(point VS_GAUGE_OUTPUT input[1], inout TriangleStream<GS_GAUGE_OUTPUT> outStream)
 {
 	float3 up = float3(0.0f, 1.0f, 0.0f);
 	float3 look = cameraPosition - input[0].position.xyz;

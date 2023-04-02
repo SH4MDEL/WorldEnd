@@ -10,6 +10,9 @@ SOCKET							g_socket{};
 string							g_serverIP{ "127.0.0.1" };
 thread							g_networkThread{};
 unique_ptr<ParticleSystem>		g_particleSystem;
+stack<function<void()>>			g_clickEventStack;
+
+POINT							g_mousePosition;
 
 
 ComPtr<ID3D12Resource> CreateBufferResource(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList,

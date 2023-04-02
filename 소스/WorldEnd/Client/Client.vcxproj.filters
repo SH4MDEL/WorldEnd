@@ -275,9 +275,6 @@
     <FxCompile Include="Resource\Shader\instance.hlsl">
       <Filter>셰이더 파일\Shader</Filter>
     </FxCompile>
-    <FxCompile Include="Resource\Shader\lighting.hlsl">
-      <Filter>셰이더 파일\Shader</Filter>
-    </FxCompile>
     <FxCompile Include="Resource\Shader\sobel.hlsl">
       <Filter>셰이더 파일\Compute</Filter>
     </FxCompile>
@@ -295,6 +292,12 @@
     </FxCompile>
     <FxCompile Include="Resource\Shader\shadow.hlsl">
       <Filter>셰이더 파일\Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Resource\Shader\ui.hlsl">
+      <Filter>셰이더 파일\Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Resource\Shader\lighting.hlsl">
+      <Filter>셰이더 파일\Header</Filter>
     </FxCompile>
   </ItemGroup>
 </Project>

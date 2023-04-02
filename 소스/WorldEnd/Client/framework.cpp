@@ -23,6 +23,7 @@ GameFramework::GameFramework(UINT width, UINT height) :
 		m_beginRender[i] = CreateEvent(nullptr, false, false, nullptr);
 		m_finishShadowPass[i] = CreateEvent(nullptr, false, false, nullptr);
 		m_finishRender[i] = CreateEvent(nullptr, false, false, nullptr);
+		m_finishPostProcess[i] = CreateEvent(nullptr, false, false, nullptr);
 	}
 }
 
@@ -54,9 +55,9 @@ void GameFramework::OnProcessingMouseMessage() const
 	if (m_scenes[m_sceneIndex]) m_scenes[m_sceneIndex]->OnProcessingMouseMessage(m_hWnd, m_width, m_height, m_timer.GetDeltaTime());
 }
 
-void GameFramework::OnProcessingClickMessage(LPARAM lParam) const
+void GameFramework::OnProcessingMouseMessage(UINT message, LPARAM lParam) const
 {
-	if(m_scenes[m_sceneIndex]) m_scenes[m_sceneIndex]->OnProcessingClickMessage(lParam);
+	if(m_scenes[m_sceneIndex]) m_scenes[m_sceneIndex]->OnProcessingMouseMessage(message, lParam);
 }
 
 void GameFramework::OnProcessingKeyboardMessage() const
@@ -110,10 +111,13 @@ void GameFramework::StartPipeline()
 	// 11. 후처리 루트 시그니처 생성
 	CreatePostRootSignature();
 
+	// 12. D3D11On12Device 생성
 	Create11On12Device();
 
+	// 13. D2DDevice 생성
 	CreateD2DDevice();
 
+	// 14. D2DRenderTarget 생성
 	CreateD2DRenderTarget();
 }
 
@@ -188,23 +192,32 @@ void GameFramework::CreateThreadCommandList()
 		// for the shadow pass command list, and one is for the scene pass.
 		DX::ThrowIfFailed(m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_shadowCommandAllocators[i])));
 		DX::ThrowIfFailed(m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_sceneCommandAllocators[i])));
+		DX::ThrowIfFailed(m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_postCommandAllocators[i])));
 
 		DX::ThrowIfFailed(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_shadowCommandAllocators[i].Get(), nullptr, IID_PPV_ARGS(&m_shadowCommandLists[i])));
 		DX::ThrowIfFailed(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_sceneCommandAllocators[i].Get(), nullptr, IID_PPV_ARGS(&m_sceneCommandLists[i])));
-		
+		DX::ThrowIfFailed(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_postCommandAllocators[i].Get(), nullptr, IID_PPV_ARGS(&m_postCommandLists[i])));
+
+
 		// Close these command lists; don't record into them for now. We will 
 		// reset them to a recording state when we start the render loop.
 		DX::ThrowIfFailed(m_shadowCommandLists[i]->Close());
 		DX::ThrowIfFailed(m_sceneCommandLists[i]->Close());
+		DX::ThrowIfFailed(m_postCommandLists[i]->Close());
 	}
 
 	// Batch up command lists for execution later.
-	const UINT batchSize = (UINT)m_sceneCommandLists.size() + (UINT)m_shadowCommandLists.size() + COMMANDLIST_NUM;
-	m_batchSubmit[0] = m_commandLists[COMMANDLIST_PRE].Get();
+	const UINT batchSize = (UINT)m_sceneCommandLists.size() + (UINT)m_shadowCommandLists.size() + (UINT)m_postCommandLists.size() + COMMANDLIST_NUM;
+	// PRE 초기화
+	m_batchSubmit[0] = m_commandLists[COMMANDLIST_PRE].Get(); 
+	// 1번 커맨드 리스트 위치부터 섀도우 커맨드 리스트 크기만큼 memcpy
 	memcpy(m_batchSubmit.data() + 1, m_shadowCommandLists.data(), m_shadowCommandLists.size() * sizeof(ID3D12CommandList*));
+	// MID 초기화 (4)
 	m_batchSubmit[m_shadowCommandLists.size() + 1] = m_commandLists[COMMANDLIST_MID].Get();
+	// PRE 위치 + 섀도우 커맨드 리스트 크기 + MID 위치부터 씬 커맨드 리스트 크기만큼 memcpy (5)
 	memcpy(m_batchSubmit.data() + m_shadowCommandLists.size() + 2, m_sceneCommandLists.data(), m_sceneCommandLists.size() * sizeof(ID3D12CommandList*));
-	m_batchSubmit[batchSize - 2] = m_commandLists[COMMANDLIST_POST].Get();
+	m_batchSubmit[m_shadowCommandLists.size() + m_sceneCommandLists.size() + 2] = m_commandLists[COMMANDLIST_POST].Get();
+	memcpy(m_batchSubmit.data() + m_shadowCommandLists.size() + m_sceneCommandLists.size() + 3, m_postCommandLists.data(), m_postCommandLists.size() * sizeof(ID3D12CommandList*));
 	m_batchSubmit[batchSize - 1] = m_commandLists[COMMANDLIST_END].Get();
 }
 
@@ -320,9 +333,9 @@ void GameFramework::CreateRootSignature()
 
 	CD3DX12_ROOT_PARAMETER rootParameter[(INT)ShaderRegister::Count];
 
-	// cbGameObject : 월드 변환 행렬(16) + float hp(1) + float maxHp(1) + float age(1)
+	// cbGameObject : 월드 변환 행렬(16) + float hp(1) + float maxHp(1) + float age(1) + int type(1)
 	rootParameter[(INT)ShaderRegister::GameObject].InitAsConstants(
-		19, 0, 0, D3D12_SHADER_VISIBILITY_ALL);
+		20, 0, 0, D3D12_SHADER_VISIBILITY_ALL);
 
 	rootParameter[(INT)ShaderRegister::Camera].InitAsConstantBufferView(
 		1, 0, D3D12_SHADER_VISIBILITY_ALL);		// cbCamera
@@ -509,8 +522,8 @@ void GameFramework::CreateD2DRenderTarget()
 
 		DX::ThrowIfFailed(m_11On12Device->CreateWrappedResource(m_renderTargets[i].Get(),
 			&d3d11Flags, 
-			D3D12_RESOURCE_STATE_RENDER_TARGET,
-			D3D12_RESOURCE_STATE_RENDER_TARGET,
+			D3D12_RESOURCE_STATE_PRESENT,
+			D3D12_RESOURCE_STATE_PRESENT,
 			IID_PPV_ARGS(&m_d3d11WrappedRenderTarget[i])));
 		ComPtr<IDXGISurface> dxgiSurface;
 		DX::ThrowIfFailed(m_d3d11WrappedRenderTarget[i]->QueryInterface(__uuidof(IDXGISurface), (void**)&dxgiSurface));
@@ -647,6 +660,7 @@ void GameFramework::Render()
 	}
 
 	MidFrame();
+	PostFrame();
 	EndFrame();
 
 	WaitForMultipleObjects(THREAD_NUM, m_finishShadowPass.data(), true, INFINITE);
@@ -658,16 +672,16 @@ void GameFramework::Render()
 
 	WaitForMultipleObjects(THREAD_NUM, m_finishRender.data(), true, INFINITE);
 
-	// Submit remaining command lists.
+	// Submit POST and scenes.
+	m_commandQueue->ExecuteCommandLists(THREAD_NUM + 1, m_batchSubmit.data() + THREAD_NUM + 2);
 
-	// 후처리는 단일 쓰레드 렌더링
-	// 커맨드 리스트는 Scene 뒤, Post 앞에 제출
-	PostProcess();
+	WaitForMultipleObjects(THREAD_NUM, m_finishPostProcess.data(), true, INFINITE);
 
-	m_commandQueue->ExecuteCommandLists(m_batchSubmit.size() - THREAD_NUM - 2, m_batchSubmit.data() + THREAD_NUM + 2);
-	// 커맨드 리스트 실행 순서
-	// Pre -> Shadow -> Mid -> Scene -> Post -> End
-	// 때려 죽여도 안바뀜.
+	// Submit END and post.
+	m_commandQueue->ExecuteCommandLists(THREAD_NUM + 1, m_batchSubmit.data() + 2 * THREAD_NUM + 3);
+
+
+	RenderText();
 
 	DX::ThrowIfFailed(m_swapChain->Present(1, 0));
 
@@ -696,6 +710,9 @@ void GameFramework::BeginFrame()
 
 		DX::ThrowIfFailed(m_sceneCommandAllocators[i]->Reset());
 		DX::ThrowIfFailed(m_sceneCommandLists[i]->Reset(m_sceneCommandAllocators[i].Get(), nullptr));
+
+		DX::ThrowIfFailed(m_postCommandAllocators[i]->Reset());
+		DX::ThrowIfFailed(m_postCommandLists[i]->Reset(m_postCommandAllocators[i].Get(), nullptr));
 	}
 
 	// Indicate that the back buffer will be used as a render target.
@@ -726,32 +743,22 @@ void GameFramework::MidFrame()
 	DX::ThrowIfFailed(m_commandLists[COMMANDLIST_MID]->Close());
 }
 
+void GameFramework::PostFrame()
+{
+	m_commandLists[COMMANDLIST_POST]->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_frameIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE));
+
+	DX::ThrowIfFailed(m_commandLists[COMMANDLIST_POST]->Close());
+}
+
 void GameFramework::EndFrame()
 {
 	if (m_shadowPass) {
 		m_commandLists[COMMANDLIST_END]->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_scenes[m_sceneIndex]->GetShadow()->GetShadowMap().Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_DEPTH_WRITE));
 	}
+	m_commandLists[COMMANDLIST_END]->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_frameIndex].Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET));
 	m_commandLists[COMMANDLIST_END]->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_frameIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
 
 	DX::ThrowIfFailed(m_commandLists[COMMANDLIST_END]->Close());
-}
-
-void GameFramework::PostProcess()
-{
-	m_commandLists[COMMANDLIST_POST]->SetComputeRootSignature(m_postRootSignature.Get());
-
-	m_commandLists[COMMANDLIST_POST]->RSSetViewports(1, &m_viewport);
-	m_commandLists[COMMANDLIST_POST]->RSSetScissorRects(1, &m_scissorRect);
-
-	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle{ m_rtvHeap->GetCPUDescriptorHandleForHeapStart(), static_cast<INT>(m_frameIndex), m_rtvDescriptorSize };
-	CD3DX12_CPU_DESCRIPTOR_HANDLE dsvHandle{ m_dsvHeap->GetCPUDescriptorHandleForHeapStart() };
-	m_commandLists[COMMANDLIST_POST]->OMSetRenderTargets(1, &rtvHandle, true, &dsvHandle);
-
-	m_scenes[m_sceneIndex]->PostProcess(m_commandLists[COMMANDLIST_POST], m_renderTargets[m_frameIndex].Get());
-
-	DX::ThrowIfFailed(m_commandLists[COMMANDLIST_POST]->Close());
-
-	RenderText();
 }
 
 void GameFramework::WorkerThread(UINT threadIndex)
@@ -821,6 +828,27 @@ void GameFramework::WorkerThread(UINT threadIndex)
 		DX::ThrowIfFailed(m_sceneCommandLists[threadIndex]->Close());
 
 		SetEvent(m_finishRender[threadIndex]);
+
+		//
+		// Post Process
+		// 
+		if (threadIndex == 0) {
+			m_postCommandLists[threadIndex]->SetComputeRootSignature(m_postRootSignature.Get());
+		}
+		else {
+			m_postCommandLists[threadIndex]->SetGraphicsRootSignature(m_rootSignature.Get());
+		}
+
+		m_postCommandLists[threadIndex]->RSSetViewports(1, &m_viewport);
+		m_postCommandLists[threadIndex]->RSSetScissorRects(1, &m_scissorRect);
+
+		m_postCommandLists[threadIndex]->OMSetRenderTargets(1, &rtvHandle, true, &dsvHandle);
+
+		m_scenes[m_sceneIndex]->PostProcess(m_postCommandLists[threadIndex], m_renderTargets[m_frameIndex].Get(), threadIndex);
+
+		DX::ThrowIfFailed(m_postCommandLists[threadIndex]->Close());
+
+		SetEvent(m_finishPostProcess[threadIndex]);
 	}
 }
 

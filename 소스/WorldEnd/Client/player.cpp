@@ -115,7 +115,7 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 	}
 }
 
-void Player::OnProcessingClickMessage(LPARAM lParam)
+void Player::OnProcessingMouseMessage(UINT message, LPARAM lParam)
 {
 	if (m_cooltimeList[CooltimeType::NORMAL_ATTACK])
 		return;
@@ -179,13 +179,13 @@ void Player::Update(FLOAT timeElapsed)
 	if (m_staminaBar) {
 		m_staminaBar->SetMaxGauge(m_maxHp);
 		m_staminaBar->SetGauge(dummy);
-		XMFLOAT3 hpBarPosition = GetPosition();
+		XMFLOAT3 staminaBarPosition = GetPosition();
 		XMFLOAT3 cameraRight = m_camera->GetRight();
-		hpBarPosition.x += cameraRight.x;
-		hpBarPosition.y += cameraRight.y;
-		hpBarPosition.z += cameraRight.z;
-		hpBarPosition.y += 1.f;
-		m_staminaBar->SetPosition(hpBarPosition);
+		staminaBarPosition.x += cameraRight.x;
+		staminaBarPosition.y += cameraRight.y;
+		staminaBarPosition.z += cameraRight.z;
+		staminaBarPosition.y += 1.f;
+		m_staminaBar->SetPosition(staminaBarPosition);
 	}
 #ifndef USE_NETWORK
 	Move(m_velocity);

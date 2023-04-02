@@ -21,6 +21,7 @@
 #include <fstream>
 #include <unordered_map>
 #include <vector>
+#include <stack>
 #include <stdlib.h>
 #include <malloc.h>
 #include <memory.h>
@@ -72,6 +73,9 @@ extern string				        g_serverIP;							// 서버 아이피
 extern thread                       g_networkThread;
 extern mutex                        g_mutex;
 extern unique_ptr<ParticleSystem>   g_particleSystem;
+extern stack<function<void()>>      g_clickEventStack;
+
+extern POINT                        g_mousePosition;
 
 
 constexpr int MAX_PLAYERS = 2;

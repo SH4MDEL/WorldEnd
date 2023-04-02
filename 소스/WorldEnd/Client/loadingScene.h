@@ -22,14 +22,14 @@ public:
 	void BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, 
 		const ComPtr<ID3D12RootSignature>& rootsignature, const ComPtr<ID3D12RootSignature>& postRootSignature) override;
 	
-	void OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime) const override;
-	void OnProcessingClickMessage(LPARAM lParam) const override;
-    void OnProcessingKeyboardMessage(FLOAT timeElapsed) const override;
+	void OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime) override;
+	void OnProcessingMouseMessage(UINT message, LPARAM lParam) override;
+    void OnProcessingKeyboardMessage(FLOAT timeElapsed) override;
 
 	void Update(FLOAT timeElapsed) override;
 	void RenderShadow(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) override;
 	void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) const override;
-	void PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList, const ComPtr<ID3D12Resource>& renderTarget) override;
+	void PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList, const ComPtr<ID3D12Resource>& renderTarget, UINT threadIndex) override;
 	void RenderText(const ComPtr< ID2D1DeviceContext2>& deviceContext) override;
 
 	shared_ptr<Shadow> GetShadow() override { return nullptr; }
