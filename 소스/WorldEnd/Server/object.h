@@ -34,7 +34,9 @@ public:
 	BoundingOrientedBox& GetBoundingBox() { return m_bounding_box; }
 	INT GetId() const { return m_id; }
 
-	virtual void SendEvent(INT id) {}
+	virtual void SendEvent(INT id, void* c) {}
+	virtual void SendEvent(const std::span<INT>& ids, void* c) {}
+	virtual void SendEvent(const std::span<INT>& ids, void* c, INT length) {}
 
 protected:
 	XMFLOAT3				m_position;
@@ -53,9 +55,11 @@ public:
 
 	BoundingOrientedBox GetEventBoundingBox() const { return m_event_bounding_box; }
 
-	virtual void SendEvent(INT id) override {}
+	virtual void SendEvent(INT id, void* c) override {}
+	virtual void SendEvent(const std::span<INT>& ids, void* c) override {}
+	virtual void SendEvent(const std::span<INT>& ids, void* c, INT length) override {}
 
-private:
+protected:
 	BoundingOrientedBox m_event_bounding_box;
 };
 
@@ -65,7 +69,7 @@ public:
 	RecordBoard();
 	virtual ~RecordBoard() = default;
 
-	virtual void SendEvent(INT player_id) override;
+	virtual void SendEvent(INT player_id, void* c) override;
 
 	void SetRecord(const SCORE_DATA& record, INT player_num);
 
@@ -83,7 +87,38 @@ public:
 	Enhancment();
 	virtual ~Enhancment() = default;
 
-	virtual void SendEvent(INT player_id) override;
+	virtual void SendEvent(INT player_id, void* c) override;
+};
+
+class BattleStarter : public Npc
+{
+public:
+	BattleStarter();
+	virtual ~BattleStarter() = default;
+
+	virtual void SendEvent(INT player_id, void* c) override;
+	virtual void SendEvent(const std::span<INT>& ids, void* c) override;
+	virtual void SendEvent(const std::span<INT>& ids, void* c, INT length) override;
+
+private:
+	bool		m_is_valid;
+	std::mutex	m_valid_lock;
+};
+
+class WarpPortal : public Npc
+{
+public:
+	WarpPortal();
+	virtual ~WarpPortal() = default;
+
+	virtual void SendEvent(INT player_id, void* c) override;
+	virtual void SendEvent(const std::span<INT>& ids, void* c) override;
+
+	bool GetIsValid() const { return m_is_valid; }
+	void SetIsValid(bool is_valid) { m_is_valid = is_valid; }
+
+private:
+	bool		m_is_valid;
 };
 
 class MovementObject : public GameObject
@@ -124,6 +159,7 @@ public:
 	virtual const SOCKET& GetSocket() const { return SOCKET(); }
 	virtual void DoSend(void* p) {}
 	virtual void DoSend(void* p, INT packet_count) {}
+	virtual void DoSend(void* p1, INT count1, void* p2, INT count2) {}
 
 protected:
 	XMFLOAT3	m_velocity;

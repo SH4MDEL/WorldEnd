@@ -31,6 +31,7 @@ public:
 	void DoRecv();
 	virtual void DoSend(void* p) override;
 	virtual void DoSend(void* p, INT packet_count) override;
+	virtual void DoSend(void* p1, INT count1, void* p2, INT count2) override;
 
 	void SetSocket(const SOCKET& socket) { m_socket = socket; }
 	void SetExpOver(const ExpOver& over) { m_recv_over = over; }
@@ -42,6 +43,7 @@ public:
 	void SetWeaponOrientation(const XMFLOAT4& orientation);
 	void SetStamina(FLOAT stamina);
 	void SetIsDash(bool val);
+	void SetInteractable(bool val);
 
 	const SOCKET& GetSocket() const override { return m_socket; }
 	ExpOver& GetExpOver() { return m_recv_over; }
@@ -52,6 +54,7 @@ public:
 	const BoundingOrientedBox& GetWeaponBoundingBox() const { return m_weopon_bounding_box; }
 	FLOAT GetStamina() const { return m_stamina; }
 	bool GetIsDash() const { return m_is_dash; }
+	bool GetInteractable() const { return m_interactable; }
 
 	PLAYER_DATA GetPlayerData() const override;
 
@@ -72,6 +75,7 @@ private:
 	FLOAT					m_ultimate_ratio;
 	FLOAT					m_stamina;
 	bool					m_is_dash;
+	bool					m_interactable;
 
 	void SetBoundingBox(PlayerType type);
 };

@@ -60,6 +60,7 @@ public:
 	void RecvCreateParticle(char* ptr);
 	void RecvChangeStamina(char* ptr);
 	void RecvMonsterAttackCollision(char* ptr);
+	void RecvSetInteractable(char* ptr);
 
 protected:
 	ComPtr<ID3D12Resource>					m_sceneBuffer;

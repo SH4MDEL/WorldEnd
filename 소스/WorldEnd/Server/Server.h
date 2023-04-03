@@ -48,9 +48,9 @@ public:
 	void Disconnect(int id);
 
 	void SendLoginOkPacket(const std::shared_ptr<Client>& player) const;
-	void SendPlayerDataPacket();
+	void SendMoveInGameRoom(int id);
 
-	void PlayerCollisionCheck(const std::shared_ptr<Client>& player);
+	void GameRoomPlayerCollisionCheck(const std::shared_ptr<Client>& player);
 
 	void Timer();
 	void ProcessEvent(const TIMER_EVENT& ev);
@@ -63,11 +63,14 @@ public:
 	HANDLE GetIOCPHandle() const { return m_handle_iocp; }
 
 	// 플레이어 처리
-	static void MoveObject(const std::shared_ptr<GameObject>& object, XMFLOAT3 velocity);
-	static void RotateObject(const std::shared_ptr<GameObject>& object, FLOAT yaw);
+	void Move(const std::shared_ptr<Client>& client, XMFLOAT3 position);
+
+	// 오브젝트 처리
+	static void MoveObject(const std::shared_ptr<GameObject>& object, XMFLOAT3 position);
+	static void RotateBoundingBox(const std::shared_ptr<GameObject>& object);
 	void SetPositionOnStairs(const std::shared_ptr<GameObject>& object);
 
-	void CollideObject(const std::shared_ptr<GameObject>& object, const std::span<INT> ids,
+	void CollideObject(const std::shared_ptr<GameObject>& object, const std::span<INT>& ids,
 		std::function<void(const std::shared_ptr<GameObject>&, const std::shared_ptr<GameObject>&)> func);
 	static void CollideByStatic(const std::shared_ptr<GameObject>& object,
 		const std::shared_ptr<GameObject>& static_object);

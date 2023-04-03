@@ -4,7 +4,8 @@
 
 Player::Player() : m_velocity{ 0.0f, 0.0f, 0.0f }, m_maxVelocity{ 10.0f }, m_friction{ 0.5f }, 
 	m_hp{ 100.f }, m_maxHp{ 100.f }, m_id{ -1 }, m_cooltimeList{ false, }, m_dashed{ false },
-	m_moveSpeed{ PlayerSetting::PLAYER_WALK_SPEED }, m_stamina{ PlayerSetting::PLAYER_MAX_STAMINA }
+	m_moveSpeed{ PlayerSetting::PLAYER_WALK_SPEED }, m_stamina{ PlayerSetting::PLAYER_MAX_STAMINA },
+	m_interactable{ false }, m_interactableType{ InteractableType::NONE }
 {
 
 }
@@ -117,6 +118,12 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 		SendAttackPacket(pos, AttackType::SKILL, CollisionType::MULTIPLE_TIMES,
 			chrono::system_clock::now() + PlayerSetting::WARRIOR_SKILL_COLLISION_TIME,
 			CooltimeType::SKILL);
+	}
+
+	if (GetAsyncKeyState('F') & 0x8000) {
+		if (m_interactable) {
+			SendInteractPacket();
+		}
 	}
 }
 
@@ -292,6 +299,17 @@ void Player::SendAttackPacket(const XMFLOAT3& pos, AttackType attackType,
 	packet.collision_type = collisionType;
 	packet.event_time = eventTime;
 	packet.cooltime_type = cooltimeType;
+	send(g_socket, reinterpret_cast<char*>(&packet), packet.size, 0);
+#endif
+}
+
+void Player::SendInteractPacket()
+{
+#ifdef USE_NETWORK
+	CS_INTERACT_OBJECT_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = CS_PACKET_INTERACT_OBJECT;
+	packet.interactable_type = m_interactableType;
 	send(g_socket, reinterpret_cast<char*>(&packet), packet.size, 0);
 #endif
 }

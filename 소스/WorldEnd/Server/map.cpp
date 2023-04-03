@@ -24,6 +24,21 @@ void GameRoom::Update(FLOAT elapsed_time)
 	}
 }
 
+void GameRoom::StartBattle()
+{
+	Server& server = Server::GetInstance();
+
+	for (INT id : m_monster_ids) {
+		if (-1 == id) continue;
+
+		auto monster = dynamic_pointer_cast<Monster>(server.m_clients[id]);
+
+		monster->SetState(State::ST_INGAME);
+		monster->ChangeBehavior(MonsterBehavior::CHASE);
+	}
+	m_battle_starter->SendEvent(m_player_ids, &m_monster_ids);
+}
+
 // 파티 생성하지 않고 진입 시 사용하는 함수
 // 혼자서만 들어가므로 나중에 for문 검사 필요없으니 삭제 필요함
 void GameRoom::SetPlayer(INT player_id)
@@ -164,6 +179,18 @@ void GameRoom::DecreaseMonsterCount(INT room_num, BYTE count)
 	}
 }
 
+void GameRoom::EventCollisionCheck(INT player_id)
+{
+	// 전투 오브젝트와 충돌검사
+	if (GameRoomState::ACCEPT == m_state) {
+		CollideWithEventObject(player_id, InteractableType::BATTLE_STARTER);
+	}
+	// 포탈과 충돌검사
+	else if (GameRoomState::CLEAR == m_state) {
+		CollideWithEventObject(player_id, InteractableType::PORTAL);
+	}
+}
+
 void GameRoom::InitGameRoom(INT room_num)
 {
 	{
@@ -198,8 +225,7 @@ void GameRoom::InitMonsters(INT room_num)
 		monster->InitializePosition();
 		monster->SetRoomNum(room_num);
 		monster->SetTarget(0);
-		monster->SetState(State::ST_INGAME);
-		monster->ChangeBehavior(MonsterBehavior::CHASE);
+		monster->SetState(State::ST_ACCEPT);
 		++m_monster_count;
 	}
 }
@@ -207,6 +233,40 @@ void GameRoom::InitMonsters(INT room_num)
 void GameRoom::InitEnvironment()
 {
 	// 랜덤하게 환경을 설정함
+}
+
+void GameRoom::CollideWithEventObject(INT player_id, InteractableType type)
+{
+	std::shared_ptr<Npc> object{};
+	switch(type) {
+	case InteractableType::BATTLE_STARTER:
+		object = m_battle_starter;
+		break;
+	case InteractableType::PORTAL:
+		object = m_portal;
+		break;
+	}
+
+	Server& server = Server::GetInstance();
+	auto client = dynamic_pointer_cast<Client>(server.m_clients[player_id]);
+
+	SC_SET_INTERACTABLE_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = SC_PACKET_SET_INTERACTABLE;
+	packet.interactable_type = type;
+
+	if (client->GetBoundingBox().Intersects(object->GetEventBoundingBox())) {
+		if (!client->GetInteractable()) {
+			packet.interactable = true;
+			client->DoSend(&packet);
+		}
+	}
+	else {
+		if (client->GetInteractable()) {
+			packet.interactable = false;
+			client->DoSend(&packet);
+		}
+	}
 }
 
 GameRoomManager::GameRoomManager()
@@ -291,6 +351,19 @@ void GameRoomManager::LoadMap()
 	}
 }
 
+void GameRoomManager::StartBattle(INT room_num)
+{
+	auto& room = m_game_rooms[room_num];
+
+	std::unique_lock<std::mutex> l{ room->GetStateMutex() };
+	if (GameRoomState::ACCEPT == room->GetState()) {
+		room->SetState(GameRoomState::INGAME);
+		l.unlock();
+
+		m_game_rooms[room_num]->StartBattle();
+	}
+}
+
 bool GameRoomManager::EnterGameRoom(const std::shared_ptr<Party>& party)
 {
 	INT room_num = FindEmptyRoom();
@@ -327,6 +400,11 @@ void GameRoomManager::RemoveMonster(INT room_num, INT monster_id)
 void GameRoomManager::DecreaseMonsterCount(INT room_num, BYTE count)
 {
 	m_game_rooms[room_num]->DecreaseMonsterCount(room_num, count);
+}
+
+void GameRoomManager::EventCollisionCheck(INT room_num, INT player_id)
+{
+	m_game_rooms[room_num]->EventCollisionCheck(player_id);
 }
 
 void GameRoomManager::Update(float elapsed_time)

@@ -585,6 +585,9 @@ void TowerScene::ProcessPacket(char* ptr)
 	case SC_PACKET_MONSTER_ATTACK_COLLISION:
 		RecvMonsterAttackCollision(ptr);
 		break;
+	case SC_PACKET_SET_INTERACTABLE:
+		RecvSetInteractable(ptr);
+		break;
 	}
 }
 
@@ -670,24 +673,21 @@ void TowerScene::RecvUpdateClient(char* ptr)
 {
 	SC_UPDATE_CLIENT_PACKET* packet = reinterpret_cast<SC_UPDATE_CLIENT_PACKET*>(ptr);
 
-	for (int i = 0; i < MAX_INGAME_USER; ++i) {
-		if (-1 == packet->data[i].id) {
-			continue;
-		}
+	if (-1 == packet->data.id) {
+		return;
+	}
 
-		if (packet->data[i].id == m_player->GetID()) {
-			m_player->SetPosition(packet->data[i].pos);
-			continue;
-		}
-		else {
-			// towerScene의 multiPlayer를 업데이트 해도 shader의 multiPlayer도 업데이트 됨.
-			XMFLOAT3 playerPosition = packet->data[i].pos;
-			auto& player = m_multiPlayers[packet->data[i].id];
-			player->SetPosition(playerPosition);
-			player->SetVelocity(packet->data[i].velocity);
-			player->Rotate(0.f, 0.f, packet->data[i].yaw - player->GetYaw());
-			player->SetHp(packet->data[i].hp);
-		}
+	if (packet->data.id == m_player->GetID()) {
+		m_player->SetPosition(packet->data.pos);
+	}
+	else {
+		// towerScene의 multiPlayer를 업데이트 해도 shader의 multiPlayer도 업데이트 됨.
+		XMFLOAT3 playerPosition = packet->data.pos;
+		auto& player = m_multiPlayers[packet->data.id];
+		player->SetPosition(playerPosition);
+		player->SetVelocity(packet->data.velocity);
+		player->Rotate(0.f, 0.f, packet->data.yaw - player->GetYaw());
+		player->SetHp(packet->data.hp);
 	}
 }
 
@@ -807,4 +807,12 @@ void TowerScene::RecvMonsterAttackCollision(char* ptr)
 		}
 		++i;
 	}
+}
+
+void TowerScene::RecvSetInteractable(char* ptr)
+{
+	SC_SET_INTERACTABLE_PACKET* packet = reinterpret_cast<SC_SET_INTERACTABLE_PACKET*>(ptr);
+
+	m_player->SetInteractable(packet->interactable);
+	m_player->SetInteractableType(packet->interactable_type);
 }

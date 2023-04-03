@@ -32,6 +32,7 @@ constexpr char CS_PACKET_PLAYER_MOVE = 2;
 constexpr char CS_PACKET_SET_COOLTIME = 4;
 constexpr char CS_PACKET_ATTACK = 5;
 constexpr char CS_PACKET_CHANGE_ANIMATION = 6;
+constexpr char CS_PACKET_INTERACT_OBJECT = 7;
 
 constexpr char SC_PACKET_LOGIN_OK = 1;
 constexpr char SC_PACKET_ADD_OBJECT = 2;
@@ -48,6 +49,9 @@ constexpr char SC_PACKET_FAIL_FLOOR = 12;
 constexpr char SC_PACKET_CREATE_PARTICLE = 13;
 constexpr char SC_PACKET_CHANGE_STAMINA = 14;
 constexpr char SC_PACKET_MONSTER_ATTACK_COLLISION = 15;
+constexpr char SC_PACKET_SET_INTERACTABLE = 16;
+constexpr char SC_PACKET_START_BATTLE = 17;
+constexpr char SC_PACKET_WARP_NEXT_FLOOR = 18;
 
 enum class PlayerType : char { WARRIOR, ARCHER, UNKNOWN };
 enum class AttackType : char { NORMAL, SKILL, ULTIMATE };
@@ -60,6 +64,9 @@ enum CooltimeType : char {
 };
 enum class MonsterBehavior : char {
 	CHASE, RETARGET, TAUNT, PREPARE_ATTACK, ATTACK, DEAD, NONE
+};
+enum InteractableType : char {
+	BATTLE_STARTER, PORTAL, ENHANCMENT, RECORD_BOARD, NONE
 };
 
 namespace PlayerSetting
@@ -246,6 +253,13 @@ struct CS_CHANGE_ANIMATION_PACKET
 	INT	animation_type;
 };
 
+struct CS_INTERACT_OBJECT_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+	InteractableType interactable_type;
+};
+
 ///////////////////////////////////////////////////////////////////////
 // 서버에서 클라로
 
@@ -314,7 +328,7 @@ struct SC_UPDATE_CLIENT_PACKET
 {
 	UCHAR size;
 	UCHAR type;
-	PLAYER_DATA	data[MAX_INGAME_USER];
+	PLAYER_DATA	data;
 };
 
 struct SC_ADD_MONSTER_PACKET
@@ -389,6 +403,28 @@ struct SC_MONSTER_ATTACK_COLLISION_PACKET
 	UCHAR type;
 	INT ids[MAX_INGAME_USER];
 	FLOAT hps[MAX_INGAME_USER];
+};
+
+struct SC_SET_INTERACTABLE_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+	bool interactable;
+	InteractableType interactable_type;
+};
+
+struct SC_START_BATTLE_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+};
+
+struct SC_WARP_NEXT_FLOOR_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+	BYTE floor;
+	// 플레이어의 초기 장소까지 같이 알려줘야 하는지
 };
 
 #pragma pack (pop)

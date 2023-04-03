@@ -27,12 +27,14 @@ public:
 	void SetHpBar(const shared_ptr<HpBar>& hpBar) { m_hpBar = hpBar; }
 	void SetType(PlayerType type) { m_type = type; }
 	void SetStamina(FLOAT stamina) { m_stamina = stamina; }
+	void SetInteractable(bool value) { m_interactable = value; }
+	void SetInteractableType(InteractableType type) { m_interactableType = type; }
 
 	XMFLOAT3 GetVelocity() const { return m_velocity; }
 	FLOAT GetHp() const { return m_hp; }
 	FLOAT GetMaxHp() const { return m_maxHp; }
-	
 	PlayerType GetType() const { return m_type; }
+	InteractableType GetInteractableType() const { return m_interactableType; }
 
 	void ResetCooltime(CooltimeType type);
 	virtual bool ChangeAnimation(int animation) override;
@@ -46,6 +48,7 @@ public:
 	void SendAttackPacket(const XMFLOAT3& pos, AttackType attackType,
 		CollisionType collisionType, chrono::system_clock::time_point eventTime,
 		CooltimeType cooltimeType);
+	void SendInteractPacket();
 
 private:
 	XMFLOAT3			m_velocity;		// 속도
@@ -68,6 +71,9 @@ private:
 	bool								m_dashed;
 	FLOAT								m_moveSpeed;
 	FLOAT								m_stamina;
+
+	bool				m_interactable;
+	InteractableType	m_interactableType;
 };
 
 class AttackCallbackHandler : public AnimationCallbackHandler

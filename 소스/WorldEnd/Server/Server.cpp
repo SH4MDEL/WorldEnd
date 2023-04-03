@@ -553,13 +553,9 @@ void Server::ProcessPacket(int id, char* p)
 		pos.x += packet->velocity.x;
 		pos.y += packet->velocity.y;
 		pos.z += packet->velocity.z;
+		cl->SetYaw(packet->yaw);
 
-		MoveObject(cl, pos);
-		SetPositionOnStairs(cl);
-		RotateObject(cl, packet->yaw);
-
-		PlayerCollisionCheck(cl);
-		SendPlayerDataPacket();
+		Move(cl, pos);
 		break;
 	}
 	case CS_PACKET_SET_COOLTIME: {
@@ -579,7 +575,6 @@ void Server::ProcessPacket(int id, char* p)
 		
 		break;
 	}
-
 	case CS_PACKET_ATTACK: {
 		CS_ATTACK_PACKET* packet = reinterpret_cast<CS_ATTACK_PACKET*>(p);
 		int room_num = m_clients[id]->GetRoomNum();
@@ -628,11 +623,11 @@ void Server::ProcessPacket(int id, char* p)
 		
 		break;
 	}
-
 	case CS_PACKET_CHANGE_ANIMATION: {
-		auto client = dynamic_pointer_cast<Client>(m_clients[id]);
+		CS_CHANGE_ANIMATION_PACKET* animation_packet = 
+			reinterpret_cast<CS_CHANGE_ANIMATION_PACKET*>(p);
 
-		CS_CHANGE_ANIMATION_PACKET* animation_packet = reinterpret_cast<CS_CHANGE_ANIMATION_PACKET*>(p);
+		auto client = dynamic_pointer_cast<Client>(m_clients[id]);
 
 		SC_CHANGE_ANIMATION_PACKET packet{};
 		packet.size = sizeof(packet);
@@ -670,6 +665,28 @@ void Server::ProcessPacket(int id, char* p)
 		}
 
 		break;
+	}
+	case CS_PACKET_INTERACT_OBJECT: {
+		CS_INTERACT_OBJECT_PACKET* packet =
+			reinterpret_cast<CS_INTERACT_OBJECT_PACKET*>(p);
+
+		auto client = dynamic_pointer_cast<Client>(m_clients[id]);
+
+		// 해당 아이디에 타입에 맞는 상호작용 처리
+		switch (packet->interactable_type) {
+		case InteractableType::BATTLE_STARTER:
+			m_game_room_manager->StartBattle(client->GetRoomNum());
+			break;
+		case InteractableType::PORTAL:
+
+			break;
+		case InteractableType::ENHANCMENT:
+
+			break;
+		case InteractableType::RECORD_BOARD:
+
+			break;
+		}
 	}
 
 	}
@@ -744,23 +761,24 @@ void Server::SendLoginOkPacket(const std::shared_ptr<Client>& player) const
 	}
 }
 
-void Server::SendPlayerDataPacket()
+void Server::SendMoveInGameRoom(int id)
 {
 	SC_UPDATE_CLIENT_PACKET packet{};
 	packet.size = sizeof(packet);
 	packet.type = SC_PACKET_UPDATE_CLIENT;
-	
-	for (int i = 0; i < MAX_INGAME_USER; ++i)
-		packet.data[i] = m_clients[i]->GetPlayerData();
+	packet.data = m_clients[id]->GetPlayerData();
 
-	for (size_t i = 0; i < MAX_USER; ++i){
-		if (State::ST_INGAME != m_clients[i]->GetState()) continue;
-		
-		m_clients[i]->DoSend(&packet);
+	auto game_room = m_game_room_manager->GetGameRoom(m_clients[id]->GetRoomNum());
+	auto& ids = game_room->GetPlayerIds();
+
+	for (int player_id : ids) {
+		if (-1 == player_id) continue;
+
+		m_clients[player_id]->DoSend(&packet);
 	}
 }
 
-void Server::PlayerCollisionCheck(const std::shared_ptr<Client>& player)
+void Server::GameRoomPlayerCollisionCheck(const std::shared_ptr<Client>& player)
 {
 	BoundingOrientedBox& player_obb = player->GetBoundingBox();
 
@@ -779,6 +797,9 @@ void Server::PlayerCollisionCheck(const std::shared_ptr<Client>& player)
 			CollideByStaticOBB(player, obj);
 		}
 	}
+
+	// 포탈, 전투 오브젝트와 상호작용
+	m_game_room_manager->EventCollisionCheck(player->GetRoomNum(), player->GetId());
 }
 
 INT Server::GetNewId()
@@ -823,20 +844,36 @@ INT Server::GetNewMonsterId(MonsterType type)
 	return -1;
 }
 
-void Server::MoveObject(const std::shared_ptr<GameObject>& object, XMFLOAT3 pos)
+void Server::Move(const std::shared_ptr<Client>& client, XMFLOAT3 position)
 {
-	object->SetPosition(pos);
+	// 게임 룸에 진입한채 움직이면 시야처리 X (타워 씬)
+	if (-1 != client->GetRoomNum()) {
+		MoveObject(client, position);
+		SetPositionOnStairs(client);
+		RotateBoundingBox(client);
 
-	// 바운드 박스 갱신
-	object->SetBoundingBoxCenter(pos);
+		GameRoomPlayerCollisionCheck(client);
+
+		SendMoveInGameRoom(client->GetId());
+	}
+	// 게임 룸이 아닌채 움직이면 시야처리 (마을 씬)
+	else {
+
+	}
 }
 
-void Server::RotateObject(const std::shared_ptr<GameObject>& object, FLOAT yaw)
+void Server::MoveObject(const std::shared_ptr<GameObject>& object, XMFLOAT3 position)
 {
-	// 플레이어 회전, degree 값
-	object->SetYaw(yaw);
+	object->SetPosition(position);
 
-	float radian = XMConvertToRadians(yaw);
+	// 바운드 박스 갱신
+	object->SetBoundingBoxCenter(position);
+}
+
+void Server::RotateBoundingBox(const std::shared_ptr<GameObject>& object)
+{
+	// 플레이어 회전 (degree 값)
+	float radian = XMConvertToRadians(object->GetYaw());
 
 	XMFLOAT4 q{};
 	XMStoreFloat4(&q, XMQuaternionRotationRollPitchYaw(0.f, radian, 0.f));
@@ -999,7 +1036,7 @@ void Server::SetTimerEvent(const TIMER_EVENT& ev)
 }
 
 // 연속적인 컨테이너, 여기선 array 를 상관없이 받도록 하기 위해 span 사용
-void Server::CollideObject(const std::shared_ptr<GameObject>& object, const std::span<INT> ids,
+void Server::CollideObject(const std::shared_ptr<GameObject>& object, const std::span<INT>& ids,
 	std::function<void(const std::shared_ptr<GameObject>&, const std::shared_ptr<GameObject>&)> func)
 {
 	for (INT id : ids) {
