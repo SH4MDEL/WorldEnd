@@ -10,7 +10,7 @@ std::uniform_int_distribution<int> random_behavior(1, 100);
 std::uniform_int_distribution<int> random_retarget_time(5, 10);
 
 Monster::Monster() : m_target_id{ -1 }, m_current_animation{ ObjectAnimation::IDLE },
-	m_current_behavior{ MonsterBehavior::CHASE }, m_aggro_level{ 0 },
+	m_current_behavior{ MonsterBehavior::NONE }, m_aggro_level{ 0 },
 	m_last_behavior_id{ 0 }
 {
 }

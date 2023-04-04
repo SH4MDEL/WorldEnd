@@ -815,4 +815,6 @@ void TowerScene::RecvSetInteractable(char* ptr)
 
 	m_player->SetInteractable(packet->interactable);
 	m_player->SetInteractableType(packet->interactable_type);
+
+	cout << "충돌 상태 : " << packet->interactable << endl;
 }

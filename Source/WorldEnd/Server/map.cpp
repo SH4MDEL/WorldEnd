@@ -11,6 +11,9 @@ m_type{ EnvironmentType::FOG }, m_monster_count{ 0 }
 
 	for (INT& id : m_monster_ids)
 		id = -1;
+
+	m_battle_starter = std::make_shared<BattleStarter>();
+	m_portal = std::make_shared<WarpPortal>();
 }
 
 void GameRoom::Update(FLOAT elapsed_time)
@@ -28,6 +31,8 @@ void GameRoom::StartBattle()
 {
 	Server& server = Server::GetInstance();
 
+	m_battle_starter->SendEvent(m_player_ids, &m_monster_ids);
+
 	for (INT id : m_monster_ids) {
 		if (-1 == id) continue;
 
@@ -36,7 +41,6 @@ void GameRoom::StartBattle()
 		monster->SetState(State::ST_INGAME);
 		monster->ChangeBehavior(MonsterBehavior::CHASE);
 	}
-	m_battle_starter->SendEvent(m_player_ids, &m_monster_ids);
 }
 
 // 파티 생성하지 않고 진입 시 사용하는 함수
@@ -210,8 +214,6 @@ void GameRoom::InitMonsters(INT room_num)
 	// 파일을 읽어서 몬스터를 생성할 예정
 	
 	// Init 은 플레이어 진입 시 불려야함
-	// 전투 시작 시 INGAME, ChangeBehavior 가 호출되어야 함
-	// 현재는 방 생성 시 부르는 중, 나중에 옮길 것!
 	INT new_id{};
 	for (size_t i = 0; i < 5; ++i) {
 		new_id = server.GetNewMonsterId(MonsterType::WARRIOR);
@@ -257,14 +259,18 @@ void GameRoom::CollideWithEventObject(INT player_id, InteractableType type)
 
 	if (client->GetBoundingBox().Intersects(object->GetEventBoundingBox())) {
 		if (!client->GetInteractable()) {
+			client->SetInteractable(true);
 			packet.interactable = true;
 			client->DoSend(&packet);
+			std::cout << "충돌\n";
 		}
 	}
 	else {
 		if (client->GetInteractable()) {
+			client->SetInteractable(false);
 			packet.interactable = false;
 			client->DoSend(&packet);
+			std::cout << "충돌 끝\n";
 		}
 	}
 }
@@ -411,7 +417,7 @@ void GameRoomManager::Update(float elapsed_time)
 {
 	for (const auto& game_room : m_game_rooms) {
 		std::unique_lock<std::mutex> lock{ game_room->GetStateMutex() };
-		if (GameRoomState::EMPTY == game_room->GetState()) 
+		if (GameRoomState::INGAME != game_room->GetState()) 
 			continue;
 		lock.unlock();
 
@@ -423,7 +429,7 @@ void GameRoomManager::SendMonsterData()
 {
 	for (const auto& game_room : m_game_rooms) {
 		std::unique_lock<std::mutex> lock{ game_room->GetStateMutex() };
-		if (GameRoomState::EMPTY == game_room->GetState()) 
+		if (GameRoomState::INGAME != game_room->GetState()) 
 			continue;
 		lock.unlock();
 

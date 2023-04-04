@@ -19,6 +19,7 @@ public:
 	ExpOver();
 	ExpOver(char* packet);
 	ExpOver(char* packet, INT packet_count);
+	ExpOver(char* packet1, INT count1, char* packet2, INT count2);
 	~ExpOver() = default;
 };
 

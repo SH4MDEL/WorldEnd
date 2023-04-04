@@ -87,8 +87,8 @@ void Enhancment::SendEvent(INT player_id, void* c)
 
 BattleStarter::BattleStarter() : m_is_valid{ true }
 {
-	m_event_bounding_box.Center = XMFLOAT3(0.f, 0.5f, 24.f);
-	m_event_bounding_box.Extents = XMFLOAT3(0.5f, 0.5f, 0.5f);
+	m_event_bounding_box.Center = XMFLOAT3(0.f, 1.f, 24.f);
+	m_event_bounding_box.Extents = XMFLOAT3(1.f, 1.f, 1.f);
 }
 
 void BattleStarter::SendEvent(INT player_id, void* c)
@@ -161,7 +161,7 @@ void BattleStarter::SendEvent(const std::span<INT>& ids, void* c, INT length)
 		for (INT id : ids) {
 			if (-1 == id) continue;
 
-			server.m_clients[id]->DoSend(&packet);
+			server.m_clients[id]->DoSend(&packet, 1, &monster_packet, length);
 		}
 	}
 }

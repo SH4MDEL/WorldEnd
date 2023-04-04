@@ -29,6 +29,16 @@ ExpOver::ExpOver(char* packet, INT packet_count)
 	memcpy(_send_buf, packet, static_cast<size_t>(packet[0] * packet_count));
 }
 
+ExpOver::ExpOver(char* packet1, INT count1, char* packet2, INT count2)
+{
+	ZeroMemory(&_wsa_over, sizeof(_wsa_over));
+	_wsa_buf.buf = _send_buf;
+	_wsa_buf.len = packet1[0] * count1 + packet2[0] * count2;
+	_comp_type = OP_SEND;
+	memcpy(_send_buf, packet1, static_cast<size_t>(packet1[0] * count1));
+	memcpy(_send_buf + (packet1[0] * count1), packet2, static_cast<size_t>(packet2[0] * count2));
+}
+
 Client::Client() : m_socket{}, m_ready_check{ false }, m_remain_size{ 0 },
 	m_recv_over{}, m_stamina{ PlayerSetting::PLAYER_MAX_STAMINA }, m_is_dash{ false },
 	m_interactable{ false }
@@ -84,6 +94,23 @@ void Client::DoSend(void* p)
 void Client::DoSend(void* p, INT packet_count)
 {
 	ExpOver* ex_over = new ExpOver{ reinterpret_cast<char*>(p), packet_count };
+	int retval = WSASend(m_socket, &ex_over->_wsa_buf, 1, 0, 0, &ex_over->_wsa_over, nullptr);
+	if (SOCKET_ERROR == retval) {
+		int error_num = WSAGetLastError();
+		if (ERROR_IO_PENDING != error_num) {
+			ErrorDisplay("Send Error");
+
+			if (WSAECONNRESET == error_num) {
+				Server& server = Server::GetInstance();
+				server.Disconnect(m_id);
+			}
+		}
+	}
+}
+
+void Client::DoSend(void* p1, INT count1, void* p2, INT count2)
+{
+	ExpOver* ex_over = new ExpOver{ reinterpret_cast<char*>(p1), count1, reinterpret_cast<char*>(p2), count2 };
 	int retval = WSASend(m_socket, &ex_over->_wsa_buf, 1, 0, 0, &ex_over->_wsa_over, nullptr);
 	if (SOCKET_ERROR == retval) {
 		int error_num = WSAGetLastError();
