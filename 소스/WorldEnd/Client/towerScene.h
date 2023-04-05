@@ -28,7 +28,7 @@ public:
 	void OnProcessingKeyboardMessage(FLOAT timeElapsed) override;
 	
 	void Update(FLOAT timeElapsed) override;
-	void RenderShadow(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) override;
+	void PreProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) override;
 	void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) const override;
 	void PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList, const ComPtr<ID3D12Resource>& renderTarget, UINT threadIndex) override;
 	void RenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext) override;
@@ -73,6 +73,8 @@ protected:
 
 	shared_ptr<Player>						m_player;
 	shared_ptr<Camera>						m_camera;
+
+	shared_ptr<GameObject>					m_gate;
 
 	shared_ptr<LightSystem>					m_lightSystem;
 	shared_ptr<Shadow>						m_shadow;

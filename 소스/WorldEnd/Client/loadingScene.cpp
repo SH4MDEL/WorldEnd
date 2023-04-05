@@ -192,6 +192,16 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/AD_Wall_C_01Texture.bin"));
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/AD_Wall_D_01Texture.bin"));
 
+	// 룬 게이트 메쉬 로딩
+	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/AD_RuneGate_A_01Mesh.bin"));
+	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/AD_RuneGate_B_01Mesh.bin"));
+	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/AD_RuneGateGround_B_01Mesh.bin"));
+
+	// 룬 게이트 텍스처 로딩
+	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/AD_RuneGate_A_01Texture.bin"));
+	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/AD_RuneGate_B_01Texture.bin"));
+	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/AD_RuneGateGround_B_01Texture.bin"));
+
 	// 메쉬 설정
 	m_meshs.insert({ "SKYBOX", skyboxMesh });
 	m_meshs.insert({ "HPBAR", hpBarMesh });
@@ -237,7 +247,7 @@ void LoadingScene::Update(FLOAT timeElapsed)
 }
 
 void LoadingScene::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) const {}
-void LoadingScene::RenderShadow(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) {}
+void LoadingScene::PreProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) {}
 void LoadingScene::PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList, const ComPtr<ID3D12Resource>& renderTarget, UINT threadIndex) {}
 
 void LoadingScene::RenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext)

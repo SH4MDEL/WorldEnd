@@ -789,7 +789,7 @@ void GameFramework::WorkerThread(UINT threadIndex)
 		}
 		if (m_scenes[m_sceneIndex]) {
 			m_scenes[m_sceneIndex]->UpdateShaderVariable(m_shadowCommandLists[threadIndex]);
-			m_scenes[m_sceneIndex]->RenderShadow(m_shadowCommandLists[threadIndex], threadIndex);
+			m_scenes[m_sceneIndex]->PreProcess(m_shadowCommandLists[threadIndex], threadIndex);
 		}
 
 		DX::ThrowIfFailed(m_shadowCommandLists[threadIndex]->Close());

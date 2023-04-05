@@ -164,6 +164,13 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	// 씬 로드
 	LoadSceneFromFile(TEXT("./Resource/Scene/TowerScene.bin"), TEXT("TowerScene"));
 
+	// 게이트 로드
+	m_gate = make_shared<GameObject>();
+	LoadObjectFromFile(TEXT("./Resource/Model/TowerScene/AD_Gate.bin"), m_gate);
+	m_gate->SetPosition(XMFLOAT3{ 0.f, 0.f, 25.f });
+	m_gate->SetScale(0.5f, 0.5f, 0.5f);
+	m_shaders["OBJECT"]->SetObject(m_gate);
+
 	// 스카이 박스 생성
 	auto skybox{ make_shared<GameObject>() };
 	skybox->SetMesh(m_meshs["SKYBOX"]);
@@ -326,7 +333,7 @@ void TowerScene::Update(FLOAT timeElapsed)
 	g_particleSystem->Update(timeElapsed);
 }
 
-void TowerScene::RenderShadow(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex)
+void TowerScene::PreProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex)
 {
 	switch (threadIndex)
 	{
