@@ -21,7 +21,7 @@ public:
 	virtual ~GameObject() = default;
 
 	void SetId(INT id) { m_id = id; }
-	void SetPosition(const XMFLOAT3& pos) { m_position = pos; }
+	void SetPosition(const XMFLOAT3& pos);
 	void SetPosition(FLOAT x, FLOAT y, FLOAT z);
 	void SetYaw(const FLOAT& yaw) { m_yaw = yaw; }
 	void SetBoundingBox(const BoundingOrientedBox& obb) { m_bounding_box = obb; }
@@ -33,10 +33,10 @@ public:
 	const BoundingOrientedBox& GetBoundingBox() const { return m_bounding_box; }
 	BoundingOrientedBox& GetBoundingBox() { return m_bounding_box; }
 	INT GetId() const { return m_id; }
+	virtual State GetState() const { return State::ST_FREE; }
 
 	virtual void SendEvent(INT id, void* c) {}
 	virtual void SendEvent(const std::span<INT>& ids, void* c) {}
-	virtual void SendEvent(const std::span<INT>& ids, void* c, INT length) {}
 
 protected:
 	XMFLOAT3				m_position;
@@ -57,7 +57,6 @@ public:
 
 	virtual void SendEvent(INT id, void* c) override {}
 	virtual void SendEvent(const std::span<INT>& ids, void* c) override {}
-	virtual void SendEvent(const std::span<INT>& ids, void* c, INT length) override {}
 
 protected:
 	BoundingOrientedBox m_event_bounding_box;
@@ -96,9 +95,10 @@ public:
 	BattleStarter();
 	virtual ~BattleStarter() = default;
 
+	void SetIsValid(bool is_valid);
+
 	virtual void SendEvent(INT player_id, void* c) override;
 	virtual void SendEvent(const std::span<INT>& ids, void* c) override;
-	virtual void SendEvent(const std::span<INT>& ids, void* c, INT length) override;
 
 private:
 	bool		m_is_valid;
@@ -141,7 +141,7 @@ public:
 
 	XMFLOAT3 GetVelocity() const { return m_velocity; }
 	std::mutex& GetStateMutex() { return m_state_lock; }
-	State GetState() const { return m_state; }
+	virtual State GetState() const override { return m_state; }
 	std::string GetName() const { return m_name; }
 	FLOAT GetMaxHp() const { return m_max_hp; }
 	FLOAT GetHp() const { return m_hp; }
@@ -159,7 +159,6 @@ public:
 	virtual const SOCKET& GetSocket() const { return SOCKET(); }
 	virtual void DoSend(void* p) {}
 	virtual void DoSend(void* p, INT packet_count) {}
-	virtual void DoSend(void* p1, INT count1, void* p2, INT count2) {}
 
 protected:
 	XMFLOAT3	m_velocity;

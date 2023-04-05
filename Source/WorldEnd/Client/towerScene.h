@@ -39,6 +39,8 @@ public:
 	void LoadPlayerFromFile(const shared_ptr<Player>& player);
 	void LoadMonsterFromFile(const shared_ptr<Monster>& monster);
 
+	void SetHpBar(const shared_ptr<AnimationObject>& object);
+
     // 서버 추가 코드
 	void InitServer();
 	void SendPlayerData();
@@ -61,6 +63,8 @@ public:
 	void RecvChangeStamina(char* ptr);
 	void RecvMonsterAttackCollision(char* ptr);
 	void RecvSetInteractable(char* ptr);
+	void RecvStartBattle(char* ptr);
+	void RecvWarpNextFloor(char* ptr);
 
 protected:
 	ComPtr<ID3D12Resource>					m_sceneBuffer;

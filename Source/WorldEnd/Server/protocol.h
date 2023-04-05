@@ -118,6 +118,7 @@ namespace MonsterSetting
 namespace RoomSetting
 {
 	constexpr float DEFAULT_HEIGHT = 0.f;
+	constexpr unsigned char BOSS_FLOOR = 5;
 
 	constexpr float DOWNSIDE_STAIRS_HEIGHT = 4.4f;
 	constexpr float DOWNSIDE_STAIRS_FRONT = -7.f;
@@ -126,6 +127,9 @@ namespace RoomSetting
 	constexpr float TOPSIDE_STAIRS_HEIGHT = 4.67f;
 	constexpr float TOPSIDE_STAIRS_FRONT = 53.f;
 	constexpr float TOPSIDE_STAIRS_BACK = 43.f;
+
+	constexpr float EVENT_RADIUS = 1.f;
+	constexpr float EVENT_OBJECT_HEIGHT = 1.f;
 }
 
 // ----- 애니메이션 enum 클래스 -----

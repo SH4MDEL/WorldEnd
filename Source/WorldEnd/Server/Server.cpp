@@ -98,9 +98,6 @@ void Server::Network()
 	std::thread thread1{ &Server::Timer,this };
 	thread1.detach();
 
-	// 초기화 하는 함수는 싱글톤 문제로 생성자에서 호출할 수 없음
-	m_game_room_manager->InitGameRoom(0);
-
 	constexpr int MAX_FAME = 60;
 	using frame = std::chrono::duration<int32_t, std::ratio<1, MAX_FAME>>;
 	using ms = std::chrono::duration<float, std::milli>;
@@ -256,7 +253,6 @@ void Server::WorkerThread()
 			packet.id = monster_id;
 
 			m_game_room_manager->RemoveMonster(room_num, monster_id);
-			m_game_room_manager->DecreaseMonsterCount(room_num, 1);
 
 			auto game_room = m_game_room_manager->GetGameRoom(room_num);
 			auto& ids = game_room->GetPlayerIds();
@@ -289,7 +285,14 @@ void Server::WorkerThread()
 				m_clients[id]->DoSend(&packet);
 			}
 
-			game_room->InitGameRoom(room_num);
+			// 던전 CLEAR 로 변경
+			{
+				std::lock_guard<std::mutex> l{ game_room->GetStateMutex() };
+				game_room->SetState(GameRoomState::CLEAR);
+			}
+
+			// 포탈 상호작용 시 되어야 할 동작
+			//game_room->InitGameRoom(room_num);
 
 			delete exp_over;
 			break;
@@ -537,7 +540,10 @@ void Server::ProcessPacket(int id, char* p)
 		// 원래는 던전 진입 시 던전에 배치해야하지만
 		// 현재 마을이 없이 바로 던전에 진입하므로 던전에 입장시킴
 		m_game_room_manager->SetPlayer(0, id);
-		m_game_room_manager->SendAddMonster(id);
+		m_game_room_manager->SendAddMonster(m_clients[id]->GetRoomNum(), id);
+		if (GameRoomState::INGAME == m_game_room_manager->GetGameRoom(m_clients[id]->GetRoomNum())->GetState()) {
+			m_game_room_manager->GetGameRoom(m_clients[id]->GetRoomNum())->GetBattleStarter()->SendEvent(id, nullptr);
+		}
 
 		std::cout << cl->GetId() << " is connect" << std::endl;
 		break;
@@ -675,10 +681,12 @@ void Server::ProcessPacket(int id, char* p)
 		// 해당 아이디에 타입에 맞는 상호작용 처리
 		switch (packet->interactable_type) {
 		case InteractableType::BATTLE_STARTER:
+			client->SetInteractable(false);
 			m_game_room_manager->StartBattle(client->GetRoomNum());
 			break;
 		case InteractableType::PORTAL:
-
+			client->SetInteractable(false);
+			m_game_room_manager->WarpNextFloor(client->GetRoomNum());
 			break;
 		case InteractableType::ENHANCMENT:
 
@@ -1042,6 +1050,7 @@ void Server::CollideObject(const std::shared_ptr<GameObject>& object, const std:
 	for (INT id : ids) {
 		if (-1 == id) continue;
 		if (id == object->GetId()) continue;
+		if (State::ST_INGAME != m_clients[id]->GetState()) continue;
 
 		if (object->GetBoundingBox().Intersects(m_clients[id]->GetBoundingBox())) {
 			func(object, m_clients[id]);

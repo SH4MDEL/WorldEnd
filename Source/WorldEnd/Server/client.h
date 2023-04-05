@@ -19,7 +19,6 @@ public:
 	ExpOver();
 	ExpOver(char* packet);
 	ExpOver(char* packet, INT packet_count);
-	ExpOver(char* packet1, INT count1, char* packet2, INT count2);
 	~ExpOver() = default;
 };
 
@@ -32,7 +31,6 @@ public:
 	void DoRecv();
 	virtual void DoSend(void* p) override;
 	virtual void DoSend(void* p, INT packet_count) override;
-	virtual void DoSend(void* p1, INT count1, void* p2, INT count2) override;
 
 	void SetSocket(const SOCKET& socket) { m_socket = socket; }
 	void SetExpOver(const ExpOver& over) { m_recv_over = over; }

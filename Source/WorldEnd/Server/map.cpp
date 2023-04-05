@@ -20,7 +20,13 @@ void GameRoom::Update(FLOAT elapsed_time)
 {
 	Server& server = Server::GetInstance();
 
-	for (INT id : m_monster_ids) {
+	std::array<INT, MAX_INGAME_MONSTER> ids{};
+	{
+		std::lock_guard<std::mutex> lock{ m_monster_lock };
+		ids = m_monster_ids;
+	}
+
+	for (INT id : ids) {
 		if (-1 == id) continue;
 
 		server.m_clients[id]->Update(elapsed_time);
@@ -43,6 +49,19 @@ void GameRoom::StartBattle()
 	}
 }
 
+void GameRoom::WarpNextFloor(INT room_num)
+{
+	Server& server = Server::GetInstance();
+
+	m_portal->SendEvent(m_player_ids, &m_floor);
+
+	++m_floor;
+	if (RoomSetting::BOSS_FLOOR == m_floor) {
+		// 보스 룸 진입
+	}
+	InitGameRoom(room_num);
+}
+
 // 파티 생성하지 않고 진입 시 사용하는 함수
 // 혼자서만 들어가므로 나중에 for문 검사 필요없으니 삭제 필요함
 void GameRoom::SetPlayer(INT player_id)
@@ -55,14 +74,9 @@ void GameRoom::SetPlayer(INT player_id)
 	}
 }
 
-void GameRoom::SetMonstersRoomNum(INT room_num)
+std::shared_ptr<BattleStarter> GameRoom::GetBattleStarter() const
 {
-	Server& server = Server::GetInstance();
-	for (INT id : m_monster_ids) {
-		if (-1 == id) continue;
-
-		server.m_clients[id]->SetRoomNum(room_num);
-	}
+	return m_battle_starter;
 }
 
 void GameRoom::SendMonsterData()
@@ -71,7 +85,15 @@ void GameRoom::SendMonsterData()
 
 	SC_UPDATE_MONSTER_PACKET packet[MAX_INGAME_MONSTER]{};
 
-	for (size_t i = 0; INT id : m_monster_ids) {
+	INT monster_count{};
+	std::array<INT, MAX_INGAME_MONSTER> ids{};
+	{
+		std::lock_guard<std::mutex> lock{ m_monster_lock };
+		ids = m_monster_ids;
+		monster_count = static_cast<INT>(m_monster_count.load());
+	}
+
+	for (size_t i = 0; INT id : ids) {
 		packet[i].size = static_cast<UCHAR>(sizeof(SC_UPDATE_MONSTER_PACKET));
 		packet[i].type = SC_PACKET_UPDATE_MONSTER;
 
@@ -87,7 +109,7 @@ void GameRoom::SendMonsterData()
 	for (INT id : m_player_ids){
 		if (-1 == id) continue;
 
-		server.m_clients[id]->DoSend(&packet, MAX_INGAME_MONSTER);
+		server.m_clients[id]->DoSend(&packet, monster_count);
 	}
 }
 
@@ -97,7 +119,15 @@ void GameRoom::SendAddMonster(INT player_id)
 
 	SC_ADD_MONSTER_PACKET packet[MAX_INGAME_MONSTER]{};
 
-	for (size_t i = 0; INT id : m_monster_ids) {
+	INT monster_count{};
+	std::array<INT, MAX_INGAME_MONSTER> ids{};
+	{
+		std::lock_guard<std::mutex> lock{ m_monster_lock };
+		ids = m_monster_ids;
+		monster_count = static_cast<INT>(m_monster_count.load());
+	}
+
+	for (size_t i = 0; INT id : ids) {
 		packet[i].size = static_cast<UCHAR>(sizeof(SC_ADD_MONSTER_PACKET));
 		packet[i].type = SC_PACKET_ADD_MONSTER;
 
@@ -110,32 +140,35 @@ void GameRoom::SendAddMonster(INT player_id)
 		}
 		++i;
 	}
+	
 
-	server.m_clients[player_id]->DoSend(&packet, MAX_INGAME_MONSTER);
-}
-
-bool GameRoom::FindPlayer(INT player_id)
-{
-	for (INT id : m_player_ids) {
-		if (id == player_id)
-			return true;
-	}
-	return false;
+	server.m_clients[player_id]->DoSend(&packet, monster_count);
 }
 
 void GameRoom::RemovePlayer(INT player_id)
 {
-	auto it = find(m_player_ids.begin(), m_player_ids.end(), player_id);
-	if (it == m_player_ids.end())
+	std::array<INT, MAX_INGAME_USER> ids{};
+	{
+		std::lock_guard<std::mutex> lock{ m_player_lock };
+		ids = m_player_ids;
+	}
+
+	auto it = find(ids.begin(), ids.end(), player_id);
+	if (it == ids.end())
 		return;
 	*it = -1;
 	
-	INT num = count(m_player_ids.begin(), m_player_ids.end(), -1);
+	{
+		std::lock_guard<std::mutex> lock{ m_player_lock };
+		m_player_ids.swap(ids);
+	}
+
+	INT num = count(ids.begin(), ids.end(), -1);
 	if (MAX_INGAME_USER == num) {
 		std::lock_guard<std::mutex> lock{ m_state_lock };
 		m_state = GameRoomState::EMPTY;
 
-		for (INT& id : m_player_ids)
+		for (INT& id : ids)
 			id = -1;
 
 		for (INT& id : m_monster_ids)
@@ -149,37 +182,61 @@ void GameRoom::RemovePlayer(INT player_id)
 		packet.type = SC_PACKET_REMOVE_PLAYER;
 		packet.id = player_id;
 
-		for (INT id : m_player_ids) {
+		for (INT id : ids) {
 			if (-1 == id) continue;
+			{
+				std::lock_guard<std::mutex> lock{ server.m_clients[id]->GetStateMutex() };
+				if (State::ST_INGAME != server.m_clients[id]->GetState()) continue;
+			}
 
 			server.m_clients[id]->DoSend(&packet);
 		}
 	}
 }
 
-void GameRoom::RemoveMonster(INT monster_id)
+void GameRoom::RemoveMonster(INT room_num, INT monster_id)
 {
-	auto it = find(m_monster_ids.begin(), m_monster_ids.end(), monster_id);
-	if (it == m_monster_ids.end())
-		return;
-	*it = -1;
-
-	Server& server = Server::GetInstance();
+	BYTE old_value{}; 
+	std::array<INT, MAX_INGAME_MONSTER> ids{};
 	{
-		std::lock_guard<std::mutex> lock{ server.m_clients[monster_id]->GetStateMutex() };
-		server.m_clients[monster_id]->SetState(State::ST_FREE);
+		std::lock_guard<std::mutex> lock{ m_monster_lock };
+		ids = m_monster_ids;
+		old_value = m_monster_count.load();
 	}
-}
 
-void GameRoom::DecreaseMonsterCount(INT room_num, BYTE count)
-{
-	m_monster_count -= 1;
-	if (0 == m_monster_count) {
-		Server& server = Server::GetInstance();
+	while (m_monster_count.compare_exchange_weak(old_value, old_value - 1)) {}
 
+	auto it = find(ids.begin(), ids.end(), monster_id);
+	if (it == ids.end())
+		return;
+	
+	Server& server = Server::GetInstance();
+
+	INT end_index = static_cast<int>(old_value);
+	if (0 == end_index) {
 		ExpOver* over = new ExpOver();
 		over->_comp_type = OP_FLOOR_CLEAR;
 		PostQueuedCompletionStatus(server.GetIOCPHandle(), 1, room_num, &over->_wsa_over);
+	}
+
+	// 마지막 몬스터였다면
+	if (it - ids.begin() == end_index) {
+		*it = -1;
+	}
+	// 마지막 몬스터가 아니라면 마지막 몬스터 끌고오기
+	else {
+		*it = ids[end_index];
+		ids[end_index] = -1;
+	}
+
+	{
+		std::lock_guard<std::mutex> lock{ m_monster_lock };
+		m_monster_ids.swap(ids);
+	}
+
+	{
+		std::lock_guard<std::mutex> lock{ server.m_clients[monster_id]->GetStateMutex() };
+		server.m_clients[monster_id]->SetState(State::ST_FREE);
 	}
 }
 
@@ -197,12 +254,9 @@ void GameRoom::EventCollisionCheck(INT player_id)
 
 void GameRoom::InitGameRoom(INT room_num)
 {
-	{
-		std::lock_guard<std::mutex> lock{ m_state_lock };
-		m_state = GameRoomState::ACCEPT; 
-	}
 	InitMonsters(room_num);
 	InitEnvironment();
+	m_battle_starter->SetIsValid(true);
 
 	// 게임 시작 시 시작 시간 기록
 	m_start_time = std::chrono::system_clock::now();
@@ -215,7 +269,7 @@ void GameRoom::InitMonsters(INT room_num)
 	
 	// Init 은 플레이어 진입 시 불려야함
 	INT new_id{};
-	for (size_t i = 0; i < 5; ++i) {
+	for (size_t i = 0; i < 2; ++i) {
 		new_id = server.GetNewMonsterId(MonsterType::WARRIOR);
 		
 		m_monster_ids[i] = new_id;
@@ -262,7 +316,6 @@ void GameRoom::CollideWithEventObject(INT player_id, InteractableType type)
 			client->SetInteractable(true);
 			packet.interactable = true;
 			client->DoSend(&packet);
-			std::cout << "충돌\n";
 		}
 	}
 	else {
@@ -270,7 +323,6 @@ void GameRoom::CollideWithEventObject(INT player_id, InteractableType type)
 			client->SetInteractable(false);
 			packet.interactable = false;
 			client->DoSend(&packet);
-			std::cout << "충돌 끝\n";
 		}
 	}
 }
@@ -287,19 +339,24 @@ GameRoomManager::GameRoomManager()
 // 호출되어야 할 함수
 void GameRoomManager::SetPlayer(INT room_num, INT player_id)
 {
+	{
+		std::unique_lock<std::mutex> lock{ m_game_rooms[room_num]->GetStateMutex() };
+		if (GameRoomState::EMPTY == m_game_rooms[room_num]->GetState()) {
+			m_game_rooms[room_num]->SetState(GameRoomState::ACCEPT);
+			lock.unlock();
+			m_game_rooms[room_num]->InitGameRoom(room_num);
+		}
+	}
+
 	Server& server = Server::GetInstance();
 	server.m_clients[player_id]->SetRoomNum(room_num);
-	{
-		std::lock_guard<std::mutex> lock{ m_game_rooms[room_num]->GetStateMutex() };
-		m_game_rooms[room_num]->SetState(GameRoomState::ACCEPT);
-	}
+	
 	m_game_rooms[room_num]->SetPlayer(player_id);
 }
 
 void GameRoomManager::InitGameRoom(INT room_num)
 {
 	m_game_rooms[room_num]->InitGameRoom(room_num);
-	m_game_rooms[room_num]->SetMonstersRoomNum(room_num);
 }
 
 void GameRoomManager::LoadMap()
@@ -370,11 +427,25 @@ void GameRoomManager::StartBattle(INT room_num)
 	}
 }
 
+void GameRoomManager::WarpNextFloor(INT room_num)
+{
+	auto& room = m_game_rooms[room_num];
+
+	std::unique_lock<std::mutex> l{ room->GetStateMutex() };
+	if (GameRoomState::CLEAR == room->GetState()) {
+		room->SetState(GameRoomState::ACCEPT);
+		l.unlock();
+
+		m_game_rooms[room_num]->WarpNextFloor(room_num);
+	}
+}
+
 bool GameRoomManager::EnterGameRoom(const std::shared_ptr<Party>& party)
 {
 	INT room_num = FindEmptyRoom();
 	if (-1 == room_num)
 		return false;
+	m_game_rooms[room_num]->InitGameRoom(room_num);
 
 	Server& server = Server::GetInstance();
 
@@ -383,13 +454,10 @@ bool GameRoomManager::EnterGameRoom(const std::shared_ptr<Party>& party)
 		if (-1 == members[i]) continue;
 
 		auto client = dynamic_pointer_cast<Client>(server.m_clients[members[i]]);
+		client->SetRoomNum(room_num);
 		m_game_rooms[room_num]->SetPlayer(members[i]);
 	}
 	
-	{
-		std::lock_guard<std::mutex> lock{ m_game_rooms[room_num]->GetStateMutex() };
-		m_game_rooms[room_num]->SetState(GameRoomState::ACCEPT);
-	}
 	return true;
 }
 
@@ -400,12 +468,7 @@ void GameRoomManager::RemovePlayer(INT room_num, INT player_id)
 
 void GameRoomManager::RemoveMonster(INT room_num, INT monster_id)
 {
-	m_game_rooms[room_num]->RemoveMonster(monster_id);
-}
-
-void GameRoomManager::DecreaseMonsterCount(INT room_num, BYTE count)
-{
-	m_game_rooms[room_num]->DecreaseMonsterCount(room_num, count);
+	m_game_rooms[room_num]->RemoveMonster(room_num, monster_id);
 }
 
 void GameRoomManager::EventCollisionCheck(INT room_num, INT player_id)
@@ -437,9 +500,8 @@ void GameRoomManager::SendMonsterData()
 	}
 }
 
-void GameRoomManager::SendAddMonster(INT player_id)
+void GameRoomManager::SendAddMonster(INT room_num, INT player_id)
 {
-	int room_num = FindGameRoomInPlayer(player_id);
 	m_game_rooms[room_num]->SendAddMonster(player_id);
 }
 
@@ -447,20 +509,12 @@ INT GameRoomManager::FindEmptyRoom()
 {
 	for (size_t i = 0; const auto & game_room : m_game_rooms) {
 		std::unique_lock<std::mutex> lock{ game_room->GetStateMutex() };
-		if (GameRoomState::EMPTY == game_room->GetState())
+		if (GameRoomState::EMPTY == game_room->GetState()) {
+			game_room->SetState(GameRoomState::ACCEPT);
 			return i;
+		}
 		lock.unlock();
 
-		++i;
-	}
-	return -1;
-}
-
-INT GameRoomManager::FindGameRoomInPlayer(INT player_id)
-{
-	for (size_t i = 0; const auto & game_room : m_game_rooms) {
-		if (game_room->FindPlayer(player_id))
-			return i;
 		++i;
 	}
 	return -1;

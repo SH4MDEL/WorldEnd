@@ -6,11 +6,18 @@ GameObject::GameObject() :m_position{ 0.f, 0.f,0.f }, m_yaw{ 0.f }, m_id{ -1 },
 {
 }
 
+void GameObject::SetPosition(const XMFLOAT3& pos)
+{
+	m_position = pos;
+	m_bounding_box.Center = pos;
+}
+
 void GameObject::SetPosition(FLOAT x, FLOAT y, FLOAT z)
 {
 	m_position.x = x;
 	m_position.y = y;
 	m_position.z = z;
+	m_bounding_box.Center = m_position;
 }
 
 RecordBoard::RecordBoard()
@@ -87,24 +94,24 @@ void Enhancment::SendEvent(INT player_id, void* c)
 
 BattleStarter::BattleStarter() : m_is_valid{ true }
 {
-	m_event_bounding_box.Center = XMFLOAT3(0.f, 1.f, 24.f);
-	m_event_bounding_box.Extents = XMFLOAT3(1.f, 1.f, 1.f);
+	m_event_bounding_box.Center = XMFLOAT3(0.f, RoomSetting::EVENT_OBJECT_HEIGHT, 24.f);
+	m_event_bounding_box.Extents = 
+		XMFLOAT3(RoomSetting::EVENT_RADIUS, RoomSetting::EVENT_RADIUS, RoomSetting::EVENT_RADIUS);
+}
+
+void BattleStarter::SetIsValid(bool is_valid)
+{
+	m_is_valid = is_valid;
 }
 
 void BattleStarter::SendEvent(INT player_id, void* c)
 {
-	std::unique_lock<std::mutex> l{ m_valid_lock };
-	if (m_is_valid) {
-		m_is_valid = false;
-		l.unlock();
+	SC_START_BATTLE_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = SC_PACKET_START_BATTLE;
 
-		SC_START_BATTLE_PACKET packet{};
-		packet.size = sizeof(packet);
-		packet.type = SC_PACKET_START_BATTLE;
-
-		Server& server = Server::GetInstance();
-		server.m_clients[player_id]->DoSend(&packet);
-	}
+	Server& server = Server::GetInstance();
+	server.m_clients[player_id]->DoSend(&packet);
 }
 
 void BattleStarter::SendEvent(const std::span<INT>& ids, void* c)
@@ -114,11 +121,6 @@ void BattleStarter::SendEvent(const std::span<INT>& ids, void* c)
 		m_is_valid = false;
 		l.unlock();
 
-		std::array<INT, MAX_INGAME_MONSTER>* monster_ids = 
-			reinterpret_cast<std::array<INT, MAX_INGAME_MONSTER>*>(c);
-
-		
-
 		SC_START_BATTLE_PACKET packet{};
 		packet.size = sizeof(packet);
 		packet.type = SC_PACKET_START_BATTLE;
@@ -126,83 +128,56 @@ void BattleStarter::SendEvent(const std::span<INT>& ids, void* c)
 		Server& server = Server::GetInstance();
 		for (INT id : ids) {
 			if (-1 == id) continue;
+			{
+				std::lock_guard<std::mutex> lock{ server.m_clients[id]->GetStateMutex() };
+				if (State::ST_INGAME != server.m_clients[id]->GetState()) continue;
+			}
 
 			server.m_clients[id]->DoSend(&packet);
-		}
-	}
-}
-
-void BattleStarter::SendEvent(const std::span<INT>& ids, void* c, INT length)
-{
-	std::unique_lock<std::mutex> l{ m_valid_lock };
-	if (m_is_valid) {
-		m_is_valid = false;
-		l.unlock();
-
-		SC_START_BATTLE_PACKET packet{};
-		packet.size = sizeof(packet);
-		packet.type = SC_PACKET_START_BATTLE;
-
-		Server& server = Server::GetInstance();
-
-		std::array<INT, MAX_INGAME_MONSTER>* monster_ids =
-			reinterpret_cast<std::array<INT, MAX_INGAME_MONSTER>*>(c);
-
-		SC_ADD_MONSTER_PACKET monster_packet[MAX_INGAME_MONSTER]{};
-		for (size_t i = 0; i < length; ++i) {
-			monster_packet[i].size = sizeof(SC_ADD_MONSTER_PACKET);
-			monster_packet[i].type = SC_PACKET_ADD_MONSTER;
-			monster_packet[i].monster_data = server.m_clients[(*monster_ids)[i]]->GetMonsterData();
-			monster_packet[i].monster_type = server.m_clients[(*monster_ids)[i]]->GetMonsterType();
-		}
-		
-		// 두 패킷을 합쳐서 보내기 (여러 패킷을 한번에 보내야 효율적)
-
-		for (INT id : ids) {
-			if (-1 == id) continue;
-
-			server.m_clients[id]->DoSend(&packet, 1, &monster_packet, length);
 		}
 	}
 }
 
 WarpPortal::WarpPortal() : m_is_valid{ false }
 {
-	m_event_bounding_box.Center = XMFLOAT3(0.f, 0.5f, 24.f);
-	m_event_bounding_box.Extents = XMFLOAT3(0.5f, 0.5f, 0.5f);
+	m_event_bounding_box.Center = 
+		XMFLOAT3(-1.f, RoomSetting::TOPSIDE_STAIRS_HEIGHT + RoomSetting::EVENT_OBJECT_HEIGHT, 60.f);
+	m_event_bounding_box.Extents = 
+		XMFLOAT3(RoomSetting::EVENT_RADIUS, RoomSetting::EVENT_RADIUS, RoomSetting::EVENT_RADIUS);
 }
 
 void WarpPortal::SendEvent(INT player_id, void* c)
 {
-	if (m_is_valid) {
-		BYTE* floor = reinterpret_cast<BYTE*>(c);
-		
-		SC_WARP_NEXT_FLOOR_PACKET packet{};
-		packet.size = sizeof(packet);
-		packet.type = SC_PACKET_WARP_NEXT_FLOOR;
-		packet.floor = *floor;
-
-		Server& server = Server::GetInstance();
-		server.m_clients[player_id]->DoSend(&packet);
-	}
+	BYTE* floor = reinterpret_cast<BYTE*>(c);
+	
+	SC_WARP_NEXT_FLOOR_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = SC_PACKET_WARP_NEXT_FLOOR;
+	packet.floor = *floor;
+	
+	Server& server = Server::GetInstance();
+	server.m_clients[player_id]->DoSend(&packet);
 }
 
 void WarpPortal::SendEvent(const std::span<INT>& ids, void* c)
 {
-	if (m_is_valid) {
-		BYTE* floor = reinterpret_cast<BYTE*>(c);
-
-		SC_WARP_NEXT_FLOOR_PACKET packet{};
-		packet.size = sizeof(packet);
-		packet.type = SC_PACKET_WARP_NEXT_FLOOR;
-		packet.floor = *floor;
-
-		Server& server = Server::GetInstance();
-		for (INT id : ids) {
-			if (-1 == id) continue;
-
-			server.m_clients[id]->DoSend(&packet);
+	BYTE* floor = reinterpret_cast<BYTE*>(c);
+	
+	SC_WARP_NEXT_FLOOR_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = SC_PACKET_WARP_NEXT_FLOOR;
+	packet.floor = *floor;
+	
+	Server& server = Server::GetInstance();
+	for (INT id : ids) {
+		if (-1 == id) continue;
+		{
+			std::lock_guard<std::mutex> lock{ server.m_clients[id]->GetStateMutex() };
+			if (State::ST_INGAME != server.m_clients[id]->GetState()) continue;
 		}
+	
+		server.MoveObject(server.m_clients[id], XMFLOAT3(0.f, 0.f, 0.f));
+		server.m_clients[id]->DoSend(&packet);
 	}
 }
 

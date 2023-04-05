@@ -228,7 +228,6 @@ void Player::AddVelocity(const XMFLOAT3& increase)
 {
 	m_velocity = Vector3::Add(m_velocity, increase);
 
-	// �ִ� �ӵ��� �ɸ��ٸ� �ش� ������ ��ҽ�Ŵ
 	FLOAT length{ Vector3::Length(m_velocity) };
 	if (length > m_maxVelocity)
 	{
@@ -314,7 +313,7 @@ void Player::SendInteractPacket()
 #endif
 }
 
-// ------------- 콜백 함수 -----------
+
 void AttackCallbackHandler::Callback(void* callbackData, float trackPosition)
 {
 	Player* p = static_cast<Player*>(callbackData);

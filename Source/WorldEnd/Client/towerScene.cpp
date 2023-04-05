@@ -114,13 +114,7 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	m_shaders["ANIMATION"]->SetPlayer(m_player);
 
 	// 체력 바 생성
-	auto hpBar = make_shared<HpBar>();
-	hpBar->SetMesh(m_meshs["HPBAR"]);
-	hpBar->SetTexture(m_textures["HPBAR"]);
-	hpBar->SetMaxHp(m_player->GetMaxHp());
-	hpBar->SetHp(m_player->GetHp());
-	m_shaders["HPBAR"]->SetObject(hpBar);
-	m_player->SetHpBar(hpBar);
+	SetHpBar(m_player);
 
 	// 카메라 생성
 	m_camera = make_shared<ThirdPersonCamera>();
@@ -463,6 +457,18 @@ void TowerScene::LoadMonsterFromFile(const shared_ptr<Monster>& monster)
 	monster->GetAnimationController()->SetTrackEnable(2, false);
 }
 
+void TowerScene::SetHpBar(const shared_ptr<AnimationObject>& object)
+{
+	auto hpBar = make_shared<HpBar>();
+	hpBar->SetMesh(m_meshs["HPBAR"]);
+	hpBar->SetTexture(m_textures["HPBAR"]);
+	hpBar->SetMaxHp(object->GetMaxHp());
+	hpBar->SetHp(object->GetHp());
+	hpBar->SetPosition(XMFLOAT3(FAR_POSITION, FAR_POSITION, FAR_POSITION));
+	m_shaders["HPBAR"]->SetObject(hpBar);
+	object->SetHpBar(hpBar);
+}
+
 
 void TowerScene::InitServer()
 {
@@ -588,6 +594,12 @@ void TowerScene::ProcessPacket(char* ptr)
 	case SC_PACKET_SET_INTERACTABLE:
 		RecvSetInteractable(ptr);
 		break;
+	case SC_PACKET_START_BATTLE:
+		RecvStartBattle(ptr);
+		break;
+	case SC_PACKET_WARP_NEXT_FLOOR:
+		RecvWarpNextFloor(ptr);
+		break;
 	}
 }
 
@@ -645,11 +657,7 @@ void TowerScene::RecvAddObjectPacket(char* ptr)
 
 	m_multiPlayers.insert({ player_data.id, multiPlayer });
 
-	auto hpBar = make_shared<HpBar>();
-	hpBar->SetMesh(m_meshs["HPBAR"]);
-	hpBar->SetTexture(m_textures["HPBAR"]);
-	m_shaders["HPBAR"]->SetObject(hpBar);
-	multiPlayer->SetHpBar(hpBar);
+	SetHpBar(multiPlayer);
 
 	m_shaders["ANIMATION"]->SetMultiPlayer(player_data.id, multiPlayer);
 	cout << "add player" << static_cast<int>(player_data.id) << endl;
@@ -667,6 +675,8 @@ void TowerScene::RecvRemoveMonsterPacket(char* ptr)
 {
 	SC_REMOVE_MONSTER_PACKET* packet = reinterpret_cast<SC_REMOVE_MONSTER_PACKET*>(ptr);
 	m_monsters[packet->id]->SetPosition(XMFLOAT3(FAR_POSITION, FAR_POSITION, FAR_POSITION));
+
+	m_monsters[packet->id]->SetIsShowing(false);
 }
 
 void TowerScene::RecvUpdateClient(char* ptr)
@@ -712,14 +722,7 @@ void TowerScene::RecvAddMonsterPacket(char* ptr)
 	monster->SetPosition(XMFLOAT3{ monster_data.pos.x, monster_data.pos.y, monster_data.pos.z });
 	m_monsters.insert({ static_cast<INT>(monster_data.id), monster });
 
-	auto hpBar = make_shared<HpBar>();
-	hpBar->SetMaxHp(monster->GetMaxHp());
-	hpBar->SetHp(monster->GetHp());
-	hpBar->SetMesh(m_meshs["HPBAR"]);
-	hpBar->SetTexture(m_textures["HPBAR"]);
-	m_shaders["HPBAR"]->SetObject(hpBar);
-	monster->SetHpBar(hpBar);
-	
+	SetHpBar(monster);
 
 	m_shaders["ANIMATION"]->SetMonster(monster_data.id, monster);
 }
@@ -817,4 +820,30 @@ void TowerScene::RecvSetInteractable(char* ptr)
 	m_player->SetInteractableType(packet->interactable_type);
 
 	cout << "충돌 상태 : " << packet->interactable << endl;
+}
+
+void TowerScene::RecvStartBattle(char* ptr)
+{
+	SC_START_BATTLE_PACKET* packet = reinterpret_cast<SC_START_BATTLE_PACKET*>(ptr);
+
+	for (auto& elm : m_monsters) {
+		elm.second->SetIsShowing(true);
+	}
+	
+	// 오브젝트와 상호작용했다면 해당 오브젝트는 다시 상호작용 X
+	m_player->SetInteractable(false);
+	m_player->SetInteractableType(InteractableType::NONE);
+}
+
+void TowerScene::RecvWarpNextFloor(char* ptr)
+{
+	SC_WARP_NEXT_FLOOR_PACKET* packet = reinterpret_cast<SC_WARP_NEXT_FLOOR_PACKET*>(ptr);
+	
+	XMFLOAT3 startPosition{ 0.f, 0.f, 0.f };
+	m_player->SetPosition(startPosition);
+
+
+	for (auto& elm : m_multiPlayers) {
+		elm.second->SetPosition(startPosition);
+	}
 }
