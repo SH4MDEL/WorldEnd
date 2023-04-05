@@ -39,3 +39,20 @@ private:
 	const FLOAT					m_lifeTime = 0.5f;
 	FLOAT						m_age;
 };
+
+class PumperParticle : public Particle
+{
+public:
+	PumperParticle(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList);
+	~PumperParticle() = default;
+
+	void Update(FLOAT timeElapsed) override;
+	void RenderStreamOutput(const ComPtr<ID3D12GraphicsCommandList>& commandList) override;
+	void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) override;
+
+	void CreateParticle(XMFLOAT3 position) override;
+
+private:
+	const FLOAT					m_lifeTime = 1.2f;
+	FLOAT						m_age;
+};

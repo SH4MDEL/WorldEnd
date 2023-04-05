@@ -832,7 +832,8 @@ void GameFramework::WorkerThread(UINT threadIndex)
 		//
 		// Post Process
 		// 
-		if (threadIndex == 0) {
+
+		if (threadIndex != 1) {
 			m_postCommandLists[threadIndex]->SetComputeRootSignature(m_postRootSignature.Get());
 		}
 		else {

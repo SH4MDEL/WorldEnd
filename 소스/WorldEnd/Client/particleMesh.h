@@ -15,6 +15,18 @@ struct EmitterParticleVertex
 	FLOAT lifeTime;
 };
 
+struct PumperParticleVertex
+{
+	PumperParticleVertex() : position{ XMFLOAT3{0.f, 0.f, 0.f} }, velocity{ XMFLOAT3{0.f, 0.f, 0.f} }, weight{ 0.f } {}
+	PumperParticleVertex(const XMFLOAT3& p, const XMFLOAT3& v, const FLOAT& w) :
+		position{ p }, velocity{ v }, weight{ w } { }
+	~PumperParticleVertex() = default;
+
+	XMFLOAT3 position;
+	XMFLOAT3 velocity;
+	FLOAT weight;
+};
+
 
 class ParticleMesh : public Mesh
 {
@@ -50,6 +62,18 @@ class EmitterParticleMesh : public ParticleMesh
 public:
 	EmitterParticleMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList);
 	~EmitterParticleMesh() = default;
+
+	void CreateStreamOutputBuffer(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList) override;
+
+	void RenderStreamOutput(const ComPtr<ID3D12GraphicsCommandList>& commandList) override;
+	void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) override;
+};
+
+class PumperParticleMesh : public ParticleMesh
+{
+public:
+	PumperParticleMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList);
+	~PumperParticleMesh() = default;
 
 	void CreateStreamOutputBuffer(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList) override;
 

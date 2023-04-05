@@ -179,6 +179,13 @@ public:
 	~EmitterParticleShader() = default;
 };
 
+class PumperParticleShader : public ParticleShader
+{
+public:
+	PumperParticleShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature);
+	~PumperParticleShader() = default;
+};
+
 class UIShader : public Shader
 {
 public:

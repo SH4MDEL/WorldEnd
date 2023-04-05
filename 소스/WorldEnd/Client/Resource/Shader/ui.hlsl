@@ -57,6 +57,6 @@ void GS_UI_MAIN(point VS_UI_OUTPUT input[1], inout TriangleStream<GS_UI_OUTPUT> 
 
 float4 PS_UI_MAIN(GS_UI_OUTPUT input) : SV_TARGET
 {
-	if (g_type == TYPE_BACKGROUND) return float4(0.5f, 0.5f, 0.5f, 0.5f);
+	if (g_type == TYPE_BACKGROUND) return float4(0.f, 0.f, 0.f, 0.f);
 	return g_baseTexture.Sample(g_samplerWrap, input.uv);
 }

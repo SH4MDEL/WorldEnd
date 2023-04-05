@@ -172,7 +172,10 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 
 	// 파티클 시스템 생성
 	g_particleSystem = make_unique<ParticleSystem>(device, commandlist, 
-		static_pointer_cast<ParticleShader>(m_shaders["EMITTERPARTICLE"]));
+		static_pointer_cast<ParticleShader>(m_shaders["EMITTERPARTICLE"]), 
+		static_pointer_cast<ParticleShader>(m_shaders["PUMPERPARTICLE"]));
+
+	g_particleSystem->CreateParticle(ParticleSystem::Type::PUMPER, XMFLOAT3{0.f, 0.f, 0.f});
 
 	// UI 생성
 	m_exitUI = make_shared<BackgroundUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{1.f, 1.f});
@@ -364,9 +367,9 @@ void TowerScene::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UI
 	case 2:
 	{
 		m_shaders.at("SKYBOX")->Render(commandList);
+		g_particleSystem->Render(commandList);
 		m_shaders.at("HORZGAUGE")->Render(commandList);
 		m_shaders.at("VERTGAUGE")->Render(commandList);
-		g_particleSystem->Render(commandList);
 		//m_shaders.at("UI")->Render(commandList);
 		break;
 	}
@@ -379,11 +382,6 @@ void TowerScene::PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandLis
 	{
 	case 0:
 	{
-		//m_sobelFilter->Execute(commandList, renderTarget);
-		//commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET));
-		//m_shaders["COMPOSITE"]->Render(commandList);
-		//commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE));
-
 		if (!m_playerControl) {
 			m_blurFilter->Execute(commandList, renderTarget, 1);
 			commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_COPY_DEST));
@@ -402,7 +400,10 @@ void TowerScene::PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandLis
 	}
 	case 2:
 	{
-
+		//m_sobelFilter->Execute(commandList, renderTarget);
+		//commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET));
+		//m_shaders["COMPOSITE"]->Render(commandList);
+		//commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE));
 		break;
 	}
 	}
