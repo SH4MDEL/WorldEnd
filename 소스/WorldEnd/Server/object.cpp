@@ -101,3 +101,12 @@ void MovementObject::SetName(const char* c)
 {
 	SetName(std::string(c));
 }
+
+ArrowObject::ArrowObject()
+{
+}
+
+MONSTER_ARROW_DATA ArrowObject::GetArrowData()
+{
+	return MONSTER_ARROW_DATA(m_position, m_velocity, m_damage, m_id);
+}

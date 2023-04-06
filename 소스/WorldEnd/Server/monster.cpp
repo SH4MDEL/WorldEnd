@@ -323,11 +323,155 @@ void WarriorMonster::Update(FLOAT elapsed_time)
 
 ArcherMonster::ArcherMonster()
 {
-
+	m_monster_type = MonsterType::ARCHER;
+	m_hp = 150.f;
+	m_damage = 25;
+	m_range = 1.f;
+	m_bounding_box.Center = XMFLOAT3(0.028f, 1.27f, 0.f);
+	m_bounding_box.Extents = XMFLOAT3(0.8f, 1.3f, 0.6f);
+	m_bounding_box.Orientation = XMFLOAT4(0.f, 0.f, 0.f, 1.f);
 }
 
 void ArcherMonster::Update(FLOAT elapsed_time)
 {
+	if (State::ST_INGAME != m_state) return;
+
+	DoBehavior(elapsed_time);
+}
+
+void ArcherMonster::DoBehavior(FLOAT elapsed_time)
+{
+	switch (m_current_behavior) {
+	case MonsterBehavior::CHASE:
+		ChasePlayer(elapsed_time);
+		break;
+	case MonsterBehavior::LOOK_AROUND:
+		LookAround();
+		break;
+	case MonsterBehavior::PREPARE_ATTACK:
+		PrepareAttack();
+		break;
+	case MonsterBehavior::ATTACK:
+		Attack();
+		break;
+	default:
+		return;
+	}
+
+	// 행동 후 PREPARE_ATTACK, ATTACK 이 아니면 공격 가능한지 체크
+	if (!IsDoAttack()) {
+		if (CanAttack()) {
+			ChangeBehavior(MonsterBehavior::PREPARE_ATTACK);
+		}
+	}
+}
+
+void ArcherMonster::ChangeBehavior(MonsterBehavior behavior)
+{
+	m_current_behavior = behavior;
+
+	TIMER_EVENT ev{};
+	ev.obj_id = m_id;
+	ev.event_type = EventType::CHANGE_BEHAVIOR;
+	auto current_time = std::chrono::system_clock::now();
+	m_last_behavior_time = current_time;
+
+	switch (m_current_behavior) {
+	case MonsterBehavior::CHASE:
+		// 추격으로 바뀌면 retarget 시간 이후 둘러보도록 함
+		// retarget 시간 이후 둘러보기로 변경
+		m_current_animation = ObjectAnimation::WALK;
+		ev.event_time = current_time + MonsterSetting::MONSTER_RETARGET_TIME;
+		ev.behavior_type = MonsterBehavior::LOOK_AROUND;
+		break;
+	case MonsterBehavior::LOOK_AROUND:
+		// Retarget 하면서 둘러보는 애니메이션 출력
+		// 둘러보는 시간 이후 CHASE 로 변경
+		m_current_animation = MonsterAnimation::LOOK_AROUND;
+		ev.event_time = current_time + MonsterSetting::MONSTER_LOOK_AROUND_TIME;
+		ev.behavior_type = MonsterBehavior::CHASE;
+		break;
+	case MonsterBehavior::PREPARE_ATTACK:
+		// 공격 준비 시간 이후 공격으로 변경
+		m_current_animation = MonsterAnimation::TAUNT;
+		ev.event_time = current_time + MonsterSetting::MONSTER_PREPARE_ATTACK_TIME;
+		ev.behavior_type = MonsterBehavior::ATTACK;
+		break;
+	case MonsterBehavior::ATTACK:
+		// 공격 가능하면 공격, 공격 이후 공격 준비 재전환 
+		// 불가능하면 바로 추격
+
+		if (CanAttack()) {
+			m_current_animation = ObjectAnimation::ATTACK;
+			ev.event_time = current_time + MonsterSetting::MONSTER_ATTACK_TIME;
+			ev.behavior_type = MonsterBehavior::PREPARE_ATTACK;
+		}
+		else {
+			m_current_animation = ObjectAnimation::WALK;
+			ev.event_time = current_time;
+			ev.behavior_type = MonsterBehavior::CHASE;
+		}
+
+		break;
+	case MonsterBehavior::DEAD:
+		m_current_animation = ObjectAnimation::DEAD;
+		ev.event_time = current_time + MonsterSetting::MONSTER_DEAD_TIME;
+		ev.behavior_type = MonsterBehavior::DEAD;
+		break;
+	default:
+		return;
+	}
+
+	Server& server = Server::GetInstance();
+	server.SetTimerEvent(ev);
+
+	auto game_room = server.GetGameRoomManager()->GetGameRoom(m_room_num);
+	auto& ids = game_room->GetPlayerIds();
+
+	SC_CHANGE_MONSTER_BEHAVIOR_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = SC_PACKET_CHANGE_MONSTER_BEHAVIOR;
+	packet.behavior = m_current_behavior;
+	packet.animation = m_current_animation;
+	packet.id = m_id;
+
+	for (INT id : ids) {
+		if (-1 == id) continue;
+
+		server.m_clients[id]->DoSend(&packet);
+	}
+}
+
+void ArcherMonster::Attack()
+{
+	// 플레이어 공격
+	Server& server = Server::GetInstance();
+
+	AttackPlayer();
+
+	// 타겟과 거리가 멀면 추격 행동으로 전환
+	// 타겟과 거리가 가까우면 공격 범위 내 행동으로 전환
+	// 몬스터별 차이 둘 필요있음
+
+	
+}
+
+void ArcherMonster::CollisionCheck()
+{
+	Server& server = Server::GetInstance();
+	auto game_room = server.GetGameRoomManager()->GetGameRoom(m_room_num);
+	auto& monster_ids = game_room->GetMonsterIds();
+	auto& player_ids = game_room->GetPlayerIds();
+
+	server.CollisionCheck(shared_from_this(), monster_ids, Server::CollideByStaticOBB);
+	server.CollisionCheck(shared_from_this(), player_ids, Server::CollideByStaticOBB);
+}
+
+void ArcherMonster::AttackPlayer()
+{
+	CollisionCheck();
+
+
 
 }
 

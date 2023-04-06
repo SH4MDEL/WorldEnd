@@ -20,8 +20,9 @@ public:
 
 	bool ChangeAnimation(BYTE animation);
 
-	void ChangeBehavior(MonsterBehavior behavior);
-	void DoBehavior(FLOAT elapsed_time);
+	virtual void ChangeBehavior(MonsterBehavior behavior);
+	virtual void DoBehavior(FLOAT elapsed_time);
+
 	bool IsDoAttack();
 	void DecreaseHp(FLOAT damage, INT id);
 
@@ -29,8 +30,8 @@ public:
 	void ChasePlayer(FLOAT elapsed_time);	// 추격
 	void LookAround();						// 추격 중 대기
 	void PrepareAttack();					// 공격 준비
-	void Attack();							// 공격
-	void CollisionCheck();
+	virtual void Attack();							// 공격
+	virtual void CollisionCheck();
 
 	// 나중에 던전 매니저로 옮겨야 할 함수
 	void InitializePosition();
@@ -65,6 +66,17 @@ public:
 	virtual ~ArcherMonster() = default;
 
 	virtual void Update(FLOAT elapsed_time) override;
+	virtual void DoBehavior(FLOAT elapsed_time) override;
+	virtual void ChangeBehavior(MonsterBehavior behavior) override;
+
+
+	virtual void Attack() override;
+	virtual void CollisionCheck() override;
+
+	void AttackPlayer();
+
+protected:
+	std::shared_ptr<ArrowObject>       m_arrow;
 };
 
 class WizardMonster : public Monster
@@ -75,4 +87,6 @@ public:
 
 	virtual void Update(FLOAT elapsed_time) override;
 };
+
+
 

@@ -335,7 +335,7 @@ void Server::ProcessPacket(int id, char* p)
 		// 원래는 던전 진입 시 던전에 배치해야하지만
 		// 현재 마을이 없이 바로 던전에 진입하므로 던전에 입장시킴
 		m_game_room_manager->SetPlayer(0, id);
-		//m_game_room_manager->SendAddMonster(id);
+		m_game_room_manager->SendAddMonster(id);
 
 		std::cout << cl->GetId() << " is connect" << std::endl;
 		break;
@@ -517,6 +517,11 @@ void Server::SendPlayerDataPacket()
 		
 		m_clients[i]->DoSend(&packet);
 	}
+}
+
+void Server::SendArrowDataPacket()
+{
+
 }
 
 void Server::PlayerCollisionCheck(const std::shared_ptr<Client>& player)
@@ -838,6 +843,7 @@ void Server::CollideByStaticOBB(const std::shared_ptr<GameObject>& object,
 		v = Vector3::Mul(v, *min);
 		MoveObject(object, Vector3::Add(object->GetPosition(), v));
 		
+		
 
 		//// 충돌한 오브젝트의 꼭짓점을 이용해 사각형의 테두리를 따라가는 벡터 4개를 구함
 		//XMFLOAT3 vec[4]{
@@ -887,4 +893,9 @@ void Server::CollideByStaticOBB(const std::shared_ptr<GameObject>& object,
 	}
 
 }
+
+
+
+
+
  

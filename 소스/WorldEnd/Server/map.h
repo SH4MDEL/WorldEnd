@@ -13,6 +13,7 @@ public:
 	~GameRoom() = default;
 
 	void Update(FLOAT elapsed_time);
+	void ArrowCollisionUpdate(FLOAT elapsed_time);
 
 	void SetType(EnvironmentType type) { m_type = type; }
 	void SetEvent(COLLISION_EVENT ev);

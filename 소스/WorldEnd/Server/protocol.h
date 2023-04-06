@@ -34,6 +34,7 @@ constexpr char CS_PACKET_PLAYER_MOVE = 2;
 constexpr char CS_PACKET_SET_COOLTIME = 4;
 constexpr char CS_PACKET_WEAPON_COLLISION = 5;
 constexpr char CS_PACKET_CHANGE_ANIMATION = 6;
+constexpr char CS_PACKET_ARROW = 7;
 
 constexpr char SC_PACKET_LOGIN_OK = 1;
 constexpr char SC_PACKET_ADD_OBJECT = 2;
@@ -47,6 +48,7 @@ constexpr char SC_PACKET_CHANGE_ANIMATION = 9;
 constexpr char SC_PACKET_RESET_COOLTIME = 10;
 constexpr char SC_PACKET_CLEAR_FLOOR = 11;
 constexpr char SC_PACKET_FAIL_FLOOR = 12;
+constexpr char SC_PACKET_ARROW = 13;
 
 enum class PlayerType : char { WARRIOR, ARCHER, UNKNOWN };
 enum class AttackType : char { NORMAL, SKILL, ULTIMATE };
@@ -145,6 +147,14 @@ struct ARROW_DATA
 	DirectX::XMFLOAT3	pos;		// 위치
 	DirectX::XMFLOAT3	velocity;	// 방향
 	INT					player_id;	// 쏜 사람
+	INT                 damage;     // 피해량
+};
+
+struct ARROW_DATA_CHECK
+{
+	ARROW_DATA          arrow_data;
+	bool                arrow_send_check;        // 화살 송신 여부
+	bool                arrow_collision_check;   // 화살 충돌체크 여부
 };
 
 struct MONSTER_DATA
@@ -154,6 +164,14 @@ struct MONSTER_DATA
 	DirectX::XMFLOAT3	velocity;	// 속도
 	FLOAT				yaw;		// 회전각
 	FLOAT				hp;
+};
+
+struct MONSTER_ARROW_DATA
+{
+	DirectX::XMFLOAT3	pos;		// 위치
+	DirectX::XMFLOAT3	velocity;	// 속도
+	INT					monster_id;	// 쏜 몬스터
+	INT                 damage;     // 피해량
 };
 //////////////////////////////////////////////////////
 // 클라에서 서버로

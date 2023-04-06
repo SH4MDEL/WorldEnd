@@ -22,6 +22,7 @@ struct TIMER_EVENT {
 	}
 };
 
+
 class Server
 {
 public:
@@ -39,6 +40,7 @@ public:
 
 	void SendLoginOkPacket(const std::shared_ptr<Client>& player) const;
 	void SendPlayerDataPacket();
+	void SendArrowDataPacket();
 
 	void PlayerCollisionCheck(const std::shared_ptr<Client>& player);
 
@@ -65,6 +67,7 @@ public:
 	static void CollideByStaticOBB(const std::shared_ptr<GameObject>& objec,
 		const std::shared_ptr<GameObject>& object1);
 
+
 	std::array<std::shared_ptr<MovementObject>, MAX_OBJECT> m_clients;
 
 private:
@@ -80,3 +83,4 @@ private:
 
 	Server();
 };
+

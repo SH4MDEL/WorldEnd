@@ -89,6 +89,8 @@ void GameRoom::Update(FLOAT elapsed_time)
 					break;
 				}
 			}
+
+	
 		}
 		// 특정 이벤트에 대한 몬스터 검사 끝
 
@@ -106,6 +108,60 @@ void GameRoom::Update(FLOAT elapsed_time)
 			}
 			else {
 				++c_it;
+			}
+			break;
+		}
+
+	}
+}
+
+void GameRoom::ArrowCollisionUpdate(FLOAT elapsed_time)
+{
+	Server& server = Server::GetInstance();
+
+
+	for (auto arrow = m_collision_events.begin(); arrow != m_collision_events.end();) {
+		
+		auto& player = server.m_clients[arrow->user_id];
+
+		for (INT id : m_player_ids) {
+			if (-1 == id) continue;
+
+			auto arrow_monster = dynamic_pointer_cast<ArrowObject>(server.m_clients[id]);
+
+			if (-1 == player->GetId()) continue;
+
+			// 충돌 비교
+			if (player->GetBoundingBox().Intersects(arrow->bounding_box)) {
+
+				// 충돌 발생 시 데미지 계산
+				FLOAT damage = arrow_monster->GetDamage();
+
+				// 동현이가 client에 DecreaseHp함수 만들어 뒀을거니 따로 만들지 않고 주석처리 해놨음.
+				//player->DecreaseHp(damage, arrow->user_id);
+
+				if (CollisionType::ONE_OFF == arrow->collision_type) {
+					arrow = m_collision_events.erase(arrow);
+					break;
+				}
+			}
+
+
+		}
+		// 특정 이벤트에 대한 플레이어 검사 끝
+
+		// 해당 이벤트가 끝났으면 리스트에서 제거
+		switch (arrow->collision_type) {
+		case CollisionType::MULTIPLE_TIMES:
+			arrow = m_collision_events.erase(arrow);
+			break;
+
+		case CollisionType::PERSISTENCE:
+			if (arrow->end_time < std::chrono::system_clock::now()) {
+				arrow = m_collision_events.erase(arrow);
+			}
+			else {
+				++arrow;
 			}
 			break;
 		}
@@ -409,6 +465,7 @@ void GameRoomManager::Update(float elapsed_time)
 		lock.unlock();
 
 		game_room->Update(elapsed_time);
+		game_room->ArrowCollisionUpdate(elapsed_time);
 	}
 }
 

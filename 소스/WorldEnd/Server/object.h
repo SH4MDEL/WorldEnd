@@ -136,3 +136,13 @@ protected:
 	USHORT		m_room_num;
 };
 
+class ArrowObject : public MovementObject
+{
+public:
+	ArrowObject();
+	virtual ~ArrowObject() = default;
+
+	MONSTER_ARROW_DATA GetArrowData();
+
+
+};
