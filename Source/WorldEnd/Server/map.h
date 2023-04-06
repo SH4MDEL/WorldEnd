@@ -4,7 +4,7 @@
 #include "client.h"
 #include "monster.h"
 
-enum class GameRoomState { EMPTY, ACCEPT, INGAME };
+enum class GameRoomState { EMPTY, ACCEPT, INGAME, CLEAR };
 
 class GameRoom : public std::enable_shared_from_this<GameRoom>
 {
@@ -13,26 +13,29 @@ public:
 	~GameRoom() = default;
 
 	void Update(FLOAT elapsed_time);
+	void StartBattle();
+	void WarpNextFloor(INT room_num);
 
 	void SetType(EnvironmentType type) { m_type = type; }
 	void SetPlayer(INT player_id);
 	void SetState(GameRoomState state) { m_state = state; }
-	void SetMonstersRoomNum(INT room_num);
 
 	EnvironmentType GetType() const { return m_type; }
 	GameRoomState GetState() const { return m_state; }
 	std::mutex& GetStateMutex() { return m_state_lock; }
+	std::mutex& GetMonsterMutex() { return m_monster_lock; }
+	std::mutex& GetPlayerMutex() { return m_player_lock; }
 	std::shared_ptr<GameRoom> GetGameRoom() { return shared_from_this(); }
 	BYTE GetMonsterCount() const { return m_monster_count; }
 	std::chrono::system_clock::time_point GetStartTime() const { return m_start_time; }
+	std::shared_ptr<BattleStarter> GetBattleStarter() const;
 
 	void SendMonsterData();
 	void SendAddMonster(INT player_id);
 
-	bool FindPlayer(INT player_id);
 	void RemovePlayer(INT player_id);
-	void RemoveMonster(INT monster_id);
-	void DecreaseMonsterCount(INT room_num, BYTE count);
+	void RemoveMonster(INT room_num, INT monster_id);
+	void EventCollisionCheck(INT player_id);
 
 	void InitGameRoom(INT room_num);
 	void InitMonsters(INT room_num);
@@ -45,12 +48,19 @@ private:
 	std::array<INT, MAX_INGAME_USER>			m_player_ids;
 	std::array<INT, MAX_INGAME_MONSTER>			m_monster_ids;
 	std::chrono::system_clock::time_point		m_start_time;
+	std::mutex									m_player_lock;
+	std::mutex									m_monster_lock;
+
+	std::shared_ptr<WarpPortal>		m_portal;
+	std::shared_ptr<BattleStarter>	m_battle_starter;
 
 	EnvironmentType			m_type;
-	BYTE					m_monster_count;
+	std::atomic<BYTE>		m_monster_count;
 	BYTE					m_floor;
 	GameRoomState			m_state;
 	std::mutex				m_state_lock;
+
+	void CollideWithEventObject(INT player_id, InteractableType type);
 };
 
 class Town
@@ -80,19 +90,20 @@ public:
 
 	void InitGameRoom(INT room_num);
 	void LoadMap();
+	void StartBattle(INT room_num);
+	void WarpNextFloor(INT room_num);
 
 	bool EnterGameRoom(const std::shared_ptr<Party>& party);
 	void RemovePlayer(INT room_num, INT player_id);
 	void RemoveMonster(INT room_num, INT monster_id);
-	void DecreaseMonsterCount(INT room_num, BYTE count);
+	void EventCollisionCheck(INT room_num, INT player_id);
 
 	void SendMonsterData();
-	void SendAddMonster(INT player_id);
+	void SendAddMonster(INT room_num, INT player_id);
 
 private:
 	std::array<std::shared_ptr<GameRoom>, MAX_GAME_ROOM_NUM>	m_game_rooms;
 	std::vector<std::shared_ptr<GameObject>>					m_structures;
 
 	INT FindEmptyRoom();
-	INT FindGameRoomInPlayer(INT player_id);
 };

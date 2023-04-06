@@ -22,16 +22,20 @@ public:
 	void SetPosition(const XMFLOAT3& position) override;
 	void SetVelocity(const XMFLOAT3& velocity) { m_velocity = velocity; }
 	void AddVelocity(const XMFLOAT3& increase);
-	void SetHp(FLOAT hp) { m_hp = hp; }
+	void SetHp(FLOAT hp);
 	void SetCamera(const shared_ptr<Camera>& camera) { m_camera = camera; }
-	void SetHpBar(const shared_ptr<GaugeBar>& hpBar) { m_hpBar = hpBar; }
+	void SetHpBar(const shared_ptr<GaugeBar>& hpBar) override { m_hpBar = hpBar; }
 	void SetStaminaBar(const shared_ptr<GaugeBar>& staminaBar) { m_staminaBar = staminaBar; }
 	void SetType(PlayerType type) { m_type = type; }
+	void SetStamina(FLOAT stamina) { m_stamina = stamina; }
+	void SetInteractable(bool value) { m_interactable = value; }
+	void SetInteractableType(InteractableType type) { m_interactableType = type; }
 
 	XMFLOAT3 GetVelocity() const { return m_velocity; }
 	FLOAT GetHp() const { return m_hp; }
-	
+	FLOAT GetMaxHp() const { return m_maxHp; }
 	PlayerType GetType() const { return m_type; }
+	InteractableType GetInteractableType() const { return m_interactableType; }
 
 	void ResetCooltime(CooltimeType type);
 	virtual bool ChangeAnimation(int animation) override;
@@ -45,6 +49,7 @@ public:
 	void SendAttackPacket(const XMFLOAT3& pos, AttackType attackType,
 		CollisionType collisionType, chrono::system_clock::time_point eventTime,
 		CooltimeType cooltimeType);
+	void SendInteractPacket();
 
 private:
 	XMFLOAT3				m_velocity;		// 속도
@@ -63,6 +68,14 @@ private:
 	PlayerType				m_type = PlayerType::WARRIOR;
 
 	array<bool, CooltimeType::COUNT> m_cooltimeList;	// 쿨타임이면 true, 쿨타임중이 아니면 false
+	
+	chrono::system_clock::time_point	m_startDash;
+	bool								m_dashed;
+	FLOAT								m_moveSpeed;
+	FLOAT								m_stamina;
+
+	bool				m_interactable;
+	InteractableType	m_interactableType;
 };
 
 class AttackCallbackHandler : public AnimationCallbackHandler

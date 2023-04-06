@@ -6,7 +6,7 @@ enum CompType
 {
 	OP_RECV, OP_SEND, OP_ACCEPT, OP_COOLTIME_RESET, OP_MONSTER_REMOVE,
 	OP_FLOOR_CLEAR, OP_FLOOR_FAIL, OP_BEHAVIOR_CHANGE, OP_AGGRO_REDUCE,
-	OP_ATTACK_COLLISION
+	OP_ATTACK_COLLISION, OP_MONSTER_ATTACK_COLLISION, OP_STAMINA_CHANGE
 };
 
 class ExpOver {
@@ -40,6 +40,9 @@ public:
 	void SetSkillRatio(AttackType type, FLOAT ratio);
 	void SetWeaponCenter(const XMFLOAT3& center);
 	void SetWeaponOrientation(const XMFLOAT4& orientation);
+	void SetStamina(FLOAT stamina);
+	void SetIsDash(bool val);
+	void SetInteractable(bool val);
 
 	const SOCKET& GetSocket() const override { return m_socket; }
 	ExpOver& GetExpOver() { return m_recv_over; }
@@ -48,8 +51,13 @@ public:
 	PlayerType GetPlayerType() const override { return m_player_type; }
 	virtual FLOAT GetSkillRatio(AttackType type) const override;
 	const BoundingOrientedBox& GetWeaponBoundingBox() const { return m_weopon_bounding_box; }
+	FLOAT GetStamina() const { return m_stamina; }
+	bool GetIsDash() const { return m_is_dash; }
+	bool GetInteractable() const { return m_interactable; }
 
 	PLAYER_DATA GetPlayerData() const override;
+
+	void ChangeStamina(FLOAT value);
 
 private:
 	// 통신 관련 변수
@@ -64,6 +72,9 @@ private:
 
 	FLOAT					m_skill_ratio;
 	FLOAT					m_ultimate_ratio;
+	FLOAT					m_stamina;
+	bool					m_is_dash;
+	bool					m_interactable;
 
 	void SetBoundingBox(PlayerType type);
 };

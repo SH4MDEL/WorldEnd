@@ -1,6 +1,6 @@
 #include "monster.h"
 
-Monster::Monster() : m_hp{ 200.f }, m_maxHp{ 200.f }
+Monster::Monster() : m_hp{ 200.f }, m_maxHp{ 200.f }, m_isShowing{ false }
 {
 
 }
@@ -43,6 +43,11 @@ void Monster::SetHp(FLOAT hp)
 void Monster::SetVelocity(XMFLOAT3& velocity)
 {
 
+}
+
+void Monster::SetIsShowing(bool isShowing)
+{
+	m_isShowing = isShowing;
 }
 
 

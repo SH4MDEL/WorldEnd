@@ -14,6 +14,7 @@
 #include <vector>
 #include <unordered_map>
 #include <mutex>
+#include <atomic>
 #include <random>
 #include <queue>
 #include <concurrent_priority_queue.h>

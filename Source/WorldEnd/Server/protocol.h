@@ -32,6 +32,7 @@ constexpr char CS_PACKET_PLAYER_MOVE = 2;
 constexpr char CS_PACKET_SET_COOLTIME = 4;
 constexpr char CS_PACKET_ATTACK = 5;
 constexpr char CS_PACKET_CHANGE_ANIMATION = 6;
+constexpr char CS_PACKET_INTERACT_OBJECT = 7;
 
 constexpr char SC_PACKET_LOGIN_OK = 1;
 constexpr char SC_PACKET_ADD_OBJECT = 2;
@@ -46,6 +47,11 @@ constexpr char SC_PACKET_RESET_COOLTIME = 10;
 constexpr char SC_PACKET_CLEAR_FLOOR = 11;
 constexpr char SC_PACKET_FAIL_FLOOR = 12;
 constexpr char SC_PACKET_CREATE_PARTICLE = 13;
+constexpr char SC_PACKET_CHANGE_STAMINA = 14;
+constexpr char SC_PACKET_MONSTER_ATTACK_COLLISION = 15;
+constexpr char SC_PACKET_SET_INTERACTABLE = 16;
+constexpr char SC_PACKET_START_BATTLE = 17;
+constexpr char SC_PACKET_WARP_NEXT_FLOOR = 18;
 
 enum class PlayerType : char { WARRIOR, ARCHER, UNKNOWN };
 enum class AttackType : char { NORMAL, SKILL, ULTIMATE };
@@ -59,13 +65,22 @@ enum CooltimeType : char {
 enum class MonsterBehavior : char {
 	CHASE, RETARGET, TAUNT, PREPARE_ATTACK, ATTACK, DEAD, NONE
 };
+enum InteractableType : char {
+	BATTLE_STARTER, PORTAL, ENHANCMENT, RECORD_BOARD, NONE
+};
 
 namespace PlayerSetting
 {
 	using namespace std::literals;
 
-	constexpr float PLAYER_RUN_SPEED = 4.f;
+	constexpr float PLAYER_WALK_SPEED = 4.f;
+	constexpr float	PLAYER_RUN_SPEED = 10.f;
+	constexpr float	PLAYER_DASH_SPEED = 12.f;
 
+	constexpr auto PLAYER_DASH_DURATION = 300ms;
+	constexpr float PLAYER_MAX_STAMINA = 120.f;
+	constexpr float MINIMUM_DASH_STAMINA = 10.f;
+	constexpr float STAMINA_REDUCTION_PER_SECOND = 10.f;
 
 	constexpr auto WARRIOR_ATTACK_COLLISION_TIME = 210ms;
 	constexpr auto WARRIOR_SKILL_COLLISION_TIME = 800ms;
@@ -96,7 +111,25 @@ namespace MonsterSetting
 
 	constexpr float WARRIOR_MONSTER_ATTACK_RANGE = 1.f;
 	constexpr float WARRIOR_MONSTER_BORDER_RANGE = 2.f;
+	constexpr auto WARRIOR_MONSTER_ATK_COLLISION_TIME = 300ms;
 
+}
+
+namespace RoomSetting
+{
+	constexpr float DEFAULT_HEIGHT = 0.f;
+	constexpr unsigned char BOSS_FLOOR = 5;
+
+	constexpr float DOWNSIDE_STAIRS_HEIGHT = 4.4f;
+	constexpr float DOWNSIDE_STAIRS_FRONT = -7.f;
+	constexpr float DOWNSIDE_STAIRS_BACK = -17.f;
+
+	constexpr float TOPSIDE_STAIRS_HEIGHT = 4.67f;
+	constexpr float TOPSIDE_STAIRS_FRONT = 53.f;
+	constexpr float TOPSIDE_STAIRS_BACK = 43.f;
+
+	constexpr float EVENT_RADIUS = 1.f;
+	constexpr float EVENT_OBJECT_HEIGHT = 1.f;
 }
 
 // ----- 애니메이션 enum 클래스 -----
@@ -105,33 +138,25 @@ class ObjectAnimation
 {
 public:
 	enum USHORT {
-		IDLE, WALK, ATTACK, DEAD,
+		IDLE, WALK, RUN, ATTACK, DEAD,
 		END
 	};
 };
 
-class WarriorAnimation : public ObjectAnimation
+class PlayerAnimation : public ObjectAnimation
 {
 public:
 	static constexpr int ANIMATION_START = 100;
 	enum USHORT {
-		GUARD = ObjectAnimation::END + ANIMATION_START
-	};
-};
-
-class ArcherAnimation : public ObjectAnimation
-{
-public:
-	static constexpr int ANIMATION_START = 200;
-	enum USHORT {
-		AIM = ObjectAnimation::END + ANIMATION_START
+		DASH = ObjectAnimation::END + ANIMATION_START,
+		
 	};
 };
 
 class MonsterAnimation : public ObjectAnimation
 {
 public:
-	static constexpr int ANIMATION_START = 300;
+	static constexpr int ANIMATION_START = 200;
 	enum USHORT {
 		LOOK_AROUND = ObjectAnimation::END + ANIMATION_START,
 		TAUNT, BLOCK, BLOCKIDLE
@@ -232,6 +257,13 @@ struct CS_CHANGE_ANIMATION_PACKET
 	INT	animation_type;
 };
 
+struct CS_INTERACT_OBJECT_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+	InteractableType interactable_type;
+};
+
 ///////////////////////////////////////////////////////////////////////
 // 서버에서 클라로
 
@@ -300,7 +332,7 @@ struct SC_UPDATE_CLIENT_PACKET
 {
 	UCHAR size;
 	UCHAR type;
-	PLAYER_DATA	data[MAX_INGAME_USER];
+	PLAYER_DATA	data;
 };
 
 struct SC_ADD_MONSTER_PACKET
@@ -360,6 +392,43 @@ struct SC_CREATE_PARTICLE_PACKET
 	UCHAR size;
 	UCHAR type;
 	DirectX::XMFLOAT3 position;
+};
+
+struct SC_CHANGE_STAMINA_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+	FLOAT stamina;
+};
+
+struct SC_MONSTER_ATTACK_COLLISION_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+	INT ids[MAX_INGAME_USER];
+	FLOAT hps[MAX_INGAME_USER];
+};
+
+struct SC_SET_INTERACTABLE_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+	bool interactable;
+	InteractableType interactable_type;
+};
+
+struct SC_START_BATTLE_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+};
+
+struct SC_WARP_NEXT_FLOOR_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+	BYTE floor;
+	// 플레이어의 초기 장소까지 같이 알려줘야 하는지
 };
 
 #pragma pack (pop)

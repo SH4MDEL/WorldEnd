@@ -21,7 +21,7 @@ public:
 	virtual ~GameObject() = default;
 
 	void SetId(INT id) { m_id = id; }
-	void SetPosition(const XMFLOAT3& pos) { m_position = pos; }
+	void SetPosition(const XMFLOAT3& pos);
 	void SetPosition(FLOAT x, FLOAT y, FLOAT z);
 	void SetYaw(const FLOAT& yaw) { m_yaw = yaw; }
 	void SetBoundingBox(const BoundingOrientedBox& obb) { m_bounding_box = obb; }
@@ -33,8 +33,10 @@ public:
 	const BoundingOrientedBox& GetBoundingBox() const { return m_bounding_box; }
 	BoundingOrientedBox& GetBoundingBox() { return m_bounding_box; }
 	INT GetId() const { return m_id; }
+	virtual State GetState() const { return State::ST_FREE; }
 
-	virtual void SendEvent(INT id) {}
+	virtual void SendEvent(INT id, void* c) {}
+	virtual void SendEvent(const std::span<INT>& ids, void* c) {}
 
 protected:
 	XMFLOAT3				m_position;
@@ -53,9 +55,10 @@ public:
 
 	BoundingOrientedBox GetEventBoundingBox() const { return m_event_bounding_box; }
 
-	virtual void SendEvent(INT id) override {}
+	virtual void SendEvent(INT id, void* c) override {}
+	virtual void SendEvent(const std::span<INT>& ids, void* c) override {}
 
-private:
+protected:
 	BoundingOrientedBox m_event_bounding_box;
 };
 
@@ -65,7 +68,7 @@ public:
 	RecordBoard();
 	virtual ~RecordBoard() = default;
 
-	virtual void SendEvent(INT player_id) override;
+	virtual void SendEvent(INT player_id, void* c) override;
 
 	void SetRecord(const SCORE_DATA& record, INT player_num);
 
@@ -83,7 +86,39 @@ public:
 	Enhancment();
 	virtual ~Enhancment() = default;
 
-	virtual void SendEvent(INT player_id) override;
+	virtual void SendEvent(INT player_id, void* c) override;
+};
+
+class BattleStarter : public Npc
+{
+public:
+	BattleStarter();
+	virtual ~BattleStarter() = default;
+
+	void SetIsValid(bool is_valid);
+
+	virtual void SendEvent(INT player_id, void* c) override;
+	virtual void SendEvent(const std::span<INT>& ids, void* c) override;
+
+private:
+	bool		m_is_valid;
+	std::mutex	m_valid_lock;
+};
+
+class WarpPortal : public Npc
+{
+public:
+	WarpPortal();
+	virtual ~WarpPortal() = default;
+
+	virtual void SendEvent(INT player_id, void* c) override;
+	virtual void SendEvent(const std::span<INT>& ids, void* c) override;
+
+	bool GetIsValid() const { return m_is_valid; }
+	void SetIsValid(bool is_valid) { m_is_valid = is_valid; }
+
+private:
+	bool		m_is_valid;
 };
 
 class MovementObject : public GameObject
@@ -106,7 +141,7 @@ public:
 
 	XMFLOAT3 GetVelocity() const { return m_velocity; }
 	std::mutex& GetStateMutex() { return m_state_lock; }
-	State GetState() const { return m_state; }
+	virtual State GetState() const override { return m_state; }
 	std::string GetName() const { return m_name; }
 	FLOAT GetMaxHp() const { return m_max_hp; }
 	FLOAT GetHp() const { return m_hp; }

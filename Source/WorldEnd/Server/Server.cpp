@@ -98,9 +98,6 @@ void Server::Network()
 	std::thread thread1{ &Server::Timer,this };
 	thread1.detach();
 
-	// 초기화 하는 함수는 싱글톤 문제로 생성자에서 호출할 수 없음
-	m_game_room_manager->InitGameRoom(0);
-
 	constexpr int MAX_FAME = 60;
 	using frame = std::chrono::duration<int32_t, std::ratio<1, MAX_FAME>>;
 	using ms = std::chrono::duration<float, std::milli>;
@@ -256,7 +253,6 @@ void Server::WorkerThread()
 			packet.id = monster_id;
 
 			m_game_room_manager->RemoveMonster(room_num, monster_id);
-			m_game_room_manager->DecreaseMonsterCount(room_num, 1);
 
 			auto game_room = m_game_room_manager->GetGameRoom(room_num);
 			auto& ids = game_room->GetPlayerIds();
@@ -289,7 +285,14 @@ void Server::WorkerThread()
 				m_clients[id]->DoSend(&packet);
 			}
 
-			game_room->InitGameRoom(room_num);
+			// 던전 CLEAR 로 변경
+			{
+				std::lock_guard<std::mutex> l{ game_room->GetStateMutex() };
+				game_room->SetState(GameRoomState::CLEAR);
+			}
+
+			// 포탈 상호작용 시 되어야 할 동작
+			//game_room->InitGameRoom(room_num);
 
 			delete exp_over;
 			break;
@@ -415,6 +418,104 @@ void Server::WorkerThread()
 			delete exp_over;
 			break;
 		}
+		case OP_MONSTER_ATTACK_COLLISION: {
+			auto monster = dynamic_pointer_cast<WarriorMonster>(m_clients[static_cast<int>(key)]);
+			AttackType attack_type = static_cast<AttackType>(exp_over->_send_buf[0]);
+			CollisionType collision_type = static_cast<CollisionType>(exp_over->_send_buf[1]);
+			XMFLOAT3* pos = reinterpret_cast<XMFLOAT3*>(&exp_over->_send_buf[2]);		// 몬스터 공격 당시 위치
+
+			int room_num = monster->GetRoomNum();
+			auto game_room = m_game_room_manager->GetGameRoom(room_num);
+			auto& player_ids = game_room->GetPlayerIds();
+
+			BoundingOrientedBox obb{};
+			float damage{ 0.f };	// 스킬이 있다면 계수 더하는 용도
+
+			if (MonsterType::WARRIOR == monster->GetMonsterType()) {
+				obb.Center = Vector3::Add(*pos, monster->GetFront());
+				obb.Extents = XMFLOAT3{ 0.2f, 0.2f, 0.2f };
+				damage = monster->GetDamage();
+			}
+
+			SC_MONSTER_ATTACK_COLLISION_PACKET packet{};
+			packet.size = sizeof(packet);
+			packet.type = SC_PACKET_MONSTER_ATTACK_COLLISION;
+			for (int i = 0; i < MAX_INGAME_USER; ++i) {
+				packet.ids[i] = -1;
+				packet.hps[i] = 0.f;
+			}
+
+			for (size_t i = 0; int id : player_ids) {
+				if (-1 == id) continue;
+				if (State::ST_INGAME != m_clients[id]->GetState()) continue;
+
+				// 충돌했을 경우에만 index 증가
+				if (obb.Intersects(m_clients[id]->GetBoundingBox())) {
+					m_clients[id]->SetHp(m_clients[id]->GetHp() - damage);
+					packet.ids[i] = id;
+					packet.hps[i] = m_clients[id]->GetHp();
+					++i;
+				}
+			}
+
+			for (size_t i = 0; int id : packet.ids) {
+				if (-1 == id) break;
+
+				m_clients[id]->DoSend(&packet);
+			}
+
+			delete exp_over;
+			break;
+		}
+		case OP_STAMINA_CHANGE: {
+			int id = static_cast<int>(key);
+			auto client = dynamic_pointer_cast<Client>(m_clients[id]);
+			bool is_stamina_increase = static_cast<bool>(exp_over->_send_buf[0]);
+			
+			TIMER_EVENT ev{ .event_time = std::chrono::system_clock::now() + std::chrono::seconds(1),
+				.obj_id = id, .event_type = EventType::STAMINA_CHANGE};
+			
+			SC_CHANGE_STAMINA_PACKET packet{};
+			packet.size = sizeof(packet);
+			packet.type = SC_PACKET_CHANGE_STAMINA;
+
+			if (is_stamina_increase) {
+				// 스태미너 증가는 대쉬중이면 반복X
+				if (client->GetIsDash()) {
+					delete exp_over;
+					break;
+				}
+
+				// 대쉬중이 아니면 최대에 다다르면 끝내기
+				client->ChangeStamina(PlayerSetting::STAMINA_REDUCTION_PER_SECOND);
+				if (client->GetStamina() >= PlayerSetting::PLAYER_MAX_STAMINA) {
+					client->SetStamina(PlayerSetting::PLAYER_MAX_STAMINA);
+					packet.stamina = PlayerSetting::PLAYER_MAX_STAMINA;
+					client->DoSend(&packet);
+					delete exp_over;
+					break;
+				}
+				ev.is_stamina_increase = true;
+			}
+			else {
+				// 대쉬중이 아니면 감소 끝냄
+				client->ChangeStamina(-PlayerSetting::STAMINA_REDUCTION_PER_SECOND);
+				if (!client->GetIsDash()) {
+					packet.stamina = client->GetStamina();
+					client->DoSend(&packet);
+					delete exp_over;
+					break;
+				}
+				ev.is_stamina_increase = false;
+			}
+			m_timer_queue.push(ev);
+
+			packet.stamina = client->GetStamina();
+			client->DoSend(&packet);
+
+			delete exp_over;
+			break;
+		}
 
 		}
 	}
@@ -439,7 +540,10 @@ void Server::ProcessPacket(int id, char* p)
 		// 원래는 던전 진입 시 던전에 배치해야하지만
 		// 현재 마을이 없이 바로 던전에 진입하므로 던전에 입장시킴
 		m_game_room_manager->SetPlayer(0, id);
-		m_game_room_manager->SendAddMonster(id);
+		m_game_room_manager->SendAddMonster(m_clients[id]->GetRoomNum(), id);
+		if (GameRoomState::INGAME == m_game_room_manager->GetGameRoom(m_clients[id]->GetRoomNum())->GetState()) {
+			m_game_room_manager->GetGameRoom(m_clients[id]->GetRoomNum())->GetBattleStarter()->SendEvent(id, nullptr);
+		}
 
 		std::cout << cl->GetId() << " is connect" << std::endl;
 		break;
@@ -455,12 +559,9 @@ void Server::ProcessPacket(int id, char* p)
 		pos.x += packet->velocity.x;
 		pos.y += packet->velocity.y;
 		pos.z += packet->velocity.z;
+		cl->SetYaw(packet->yaw);
 
-		MoveObject(cl, pos);
-		RotateObject(cl, packet->yaw);
-
-		PlayerCollisionCheck(cl);
-		SendPlayerDataPacket();
+		Move(cl, pos);
 		break;
 	}
 	case CS_PACKET_SET_COOLTIME: {
@@ -480,7 +581,6 @@ void Server::ProcessPacket(int id, char* p)
 		
 		break;
 	}
-
 	case CS_PACKET_ATTACK: {
 		CS_ATTACK_PACKET* packet = reinterpret_cast<CS_ATTACK_PACKET*>(p);
 		int room_num = m_clients[id]->GetRoomNum();
@@ -529,25 +629,72 @@ void Server::ProcessPacket(int id, char* p)
 		
 		break;
 	}
-
 	case CS_PACKET_CHANGE_ANIMATION: {
-		CS_CHANGE_ANIMATION_PACKET* animation_packet = reinterpret_cast<CS_CHANGE_ANIMATION_PACKET*>(p);
+		CS_CHANGE_ANIMATION_PACKET* animation_packet = 
+			reinterpret_cast<CS_CHANGE_ANIMATION_PACKET*>(p);
+
+		auto client = dynamic_pointer_cast<Client>(m_clients[id]);
 
 		SC_CHANGE_ANIMATION_PACKET packet{};
 		packet.size = sizeof(packet);
 		packet.type = SC_PACKET_CHANGE_ANIMATION;
-		packet.id = cl->GetId();
+		packet.id = id;
 		packet.animation_type = animation_packet->animation_type;
 
 		// 마을, 게임룸 구분하여 보낼 필요 있음
-		for (const auto& cl : m_clients) {
-			if (-1 == cl->GetId()) continue;
-			if (cl->GetId() == id) continue;
+		for (const auto& client : m_clients) {
+			if (-1 == client->GetId()) continue;
+			if (client->GetId() == id) continue;
 			
-			cl->DoSend(&packet);
+			client->DoSend(&packet);
+		}
+
+		TIMER_EVENT ev{ .obj_id = id, .event_type = EventType::STAMINA_CHANGE };
+
+		if (!client->GetIsDash() &&
+			PlayerAnimation::DASH == animation_packet->animation_type) 
+		{
+			ev.event_time = std::chrono::system_clock::now() + std::chrono::seconds(1);
+			ev.is_stamina_increase = false;
+			client->SetIsDash(true);
+			m_timer_queue.push(ev);
+		}
+		else if ( client->GetIsDash() &&
+			PlayerAnimation::DASH != animation_packet->animation_type &&
+			ObjectAnimation::RUN != animation_packet->animation_type) 
+		{
+			ev.event_time = std::chrono::system_clock::now() + std::chrono::seconds(2);
+			ev.is_stamina_increase = true;
+			auto client = dynamic_pointer_cast<Client>(m_clients[id]);
+			client->SetIsDash(false);
+			m_timer_queue.push(ev);
 		}
 
 		break;
+	}
+	case CS_PACKET_INTERACT_OBJECT: {
+		CS_INTERACT_OBJECT_PACKET* packet =
+			reinterpret_cast<CS_INTERACT_OBJECT_PACKET*>(p);
+
+		auto client = dynamic_pointer_cast<Client>(m_clients[id]);
+
+		// 해당 아이디에 타입에 맞는 상호작용 처리
+		switch (packet->interactable_type) {
+		case InteractableType::BATTLE_STARTER:
+			client->SetInteractable(false);
+			m_game_room_manager->StartBattle(client->GetRoomNum());
+			break;
+		case InteractableType::PORTAL:
+			client->SetInteractable(false);
+			m_game_room_manager->WarpNextFloor(client->GetRoomNum());
+			break;
+		case InteractableType::ENHANCMENT:
+
+			break;
+		case InteractableType::RECORD_BOARD:
+
+			break;
+		}
 	}
 
 	}
@@ -622,23 +769,24 @@ void Server::SendLoginOkPacket(const std::shared_ptr<Client>& player) const
 	}
 }
 
-void Server::SendPlayerDataPacket()
+void Server::SendMoveInGameRoom(int id)
 {
 	SC_UPDATE_CLIENT_PACKET packet{};
 	packet.size = sizeof(packet);
 	packet.type = SC_PACKET_UPDATE_CLIENT;
-	
-	for (int i = 0; i < MAX_INGAME_USER; ++i)
-		packet.data[i] = m_clients[i]->GetPlayerData();
+	packet.data = m_clients[id]->GetPlayerData();
 
-	for (size_t i = 0; i < MAX_USER; ++i){
-		if (State::ST_INGAME != m_clients[i]->GetState()) continue;
-		
-		m_clients[i]->DoSend(&packet);
+	auto game_room = m_game_room_manager->GetGameRoom(m_clients[id]->GetRoomNum());
+	auto& ids = game_room->GetPlayerIds();
+
+	for (int player_id : ids) {
+		if (-1 == player_id) continue;
+
+		m_clients[player_id]->DoSend(&packet);
 	}
 }
 
-void Server::PlayerCollisionCheck(const std::shared_ptr<Client>& player)
+void Server::GameRoomPlayerCollisionCheck(const std::shared_ptr<Client>& player)
 {
 	BoundingOrientedBox& player_obb = player->GetBoundingBox();
 
@@ -657,6 +805,9 @@ void Server::PlayerCollisionCheck(const std::shared_ptr<Client>& player)
 			CollideByStaticOBB(player, obj);
 		}
 	}
+
+	// 포탈, 전투 오브젝트와 상호작용
+	m_game_room_manager->EventCollisionCheck(player->GetRoomNum(), player->GetId());
 }
 
 INT Server::GetNewId()
@@ -701,26 +852,63 @@ INT Server::GetNewMonsterId(MonsterType type)
 	return -1;
 }
 
-void Server::MoveObject(const std::shared_ptr<GameObject>& object, XMFLOAT3 pos)
+void Server::Move(const std::shared_ptr<Client>& client, XMFLOAT3 position)
 {
-	object->SetPosition(pos);
+	// 게임 룸에 진입한채 움직이면 시야처리 X (타워 씬)
+	if (-1 != client->GetRoomNum()) {
+		MoveObject(client, position);
+		SetPositionOnStairs(client);
+		RotateBoundingBox(client);
 
-	// 바운드 박스 갱신
-	object->SetBoundingBoxCenter(pos);
+		GameRoomPlayerCollisionCheck(client);
+
+		SendMoveInGameRoom(client->GetId());
+	}
+	// 게임 룸이 아닌채 움직이면 시야처리 (마을 씬)
+	else {
+
+	}
 }
 
-void Server::RotateObject(const std::shared_ptr<GameObject>& object, FLOAT yaw)
+void Server::MoveObject(const std::shared_ptr<GameObject>& object, XMFLOAT3 position)
 {
-	// 플레이어 회전, degree 값
-	object->SetYaw(yaw);
+	object->SetPosition(position);
 
-	float radian = XMConvertToRadians(yaw);
+	// 바운드 박스 갱신
+	object->SetBoundingBoxCenter(position);
+}
+
+void Server::RotateBoundingBox(const std::shared_ptr<GameObject>& object)
+{
+	// 플레이어 회전 (degree 값)
+	float radian = XMConvertToRadians(object->GetYaw());
 
 	XMFLOAT4 q{};
 	XMStoreFloat4(&q, XMQuaternionRotationRollPitchYaw(0.f, radian, 0.f));
 
 	// 바운드 박스 회전
 	object->SetBoundingBoxOrientation(q);
+}
+
+void Server::SetPositionOnStairs(const std::shared_ptr<GameObject>& object)
+{
+	XMFLOAT3 pos = object->GetPosition();
+	float ratio{};
+	if (pos.z >= RoomSetting::DOWNSIDE_STAIRS_BACK &&
+		pos.z <= RoomSetting::DOWNSIDE_STAIRS_FRONT) 
+	{
+		ratio = RoomSetting::DOWNSIDE_STAIRS_FRONT - pos.z;
+		pos.y = RoomSetting::DEFAULT_HEIGHT - 
+			RoomSetting::DOWNSIDE_STAIRS_HEIGHT * ratio / 10.f;
+	}
+	else if (pos.z >= RoomSetting::TOPSIDE_STAIRS_BACK &&
+			pos.z <= RoomSetting::TOPSIDE_STAIRS_FRONT) 
+	{
+		ratio = pos.z - RoomSetting::TOPSIDE_STAIRS_BACK;
+		pos.y = RoomSetting::DEFAULT_HEIGHT +
+			RoomSetting::TOPSIDE_STAIRS_HEIGHT * ratio / 10.f;
+	}
+	MoveObject(object, pos);
 }
 
 void Server::Timer()
@@ -764,7 +952,7 @@ void Server::Timer()
 
 void Server::ProcessEvent(const TIMER_EVENT& ev)
 {
-	using namespace std::literals;
+	using namespace std::chrono;
 
 	switch (ev.event_type) {
 	case EventType::COOLTIME_RESET: {
@@ -796,6 +984,15 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 		if (MonsterBehavior::DEAD == monster->GetBehavior())
 			return;
 
+		if (MonsterBehavior::ATTACK == ev.next_behavior_type) {
+			TIMER_EVENT attack_ev{ .event_time = system_clock::now() + MonsterSetting::WARRIOR_MONSTER_ATK_COLLISION_TIME,
+				.obj_id = ev.obj_id, .targat_id = monster->GetRoomNum(), .position = monster->GetPosition(),
+				.event_type = EventType::MONSTER_ATTACK_COLLISION, .attack_type = AttackType::NORMAL,
+				.collision_type = CollisionType::MULTIPLE_TIMES };
+
+			m_timer_queue.push(attack_ev);
+		}
+
 		ExpOver* over = new ExpOver;
 		over->_comp_type = OP_BEHAVIOR_CHANGE;
 		memcpy(&over->_send_buf, &ev.next_behavior_type, sizeof(MonsterBehavior));
@@ -821,7 +1018,23 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 		PostQueuedCompletionStatus(m_handle_iocp, 1, ev.obj_id, &over->_wsa_over);
 		break;
 	}
-
+	case EventType::MONSTER_ATTACK_COLLISION: {
+		ExpOver* over = new ExpOver;
+		over->_comp_type = OP_MONSTER_ATTACK_COLLISION;
+		memcpy(&over->_send_buf[0], &ev.attack_type, sizeof(AttackType));
+		memcpy(&over->_send_buf[1], &ev.collision_type, sizeof(CollisionType));
+		memcpy(&over->_send_buf[2], &ev.position, sizeof(XMFLOAT3));
+		PostQueuedCompletionStatus(m_handle_iocp, 1, ev.obj_id, &over->_wsa_over);
+		break;
+	}
+	case EventType::STAMINA_CHANGE: {
+		ExpOver* over = new ExpOver;
+		over->_comp_type = OP_STAMINA_CHANGE;
+		memcpy(&over->_send_buf[0], &ev.is_stamina_increase, sizeof(bool));
+		PostQueuedCompletionStatus(m_handle_iocp, 1, ev.obj_id, &over->_wsa_over);
+		break;
+	}
+	
 	}
 }
 
@@ -831,12 +1044,13 @@ void Server::SetTimerEvent(const TIMER_EVENT& ev)
 }
 
 // 연속적인 컨테이너, 여기선 array 를 상관없이 받도록 하기 위해 span 사용
-void Server::CollideObject(const std::shared_ptr<GameObject>& object, const std::span<INT> ids,
+void Server::CollideObject(const std::shared_ptr<GameObject>& object, const std::span<INT>& ids,
 	std::function<void(const std::shared_ptr<GameObject>&, const std::shared_ptr<GameObject>&)> func)
 {
 	for (INT id : ids) {
 		if (-1 == id) continue;
 		if (id == object->GetId()) continue;
+		if (State::ST_INGAME != m_clients[id]->GetState()) continue;
 
 		if (object->GetBoundingBox().Intersects(m_clients[id]->GetBoundingBox())) {
 			func(object, m_clients[id]);

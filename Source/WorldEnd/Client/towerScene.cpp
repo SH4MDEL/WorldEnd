@@ -136,11 +136,7 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	m_shaders["ANIMATION"]->SetPlayer(m_player);
 
 	// 체력 바 생성
-	auto hpBar = make_shared<GaugeBar>(0.16f);
-	hpBar->SetMesh(m_meshs["HPBAR"]);
-	hpBar->SetTexture(m_textures["HPBAR"]);
-	m_shaders["HORZGAUGE"]->SetObject(hpBar);
-	m_player->SetHpBar(hpBar);
+	SetHpBar(m_player);
 
 	// 스테미나 바 생성
 	auto staminaBar = make_shared<GaugeBar>(0.015f);
@@ -535,6 +531,18 @@ void TowerScene::LoadMonsterFromFile(const shared_ptr<Monster>& monster)
 	monster->GetAnimationController()->SetTrackEnable(2, false);
 }
 
+void TowerScene::SetHpBar(const shared_ptr<AnimationObject>& object)
+{
+	auto hpBar = make_shared<HpBar>();
+	hpBar->SetMesh(m_meshs["HPBAR"]);
+	hpBar->SetTexture(m_textures["HPBAR"]);
+	hpBar->SetMaxHp(object->GetMaxHp());
+	hpBar->SetHp(object->GetHp());
+	hpBar->SetPosition(XMFLOAT3(FAR_POSITION, FAR_POSITION, FAR_POSITION));
+	m_shaders["HORZGAUGE"]->SetObject(hpBar);
+	object->SetHpBar(hpBar);
+}
+
 
 void TowerScene::InitServer()
 {
@@ -651,6 +659,21 @@ void TowerScene::ProcessPacket(char* ptr)
 	case SC_PACKET_CREATE_PARTICLE:
 		RecvCreateParticle(ptr);
 		break;
+	case SC_PACKET_CHANGE_STAMINA:
+		RecvChangeStamina(ptr);
+		break;
+	case SC_PACKET_MONSTER_ATTACK_COLLISION:
+		RecvMonsterAttackCollision(ptr);
+		break;
+	case SC_PACKET_SET_INTERACTABLE:
+		RecvSetInteractable(ptr);
+		break;
+	case SC_PACKET_START_BATTLE:
+		RecvStartBattle(ptr);
+		break;
+	case SC_PACKET_WARP_NEXT_FLOOR:
+		RecvWarpNextFloor(ptr);
+		break;
 	}
 }
 
@@ -708,11 +731,7 @@ void TowerScene::RecvAddObjectPacket(char* ptr)
 
 	m_multiPlayers.insert({ player_data.id, multiPlayer });
 
-	auto hpBar = make_shared<GaugeBar>();
-	hpBar->SetMesh(m_meshs["HPBAR"]);
-	hpBar->SetTexture(m_textures["HPBAR"]);
-	m_shaders["HORZGAUGE"]->SetObject(hpBar);
-	multiPlayer->SetHpBar(hpBar);
+	SetHpBar(multiPlayer);
 
 	m_shaders["ANIMATION"]->SetMultiPlayer(player_data.id, multiPlayer);
 	cout << "add player" << static_cast<int>(player_data.id) << endl;
@@ -730,30 +749,29 @@ void TowerScene::RecvRemoveMonsterPacket(char* ptr)
 {
 	SC_REMOVE_MONSTER_PACKET* packet = reinterpret_cast<SC_REMOVE_MONSTER_PACKET*>(ptr);
 	m_monsters[packet->id]->SetPosition(XMFLOAT3(FAR_POSITION, FAR_POSITION, FAR_POSITION));
+
+	m_monsters[packet->id]->SetIsShowing(false);
 }
 
 void TowerScene::RecvUpdateClient(char* ptr)
 {
 	SC_UPDATE_CLIENT_PACKET* packet = reinterpret_cast<SC_UPDATE_CLIENT_PACKET*>(ptr);
 
-	for (int i = 0; i < MAX_INGAME_USER; ++i) {
-		if (-1 == packet->data[i].id) {
-			continue;
-		}
+	if (-1 == packet->data.id) {
+		return;
+	}
 
-		if (packet->data[i].id == m_player->GetID()) {
-			m_player->SetPosition(packet->data[i].pos);
-			continue;
-		}
-		else {
-			// towerScene의 multiPlayer를 업데이트 해도 shader의 multiPlayer도 업데이트 됨.
-			XMFLOAT3 playerPosition = packet->data[i].pos;
-			auto& player = m_multiPlayers[packet->data[i].id];
-			player->SetPosition(playerPosition);
-			player->SetVelocity(packet->data[i].velocity);
-			player->Rotate(0.f, 0.f, packet->data[i].yaw - player->GetYaw());
-			player->SetHp(packet->data[i].hp);
-		}
+	if (packet->data.id == m_player->GetID()) {
+		m_player->SetPosition(packet->data.pos);
+	}
+	else {
+		// towerScene의 multiPlayer를 업데이트 해도 shader의 multiPlayer도 업데이트 됨.
+		XMFLOAT3 playerPosition = packet->data.pos;
+		auto& player = m_multiPlayers[packet->data.id];
+		player->SetPosition(playerPosition);
+		player->SetVelocity(packet->data.velocity);
+		player->Rotate(0.f, 0.f, packet->data.yaw - player->GetYaw());
+		player->SetHp(packet->data.hp);
 	}
 }
 
@@ -778,11 +796,7 @@ void TowerScene::RecvAddMonsterPacket(char* ptr)
 	monster->SetPosition(XMFLOAT3{ monster_data.pos.x, monster_data.pos.y, monster_data.pos.z });
 	m_monsters.insert({ static_cast<INT>(monster_data.id), monster });
 
-	auto hpBar = make_shared<GaugeBar>();
-	hpBar->SetMesh(m_meshs["HPBAR"]);
-	hpBar->SetTexture(m_textures["HPBAR"]);
-	m_shaders["HORZGAUGE"]->SetObject(hpBar);
-	monster->SetHpBar(hpBar);
+	SetHpBar(monster);
 
 	m_shaders["ANIMATION"]->SetMonster(monster_data.id, monster);
 }
@@ -844,4 +858,66 @@ void TowerScene::RecvChangeAnimation(char* ptr)
 	SC_CHANGE_ANIMATION_PACKET* packet = reinterpret_cast<SC_CHANGE_ANIMATION_PACKET*>(ptr);
 
 	m_multiPlayers[packet->id]->ChangeAnimation(packet->animation_type, false);
+}
+
+void TowerScene::RecvChangeStamina(char* ptr)
+{
+	SC_CHANGE_STAMINA_PACKET* packet = reinterpret_cast<SC_CHANGE_STAMINA_PACKET*>(ptr);
+	m_player->SetStamina(packet->stamina);
+}
+
+void TowerScene::RecvMonsterAttackCollision(char* ptr)
+{
+	SC_MONSTER_ATTACK_COLLISION_PACKET* packet =
+		reinterpret_cast<SC_MONSTER_ATTACK_COLLISION_PACKET*>(ptr);
+
+	for (size_t i = 0; INT id : packet->ids) {
+		if (-1 == id) break;
+
+		if (id == m_player->GetID()) {
+			//m_player->ChangeAnimation(ObjectAnimation::HIT);
+			m_player->SetHp(packet->hps[i]);
+		}
+		else {
+			//m_multiPlayers[id]->ChangeAnimation(ObjectAnimation::HIT, true);
+			m_multiPlayers[id]->SetHp(packet->hps[i]);
+		}
+		++i;
+	}
+}
+
+void TowerScene::RecvSetInteractable(char* ptr)
+{
+	SC_SET_INTERACTABLE_PACKET* packet = reinterpret_cast<SC_SET_INTERACTABLE_PACKET*>(ptr);
+
+	m_player->SetInteractable(packet->interactable);
+	m_player->SetInteractableType(packet->interactable_type);
+
+	cout << "충돌 상태 : " << packet->interactable << endl;
+}
+
+void TowerScene::RecvStartBattle(char* ptr)
+{
+	SC_START_BATTLE_PACKET* packet = reinterpret_cast<SC_START_BATTLE_PACKET*>(ptr);
+
+	for (auto& elm : m_monsters) {
+		elm.second->SetIsShowing(true);
+	}
+	
+	// 오브젝트와 상호작용했다면 해당 오브젝트는 다시 상호작용 X
+	m_player->SetInteractable(false);
+	m_player->SetInteractableType(InteractableType::NONE);
+}
+
+void TowerScene::RecvWarpNextFloor(char* ptr)
+{
+	SC_WARP_NEXT_FLOOR_PACKET* packet = reinterpret_cast<SC_WARP_NEXT_FLOOR_PACKET*>(ptr);
+	
+	XMFLOAT3 startPosition{ 0.f, 0.f, 0.f };
+	m_player->SetPosition(startPosition);
+
+
+	for (auto& elm : m_multiPlayers) {
+		elm.second->SetPosition(startPosition);
+	}
 }

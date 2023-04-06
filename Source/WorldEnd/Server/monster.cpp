@@ -10,7 +10,7 @@ std::uniform_int_distribution<int> random_behavior(1, 100);
 std::uniform_int_distribution<int> random_retarget_time(5, 10);
 
 Monster::Monster() : m_target_id{ -1 }, m_current_animation{ ObjectAnimation::IDLE },
-	m_current_behavior{ MonsterBehavior::CHASE }, m_aggro_level{ 0 },
+	m_current_behavior{ MonsterBehavior::NONE }, m_aggro_level{ 0 },
 	m_last_behavior_id{ 0 }
 {
 }
@@ -118,6 +118,14 @@ void Monster::SetAggroLevel(BYTE aggro_level)
 MONSTER_DATA Monster::GetMonsterData() const
 {
 	return MONSTER_DATA( m_id, m_position, m_velocity, m_yaw, m_hp );
+}
+
+XMFLOAT3 Monster::GetFront() const
+{
+	XMFLOAT3 front{ 0.f, 0.f, 1.f };
+	XMMATRIX rotate{ XMMatrixRotationRollPitchYaw(0.f, XMConvertToRadians(m_yaw), 0.f) };
+	XMStoreFloat3(&front, XMVector3TransformNormal(XMLoadFloat3(&front), rotate));
+	return front;
 }
 
 bool Monster::ChangeAnimation(BYTE animation)
@@ -397,7 +405,7 @@ WarriorMonster::WarriorMonster()
 {
 	m_max_hp = 200.f;
 	m_damage = 20;
-	m_range = 1.f;
+	m_range = 1.5f;
 	m_monster_type = MonsterType::WARRIOR;
 	m_bounding_box.Center = XMFLOAT3(0.028f, 1.27f, 0.f);
 	m_bounding_box.Extents = XMFLOAT3(0.8f, 1.3f, 0.6f);

@@ -65,8 +65,12 @@ void Shader::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const
 	for (const auto& elm : m_multiPlayers)
 		if (elm.second) elm.second->Render(commandList);
 
-	for (const auto& elm : m_monsters)
-		if (elm.second) elm.second->Render(commandList);
+	for (const auto& elm : m_monsters) {
+		if (elm.second) {
+			if(elm.second->GetIsShowing())
+				elm.second->Render(commandList); 
+		}
+	}
 }
 
 void Shader::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, const shared_ptr<Shader>& shader) const
@@ -81,8 +85,12 @@ void Shader::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, const 
 	for (const auto& elm : m_multiPlayers)
 		if (elm.second) elm.second->Render(commandList);
 
-	for (const auto& elm : m_monsters)
-		if (elm.second) elm.second->Render(commandList);
+	for (const auto& elm : m_monsters) {
+		if (elm.second) {
+			if(elm.second->GetIsShowing())
+				elm.second->Render(commandList);
+		}
+	}
 }
 
 void Shader::UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& commandList) const
