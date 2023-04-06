@@ -153,7 +153,7 @@ void Monster::ChangeBehavior(MonsterBehavior behavior)
 
 	switch (m_current_behavior) {
 	case MonsterBehavior::CHASE: {
-		m_current_animation = ObjectAnimation::WALK;
+		m_current_animation = ObjectAnimation::RUN;
 		int time = random_retarget_time(dre);
 		ev.event_time = current_time + static_cast<std::chrono::seconds>(time);
 

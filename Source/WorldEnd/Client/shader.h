@@ -32,6 +32,7 @@ public:
 	void SetMonster(INT ID, const shared_ptr<Monster>& monster);
 	virtual void SetUI(const shared_ptr<UI>& ui) {};
 
+	void RemoveObject(const shared_ptr<GameObject>& object);
 	void DeleteMultiPlayer(INT id);
 
 protected:

@@ -76,11 +76,14 @@ namespace PlayerSetting
 	constexpr float PLAYER_WALK_SPEED = 4.f;
 	constexpr float	PLAYER_RUN_SPEED = 10.f;
 	constexpr float	PLAYER_DASH_SPEED = 12.f;
+	constexpr float PLAYER_ROLL_SPEED = 10.f;
 
 	constexpr auto PLAYER_DASH_DURATION = 300ms;
 	constexpr float PLAYER_MAX_STAMINA = 120.f;
 	constexpr float MINIMUM_DASH_STAMINA = 10.f;
 	constexpr float STAMINA_REDUCTION_PER_SECOND = 10.f;
+
+	constexpr auto PLAYER_ROOL_COOLTIME = 3s;
 
 	constexpr auto WARRIOR_ATTACK_COLLISION_TIME = 210ms;
 	constexpr auto WARRIOR_SKILL_COLLISION_TIME = 800ms;
@@ -88,7 +91,6 @@ namespace PlayerSetting
 	constexpr auto WARRIOR_ATTACK_COOLTIME = 1s;
 	constexpr auto WARRIOR_SKILL_COOLTIME = 7s;
 	constexpr auto WARRIOR_ULTIMATE_COOLTIME = 20s;
-
 
 	constexpr auto ARCHER_ATTACK_COLLISION_TIME = 400ms;
 	constexpr auto ARCHER_ATTACK_COOLTIME = 1s;
@@ -129,7 +131,8 @@ namespace RoomSetting
 	constexpr float TOPSIDE_STAIRS_BACK = 43.f;
 
 	constexpr float EVENT_RADIUS = 1.f;
-	constexpr float EVENT_OBJECT_HEIGHT = 1.f;
+	constexpr DirectX::XMFLOAT3 BATTLE_STARTER_POSITION = DirectX::XMFLOAT3{ 0.f, 0.f, 24.f };
+	constexpr DirectX::XMFLOAT3 WARP_PORTAL_POSITION = DirectX::XMFLOAT3{ -1.f, TOPSIDE_STAIRS_HEIGHT, 60.f };
 }
 
 // ----- 애니메이션 enum 클래스 -----
@@ -149,7 +152,7 @@ public:
 	static constexpr int ANIMATION_START = 100;
 	enum USHORT {
 		DASH = ObjectAnimation::END + ANIMATION_START,
-		
+		SKILL, ULTIMATE, ROLL
 	};
 };
 

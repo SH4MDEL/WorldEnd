@@ -567,6 +567,21 @@ bool AnimationObject::ChangeAnimation(int animation)
 		start_num = PlayerAnimation::ANIMATION_START;
 		m_animationController->SetTrackPosition(0, 0.f);
 		break;
+	case PlayerAnimation::SKILL:
+		m_animationController->SetTrackType(0, ANIMATION_TYPE_ONCE);
+		start_num = PlayerAnimation::ANIMATION_START;
+		m_animationController->SetTrackPosition(0, 0.f);
+		break;
+	case PlayerAnimation::ULTIMATE:
+		m_animationController->SetTrackType(0, ANIMATION_TYPE_ONCE);
+		start_num = PlayerAnimation::ANIMATION_START;
+		m_animationController->SetTrackPosition(0, 0.f);
+		break;
+	case PlayerAnimation::ROLL:
+		m_animationController->SetTrackType(0, ANIMATION_TYPE_ONCE);
+		start_num = PlayerAnimation::ANIMATION_START;
+		m_animationController->SetTrackPosition(0, 0.f);
+		break;
 
 	case MonsterAnimation::LOOK_AROUND:
 		m_animationController->SetTrackType(0, ANIMATION_TYPE_LOOP);

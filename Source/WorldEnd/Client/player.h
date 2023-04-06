@@ -34,8 +34,8 @@ public:
 	XMFLOAT3 GetVelocity() const { return m_velocity; }
 	FLOAT GetHp() const { return m_hp; }
 	FLOAT GetMaxHp() const { return m_maxHp; }
-	FLOAT GetStamina() const { return m_hp; }
-	FLOAT GetMaxStamina() const { return m_maxHp; }
+	FLOAT GetStamina() const { return m_stamina; }
+	FLOAT GetMaxStamina() const { return m_maxStamina; }
 	PlayerType GetType() const { return m_type; }
 	InteractableType GetInteractableType() const { return m_interactableType; }
 
@@ -47,6 +47,7 @@ public:
 	void SetID(INT id) { m_id = id; }
 	INT GetID() const { return m_id; }
 
+	void SendMovePacket();
 	void SendCooltimePacket(CooltimeType type);
 	void SendAttackPacket(const XMFLOAT3& pos, AttackType attackType,
 		CollisionType collisionType, chrono::system_clock::time_point eventTime,

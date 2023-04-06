@@ -166,7 +166,7 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	// 게이트 로드
 	m_gate = make_shared<GameObject>();
 	LoadObjectFromFile(TEXT("./Resource/Model/TowerScene/AD_Gate.bin"), m_gate);
-	m_gate->SetPosition(XMFLOAT3{ 0.f, 0.f, 25.f });
+	m_gate->SetPosition(RoomSetting::BATTLE_STARTER_POSITION);
 	m_gate->SetScale(0.5f, 0.5f, 0.5f);
 	m_shaders["OBJECT"]->SetObject(m_gate);
 
@@ -910,6 +910,8 @@ void TowerScene::RecvStartBattle(char* ptr)
 	// 오브젝트와 상호작용했다면 해당 오브젝트는 다시 상호작용 X
 	m_player->SetInteractable(false);
 	m_player->SetInteractableType(InteractableType::NONE);
+
+	m_shaders["OBJECT"]->RemoveObject(m_gate);
 }
 
 void TowerScene::RecvWarpNextFloor(char* ptr)
@@ -923,4 +925,6 @@ void TowerScene::RecvWarpNextFloor(char* ptr)
 	for (auto& elm : m_multiPlayers) {
 		elm.second->SetPosition(startPosition);
 	}
+
+	m_shaders["OBJECT"]->SetObject(m_gate);
 }

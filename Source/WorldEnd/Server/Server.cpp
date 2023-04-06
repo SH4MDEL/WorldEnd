@@ -571,10 +571,10 @@ void Server::ProcessPacket(int id, char* p)
 				.cooltime_type = packet->cooltime_type };
 
 		// 쿨타임 중인지 검사 필요
+		// 공격 외 쿨타임 처리
 		switch (packet->cooltime_type) {
 		case CooltimeType::ROLL:
-			ev.event_time = std::chrono::system_clock::now() + PlayerSetting::WARRIOR_ULTIMATE_COOLTIME;
-			// 공격 외 쿨타임 처리
+			ev.event_time = std::chrono::system_clock::now() + PlayerSetting::PLAYER_ROOL_COOLTIME;
 		}
 
 		m_timer_queue.push(ev);
@@ -642,11 +642,12 @@ void Server::ProcessPacket(int id, char* p)
 		packet.animation_type = animation_packet->animation_type;
 
 		// 마을, 게임룸 구분하여 보낼 필요 있음
-		for (const auto& client : m_clients) {
-			if (-1 == client->GetId()) continue;
-			if (client->GetId() == id) continue;
+		auto& ids = m_game_room_manager->GetGameRoom(client->GetRoomNum())->GetPlayerIds();
+		for (int client_id : ids) {
+			if (-1 == client_id) continue;
+			if (id == client_id) continue;
 			
-			client->DoSend(&packet);
+			m_clients[client_id]->DoSend(&packet);
 		}
 
 		TIMER_EVENT ev{ .obj_id = id, .event_type = EventType::STAMINA_CHANGE };
@@ -1152,8 +1153,9 @@ void Server::CollideByStaticOBB(const std::shared_ptr<GameObject>& object,
 
 	XMFLOAT3 corners[8]{};
 
-	BoundingOrientedBox& obb = static_object->GetBoundingBox();
-	obb.GetCorners(corners);
+	BoundingOrientedBox static_obb = static_object->GetBoundingBox();
+	static_obb.Center.y = 0.f;
+	static_obb.GetCorners(corners);
 	
 	// 꼭짓점 시계방향 0,1,5,4
 	XMFLOAT3 o_square[4] = {
@@ -1162,7 +1164,9 @@ void Server::CollideByStaticOBB(const std::shared_ptr<GameObject>& object,
 		{corners[5].x, 0.f, corners[5].z} ,
 		{corners[4].x, 0.f, corners[4].z} };
 
-	object->GetBoundingBox().GetCorners(corners);
+	BoundingOrientedBox object_obb = object->GetBoundingBox();
+	object_obb.Center.y = 0.f;
+	object_obb.GetCorners(corners);
 
 	XMFLOAT3 p_square[4] = {
 		{corners[0].x, 0.f, corners[0].z},
@@ -1173,7 +1177,7 @@ void Server::CollideByStaticOBB(const std::shared_ptr<GameObject>& object,
 
 	
 	for (const XMFLOAT3& point : p_square) {
-		if (!obb.Contains(XMLoadFloat3(&point))) continue;
+		if (!static_obb.Contains(XMLoadFloat3(&point))) continue;
 
 		std::array<float, 4> dist{};
 		dist[0] = XMVectorGetX(XMVector3LinePointDistance(XMLoadFloat3(&o_square[0]), XMLoadFloat3(&o_square[1]), XMLoadFloat3(&point)));
@@ -1202,52 +1206,6 @@ void Server::CollideByStaticOBB(const std::shared_ptr<GameObject>& object,
 		}
 		v = Vector3::Mul(v, *min);
 		MoveObject(object, Vector3::Add(object->GetPosition(), v));
-		
-
-		//// 충돌한 오브젝트의 꼭짓점을 이용해 사각형의 테두리를 따라가는 벡터 4개를 구함
-		//XMFLOAT3 vec[4]{
-		//	Vector3::Sub(o_square[0], o_square[1]),
-		//	Vector3::Sub(o_square[1], o_square[2]),
-		//	Vector3::Sub(o_square[2], o_square[3]),
-		//	Vector3::Sub(o_square[3], o_square[0])
-		//};
-
-		//// 플레이어의 충돌점과 위에서 구한 벡터를 더함
-		//XMFLOAT3 position[4]{};
-		//for (size_t i = 0; XMFLOAT3& pos : position) {
-		//	pos = Vector3::Add(point, vec[i]);
-		//	++i;
-		//}
-
-		//// 구한 위치와 player obb의 Center 와의 거리를 구함
-		//// 거리가 가장 짧은 위치에 더한 벡터가 밀어내는 방향의 벡터
-		//array<FLOAT, 4>dist{};
-		//XMFLOAT3 player_center{ player.m_bounding_box.Center.x, 0.f, player.m_bounding_box.Center.z };
-		//for (size_t i = 0; FLOAT & d : dist) {
-		//	d = Vector3::Length(Vector3::Sub(player_center, position[i]));
-		//	++i;
-		//}
-
-		//// dist에서 최솟값의 위치를 알아내고 이를 이용해 index를 구함
-		//// vec[index] 가 밀어내야 할 벡터가 됨
-		//auto p = min_element(dist.begin(), dist.end());
-		//int index = distance(dist.begin(), p);
-
-		//// 충돌점과 충돌한 직선의 거리를 구함
-		//// 위에서 구한 벡터의 index - 1 이 충돌한 직선이 됨
-		//int line_index = index - 1;
-		//if (-1 == line_index)
-		//	line_index = 3;
-
-		//float scale = XMVectorGetX(XMVector3LinePointDistance(XMLoadFloat3(&o_square[line_index]), XMLoadFloat3(&o_square[(line_index + 1) % 4]), XMLoadFloat3(&point)));
-
-		//
-		//// vec[index] 를 정규화 하고
-		//XMFLOAT3 direction = Vector3::Normalize(vec[index]);
-
-		//XMFLOAT3 move_vector = Vector3::Mul(direction, scale);
-
-		//MovePlayer(player, Vector3::Add(player.m_player_data.pos, move_vector));
 		break;
 	}
 

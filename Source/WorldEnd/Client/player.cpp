@@ -17,81 +17,92 @@ Player::~Player()
 
 void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 {
-	XMFLOAT3 eye = m_camera->GetEye();
-	XMFLOAT3 direction{ Vector3::Normalize(Vector3::Sub(GetPosition(), eye)) };
-	if (GetAsyncKeyState('W') & 0x8000) {
-		XMFLOAT3 front{ Vector3::Normalize(Vector3::Sub(GetPosition(), eye)) };
-		XMFLOAT3 angle{ Vector3::Angle(GetFront(), front) };
-		XMFLOAT3 clockwise{ Vector3::Cross(GetFront(), front) };
-		if (clockwise.y >= 0) {
-			Rotate(0.f, 0.f, timeElapsed * XMConvertToDegrees(angle.y) * 10.f);
-		}
-		else {
-			Rotate(0.f, 0.f, -timeElapsed * XMConvertToDegrees(angle.y) * 10.f);
-		}
-	}
-	if (GetAsyncKeyState('A') & 0x8000) {
-		XMFLOAT3 left{ Vector3::Normalize(Vector3::Cross(direction, GetUp())) };
-		XMFLOAT3 angle{ Vector3::Angle(GetFront(), left) };
-		XMFLOAT3 clockwise{ Vector3::Cross(GetFront(), left) };
-		if (clockwise.y >= 0) {
-			Rotate(0.f, 0.f, timeElapsed * XMConvertToDegrees(angle.y) * 10.f);
-		}
-		else {
-			Rotate(0.f, 0.f, -timeElapsed * XMConvertToDegrees(angle.y) * 10.f);
-		}
-	}
-	if (GetAsyncKeyState('S') & 0x8000) {
-		XMFLOAT3 back{ Vector3::Normalize(Vector3::Sub(eye, GetPosition())) };
-		XMFLOAT3 angle{ Vector3::Angle(GetFront(), back) };
-		XMFLOAT3 clockwise{ Vector3::Cross(GetFront(), back) };
-		if (clockwise.y >= 0) {
-			Rotate(0.f, 0.f, timeElapsed * XMConvertToDegrees(angle.y) * 10.f);
-		}
-		else {
-			Rotate(0.f, 0.f, -timeElapsed * XMConvertToDegrees(angle.y) * 10.f);
-		}
-	}
-	if (GetAsyncKeyState('D') & 0x8000) {
-		XMFLOAT3 right{ Vector3::Normalize(Vector3::Cross(GetUp(), direction)) };
-		XMFLOAT3 angle{ Vector3::Angle(GetFront(), right) };
-		XMFLOAT3 clockwise{ Vector3::Cross(GetFront(), right)};
-		if (clockwise.y >= 0) {
-			Rotate(0.f, 0.f, timeElapsed * XMConvertToDegrees(angle.y) * 10.f);
-		}
-		else {
-			Rotate(0.f, 0.f, -timeElapsed * XMConvertToDegrees(angle.y) * 10.f);
-		}
-	}
-	if (GetAsyncKeyState('W') & 0x8000 || GetAsyncKeyState('A') & 0x8000 ||
-		GetAsyncKeyState('S') & 0x8000 || GetAsyncKeyState('D') & 0x8000)
-	{
-		AddVelocity(Vector3::Mul(GetFront(), timeElapsed * m_moveSpeed));
-
-#ifdef USE_NETWORK
-		CS_PLAYER_MOVE_PACKET move_packet;
-		move_packet.size = sizeof(move_packet);
-		move_packet.type = CS_PACKET_PLAYER_MOVE;
-		move_packet.pos = GetPosition();
-		move_packet.velocity = GetVelocity();
-		move_packet.yaw = GetYaw();
-
-		send(g_socket, reinterpret_cast<char*>(&move_packet), sizeof(move_packet), 0);
-#endif // USE_NETWORK
-	}
 	if (GetAsyncKeyState('Q') & 0x8000) {
 		if (m_cooltimeList[CooltimeType::ULTIMATE])
 			return;
 
-		cout << "Ultimate" << endl;
-		// 임시 위치
+		ChangeAnimation(PlayerAnimation::ULTIMATE);
+
 		XMFLOAT3 pos = GetPosition();
 		SendAttackPacket(pos, AttackType::ULTIMATE, CollisionType::MULTIPLE_TIMES,
 			chrono::system_clock::now() + PlayerSetting::WARRIOR_ULTIMATE_COLLISION_TIME,
 			CooltimeType::ULTIMATE);
 	}
-	if (GetAsyncKeyState(VK_SPACE) & 0x8000) {
 
+	// 궁극기 시전중이면 아래의 키보드 입력 X
+	if (PlayerAnimation::ULTIMATE == m_currentAnimation) {
+		return;
+	}
+
+	// 공격, 스킬, 궁극기, 구르기 중에는 이동 X
+	if (PlayerAnimation::ATTACK != m_currentAnimation &&
+		PlayerAnimation::SKILL != m_currentAnimation &&
+		PlayerAnimation::ULTIMATE != m_currentAnimation &&
+		PlayerAnimation::ROLL != m_currentAnimation)
+	{
+		XMFLOAT3 eye = m_camera->GetEye();
+		XMFLOAT3 direction{ Vector3::Normalize(Vector3::Sub(GetPosition(), eye)) };
+		if (GetAsyncKeyState('W') & 0x8000) {
+			XMFLOAT3 front{ Vector3::Normalize(Vector3::Sub(GetPosition(), eye)) };
+			XMFLOAT3 angle{ Vector3::Angle(GetFront(), front) };
+			XMFLOAT3 clockwise{ Vector3::Cross(GetFront(), front) };
+			if (clockwise.y >= 0) {
+				Rotate(0.f, 0.f, timeElapsed * XMConvertToDegrees(angle.y) * 10.f);
+			}
+			else {
+				Rotate(0.f, 0.f, -timeElapsed * XMConvertToDegrees(angle.y) * 10.f);
+			}
+		}
+		if (GetAsyncKeyState('A') & 0x8000) {
+			XMFLOAT3 left{ Vector3::Normalize(Vector3::Cross(direction, GetUp())) };
+			XMFLOAT3 angle{ Vector3::Angle(GetFront(), left) };
+			XMFLOAT3 clockwise{ Vector3::Cross(GetFront(), left) };
+			if (clockwise.y >= 0) {
+				Rotate(0.f, 0.f, timeElapsed * XMConvertToDegrees(angle.y) * 10.f);
+			}
+			else {
+				Rotate(0.f, 0.f, -timeElapsed * XMConvertToDegrees(angle.y) * 10.f);
+			}
+		}
+		if (GetAsyncKeyState('S') & 0x8000) {
+			XMFLOAT3 back{ Vector3::Normalize(Vector3::Sub(eye, GetPosition())) };
+			XMFLOAT3 angle{ Vector3::Angle(GetFront(), back) };
+			XMFLOAT3 clockwise{ Vector3::Cross(GetFront(), back) };
+			if (clockwise.y >= 0) {
+				Rotate(0.f, 0.f, timeElapsed * XMConvertToDegrees(angle.y) * 10.f);
+			}
+			else {
+				Rotate(0.f, 0.f, -timeElapsed * XMConvertToDegrees(angle.y) * 10.f);
+			}
+		}
+		if (GetAsyncKeyState('D') & 0x8000) {
+			XMFLOAT3 right{ Vector3::Normalize(Vector3::Cross(GetUp(), direction)) };
+			XMFLOAT3 angle{ Vector3::Angle(GetFront(), right) };
+			XMFLOAT3 clockwise{ Vector3::Cross(GetFront(), right) };
+			if (clockwise.y >= 0) {
+				Rotate(0.f, 0.f, timeElapsed * XMConvertToDegrees(angle.y) * 10.f);
+			}
+			else {
+				Rotate(0.f, 0.f, -timeElapsed * XMConvertToDegrees(angle.y) * 10.f);
+			}
+		}
+		if (GetAsyncKeyState('W') & 0x8000 || GetAsyncKeyState('A') & 0x8000 ||
+			GetAsyncKeyState('S') & 0x8000 || GetAsyncKeyState('D') & 0x8000)
+		{
+			AddVelocity(Vector3::Mul(GetFront(), timeElapsed * m_moveSpeed));
+
+			SendMovePacket();
+		}
+	}
+
+	if (GetAsyncKeyState(VK_SPACE) & 0x8000) {
+		if (m_cooltimeList[CooltimeType::ROLL])
+			return;
+
+		ChangeAnimation(PlayerAnimation::ROLL);
+		m_moveSpeed = PlayerSetting::PLAYER_ROLL_SPEED;
+
+		SendCooltimePacket(CooltimeType::ROLL);
 	}
 	
 	if (!m_dashed && GetAsyncKeyState(VK_SHIFT) & 0x8000) {
@@ -112,7 +123,8 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 		if (m_cooltimeList[CooltimeType::SKILL])
 			return;
 
-		cout << "Skill" << endl;
+		ChangeAnimation(PlayerAnimation::SKILL);
+
 		// 임시 위치
 		XMFLOAT3 pos = GetPosition();
 		SendAttackPacket(pos, AttackType::SKILL, CollisionType::MULTIPLE_TIMES,
@@ -125,6 +137,7 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 			SendInteractPacket();
 		}
 	}
+
 }
 
 void Player::OnProcessingMouseMessage(UINT message, LPARAM lParam)
@@ -159,6 +172,36 @@ void Player::Update(FLOAT timeElapsed)
 			// 공격 애니메이션 종료 시 IDLE 로 변경
 			if (fabs(track.GetPosition() - animation->GetLength()) <= numeric_limits<float>::epsilon()) {
 				ChangeAnimation(ObjectAnimation::IDLE);
+			}
+		}
+		else if (PlayerAnimation::SKILL == m_currentAnimation) {
+			auto& track = m_animationController->GetAnimationTrack(0);
+			auto& animation = m_animationController->GetAnimationSet()->GetAnimations()[track.GetAnimation()];
+
+			// 스킬 애니메이션 종료 시 IDLE 로 변경
+			if (fabs(track.GetPosition() - animation->GetLength()) <= numeric_limits<float>::epsilon()) {
+				ChangeAnimation(ObjectAnimation::IDLE);
+			}
+		}
+		else if (PlayerAnimation::ULTIMATE == m_currentAnimation) {
+			auto& track = m_animationController->GetAnimationTrack(0);
+			auto& animation = m_animationController->GetAnimationSet()->GetAnimations()[track.GetAnimation()];
+
+			// 스킬 애니메이션 종료 시 IDLE 로 변경
+			if (fabs(track.GetPosition() - animation->GetLength()) <= numeric_limits<float>::epsilon()) {
+				ChangeAnimation(ObjectAnimation::IDLE);
+			}
+		}
+		else if (PlayerAnimation::ROLL == m_currentAnimation) {
+			AddVelocity(Vector3::Mul(GetFront(), timeElapsed * m_moveSpeed));
+			SendMovePacket();
+
+			auto& track = m_animationController->GetAnimationTrack(0);
+			auto& animation = m_animationController->GetAnimationSet()->GetAnimations()[track.GetAnimation()];
+
+			if (fabs(track.GetPosition() - animation->GetLength()) <= 0.25f) {
+				ChangeAnimation(ObjectAnimation::IDLE);
+				m_moveSpeed = PlayerSetting::PLAYER_WALK_SPEED;
 			}
 		}
 		else if (PlayerAnimation::DASH == m_currentAnimation) {
@@ -287,6 +330,20 @@ bool Player::ChangeAnimation(int animation)
 void Player::ChangeAnimation(int animation, bool other)
 {
 	AnimationObject::ChangeAnimation(animation);
+}
+
+void Player::SendMovePacket()
+{
+#ifdef USE_NETWORK
+	CS_PLAYER_MOVE_PACKET move_packet;
+	move_packet.size = sizeof(move_packet);
+	move_packet.type = CS_PACKET_PLAYER_MOVE;
+	move_packet.pos = GetPosition();
+	move_packet.velocity = GetVelocity();
+	move_packet.yaw = GetYaw();
+
+	send(g_socket, reinterpret_cast<char*>(&move_packet), sizeof(move_packet), 0);
+#endif // USE_NETWORK
 }
 
 void Player::SendCooltimePacket(CooltimeType type)
