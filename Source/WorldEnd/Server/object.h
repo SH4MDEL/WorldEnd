@@ -147,7 +147,7 @@ public:
 	FLOAT GetHp() const { return m_hp; }
 	FLOAT GetDamage() const { return m_damage; }
 	USHORT GetRoomNum() const { return m_room_num; }
-	
+
 
 	virtual void Update(FLOAT elapsed_time) {};
 

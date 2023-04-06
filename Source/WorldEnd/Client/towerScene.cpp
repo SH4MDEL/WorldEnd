@@ -142,6 +142,9 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	auto staminaBar = make_shared<GaugeBar>(0.015f);
 	staminaBar->SetMesh(m_meshs["STAMINABAR"]);
 	staminaBar->SetTexture(m_textures["STAMINABAR"]);
+	staminaBar->SetMaxGauge(m_player->GetMaxStamina());
+	staminaBar->SetGauge(m_player->GetStamina());
+	staminaBar->SetPosition(XMFLOAT3(FAR_POSITION, FAR_POSITION, FAR_POSITION));
 	m_shaders["VERTGAUGE"]->SetObject(staminaBar);
 	m_player->SetStaminaBar(staminaBar);
 
@@ -533,11 +536,11 @@ void TowerScene::LoadMonsterFromFile(const shared_ptr<Monster>& monster)
 
 void TowerScene::SetHpBar(const shared_ptr<AnimationObject>& object)
 {
-	auto hpBar = make_shared<HpBar>();
+	auto hpBar = make_shared<GaugeBar>();
 	hpBar->SetMesh(m_meshs["HPBAR"]);
 	hpBar->SetTexture(m_textures["HPBAR"]);
-	hpBar->SetMaxHp(object->GetMaxHp());
-	hpBar->SetHp(object->GetHp());
+	hpBar->SetMaxGauge(object->GetMaxHp());
+	hpBar->SetGauge(object->GetHp());
 	hpBar->SetPosition(XMFLOAT3(FAR_POSITION, FAR_POSITION, FAR_POSITION));
 	m_shaders["HORZGAUGE"]->SetObject(hpBar);
 	object->SetHpBar(hpBar);

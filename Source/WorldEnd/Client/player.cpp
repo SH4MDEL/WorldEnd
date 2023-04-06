@@ -3,8 +3,8 @@
 #include "particleSystem.h"
 
 Player::Player() : m_velocity{ 0.0f, 0.0f, 0.0f }, m_maxVelocity{ 10.0f }, m_friction{ 0.5f }, 
-	m_hp{ 100.f }, m_maxHp{ 100.f }, m_id{ -1 }, m_cooltimeList{ false, }, m_dashed{ false },
-	m_moveSpeed{ PlayerSetting::PLAYER_WALK_SPEED }, m_stamina{ PlayerSetting::PLAYER_MAX_STAMINA },
+	m_hp{ 100.f }, m_maxHp{ 100.f }, m_stamina{ PlayerSetting::PLAYER_MAX_STAMINA }, m_maxStamina{ PlayerSetting::PLAYER_MAX_STAMINA }, 
+	m_id{ -1 }, m_cooltimeList{ false, }, m_dashed{ false }, m_moveSpeed{ PlayerSetting::PLAYER_WALK_SPEED },
 	m_interactable{ false }, m_interactableType{ InteractableType::NONE }
 {
 
@@ -195,8 +195,6 @@ void Player::Update(FLOAT timeElapsed)
 	}
 
 	if (m_staminaBar) {
-		m_staminaBar->SetMaxGauge(m_maxHp);
-		m_staminaBar->SetGauge(dummy);
 		XMFLOAT3 staminaBarPosition = GetPosition();
 		XMFLOAT3 cameraRight = m_camera->GetRight();
 		staminaBarPosition.x += cameraRight.x;
@@ -254,7 +252,17 @@ void Player::SetHp(FLOAT hp)
 		m_hp = 0;
 
 	if (m_hpBar)
-		m_hpBar->SetHp(m_hp);
+		m_hpBar->SetGauge(m_hp);
+}
+
+void Player::SetStamina(FLOAT stamina)
+{
+	m_stamina = stamina;
+	if (m_stamina <= 0)
+		m_stamina = 0;
+
+	if (m_staminaBar)
+		m_staminaBar->SetGauge(m_stamina);
 }
 
 void Player::ResetCooltime(CooltimeType type)

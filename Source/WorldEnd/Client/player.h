@@ -22,18 +22,20 @@ public:
 	void SetPosition(const XMFLOAT3& position) override;
 	void SetVelocity(const XMFLOAT3& velocity) { m_velocity = velocity; }
 	void AddVelocity(const XMFLOAT3& increase);
-	void SetHp(FLOAT hp);
 	void SetCamera(const shared_ptr<Camera>& camera) { m_camera = camera; }
+	void SetHp(FLOAT hp);
+	void SetStamina(FLOAT stamina);
 	void SetHpBar(const shared_ptr<GaugeBar>& hpBar) override { m_hpBar = hpBar; }
 	void SetStaminaBar(const shared_ptr<GaugeBar>& staminaBar) { m_staminaBar = staminaBar; }
 	void SetType(PlayerType type) { m_type = type; }
-	void SetStamina(FLOAT stamina) { m_stamina = stamina; }
 	void SetInteractable(bool value) { m_interactable = value; }
 	void SetInteractableType(InteractableType type) { m_interactableType = type; }
 
 	XMFLOAT3 GetVelocity() const { return m_velocity; }
 	FLOAT GetHp() const { return m_hp; }
 	FLOAT GetMaxHp() const { return m_maxHp; }
+	FLOAT GetStamina() const { return m_hp; }
+	FLOAT GetMaxStamina() const { return m_maxHp; }
 	PlayerType GetType() const { return m_type; }
 	InteractableType GetInteractableType() const { return m_interactableType; }
 
@@ -58,6 +60,8 @@ private:
 
 	FLOAT					m_hp;			// 플레이어 체력
 	FLOAT					m_maxHp;		// 플레이어 최대 체력
+	FLOAT					m_stamina;
+	FLOAT					m_maxStamina;
 
 	shared_ptr<Camera>		m_camera;		// 카메라
 	shared_ptr<GaugeBar>	m_hpBar;		// HP바
@@ -72,7 +76,6 @@ private:
 	chrono::system_clock::time_point	m_startDash;
 	bool								m_dashed;
 	FLOAT								m_moveSpeed;
-	FLOAT								m_stamina;
 
 	bool				m_interactable;
 	InteractableType	m_interactableType;

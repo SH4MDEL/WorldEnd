@@ -60,6 +60,7 @@ void ParticleSystem::CreateParticle(Type type, XMFLOAT3 position)
 				break;
 			}
 		}
+		break;
 	case Type::PUMPER:
 		for (const auto& particle : m_pumperParticles) {
 			if (!particle->IsRunning()) {
