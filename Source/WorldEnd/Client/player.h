@@ -47,14 +47,15 @@ public:
 	void SetID(INT id) { m_id = id; }
 	INT GetID() const { return m_id; }
 
-	void SendMovePacket();
-	void SendCooltimePacket(CooltimeType type);
-	void SendAttackPacket(const XMFLOAT3& pos, AttackType attackType,
+	void CreateMovePacket();
+	void CreateCooltimePacket(CooltimeType type);
+	void CreateAttackPacket(const XMFLOAT3& pos, AttackType attackType,
 		CollisionType collisionType, chrono::system_clock::time_point eventTime,
 		CooltimeType cooltimeType);
-	void SendInteractPacket();
-	void SendChangeStaminaPacket(bool value);
-	void SendPacket(void* mess, int size);
+	void CreateInteractPacket();
+	void CreateChangeStaminaPacket(bool value);
+	void SetBuffer(void* mess, size_t size);
+	void SendPacket();
 
 private:
 	XMFLOAT3				m_velocity;		// 속도
@@ -82,13 +83,7 @@ private:
 
 	bool				m_interactable;
 	InteractableType	m_interactableType;
-};
 
-class AttackCallbackHandler : public AnimationCallbackHandler
-{
-public:
-	AttackCallbackHandler() = default;
-	~AttackCallbackHandler() = default;
-
-	virtual void Callback(void* callbackData, float trackPosition);
+	CHAR				m_sendBuffer[BUFSIZ];
+	int					m_bufSize;
 };

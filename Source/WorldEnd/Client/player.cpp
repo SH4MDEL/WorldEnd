@@ -5,9 +5,8 @@
 Player::Player() : m_velocity{ 0.0f, 0.0f, 0.0f }, m_maxVelocity{ 10.0f }, m_friction{ 0.5f }, 
 	m_hp{ 100.f }, m_maxHp{ 100.f }, m_stamina{ PlayerSetting::PLAYER_MAX_STAMINA }, m_maxStamina{ PlayerSetting::PLAYER_MAX_STAMINA }, 
 	m_id{ -1 }, m_cooltimeList{ false, }, m_dashed{ false }, m_moveSpeed{ PlayerSetting::PLAYER_WALK_SPEED },
-	m_interactable{ false }, m_interactableType{ InteractableType::NONE }
+	m_interactable{ false }, m_interactableType{ InteractableType::NONE }, m_bufSize{ 0 }
 {
-
 }
 
 Player::~Player()
@@ -23,9 +22,11 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 			ChangeAnimation(PlayerAnimation::ULTIMATE);
 
 			XMFLOAT3 pos = Vector3::Add(Vector3::Mul(m_front, 0.8f), GetPosition());
-			SendAttackPacket(pos, AttackType::ULTIMATE, CollisionType::MULTIPLE_TIMES,
+			CreateAttackPacket(pos, AttackType::ULTIMATE, CollisionType::MULTIPLE_TIMES,
 				chrono::system_clock::now() + PlayerSetting::WARRIOR_ULTIMATE_COLLISION_TIME,
 				CooltimeType::ULTIMATE);
+
+			SendPacket();
 		}
 	}
 
@@ -91,7 +92,9 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 		{
 			AddVelocity(Vector3::Mul(GetFront(), timeElapsed * m_moveSpeed));
 
-			SendMovePacket();
+			CreateMovePacket();
+
+			SendPacket();
 		}
 	}
 
@@ -102,8 +105,10 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 				ChangeAnimation(PlayerAnimation::ROLL);
 				m_moveSpeed = PlayerSetting::PLAYER_ROLL_SPEED;
 
-				SendCooltimePacket(CooltimeType::ROLL);
-				SendChangeStaminaPacket(false);
+				CreateCooltimePacket(CooltimeType::ROLL);
+				CreateChangeStaminaPacket(false);
+
+				SendPacket();
 			}
 		}
 	}
@@ -117,14 +122,17 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 				m_moveSpeed = PlayerSetting::PLAYER_DASH_SPEED;
 				m_startDash = chrono::system_clock::now();
 
-				SendCooltimePacket(CooltimeType::DASH);
-				SendChangeStaminaPacket(false);
+				CreateCooltimePacket(CooltimeType::DASH);
+				CreateChangeStaminaPacket(false);
+
+				SendPacket();
 			}
 		}
 	}
 	if (m_dashed && GetAsyncKeyState(VK_SHIFT) == 0x0000) {
 		m_dashed = false;
-		SendChangeStaminaPacket(true);
+		CreateChangeStaminaPacket(true);
+		SendPacket();
 	}
 	
 	if (GetAsyncKeyState('E') & 0x8000) {
@@ -132,17 +140,20 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 
 			ChangeAnimation(PlayerAnimation::SKILL);
 
-			// 임시 위치
+
 			XMFLOAT3 pos = Vector3::Add(Vector3::Mul(m_front, 0.8f), GetPosition());
-			SendAttackPacket(pos, AttackType::SKILL, CollisionType::MULTIPLE_TIMES,
+			CreateAttackPacket(pos, AttackType::SKILL, CollisionType::MULTIPLE_TIMES,
 				chrono::system_clock::now() + PlayerSetting::WARRIOR_SKILL_COLLISION_TIME,
 				CooltimeType::SKILL);
+
+			SendPacket();
 		}
 	}
 
 	if (GetAsyncKeyState('F') & 0x8000) {
 		if (m_interactable) {
-			SendInteractPacket();
+			CreateInteractPacket();
+			SendPacket();
 		}
 	}
 
@@ -157,13 +168,14 @@ void Player::OnProcessingMouseMessage(UINT message, LPARAM lParam)
 
 	if (PlayerType::WARRIOR == m_type) {
 		XMFLOAT3 pos = Vector3::Add(Vector3::Mul(m_front, 0.8f), GetPosition());
-		SendAttackPacket(pos, AttackType::NORMAL, CollisionType::MULTIPLE_TIMES,
+		CreateAttackPacket(pos, AttackType::NORMAL, CollisionType::MULTIPLE_TIMES,
 			chrono::system_clock::now() + PlayerSetting::WARRIOR_ATTACK_COLLISION_TIME,
 			CooltimeType::NORMAL_ATTACK);
 	}
 	else if (PlayerType::ARCHER == m_type) {
 
 	}
+	SendPacket();
 }
 
 void Player::Update(FLOAT timeElapsed)
@@ -180,6 +192,7 @@ void Player::Update(FLOAT timeElapsed)
 			// 공격 애니메이션 종료 시 IDLE 로 변경
 			if (fabs(track.GetPosition() - animation->GetLength()) <= numeric_limits<float>::epsilon()) {
 				ChangeAnimation(ObjectAnimation::IDLE);
+				SendPacket();
 			}
 		}
 		else if (PlayerAnimation::SKILL == m_currentAnimation) {
@@ -192,6 +205,8 @@ void Player::Update(FLOAT timeElapsed)
 					ChangeAnimation(PlayerAnimation::RUN);
 				else
 					ChangeAnimation(ObjectAnimation::IDLE);
+
+				SendPacket();
 			}
 		}
 		else if (PlayerAnimation::ULTIMATE == m_currentAnimation) {
@@ -204,11 +219,13 @@ void Player::Update(FLOAT timeElapsed)
 					ChangeAnimation(PlayerAnimation::RUN);
 				else
 					ChangeAnimation(ObjectAnimation::IDLE);
+
+				SendPacket();
 			}
 		}
 		else if (PlayerAnimation::ROLL == m_currentAnimation) {
 			AddVelocity(Vector3::Mul(GetFront(), timeElapsed * m_moveSpeed));
-			SendMovePacket();
+			CreateMovePacket();
 
 			auto& track = m_animationController->GetAnimationTrack(0);
 			auto& animation = m_animationController->GetAnimationSet()->GetAnimations()[track.GetAnimation()];
@@ -221,42 +238,61 @@ void Player::Update(FLOAT timeElapsed)
 				else {
 					ChangeAnimation(ObjectAnimation::IDLE);
 					m_moveSpeed = PlayerSetting::PLAYER_WALK_SPEED;
-					SendChangeStaminaPacket(true);
+					
+					CreateChangeStaminaPacket(true);
 				}
 			}
+			SendPacket();
 		}
 		else if (PlayerAnimation::DASH == m_currentAnimation) {
-
 			auto& track = m_animationController->GetAnimationTrack(0);
 			auto& animation = m_animationController->GetAnimationSet()->GetAnimations()[track.GetAnimation()];
 
+			
 			if (chrono::system_clock::now() > m_startDash + PlayerSetting::PLAYER_DASH_DURATION) {
 				ChangeAnimation(ObjectAnimation::RUN);
 				m_moveSpeed = PlayerSetting::PLAYER_RUN_SPEED;
+
+				m_animationController->SetTrackEnable(1, false);
+				m_animationController->SetTrackWeight(0, 1.f);
+				m_animationController->SetBlendingMode(AnimationBlending::NORMAL);
+
+				SendPacket();
+			}
+			else if (chrono::system_clock::now() > m_startDash + 50ms) {
+				m_animationController->SetTrackEnable(1, true);
 			}
 			else if (fabs(track.GetPosition() - animation->GetLength()) <= numeric_limits<float>::epsilon()) {
 				ChangeAnimation(ObjectAnimation::WALK);
 				m_moveSpeed = PlayerSetting::PLAYER_WALK_SPEED;
+				SendPacket();
 			}
 		}
 		else {
 			float length = fabs(m_velocity.x) + fabs(m_velocity.z);
 			if (length <= numeric_limits<float>::epsilon()) {
 				ChangeAnimation(ObjectAnimation::IDLE);
+				SendPacket();
 			}
 			else {
 				if (m_dashed) {
 					if (m_stamina <= numeric_limits<float>::epsilon()) {
 						m_dashed = false;
 						m_moveSpeed = PlayerSetting::PLAYER_WALK_SPEED;
+
 						ChangeAnimation(ObjectAnimation::WALK);
-						SendChangeStaminaPacket(true);
+						CreateChangeStaminaPacket(true);
+						SendPacket();
 					}
-					ChangeAnimation(ObjectAnimation::RUN);
+					else {
+						ChangeAnimation(ObjectAnimation::RUN);
+						SendPacket();
+					}
 				}
 				else {
 					ChangeAnimation(ObjectAnimation::WALK);
 					m_moveSpeed = PlayerSetting::PLAYER_WALK_SPEED;
+					SendPacket();
 				}
 			}
 		}
@@ -349,13 +385,13 @@ bool Player::ChangeAnimation(USHORT animation)
 	if (!AnimationObject::ChangeAnimation(animation))
 		return false;
 #ifdef USE_NETWORK
-	CS_CHANGE_ANIMATION_PACKET packet;
+	CS_CHANGE_ANIMATION_PACKET packet{};
 	packet.size = sizeof(packet);
 	packet.type = CS_PACKET_CHANGE_ANIMATION;
 	packet.animation_type = m_currentAnimation;
-	send(g_socket, reinterpret_cast<char*>(&packet), packet.size, 0);
-#endif
+	SetBuffer(&packet, packet.size);
 	return true;
+#endif
 }
 
 void Player::ChangeAnimation(USHORT animation, bool other)
@@ -363,21 +399,20 @@ void Player::ChangeAnimation(USHORT animation, bool other)
 	AnimationObject::ChangeAnimation(animation);
 }
 
-void Player::SendMovePacket()
+void Player::CreateMovePacket()
 {
 #ifdef USE_NETWORK
-	CS_PLAYER_MOVE_PACKET move_packet;
-	move_packet.size = sizeof(move_packet);
-	move_packet.type = CS_PACKET_PLAYER_MOVE;
-	move_packet.pos = GetPosition();
-	move_packet.velocity = GetVelocity();
-	move_packet.yaw = GetYaw();
-
-	send(g_socket, reinterpret_cast<char*>(&move_packet), sizeof(move_packet), 0);
-#endif // USE_NETWORK
+	CS_PLAYER_MOVE_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = CS_PACKET_PLAYER_MOVE;
+	packet.pos = GetPosition();
+	packet.velocity = GetVelocity();
+	packet.yaw = GetYaw();
+	SetBuffer(&packet, packet.size);
+#endif
 }
 
-void Player::SendCooltimePacket(CooltimeType type)
+void Player::CreateCooltimePacket(CooltimeType type)
 {
 #ifdef USE_NETWORK
 	m_cooltimeList[type] = true;
@@ -386,11 +421,11 @@ void Player::SendCooltimePacket(CooltimeType type)
 	packet.size = sizeof(packet);
 	packet.type = CS_PACKET_SET_COOLTIME;
 	packet.cooltime_type = type;
-	send(g_socket, reinterpret_cast<char*>(&packet), sizeof(packet), 0);
+	SetBuffer(&packet, packet.size);
 #endif
 }
 
-void Player::SendAttackPacket(const XMFLOAT3& pos, AttackType attackType,
+void Player::CreateAttackPacket(const XMFLOAT3& pos, AttackType attackType,
 	CollisionType collisionType, chrono::system_clock::time_point eventTime,
 	CooltimeType cooltimeType)
 {
@@ -405,41 +440,46 @@ void Player::SendAttackPacket(const XMFLOAT3& pos, AttackType attackType,
 	packet.collision_type = collisionType;
 	packet.event_time = eventTime;
 	packet.cooltime_type = cooltimeType;
-	send(g_socket, reinterpret_cast<char*>(&packet), packet.size, 0);
+	SetBuffer(&packet, packet.size);
 #endif
 }
 
-void Player::SendInteractPacket()
+void Player::CreateInteractPacket()
 {
 #ifdef USE_NETWORK
 	CS_INTERACT_OBJECT_PACKET packet{};
 	packet.size = sizeof(packet);
 	packet.type = CS_PACKET_INTERACT_OBJECT;
 	packet.interactable_type = m_interactableType;
-	send(g_socket, reinterpret_cast<char*>(&packet), packet.size, 0);
+	SetBuffer(&packet, packet.size);
 #endif
 }
 
-void Player::SendChangeStaminaPacket(bool value)
+void Player::CreateChangeStaminaPacket(bool value)
 {
 #ifdef USE_NETWORK
 	CS_CHANGE_STAMINA_PACKET packet{};
 	packet.size = sizeof(packet);
 	packet.type = CS_PACKET_CHANGE_STAMINA;
 	packet.is_increase = value;
-	send(g_socket, reinterpret_cast<char*>(&packet), packet.size, 0);
-	//return static_cast<void*>(&packet);
+	SetBuffer(&packet, packet.size);
 #endif
 }
 
-void Player::SendPacket(void* mess, int size)
+void Player::SetBuffer(void* mess, size_t size)
 {
-	send(g_socket, reinterpret_cast<char*>(mess), size, 0);
+	char* c = reinterpret_cast<char*>(mess);
+	memcpy(m_sendBuffer + static_cast<char>(m_bufSize), c, size);
+	m_bufSize += static_cast<int>(size);
 }
 
-void AttackCallbackHandler::Callback(void* callbackData, float trackPosition)
+void Player::SendPacket()
 {
-	Player* p = static_cast<Player*>(callbackData);
-	p->GetAnimationController()->SetTrackEnable(0, true);
-	p->GetAnimationController()->SetTrackEnable(2, false);
+#ifdef USE_NETWORK
+	if (0 == m_bufSize)
+		return;
+
+	send(g_socket, m_sendBuffer, m_bufSize, 0);
+	m_bufSize = 0;
+#endif
 }

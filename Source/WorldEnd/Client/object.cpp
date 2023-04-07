@@ -1,7 +1,8 @@
 ﻿#include "object.h"
 #include "scene.h"
 
-#define DEFAULT_TRACK_NUM 3
+constexpr int DEFAULT_TRACK_NUM = 3;
+constexpr float DEFAULT_WEIGHT_RATIO = 3.f;
 
 GameObject::GameObject() : m_right{ 1.0f, 0.0f, 0.0f }, m_up{ 0.0f, 1.0f, 0.0f }, m_front{ 0.0f, 0.0f, 1.0f }, m_roll{ 0.0f }, m_pitch{ 0.0f }, m_yaw{ 0.0f }
 {
@@ -566,6 +567,14 @@ bool AnimationObject::ChangeAnimation(USHORT animation)
 		m_animationController->SetTrackType(0, ANIMATION_TYPE_LOOP);
 		start_num = PlayerAnimation::ANIMATION_START;
 		m_animationController->SetTrackPosition(0, 0.f);
+
+		m_animationController->SetTrackType(1, ANIMATION_TYPE_ONCE);
+		m_animationController->SetTrackPosition(1, 0.f);
+		m_animationController->SetTrackAnimation(1, ObjectAnimation::RUN);
+		m_animationController->SetTrackEnable(1, false); 
+		m_animationController->SetTrackWeight(1, 0.f);
+		m_animationController->SetBlendingMode(AnimationBlending::BLENDING);
+
 		break;
 	case PlayerAnimation::SKILL:
 		m_animationController->SetTrackType(0, ANIMATION_TYPE_ONCE);
@@ -603,7 +612,8 @@ bool AnimationObject::ChangeAnimation(USHORT animation)
 	m_prevAnimation = m_currentAnimation;
 	m_currentAnimation = animation;
 	m_animationController->SetTrackAnimation(0, animation - start_num);
-	
+	m_animationController->SetTrackWeight(0, 1.f);
+
 	return true;
 }
 
@@ -651,12 +661,6 @@ void AnimationObject::SetAnimationOnTrack(int animationTrackNumber, int animatio
 void AnimationObject::LoadObject(ifstream& in)
 {
 	GameObject::LoadObject(in, shared_from_this());
-}
-
-// 애니메이션
-void AnimationCallbackHandler::Callback(void* callbackData, float trackPosition)
-{
-	// 콜백 처리
 }
 
 Animation::Animation(float length, int framePerSecond, int keyFrames, int skinningBones, string name)
@@ -785,29 +789,20 @@ AnimationTrack::AnimationTrack()
 	m_weight = 1.0f;
 	m_animation = 0;
 	m_type = ANIMATION_TYPE_LOOP;
-	m_nCallbackKey = 0;
-	m_animationCallbackHandler = nullptr;
 }
 
 AnimationTrack::~AnimationTrack()
 {
 }
 
-void AnimationTrack::SetCallbackKeys(int callbackKeys)
+void AnimationTrack::IncreaseWeight(float timeElapsed)
 {
-	m_nCallbackKey = callbackKeys;
-	m_callbackKeys.resize(callbackKeys);
+	m_weight += timeElapsed * DEFAULT_WEIGHT_RATIO;
 }
 
-void AnimationTrack::SetCallbackKey(int Index, float time, void* data)
+void AnimationTrack::DecreaseWeight(float timeElapsed)
 {
-	m_callbackKeys[Index].m_time = time;
-	m_callbackKeys[Index].m_callbackData = data;
-}
-
-void AnimationTrack::SetAnimationCallbackHandler(const shared_ptr<AnimationCallbackHandler>& callbackHandler)
-{
-	m_animationCallbackHandler = callbackHandler;
+	m_weight -= timeElapsed * DEFAULT_WEIGHT_RATIO;
 }
 
 float AnimationTrack::UpdatePosition(float trackPosition, float timeElapsed, float animationLength)
@@ -833,27 +828,6 @@ float AnimationTrack::UpdatePosition(float trackPosition, float timeElapsed, flo
 	}
 
 	return m_position;
-}
-
-void AnimationTrack::AnimationCallback()
-{
-	// callback 핸들러가 있다면
-	// 트랙에 있는 callbackKeys를 검사함
-	// callbackKey 에 정의된 callback 시간과 현재 애니메이션 시간이 같은지 검사
-	// callbackKey 에 callback 데이터가 있다면 
-	// 해당 callback 동작을 수행
-
-	// ex) 공격 동작 중간에 공격판정을 넣고자 한다면 공격 시작시간과 끝시간을 설정해
-	// 시작시간엔 공격 판정이 되도록, 끝시간엔 공격 판정이 끝나도록 callback을 설정하면 됨
-	if (m_animationCallbackHandler) {
-		for (auto& callbackKey : m_callbackKeys) {
-			if (abs(callbackKey.m_time - m_position) <= ANIMATION_EPSILON) {
-				if (callbackKey.m_callbackData)
-					m_animationCallbackHandler->Callback(callbackKey.m_callbackData, m_position);
-				break;
-			}
-		}
-	}
 }
 
 AnimationController::AnimationController(int animationTracks)
@@ -909,25 +883,6 @@ void AnimationController::SetTrackType(int animationTrack, int type)
 		m_animationTracks[animationTrack].SetAnimationType(type);
 }
 
-void AnimationController::SetCallbackKeys(int animationTrack, int callbackKeys)
-{
-	if (!m_animationTracks.empty())
-		m_animationTracks[animationTrack].SetCallbackKeys(callbackKeys);
-}
-
-void AnimationController::SetCallbackKey(int animationTrack, int keyIndex, float time, void* data)
-{
-	if (!m_animationTracks.empty())
-		m_animationTracks[animationTrack].SetCallbackKey(keyIndex, time, data);
-}
-
-void AnimationController::SetAnimationCallbackHandler(int animationTrack, const shared_ptr<AnimationCallbackHandler>& callbackHandler)
-{
-	if (!m_animationTracks.empty())
-		m_animationTracks[animationTrack].SetAnimationCallbackHandler(callbackHandler);
-
-}
-
 void AnimationController::Update(float timeElapsed, const shared_ptr<GameObject>& rootObject)
 {
 	m_time += timeElapsed;
@@ -958,19 +913,17 @@ void AnimationController::Update(float timeElapsed, const shared_ptr<GameObject>
 					p.second->SetAnimationMatrix(animation->GetTransform(p.first, position));
 				}
 
-				track.AnimationCallback();
 			}
 		}
 
 		// 여러 애니메이션 행렬을 섞어서 저장
 		else {
 
-			// bone = pair<string, pair<UINT, shared_ptr<GameObject>>>
 			for (auto& bone : m_animationTransforms)
 				bone.second.second->SetAnimationMatrix(Matrix::Zero());
 
-			for (auto& track : m_animationTracks) {
-				if (!track.GetEnable()) continue;
+			for (auto & track : m_animationTracks) {
+				if (!track.GetEnable()) continue; 
 
 				shared_ptr<Animation> animation = m_animationSet->GetAnimations()[track.GetAnimation()];
 
@@ -983,9 +936,15 @@ void AnimationController::Update(float timeElapsed, const shared_ptr<GameObject>
 					p.second->SetAnimationMatrix(Matrix::Add(p.second->GetAnimationMatrix(), 
 						Matrix::Scale(transform, track.GetWeight())));
 				}
-
-				track.AnimationCallback();
 			}
+
+			m_animationTracks[0].DecreaseWeight(timeElapsed);
+			m_animationTracks[1].IncreaseWeight(timeElapsed);
+			if (m_animationTracks[1].GetWeight() >= 1.f) {
+				m_blendingMode = AnimationBlending::NORMAL;
+				m_animationTracks[1].SetEnable(false);
+			}
+
 		}
 		rootObject->UpdateAnimationTransform(nullptr);
 

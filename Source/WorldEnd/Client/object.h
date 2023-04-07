@@ -208,21 +208,6 @@ protected:
 	USHORT								m_prevAnimation;
 };
 
-struct CALLBACKKEY
-{
-	float	m_time = 0.0f;
-	void* m_callbackData = nullptr;
-};
-
-class AnimationCallbackHandler
-{
-public:
-	AnimationCallbackHandler() {}
-	virtual ~AnimationCallbackHandler() {}
-
-	virtual void Callback(void* callbackData, float trackPosition);
-};
-
 class Animation		// 애니메이션 행동 정의
 {
 public:
@@ -278,24 +263,16 @@ public:
 	void SetWeight(float weight) { m_weight = weight; }
 	void SetAnimationType(int type) { m_type = type; }
 
-	void SetCallbackKeys(int callbackKeys);
-	void SetCallbackKey(int keyIndex, float time, void* data);
-	void SetAnimationCallbackHandler(const shared_ptr<AnimationCallbackHandler>& callbackHandler);
-
-
 	bool  GetEnable() const { return m_enable; }
 	float GetSpeed() const { return m_speed; }
 	float GetPosition() const { return m_position; }
 	float GetWeight() const { return m_weight; }
 	int   GetAnimation() const { return m_animation; }
 
-	int GetNumberOfCallbackKey() const { return m_nCallbackKey; }
-	vector<CALLBACKKEY> GetCallbackKeys() const { return m_callbackKeys; }
-	AnimationCallbackHandler* GetAnimationCallbackHandler() const { return m_animationCallbackHandler.get(); }
+	void IncreaseWeight(float timeElapsed);
+	void DecreaseWeight(float timeElapsed);
 
 	float UpdatePosition(float trackPosition, float timeElapsed, float animationLength);
-
-	void AnimationCallback();
 
 private:
 	bool									m_enable;				// 해당 트랙을 활성화 할지
@@ -304,11 +281,6 @@ private:
 	float									m_weight;				// 애니메이션 블렌딩 가중치
 	int										m_animation;			// 애니메이션 번호
 	int										m_type;					// 재생 타입(한번, 반복)
-
-	int										m_nCallbackKey;			// 콜백 갯수
-	vector<CALLBACKKEY>						m_callbackKeys;			// 콜백 컨테이너
-
-	shared_ptr<AnimationCallbackHandler>	m_animationCallbackHandler;		// 콜벡 핸들러 컨테이너
 };
 
 class AnimationController
@@ -325,10 +297,6 @@ public:
 	void SetTrackSpeed(int animationTrack, float speed);
 	void SetTrackWeight(int animationTrack, float weight);
 	void SetTrackType(int animationTrack, int type);
-
-	void SetCallbackKeys(int animationTrack, int callbackKeys);
-	void SetCallbackKey(int animationTrack, int keyIndex, float  time, void* data);
-	void SetAnimationCallbackHandler(int animationTrack, const shared_ptr<AnimationCallbackHandler>& callbackHandler);
 
 	AnimationTrack& GetAnimationTrack(int index) { return m_animationTracks[index]; }
 	AnimationSet* GetAnimationSet() const { return m_animationSet.get(); }
