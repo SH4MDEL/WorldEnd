@@ -149,11 +149,11 @@ void Monster::ChangeBehavior(MonsterBehavior behavior)
 
 	if (std::numeric_limits<BYTE>::max() == m_last_behavior_id)
 		m_last_behavior_id = 0;
-	ev.behavior_id = ++m_last_behavior_id;
+	ev.latest_id = ++m_last_behavior_id;
 
 	switch (m_current_behavior) {
 	case MonsterBehavior::CHASE: {
-		m_current_animation = ObjectAnimation::WALK;
+		m_current_animation = ObjectAnimation::RUN;
 		int time = random_retarget_time(dre);
 		ev.event_time = current_time + static_cast<std::chrono::seconds>(time);
 

@@ -32,7 +32,8 @@ constexpr char CS_PACKET_PLAYER_MOVE = 2;
 constexpr char CS_PACKET_SET_COOLTIME = 4;
 constexpr char CS_PACKET_ATTACK = 5;
 constexpr char CS_PACKET_CHANGE_ANIMATION = 6;
-constexpr char CS_PACKET_INTERACT_OBJECT = 7;
+constexpr char CS_PACKET_CHANGE_STAMINA = 7;
+constexpr char CS_PACKET_INTERACT_OBJECT = 8;
 
 constexpr char SC_PACKET_LOGIN_OK = 1;
 constexpr char SC_PACKET_ADD_OBJECT = 2;
@@ -60,7 +61,7 @@ enum class EnvironmentType : char { RAIN, FOG, GAS, TRAP };
 
 enum class CollisionType : char { PERSISTENCE, ONE_OFF, MULTIPLE_TIMES };
 enum CooltimeType : char {
-	NORMAL_ATTACK, SKILL, ULTIMATE, ROLL, COUNT
+	NORMAL_ATTACK, SKILL, ULTIMATE, DASH, ROLL, COUNT
 };
 enum class MonsterBehavior : char {
 	CHASE, RETARGET, TAUNT, PREPARE_ATTACK, ATTACK, DEAD, NONE
@@ -76,19 +77,25 @@ namespace PlayerSetting
 	constexpr float PLAYER_WALK_SPEED = 4.f;
 	constexpr float	PLAYER_RUN_SPEED = 10.f;
 	constexpr float	PLAYER_DASH_SPEED = 12.f;
+	constexpr float PLAYER_ROLL_SPEED = 10.f;
 
 	constexpr auto PLAYER_DASH_DURATION = 300ms;
 	constexpr float PLAYER_MAX_STAMINA = 120.f;
 	constexpr float MINIMUM_DASH_STAMINA = 10.f;
-	constexpr float STAMINA_REDUCTION_PER_SECOND = 10.f;
+	constexpr float MINIMUM_ROLL_STAMINA = 15.f;
+	constexpr float DEFAULT_STAMINA_CHANGE_AMOUNT = 10.f;
+	constexpr float ROLL_STAMINA_CHANGE_AMOUNT = 15.f;
+
+	constexpr auto PLAYER_ROOL_COOLTIME = 3s;
+	constexpr auto PLAYER_DASH_COOLTIME = 1200ms;
 
 	constexpr auto WARRIOR_ATTACK_COLLISION_TIME = 210ms;
-	constexpr auto WARRIOR_SKILL_COLLISION_TIME = 800ms;
-	constexpr auto WARRIOR_ULTIMATE_COLLISION_TIME = 1000ms;
+	constexpr auto WARRIOR_SKILL_COLLISION_TIME = 340ms;
+	constexpr auto WARRIOR_ULTIMATE_COLLISION_TIME = 930ms;
 	constexpr auto WARRIOR_ATTACK_COOLTIME = 1s;
 	constexpr auto WARRIOR_SKILL_COOLTIME = 7s;
 	constexpr auto WARRIOR_ULTIMATE_COOLTIME = 20s;
-
+	constexpr DirectX::XMFLOAT3 WARRIOR_ULTIMATE_EXTENT { 2.f, 2.f, 2.f };
 
 	constexpr auto ARCHER_ATTACK_COLLISION_TIME = 400ms;
 	constexpr auto ARCHER_ATTACK_COOLTIME = 1s;
@@ -129,7 +136,8 @@ namespace RoomSetting
 	constexpr float TOPSIDE_STAIRS_BACK = 43.f;
 
 	constexpr float EVENT_RADIUS = 1.f;
-	constexpr float EVENT_OBJECT_HEIGHT = 1.f;
+	constexpr DirectX::XMFLOAT3 BATTLE_STARTER_POSITION { 0.f, 0.f, 24.f };
+	constexpr DirectX::XMFLOAT3 WARP_PORTAL_POSITION { -1.f, TOPSIDE_STAIRS_HEIGHT, 60.f };
 }
 
 // ----- 애니메이션 enum 클래스 -----
@@ -149,7 +157,7 @@ public:
 	static constexpr int ANIMATION_START = 100;
 	enum USHORT {
 		DASH = ObjectAnimation::END + ANIMATION_START,
-		
+		SKILL, ULTIMATE, ROLL
 	};
 };
 
@@ -254,7 +262,14 @@ struct CS_CHANGE_ANIMATION_PACKET
 {
 	UCHAR size;
 	UCHAR type;
-	INT	animation_type;
+	USHORT animation_type;
+};
+
+struct CS_CHANGE_STAMINA_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+	bool is_increase;
 };
 
 struct CS_INTERACT_OBJECT_PACKET
@@ -364,7 +379,7 @@ struct SC_CHANGE_ANIMATION_PACKET
 	UCHAR size;
 	UCHAR type;
 	INT id;
-	INT animation_type;
+	USHORT animation_type;
 };
 
 struct SC_RESET_COOLTIME_PACKET

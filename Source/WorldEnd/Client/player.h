@@ -39,19 +39,23 @@ public:
 	PlayerType GetType() const { return m_type; }
 	InteractableType GetInteractableType() const { return m_interactableType; }
 
-	void ResetCooltime(CooltimeType type);
-	virtual bool ChangeAnimation(int animation) override;
-	void ChangeAnimation(int animation, bool other);
+	void ResetCooltime(char type);
+	virtual bool ChangeAnimation(USHORT animation) override;
+	void ChangeAnimation(USHORT animation, bool other);
 
 	// 추가
 	void SetID(INT id) { m_id = id; }
 	INT GetID() const { return m_id; }
 
-	void SendCooltimePacket(CooltimeType type);
-	void SendAttackPacket(const XMFLOAT3& pos, AttackType attackType,
+	void CreateMovePacket();
+	void CreateCooltimePacket(CooltimeType type);
+	void CreateAttackPacket(const XMFLOAT3& pos, AttackType attackType,
 		CollisionType collisionType, chrono::system_clock::time_point eventTime,
 		CooltimeType cooltimeType);
-	void SendInteractPacket();
+	void CreateInteractPacket();
+	void CreateChangeStaminaPacket(bool value);
+	void SetBuffer(void* mess, size_t size);
+	void SendPacket();
 
 private:
 	XMFLOAT3				m_velocity;		// 속도
@@ -79,13 +83,7 @@ private:
 
 	bool				m_interactable;
 	InteractableType	m_interactableType;
-};
 
-class AttackCallbackHandler : public AnimationCallbackHandler
-{
-public:
-	AttackCallbackHandler() = default;
-	~AttackCallbackHandler() = default;
-
-	virtual void Callback(void* callbackData, float trackPosition);
+	CHAR				m_sendBuffer[BUFSIZ];
+	int					m_bufSize;
 };

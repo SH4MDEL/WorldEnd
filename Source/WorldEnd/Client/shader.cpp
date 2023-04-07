@@ -125,6 +125,11 @@ void Shader::SetMonster(INT ID, const shared_ptr<Monster>& monster)
 	m_monsters.insert({ ID, monster });
 }
 
+void Shader::RemoveObject(const shared_ptr<GameObject>& object)
+{
+	erase(m_gameObjects, object);
+}
+
 void Shader::DeleteMultiPlayer(INT id)
 {
 	m_multiPlayers.erase(id);

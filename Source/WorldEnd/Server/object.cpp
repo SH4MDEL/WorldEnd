@@ -94,7 +94,7 @@ void Enhancment::SendEvent(INT player_id, void* c)
 
 BattleStarter::BattleStarter() : m_is_valid{ true }
 {
-	m_event_bounding_box.Center = XMFLOAT3(0.f, RoomSetting::EVENT_OBJECT_HEIGHT, 24.f);
+	m_event_bounding_box.Center = RoomSetting::BATTLE_STARTER_POSITION;
 	m_event_bounding_box.Extents =
 		XMFLOAT3(RoomSetting::EVENT_RADIUS, RoomSetting::EVENT_RADIUS, RoomSetting::EVENT_RADIUS);
 }
@@ -140,8 +140,7 @@ void BattleStarter::SendEvent(const std::span<INT>& ids, void* c)
 
 WarpPortal::WarpPortal() : m_is_valid{ false }
 {
-	m_event_bounding_box.Center =
-		XMFLOAT3(-1.f, RoomSetting::TOPSIDE_STAIRS_HEIGHT + RoomSetting::EVENT_OBJECT_HEIGHT, 60.f);
+	m_event_bounding_box.Center = RoomSetting::WARP_PORTAL_POSITION;
 	m_event_bounding_box.Extents =
 		XMFLOAT3(RoomSetting::EVENT_RADIUS, RoomSetting::EVENT_RADIUS, RoomSetting::EVENT_RADIUS);
 }

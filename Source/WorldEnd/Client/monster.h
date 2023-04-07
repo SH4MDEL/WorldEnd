@@ -12,6 +12,7 @@ public:
 	void Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw) override;
 
 	void SetPosition(const XMFLOAT3& position) override;
+	void SetMaxHp(FLOAT maxHp);
 	void SetHp(FLOAT hp);
 	void SetHpBar(const shared_ptr<GaugeBar>& hpBar) override { m_hpBar = hpBar; }
 	void SetVelocity(XMFLOAT3& velocity);

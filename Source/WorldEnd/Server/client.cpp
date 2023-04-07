@@ -30,13 +30,15 @@ ExpOver::ExpOver(char* packet, INT packet_count)
 }
 
 Client::Client() : m_socket{}, m_ready_check{ false }, m_remain_size{ 0 },
-	m_recv_over{}, m_stamina{ PlayerSetting::PLAYER_MAX_STAMINA }, m_is_dash{ false },
-	m_interactable{ false }
+	m_recv_over{}, m_stamina{ PlayerSetting::PLAYER_MAX_STAMINA },
+	m_interactable{ false }, m_latest_id{ 0 }
 {
 	m_name = "Player";
 	SetPlayerType(PlayerType::WARRIOR);
 	m_damage = 90.f;
-	m_skill_ratio = 1.2f;
+
+	m_skill_ratio = 1.3f;
+	m_ultimate_ratio = 2.0f;
 
 	m_max_hp = 100.f;
 	m_hp = 100.f;
@@ -131,14 +133,19 @@ void Client::SetStamina(FLOAT stamina)
 	m_stamina = stamina;
 }
 
-void Client::SetIsDash(bool val)
+void Client::SetLatestId(BYTE id)
 {
-	m_is_dash = val;
+	m_latest_id = id;
 }
 
 void Client::SetInteractable(bool val)
 {
 	m_interactable = val;
+}
+
+void Client::SetCurrentAnimation(USHORT animation)
+{
+	m_current_animation = animation;
 }
 
 FLOAT Client::GetSkillRatio(AttackType type) const
