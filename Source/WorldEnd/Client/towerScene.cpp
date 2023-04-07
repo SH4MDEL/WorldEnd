@@ -927,4 +927,8 @@ void TowerScene::RecvWarpNextFloor(char* ptr)
 	}
 
 	m_shaders["OBJECT"]->SetObject(m_gate);
+
+	for (size_t i = 0; i < CooltimeType::COUNT; ++i) {
+		m_player->ResetCooltime(static_cast<char>(i));
+	}
 }

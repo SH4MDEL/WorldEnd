@@ -186,7 +186,7 @@ public:
 
 	virtual AnimationController* GetAnimationController() const { return m_animationController.get(); }
 
-	virtual bool ChangeAnimation(int animation);
+	virtual bool ChangeAnimation(USHORT animation);
 	virtual void SetHpBar(const shared_ptr<GaugeBar>& hpBar) {};
 
 	virtual FLOAT GetMaxHp() const { return 0.f; }
@@ -204,7 +204,8 @@ public:
 
 protected:
 	unique_ptr<AnimationController>		m_animationController;
-	int									m_currentAnimation;
+	USHORT								m_currentAnimation;
+	USHORT								m_prevAnimation;
 };
 
 struct CALLBACKKEY

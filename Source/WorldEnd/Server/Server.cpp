@@ -363,14 +363,20 @@ void Server::WorkerThread()
 					break;
 
 				case AttackType::SKILL:
-
+					obb = client->GetWeaponBoundingBox();
+					obb.Center = *pos;
 					break;
 
 				case AttackType::ULTIMATE:
-
+					obb = client->GetWeaponBoundingBox();
+					obb.Center = *pos;
+					obb.Extents = PlayerSetting::WARRIOR_ULTIMATE_EXTENT;
 					break;
 				}
 			}
+
+			FLOAT damage{ client->GetDamage() };
+			damage *= client->GetSkillRatio(attack_type);
 
 			for (int id : monter_ids) {
 				if (-1 == id) continue;
@@ -379,9 +385,6 @@ void Server::WorkerThread()
 				if (m_clients[id]->GetBoundingBox().Intersects(obb)) {
 					auto monster = dynamic_pointer_cast<Monster>(m_clients[id]);
 
-					FLOAT damage = client->GetDamage();
-					damage *= client->GetSkillRatio(attack_type);
-					
 					monster->DecreaseHp(damage, client->GetId());
 					v.push_back(id);
 
@@ -471,23 +474,28 @@ void Server::WorkerThread()
 			int id = static_cast<int>(key);
 			auto client = dynamic_pointer_cast<Client>(m_clients[id]);
 			bool is_stamina_increase = static_cast<bool>(exp_over->_send_buf[0]);
-			
+			BYTE latest_id = static_cast<BYTE>(exp_over->_send_buf[1]);
+			INT* amount = reinterpret_cast<INT*>(&exp_over->_send_buf[2]);
+
 			TIMER_EVENT ev{ .event_time = std::chrono::system_clock::now() + std::chrono::seconds(1),
-				.obj_id = id, .event_type = EventType::STAMINA_CHANGE};
+				.obj_id = id, .event_type = EventType::STAMINA_CHANGE, .latest_id = latest_id };
 			
 			SC_CHANGE_STAMINA_PACKET packet{};
 			packet.size = sizeof(packet);
 			packet.type = SC_PACKET_CHANGE_STAMINA;
 
 			if (is_stamina_increase) {
-				// 스태미너 증가는 대쉬중이면 반복X
-				if (client->GetIsDash()) {
+				// 스태미너 증가는 달리는중이면 반복X
+				client->ChangeStamina(static_cast<FLOAT>(*amount));
+
+				if (PlayerAnimation::RUN == client->GetCurrentAnimation() ||
+					PlayerAnimation::DASH == client->GetCurrentAnimation())
+				{
 					delete exp_over;
 					break;
 				}
 
-				// 대쉬중이 아니면 최대에 다다르면 끝내기
-				client->ChangeStamina(PlayerSetting::STAMINA_REDUCTION_PER_SECOND);
+				// 달리는중이 아니면 최대에 도달했을 때 끝내기
 				if (client->GetStamina() >= PlayerSetting::PLAYER_MAX_STAMINA) {
 					client->SetStamina(PlayerSetting::PLAYER_MAX_STAMINA);
 					packet.stamina = PlayerSetting::PLAYER_MAX_STAMINA;
@@ -495,17 +503,22 @@ void Server::WorkerThread()
 					delete exp_over;
 					break;
 				}
+				ev.targat_id = PlayerSetting::DEFAULT_STAMINA_CHANGE_AMOUNT;
 				ev.is_stamina_increase = true;
 			}
 			else {
-				// 대쉬중이 아니면 감소 끝냄
-				client->ChangeStamina(-PlayerSetting::STAMINA_REDUCTION_PER_SECOND);
-				if (!client->GetIsDash()) {
+				// 달리는중이 아니면 감소 끝냄
+				client->ChangeStamina(static_cast<FLOAT>(*amount));
+				if (PlayerAnimation::RUN != client->GetCurrentAnimation() &&
+					PlayerAnimation::DASH != client->GetCurrentAnimation() &&
+					PlayerAnimation::ROLL != client->GetCurrentAnimation())
+				{
 					packet.stamina = client->GetStamina();
 					client->DoSend(&packet);
 					delete exp_over;
 					break;
 				}
+				ev.targat_id = -PlayerSetting::DEFAULT_STAMINA_CHANGE_AMOUNT;
 				ev.is_stamina_increase = false;
 			}
 			m_timer_queue.push(ev);
@@ -573,8 +586,12 @@ void Server::ProcessPacket(int id, char* p)
 		// 쿨타임 중인지 검사 필요
 		// 공격 외 쿨타임 처리
 		switch (packet->cooltime_type) {
+		case CooltimeType::DASH:
+			ev.event_time = std::chrono::system_clock::now() + PlayerSetting::PLAYER_DASH_COOLTIME;
+			break;
 		case CooltimeType::ROLL:
 			ev.event_time = std::chrono::system_clock::now() + PlayerSetting::PLAYER_ROOL_COOLTIME;
+			break;
 		}
 
 		m_timer_queue.push(ev);
@@ -634,6 +651,7 @@ void Server::ProcessPacket(int id, char* p)
 			reinterpret_cast<CS_CHANGE_ANIMATION_PACKET*>(p);
 
 		auto client = dynamic_pointer_cast<Client>(m_clients[id]);
+		client->SetCurrentAnimation(animation_packet->animation_type);
 
 		SC_CHANGE_ANIMATION_PACKET packet{};
 		packet.size = sizeof(packet);
@@ -650,24 +668,48 @@ void Server::ProcessPacket(int id, char* p)
 			m_clients[client_id]->DoSend(&packet);
 		}
 
+
+		break;
+	}
+	case CS_PACKET_CHANGE_STAMINA: {
+		CS_CHANGE_STAMINA_PACKET* packet =
+			reinterpret_cast<CS_CHANGE_STAMINA_PACKET*>(p);
+
+		auto client = dynamic_pointer_cast<Client>(m_clients[id]);
+
 		TIMER_EVENT ev{ .obj_id = id, .event_type = EventType::STAMINA_CHANGE };
 
-		if (!client->GetIsDash() &&
-			PlayerAnimation::DASH == animation_packet->animation_type) 
-		{
-			ev.event_time = std::chrono::system_clock::now() + std::chrono::seconds(1);
+		// 대쉬 스태미너 타이머 처리
+		if (!packet->is_increase){
+			ev.event_time = std::chrono::system_clock::now();
 			ev.is_stamina_increase = false;
-			client->SetIsDash(true);
+
+			if (PlayerAnimation::ROLL == client->GetCurrentAnimation()) {
+				ev.targat_id = -PlayerSetting::ROLL_STAMINA_CHANGE_AMOUNT;
+			}
+			else {
+				ev.targat_id = -PlayerSetting::DEFAULT_STAMINA_CHANGE_AMOUNT;
+			}
+
+			BYTE latest_id{ client->GetLatestId() };
+			if (std::numeric_limits<BYTE>::max() == latest_id)
+				latest_id = 0;
+			ev.latest_id = ++latest_id;
+			client->SetLatestId(latest_id);
+
 			m_timer_queue.push(ev);
 		}
-		else if ( client->GetIsDash() &&
-			PlayerAnimation::DASH != animation_packet->animation_type &&
-			ObjectAnimation::RUN != animation_packet->animation_type) 
-		{
+		else{
 			ev.event_time = std::chrono::system_clock::now() + std::chrono::seconds(2);
 			ev.is_stamina_increase = true;
-			auto client = dynamic_pointer_cast<Client>(m_clients[id]);
-			client->SetIsDash(false);
+			ev.targat_id = PlayerSetting::DEFAULT_STAMINA_CHANGE_AMOUNT;
+
+			BYTE latest_id{ client->GetLatestId() };
+			if (std::numeric_limits<BYTE>::max() == latest_id)
+				latest_id = 0;
+			ev.latest_id = ++latest_id;
+			client->SetLatestId(latest_id);
+
 			m_timer_queue.push(ev);
 		}
 
@@ -696,6 +738,8 @@ void Server::ProcessPacket(int id, char* p)
 
 			break;
 		}
+
+		break;
 	}
 
 	}
@@ -961,10 +1005,7 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 		over->_comp_type = OP_COOLTIME_RESET;	
 		memcpy(&over->_send_buf, &ev.cooltime_type, sizeof(CooltimeType));
 
-		// 단순히 쿨타임 초기화만 필요하면 PQCS 로 넘기지 않아도 될 것 같음
-
 		PostQueuedCompletionStatus(m_handle_iocp, 1, ev.obj_id, &over->_wsa_over);
-
 		break;
 	}
 	case EventType::BEHAVIOR_CHANGE: {
@@ -978,7 +1019,7 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 		}
 
 		// 가장 최근에 발생한 행동전환 이벤트가 아니면 return
-		if (ev.behavior_id != monster->GetLastBehaviorId())
+		if (ev.latest_id != monster->GetLastBehaviorId())
 			return;
 
 		// 죽었다면 기존에 타이머큐에 있던 동작이 넘어오면 넘겨버림
@@ -1011,6 +1052,22 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 		break;
 	}
 	case EventType::ATTACK_COLLISION: {
+		auto client = dynamic_pointer_cast<Client>(m_clients[ev.obj_id]);
+		switch (ev.attack_type) {
+		case AttackType::NORMAL:
+			if (ObjectAnimation::ATTACK != client->GetCurrentAnimation())
+				return;
+			break;
+		case AttackType::SKILL:
+			if (PlayerAnimation::SKILL != client->GetCurrentAnimation())
+				return;
+			break;
+		case AttackType::ULTIMATE:
+			if (PlayerAnimation::ULTIMATE != client->GetCurrentAnimation())
+				return;
+			break;
+		}
+
 		ExpOver* over = new ExpOver;
 		over->_comp_type = OP_ATTACK_COLLISION;
 		memcpy(&over->_send_buf[0], &ev.attack_type, sizeof(AttackType));
@@ -1029,9 +1086,15 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 		break;
 	}
 	case EventType::STAMINA_CHANGE: {
+		auto client = dynamic_pointer_cast<Client>(m_clients[ev.obj_id]);
+		if (ev.latest_id != client->GetLatestId())
+			return;
+		
 		ExpOver* over = new ExpOver;
 		over->_comp_type = OP_STAMINA_CHANGE;
 		memcpy(&over->_send_buf[0], &ev.is_stamina_increase, sizeof(bool));
+		memcpy(&over->_send_buf[1], &ev.latest_id, sizeof(BYTE));
+		memcpy(&over->_send_buf[2], &ev.targat_id, sizeof(int));
 		PostQueuedCompletionStatus(m_handle_iocp, 1, ev.obj_id, &over->_wsa_over);
 		break;
 	}

@@ -39,9 +39,9 @@ public:
 	PlayerType GetType() const { return m_type; }
 	InteractableType GetInteractableType() const { return m_interactableType; }
 
-	void ResetCooltime(CooltimeType type);
-	virtual bool ChangeAnimation(int animation) override;
-	void ChangeAnimation(int animation, bool other);
+	void ResetCooltime(char type);
+	virtual bool ChangeAnimation(USHORT animation) override;
+	void ChangeAnimation(USHORT animation, bool other);
 
 	// 추가
 	void SetID(INT id) { m_id = id; }
@@ -53,6 +53,8 @@ public:
 		CollisionType collisionType, chrono::system_clock::time_point eventTime,
 		CooltimeType cooltimeType);
 	void SendInteractPacket();
+	void SendChangeStaminaPacket(bool value);
+	void SendPacket(void* mess, int size);
 
 private:
 	XMFLOAT3				m_velocity;		// 속도

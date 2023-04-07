@@ -149,7 +149,7 @@ void Monster::ChangeBehavior(MonsterBehavior behavior)
 
 	if (std::numeric_limits<BYTE>::max() == m_last_behavior_id)
 		m_last_behavior_id = 0;
-	ev.behavior_id = ++m_last_behavior_id;
+	ev.latest_id = ++m_last_behavior_id;
 
 	switch (m_current_behavior) {
 	case MonsterBehavior::CHASE: {

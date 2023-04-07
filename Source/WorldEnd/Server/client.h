@@ -41,8 +41,9 @@ public:
 	void SetWeaponCenter(const XMFLOAT3& center);
 	void SetWeaponOrientation(const XMFLOAT4& orientation);
 	void SetStamina(FLOAT stamina);
-	void SetIsDash(bool val);
+	void SetLatestId(BYTE id);
 	void SetInteractable(bool val);
+	void SetCurrentAnimation(USHORT animation);
 
 	const SOCKET& GetSocket() const override { return m_socket; }
 	ExpOver& GetExpOver() { return m_recv_over; }
@@ -52,8 +53,9 @@ public:
 	virtual FLOAT GetSkillRatio(AttackType type) const override;
 	const BoundingOrientedBox& GetWeaponBoundingBox() const { return m_weopon_bounding_box; }
 	FLOAT GetStamina() const { return m_stamina; }
-	bool GetIsDash() const { return m_is_dash; }
+	BYTE GetLatestId() const { return m_latest_id; }
 	bool GetInteractable() const { return m_interactable; }
+	USHORT GetCurrentAnimation() const { return m_current_animation; }
 
 	PLAYER_DATA GetPlayerData() const override;
 
@@ -73,8 +75,9 @@ private:
 	FLOAT					m_skill_ratio;
 	FLOAT					m_ultimate_ratio;
 	FLOAT					m_stamina;
-	bool					m_is_dash;
+	BYTE					m_latest_id;
 	bool					m_interactable;
+	USHORT					m_current_animation;
 
 	void SetBoundingBox(PlayerType type);
 };

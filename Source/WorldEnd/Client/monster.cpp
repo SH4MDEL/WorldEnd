@@ -28,6 +28,15 @@ void Monster::SetPosition(const XMFLOAT3& position)
 	}
 }
 
+void Monster::SetMaxHp(FLOAT maxHp)
+{
+	m_maxHp = maxHp;
+
+	if (m_hpBar) {
+		m_hpBar->SetMaxGauge(maxHp);
+	}
+}
+
 void Monster::SetHp(FLOAT hp)
 {
 	m_hp = hp;
@@ -35,7 +44,6 @@ void Monster::SetHp(FLOAT hp)
 		m_hp = 0;
 
 	if (m_hpBar) {
-		m_hpBar->SetMaxGauge(m_maxHp);
 		m_hpBar->SetGauge(m_hp);
 	}
 }

@@ -20,7 +20,7 @@ struct TIMER_EVENT {
 	EventType event_type;
 	CooltimeType cooltime_type;
 	MonsterBehavior next_behavior_type;
-	BYTE behavior_id;
+	BYTE latest_id;
 	BYTE aggro_level;
 	AttackType attack_type;
 	CollisionType collision_type;

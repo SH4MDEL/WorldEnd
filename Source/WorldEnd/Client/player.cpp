@@ -18,15 +18,15 @@ Player::~Player()
 void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 {
 	if (GetAsyncKeyState('Q') & 0x8000) {
-		if (m_cooltimeList[CooltimeType::ULTIMATE])
-			return;
+		if (!m_cooltimeList[CooltimeType::ULTIMATE]) {
 
-		ChangeAnimation(PlayerAnimation::ULTIMATE);
+			ChangeAnimation(PlayerAnimation::ULTIMATE);
 
-		XMFLOAT3 pos = GetPosition();
-		SendAttackPacket(pos, AttackType::ULTIMATE, CollisionType::MULTIPLE_TIMES,
-			chrono::system_clock::now() + PlayerSetting::WARRIOR_ULTIMATE_COLLISION_TIME,
-			CooltimeType::ULTIMATE);
+			XMFLOAT3 pos = Vector3::Add(Vector3::Mul(m_front, 0.8f), GetPosition());
+			SendAttackPacket(pos, AttackType::ULTIMATE, CollisionType::MULTIPLE_TIMES,
+				chrono::system_clock::now() + PlayerSetting::WARRIOR_ULTIMATE_COLLISION_TIME,
+				CooltimeType::ULTIMATE);
+		}
 	}
 
 	// 궁극기 시전중이면 아래의 키보드 입력 X
@@ -96,40 +96,48 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 	}
 
 	if (GetAsyncKeyState(VK_SPACE) & 0x8000) {
-		if (m_cooltimeList[CooltimeType::ROLL])
-			return;
+		if (!m_cooltimeList[CooltimeType::ROLL]) {
+			if (m_stamina >= PlayerSetting::MINIMUM_ROLL_STAMINA) {
 
-		ChangeAnimation(PlayerAnimation::ROLL);
-		m_moveSpeed = PlayerSetting::PLAYER_ROLL_SPEED;
+				ChangeAnimation(PlayerAnimation::ROLL);
+				m_moveSpeed = PlayerSetting::PLAYER_ROLL_SPEED;
 
-		SendCooltimePacket(CooltimeType::ROLL);
+				SendCooltimePacket(CooltimeType::ROLL);
+				SendChangeStaminaPacket(false);
+			}
+		}
 	}
 	
 	if (!m_dashed && GetAsyncKeyState(VK_SHIFT) & 0x8000) {
-		if (m_stamina >= PlayerSetting::MINIMUM_DASH_STAMINA) {
-			m_dashed = true;
-			ChangeAnimation(PlayerAnimation::DASH);
-			m_moveSpeed = PlayerSetting::PLAYER_DASH_SPEED;
-			m_startDash = chrono::system_clock::now();
+		if (!m_cooltimeList[CooltimeType::DASH]) {
+
+			if (m_stamina >= PlayerSetting::MINIMUM_DASH_STAMINA) {
+				m_dashed = true;
+				ChangeAnimation(PlayerAnimation::DASH);
+				m_moveSpeed = PlayerSetting::PLAYER_DASH_SPEED;
+				m_startDash = chrono::system_clock::now();
+
+				SendCooltimePacket(CooltimeType::DASH);
+				SendChangeStaminaPacket(false);
+			}
 		}
 	}
 	if (m_dashed && GetAsyncKeyState(VK_SHIFT) == 0x0000) {
 		m_dashed = false;
-		ChangeAnimation(ObjectAnimation::WALK);
-		m_moveSpeed = PlayerSetting::PLAYER_WALK_SPEED;
+		SendChangeStaminaPacket(true);
 	}
 	
 	if (GetAsyncKeyState('E') & 0x8000) {
-		if (m_cooltimeList[CooltimeType::SKILL])
-			return;
+		if (!m_cooltimeList[CooltimeType::SKILL]) {
 
-		ChangeAnimation(PlayerAnimation::SKILL);
+			ChangeAnimation(PlayerAnimation::SKILL);
 
-		// 임시 위치
-		XMFLOAT3 pos = GetPosition();
-		SendAttackPacket(pos, AttackType::SKILL, CollisionType::MULTIPLE_TIMES,
-			chrono::system_clock::now() + PlayerSetting::WARRIOR_SKILL_COLLISION_TIME,
-			CooltimeType::SKILL);
+			// 임시 위치
+			XMFLOAT3 pos = Vector3::Add(Vector3::Mul(m_front, 0.8f), GetPosition());
+			SendAttackPacket(pos, AttackType::SKILL, CollisionType::MULTIPLE_TIMES,
+				chrono::system_clock::now() + PlayerSetting::WARRIOR_SKILL_COLLISION_TIME,
+				CooltimeType::SKILL);
+		}
 	}
 
 	if (GetAsyncKeyState('F') & 0x8000) {
@@ -180,7 +188,10 @@ void Player::Update(FLOAT timeElapsed)
 
 			// 스킬 애니메이션 종료 시 IDLE 로 변경
 			if (fabs(track.GetPosition() - animation->GetLength()) <= numeric_limits<float>::epsilon()) {
-				ChangeAnimation(ObjectAnimation::IDLE);
+				if (m_dashed && (PlayerAnimation::RUN == m_prevAnimation))
+					ChangeAnimation(PlayerAnimation::RUN);
+				else
+					ChangeAnimation(ObjectAnimation::IDLE);
 			}
 		}
 		else if (PlayerAnimation::ULTIMATE == m_currentAnimation) {
@@ -189,7 +200,10 @@ void Player::Update(FLOAT timeElapsed)
 
 			// 스킬 애니메이션 종료 시 IDLE 로 변경
 			if (fabs(track.GetPosition() - animation->GetLength()) <= numeric_limits<float>::epsilon()) {
-				ChangeAnimation(ObjectAnimation::IDLE);
+				if (m_dashed && (PlayerAnimation::RUN == m_prevAnimation))
+					ChangeAnimation(PlayerAnimation::RUN);
+				else
+					ChangeAnimation(ObjectAnimation::IDLE);
 			}
 		}
 		else if (PlayerAnimation::ROLL == m_currentAnimation) {
@@ -200,14 +214,29 @@ void Player::Update(FLOAT timeElapsed)
 			auto& animation = m_animationController->GetAnimationSet()->GetAnimations()[track.GetAnimation()];
 
 			if (fabs(track.GetPosition() - animation->GetLength()) <= 0.25f) {
-				ChangeAnimation(ObjectAnimation::IDLE);
-				m_moveSpeed = PlayerSetting::PLAYER_WALK_SPEED;
+				if (m_dashed && (PlayerAnimation::RUN == m_prevAnimation)) {
+					ChangeAnimation(PlayerAnimation::RUN);
+					m_moveSpeed = PlayerSetting::PLAYER_RUN_SPEED;
+				}
+				else {
+					ChangeAnimation(ObjectAnimation::IDLE);
+					m_moveSpeed = PlayerSetting::PLAYER_WALK_SPEED;
+					SendChangeStaminaPacket(true);
+				}
 			}
 		}
 		else if (PlayerAnimation::DASH == m_currentAnimation) {
+
+			auto& track = m_animationController->GetAnimationTrack(0);
+			auto& animation = m_animationController->GetAnimationSet()->GetAnimations()[track.GetAnimation()];
+
 			if (chrono::system_clock::now() > m_startDash + PlayerSetting::PLAYER_DASH_DURATION) {
 				ChangeAnimation(ObjectAnimation::RUN);
 				m_moveSpeed = PlayerSetting::PLAYER_RUN_SPEED;
+			}
+			else if (fabs(track.GetPosition() - animation->GetLength()) <= numeric_limits<float>::epsilon()) {
+				ChangeAnimation(ObjectAnimation::WALK);
+				m_moveSpeed = PlayerSetting::PLAYER_WALK_SPEED;
 			}
 		}
 		else {
@@ -221,11 +250,13 @@ void Player::Update(FLOAT timeElapsed)
 						m_dashed = false;
 						m_moveSpeed = PlayerSetting::PLAYER_WALK_SPEED;
 						ChangeAnimation(ObjectAnimation::WALK);
+						SendChangeStaminaPacket(true);
 					}
 					ChangeAnimation(ObjectAnimation::RUN);
 				}
 				else {
 					ChangeAnimation(ObjectAnimation::WALK);
+					m_moveSpeed = PlayerSetting::PLAYER_WALK_SPEED;
 				}
 			}
 		}
@@ -308,12 +339,12 @@ void Player::SetStamina(FLOAT stamina)
 		m_staminaBar->SetGauge(m_stamina);
 }
 
-void Player::ResetCooltime(CooltimeType type)
+void Player::ResetCooltime(char type)
 {
 	m_cooltimeList[type] = false;
 }
 
-bool Player::ChangeAnimation(int animation)
+bool Player::ChangeAnimation(USHORT animation)
 {
 	if (!AnimationObject::ChangeAnimation(animation))
 		return false;
@@ -327,7 +358,7 @@ bool Player::ChangeAnimation(int animation)
 	return true;
 }
 
-void Player::ChangeAnimation(int animation, bool other)
+void Player::ChangeAnimation(USHORT animation, bool other)
 {
 	AnimationObject::ChangeAnimation(animation);
 }
@@ -389,6 +420,22 @@ void Player::SendInteractPacket()
 #endif
 }
 
+void Player::SendChangeStaminaPacket(bool value)
+{
+#ifdef USE_NETWORK
+	CS_CHANGE_STAMINA_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = CS_PACKET_CHANGE_STAMINA;
+	packet.is_increase = value;
+	send(g_socket, reinterpret_cast<char*>(&packet), packet.size, 0);
+	//return static_cast<void*>(&packet);
+#endif
+}
+
+void Player::SendPacket(void* mess, int size)
+{
+	send(g_socket, reinterpret_cast<char*>(mess), size, 0);
+}
 
 void AttackCallbackHandler::Callback(void* callbackData, float trackPosition)
 {

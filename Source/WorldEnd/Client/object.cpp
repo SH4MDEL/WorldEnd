@@ -533,7 +533,7 @@ AnimationObject::AnimationObject()
 	m_currentAnimation = ObjectAnimation::IDLE;
 }
 
-bool AnimationObject::ChangeAnimation(int animation)
+bool AnimationObject::ChangeAnimation(USHORT animation)
 {
 	if (m_currentAnimation == animation)
 		return false;
@@ -600,6 +600,7 @@ bool AnimationObject::ChangeAnimation(int animation)
 		start_num = MonsterAnimation::ANIMATION_START;
 		break;
 	}
+	m_prevAnimation = m_currentAnimation;
 	m_currentAnimation = animation;
 	m_animationController->SetTrackAnimation(0, animation - start_num);
 	
