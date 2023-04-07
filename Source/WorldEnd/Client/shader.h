@@ -145,6 +145,13 @@ public:
 	~VertBlurShader() = default;
 };
 
+class FadeShader : public Shader
+{
+public:
+	FadeShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature);
+	~FadeShader() = default;
+};
+
 class SobelShader : public Shader
 {
 public:

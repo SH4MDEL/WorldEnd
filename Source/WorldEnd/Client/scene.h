@@ -14,6 +14,7 @@
 #include "text.h"
 #include "particleSystem.h"
 #include "blurFilter.h"
+#include "fadeFilter.h"
 #include "sobelFilter.h"
 
 struct SceneInfo

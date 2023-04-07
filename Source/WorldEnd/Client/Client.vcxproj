@@ -150,6 +150,7 @@
     <ClInclude Include="Client.h" />
     <ClInclude Include="d3dx12.h" />
     <ClInclude Include="DDSTextureLoader12.h" />
+    <ClInclude Include="fadeFilter.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="light.h" />
     <ClInclude Include="loadingScene.h" />
@@ -180,6 +181,7 @@
     <ClCompile Include="camera.cpp" />
     <ClCompile Include="Client.cpp" />
     <ClCompile Include="DDSTextureLoader12.cpp" />
+    <ClCompile Include="fadeFilter.cpp" />
     <ClCompile Include="framework.cpp" />
     <ClCompile Include="light.cpp" />
     <ClCompile Include="loadingScene.cpp" />
@@ -234,6 +236,9 @@
     <FxCompile Include="Resource\Shader\debug.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="Resource\Shader\fade.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </FxCompile>
     <FxCompile Include="Resource\Shader\particle.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>

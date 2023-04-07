@@ -32,7 +32,7 @@ void SobelFilter::Execute(const ComPtr<ID3D12GraphicsCommandList>& commandList, 
 	commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderMap.Get(),
 		D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_COPY_DEST));
 
-	// Copy
+	// ¼Òº§ ¸Ê°ú ·»´õ ¸Ê¿¡ ·»´õ Å¸°ÙÀ» ±â·Ï
 	commandList->CopyResource(m_sobelMap.Get(), renderTarget.Get());
 	commandList->CopyResource(m_renderMap.Get(), renderTarget.Get());
 

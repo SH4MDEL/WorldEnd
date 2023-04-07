@@ -156,6 +156,9 @@
     <ClInclude Include="ui.h">
       <Filter>헤더 파일\Object</Filter>
     </ClInclude>
+    <ClInclude Include="fadeFilter.h">
+      <Filter>헤더 파일\Filter</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Client.cpp">
@@ -236,6 +239,9 @@
     <ClCompile Include="ui.cpp">
       <Filter>소스 파일\Object</Filter>
     </ClCompile>
+    <ClCompile Include="fadeFilter.cpp">
+      <Filter>소스 파일\Filter</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Client.rc">
@@ -298,6 +304,9 @@
     </FxCompile>
     <FxCompile Include="Resource\Shader\lighting.hlsl">
       <Filter>셰이더 파일\Header</Filter>
+    </FxCompile>
+    <FxCompile Include="Resource\Shader\fade.hlsl">
+      <Filter>셰이더 파일\Compute</Filter>
     </FxCompile>
   </ItemGroup>
 </Project>

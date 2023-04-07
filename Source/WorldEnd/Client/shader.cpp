@@ -586,6 +586,25 @@ VertBlurShader::VertBlurShader(const ComPtr<ID3D12Device>& device, const ComPtr<
 	DX::ThrowIfFailed(device->CreateComputePipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
 }
 
+FadeShader::FadeShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature)
+{
+	ComPtr<ID3DBlob> mcsByteCode;
+
+#if defined(_DEBUG)
+	UINT compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+#else
+	UINT compileFlags = 0;
+#endif
+
+	DX::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/fade.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "CS_FADE_MAIN", "cs_5_1", compileFlags, 0, &mcsByteCode, nullptr));
+
+	D3D12_COMPUTE_PIPELINE_STATE_DESC psoDesc{};
+	psoDesc.pRootSignature = rootSignature.Get();
+	psoDesc.CS = CD3DX12_SHADER_BYTECODE(mcsByteCode.Get());
+	psoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
+	DX::ThrowIfFailed(device->CreateComputePipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
+}
+
 SobelShader::SobelShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature)
 {
 	ComPtr<ID3DBlob> mcsByteCode;

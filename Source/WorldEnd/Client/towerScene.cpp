@@ -7,7 +7,7 @@ TowerScene::TowerScene() :
 				0.0f, -0.5f, 0.0f, 0.0f,
 				0.0f, 0.0f, 1.0f, 0.0f,
 				0.5f, 0.5f, 0.0f, 1.0f),
-	m_playerControl{ true }
+	m_sceneState{ (INT)State::None }
 {}
 
 TowerScene::~TowerScene()
@@ -31,12 +31,14 @@ void TowerScene::ReleaseUploadBuffer() {}
 
 void TowerScene::OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime)
 {
-	if (m_playerControl) {
+	if (!CheckState(State::CantPlayerControl)) {
 		SetCursor(NULL);
-		RECT rect; GetWindowRect(hWnd, &rect);
-		POINT prevPosition{ rect.left + width / 2, rect.top + height / 2 };
+		RECT windowRect; 
+		GetWindowRect(hWnd, &windowRect);
 
-		POINT nextPosition; GetCursorPos(&nextPosition);
+		POINT prevPosition{ windowRect.left + width / 2, windowRect.top + height / 2 };
+		POINT nextPosition; 
+		GetCursorPos(&nextPosition);
 
 		int dx = nextPosition.x - prevPosition.x;
 		int dy = nextPosition.y - prevPosition.y;
@@ -48,11 +50,20 @@ void TowerScene::OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FL
 
 void TowerScene::OnProcessingMouseMessage(UINT message, LPARAM lParam)
 {
-	if (m_playerControl) {
+	if (!CheckState(State::CantPlayerControl)) {
 		if (m_player) m_player->OnProcessingMouseMessage(message, lParam);
 	}
-	else {
+	if (CheckState(State::OutputExitUI)) {
 		if (m_exitUI) m_exitUI->OnProcessingMouseMessage(message, lParam);
+		if (!g_clickEventStack.empty()) {
+			g_clickEventStack.top()();
+			while (!g_clickEventStack.empty()) {
+				g_clickEventStack.pop();
+			}
+		}
+	}
+	if (CheckState(State::OutputResult)) {
+		if (m_resultUI) m_resultUI->OnProcessingMouseMessage(message, lParam);
 		if (!g_clickEventStack.empty()) {
 			g_clickEventStack.top()();
 			while (!g_clickEventStack.empty()) {
@@ -65,12 +76,14 @@ void TowerScene::OnProcessingMouseMessage(UINT message, LPARAM lParam)
 void TowerScene::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 {
 	if (GetAsyncKeyState(VK_ESCAPE) & 0x8000) {
-		m_playerControl = false;
+		SetState(State::OutputExitUI);
 		if (m_exitUI) m_exitUI->SetEnable();
 	}
 	else {
-		m_playerControl = true;
+		ResetState(State::OutputExitUI);
 		if (m_exitUI) m_exitUI->SetDisable();
+	}
+	if (!CheckState(State::CantPlayerControl)) {
 		if (m_player) m_player->OnProcessingKeyboardMessage(timeElapsed);
 	}
 }
@@ -186,25 +199,47 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	// UI 생성
 	m_exitUI = make_shared<BackgroundUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{1.f, 1.f});
 	auto exitUI{ make_shared<StandardUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.4f, 0.5f}) };
-	exitUI->SetTexture(m_textures["EXITUI"]);
+	exitUI->SetTexture(m_textures["FRAMEUI"]);
 	auto exitTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.0f}, XMFLOAT2{100.f, 20.f}) };
 	exitTextUI->SetText(L"던전에서 나가시겠습니까?");
 	exitUI->SetChild(exitTextUI);
-	auto buttonUI{ make_shared<ButtonUI>(XMFLOAT2{0.f, -0.7f}, XMFLOAT2{0.15f, 0.075f}) };
-	buttonUI->SetTexture(m_textures["BUTTONUI"]);
-	buttonUI->SetClickEvent([]() {
+	auto exitButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.f, -0.7f}, XMFLOAT2{0.15f, 0.075f}) };
+	exitButtonUI->SetTexture(m_textures["BUTTONUI"]);
+	exitButtonUI->SetClickEvent([]() {
 		cout << "종료" << endl;
 		});
-	auto buttonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{10.f, 10.f}) };
-	buttonTextUI->SetText(L"예");
-	buttonUI->SetChild(buttonTextUI);
-	exitUI->SetChild(buttonUI);
+	auto exitButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{10.f, 10.f}) };
+	exitButtonTextUI->SetText(L"예");
+	exitButtonUI->SetChild(exitButtonTextUI);
+	exitUI->SetChild(exitButtonUI);
 
 	m_exitUI->SetChild(exitUI);
 	m_shaders["POSTUI"]->SetUI(m_exitUI);
 
+	m_resultUI = make_shared<BackgroundUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 1.f, 1.f });
+	auto resultUI{ make_shared<StandardUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.4f, 0.5f}) };
+	resultUI->SetTexture(m_textures["FRAMEUI"]);
+	m_resultTextUI = make_shared<TextUI>(XMFLOAT2{0.f, 0.0f}, XMFLOAT2{100.f, 20.f});
+	m_resultTextUI->SetText(L"클리어!");
+	resultUI->SetChild(m_resultTextUI);
+	auto resultButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.f, -0.7f}, XMFLOAT2{0.15f, 0.075f}) };
+	resultButtonUI->SetTexture(m_textures["BUTTONUI"]);
+	resultButtonUI->SetClickEvent([&]() {
+		m_resultUI->SetDisable();
+		ResetState(State::OutputResult);
+		});
+	auto ResultButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{20.f, 10.f}) };
+	ResultButtonTextUI->SetText(L"닫기");
+	resultButtonUI->SetChild(ResultButtonTextUI);
+	resultUI->SetChild(resultButtonUI);
+
+	m_resultUI->SetChild(resultUI);
+	m_resultUI->SetDisable();
+	m_shaders["POSTUI"]->SetUI(m_resultUI);
+
 	// 필터 생성
 	m_blurFilter = make_unique<BlurFilter>(device, g_GameFramework.GetWindowWidth(), g_GameFramework.GetWindowHeight());
+	m_fadeFilter = make_unique<FadeFilter>(device, g_GameFramework.GetWindowWidth(), g_GameFramework.GetWindowHeight());
 	m_sobelFilter = make_unique<SobelFilter>(device, g_GameFramework.GetWindowWidth(), g_GameFramework.GetWindowHeight(), postRootSignature);
 
 	// 오브젝트 설정	
@@ -330,6 +365,7 @@ void TowerScene::Update(FLOAT timeElapsed)
 	for (const auto& shader : m_shaders)
 		shader.second->Update(timeElapsed);
 	g_particleSystem->Update(timeElapsed);
+	m_fadeFilter->Update(timeElapsed);
 }
 
 void TowerScene::PreProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex)
@@ -376,7 +412,7 @@ void TowerScene::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UI
 		g_particleSystem->Render(commandList);
 		m_shaders.at("HORZGAUGE")->Render(commandList);
 		m_shaders.at("VERTGAUGE")->Render(commandList);
-		//m_shaders.at("UI")->Render(commandList);
+		m_shaders.at("UI")->Render(commandList);
 		break;
 	}
 	}
@@ -388,13 +424,47 @@ void TowerScene::PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandLis
 	{
 	case 0:
 	{
-		if (!m_playerControl) {
+		if (CheckState(State::BlurLevel5)) {
 			m_blurFilter->Execute(commandList, renderTarget, 1);
 			commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_COPY_DEST));
 			commandList->CopyResource(renderTarget.Get(), m_blurFilter->GetBlurMap().Get());
 			commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_COPY_SOURCE));
 			m_blurFilter->ResetResourceBarrier(commandList);
 		}
+		else if (CheckState(State::BlurLevel4)) {
+			m_blurFilter->Execute(commandList, renderTarget, 2);
+			commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_COPY_DEST));
+			commandList->CopyResource(renderTarget.Get(), m_blurFilter->GetBlurMap().Get());
+			commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_COPY_SOURCE));
+			m_blurFilter->ResetResourceBarrier(commandList);
+		}
+		else if (CheckState(State::BlurLevel3)) {
+			m_blurFilter->Execute(commandList, renderTarget, 3);
+			commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_COPY_DEST));
+			commandList->CopyResource(renderTarget.Get(), m_blurFilter->GetBlurMap().Get());
+			commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_COPY_SOURCE));
+			m_blurFilter->ResetResourceBarrier(commandList);
+		}
+		else if (CheckState(State::BlurLevel2)) {
+			m_blurFilter->Execute(commandList, renderTarget, 4);
+			commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_COPY_DEST));
+			commandList->CopyResource(renderTarget.Get(), m_blurFilter->GetBlurMap().Get());
+			commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_COPY_SOURCE));
+			m_blurFilter->ResetResourceBarrier(commandList);
+		}
+		else if (CheckState(State::BlurLevel1)) {
+			m_blurFilter->Execute(commandList, renderTarget, 5);
+			commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_COPY_DEST));
+			commandList->CopyResource(renderTarget.Get(), m_blurFilter->GetBlurMap().Get());
+			commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_COPY_SOURCE));
+			m_blurFilter->ResetResourceBarrier(commandList);
+		}
+
+		//m_sobelFilter->Execute(commandList, renderTarget);
+		//commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET));
+		//m_shaders["COMPOSITE"]->Render(commandList);
+		//commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE));
+
 		break;
 	}
 	case 1:
@@ -406,10 +476,7 @@ void TowerScene::PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandLis
 	}
 	case 2:
 	{
-		//m_sobelFilter->Execute(commandList, renderTarget);
-		//commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET));
-		//m_shaders["COMPOSITE"]->Render(commandList);
-		//commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE));
+		m_fadeFilter->Execute(commandList, renderTarget);
 		break;
 	}
 	}
@@ -418,6 +485,7 @@ void TowerScene::PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandLis
 void TowerScene::RenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext)
 {
 	if (m_exitUI) m_exitUI->RenderText(deviceContext);
+	if (m_resultUI) m_resultUI->RenderText(deviceContext);
 }
 
 void TowerScene::LoadSceneFromFile(wstring fileName, wstring sceneName)
@@ -541,9 +609,24 @@ void TowerScene::SetHpBar(const shared_ptr<AnimationObject>& object)
 	hpBar->SetTexture(m_textures["HPBAR"]);
 	hpBar->SetMaxGauge(object->GetMaxHp());
 	hpBar->SetGauge(object->GetHp());
-	hpBar->SetPosition(XMFLOAT3(FAR_POSITION, FAR_POSITION, FAR_POSITION));
+	hpBar->SetPosition(XMFLOAT3{ FAR_POSITION, FAR_POSITION, FAR_POSITION });
 	m_shaders["HORZGAUGE"]->SetObject(hpBar);
 	object->SetHpBar(hpBar);
+}
+
+bool TowerScene::CheckState(State sceneState)
+{
+	return m_sceneState & (INT)sceneState;
+}
+
+void TowerScene::SetState(State sceneState)
+{
+	m_sceneState |= (1 << ((INT)sceneState - 1));
+}
+
+void TowerScene::ResetState(State sceneState)
+{
+	m_sceneState &= ~(1 << ((INT)sceneState - 1));
 }
 
 
@@ -839,6 +922,8 @@ void TowerScene::RecvClearFloor(char* ptr)
 {
 	SC_CLEAR_FLOOR_PACKET* packet = reinterpret_cast<SC_CLEAR_FLOOR_PACKET*>(ptr);
 	cout << packet->reward << endl;
+	SetState(State::OutputResult);
+	m_resultUI->SetEnable();
 }
 
 void TowerScene::RecvFailFloor(char* ptr)
@@ -916,11 +1001,13 @@ void TowerScene::RecvWarpNextFloor(char* ptr)
 {
 	SC_WARP_NEXT_FLOOR_PACKET* packet = reinterpret_cast<SC_WARP_NEXT_FLOOR_PACKET*>(ptr);
 	
-	XMFLOAT3 startPosition{ 0.f, 0.f, 0.f };
-	m_player->SetPosition(startPosition);
+	m_fadeFilter->FadeOut([&]() {
+		XMFLOAT3 startPosition{ 0.f, 0.f, 0.f };
+		m_player->SetPosition(startPosition);
 
-
-	for (auto& elm : m_multiPlayers) {
-		elm.second->SetPosition(startPosition);
-	}
+		for (auto& elm : m_multiPlayers) {
+			elm.second->SetPosition(startPosition);
+		}
+		m_fadeFilter->FadeIn([&](){});
+	});
 }

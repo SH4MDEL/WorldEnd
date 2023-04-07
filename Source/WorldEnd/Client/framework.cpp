@@ -430,7 +430,9 @@ void GameFramework::CreatePostRootSignature()
 
 	// cbFilter : blurRadius(1)
 	rootParameter[(INT)PostShaderRegister::Filter].InitAsConstants(
-		1, 0, 0, D3D12_SHADER_VISIBILITY_ALL);
+		1, (INT)PostShaderRegister::Filter, 0, D3D12_SHADER_VISIBILITY_ALL);
+	rootParameter[(INT)PostShaderRegister::Fade].InitAsConstants(
+		2, (INT)PostShaderRegister::Fade, 0, D3D12_SHADER_VISIBILITY_ALL);
 	rootParameter[(INT)PostShaderRegister::BaseTexture].InitAsDescriptorTable(
 		1, &descriptorRange[(INT)PostDescriptorRange::BaseTexture], D3D12_SHADER_VISIBILITY_ALL);
 	rootParameter[(INT)PostShaderRegister::SubTexture].InitAsDescriptorTable(

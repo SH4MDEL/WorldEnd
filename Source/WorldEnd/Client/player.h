@@ -34,8 +34,8 @@ public:
 	XMFLOAT3 GetVelocity() const { return m_velocity; }
 	FLOAT GetHp() const { return m_hp; }
 	FLOAT GetMaxHp() const { return m_maxHp; }
-	FLOAT GetStamina() const { return m_hp; }
-	FLOAT GetMaxStamina() const { return m_maxHp; }
+	FLOAT GetStamina() const { return m_stamina; }
+	FLOAT GetMaxStamina() const { return m_maxStamina; }
 	PlayerType GetType() const { return m_type; }
 	InteractableType GetInteractableType() const { return m_interactableType; }
 

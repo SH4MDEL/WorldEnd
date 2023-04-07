@@ -5,6 +5,18 @@
 class TowerScene : public Scene
 {
 public:
+	enum class State {
+		None				= 0x00,
+		OutputExitUI		= 0x01,
+		OutputResult		= 0x02,
+		BlurLevel1			= -1,
+		BlurLevel2			= -1,
+		BlurLevel3			= OutputExitUI,
+		BlurLevel4			= -1,
+		BlurLevel5			= OutputResult,
+		CantPlayerControl	= OutputExitUI | OutputResult
+	};
+
 	TowerScene();
 	~TowerScene() override;
 
@@ -41,6 +53,10 @@ public:
 
 	void SetHpBar(const shared_ptr<AnimationObject>& object);
 
+	bool CheckState(State sceneState);
+	void SetState(State sceneState);
+	void ResetState(State sceneState);
+
     // 서버 추가 코드
 	void InitServer();
 	void SendPlayerData();
@@ -70,7 +86,7 @@ protected:
 	ComPtr<ID3D12Resource>					m_sceneBuffer;
 	SceneInfo*								m_sceneBufferPointer;
 
-	BOOL									m_playerControl;
+	INT										m_sceneState;
 
 	XMMATRIX								m_lightView;
 	XMMATRIX								m_lightProj;
@@ -86,9 +102,12 @@ protected:
 	shared_ptr<LightSystem>					m_lightSystem;
 	shared_ptr<Shadow>						m_shadow;
 	unique_ptr<BlurFilter>					m_blurFilter;
+	unique_ptr<FadeFilter>					m_fadeFilter;
 	unique_ptr<SobelFilter>					m_sobelFilter;
 
 	shared_ptr<UI>							m_exitUI;
+	shared_ptr<UI>							m_resultUI;
+	shared_ptr<UI>							m_resultTextUI;
 
 	// 서버 추가 코드
 	unordered_map<INT, shared_ptr<Player>>	            m_multiPlayers;

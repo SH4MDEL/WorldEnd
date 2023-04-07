@@ -103,10 +103,10 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	// UI 로딩
 	auto uiShader{ make_shared<UIShader>(device, rootsignature) };
 	auto postUiShader{ make_shared<UIShader>(device, rootsignature) };
-	auto exitUITexture{ make_shared<Texture>() };
-	exitUITexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/UI_Background.dds"), (INT)ShaderRegister::BaseTexture); // SubTexture
-	exitUITexture->CreateSrvDescriptorHeap(device);
-	exitUITexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+	auto frameUITexture{ make_shared<Texture>() };
+	frameUITexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/UI_Background.dds"), (INT)ShaderRegister::BaseTexture); // SubTexture
+	frameUITexture->CreateSrvDescriptorHeap(device);
+	frameUITexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
 	auto cancelUITexture{ make_shared<Texture>() };
 	cancelUITexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/UI_Cancel.dds"), (INT)ShaderRegister::BaseTexture); // SubTexture
 	cancelUITexture->CreateSrvDescriptorHeap(device);
@@ -132,6 +132,9 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	// 블러 필터 셰이더 로딩
 	auto horzBlurShader{ make_shared<HorzBlurShader>(device, postRootSignature) };
 	auto vertBlurShader{ make_shared<VertBlurShader>(device, postRootSignature) };
+
+	// 페이드 셰이더 로딩
+	auto fadeShader{ make_shared<FadeShader>(device, postRootSignature) };
 
 	// 소벨 필터 셰이더 로딩
 	auto sobelShader{ make_shared<SobelShader>(device, postRootSignature) };
@@ -212,7 +215,7 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	m_textures.insert({ "HPBAR", hpBarTexture });
 	m_textures.insert({ "STAMINABAR", staminaBarTexture });
 	// UI 관련 텍스처
-	m_textures.insert({ "EXITUI", exitUITexture });
+	m_textures.insert({ "FRAMEUI", frameUITexture });
 	m_textures.insert({ "CANCELUI", cancelUITexture });
 	m_textures.insert({ "BUTTONUI", buttonUITexture });
 
@@ -226,9 +229,11 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	m_shaders.insert({ "ANIMATIONSHADOW", animationShadowShader });
 	m_shaders.insert({ "EMITTERPARTICLE", emitterParticleShader });
 	m_shaders.insert({ "PUMPERPARTICLE", pumperParticleShader });
+	m_shaders.insert({ "UI", uiShader });
 	m_shaders.insert({ "POSTUI", postUiShader });
 	m_shaders.insert({ "HORZBLUR", horzBlurShader });
 	m_shaders.insert({ "VERTBLUR", vertBlurShader });
+	m_shaders.insert({ "FADE", fadeShader });
 	m_shaders.insert({ "SOBEL", sobelShader });
 	m_shaders.insert({ "COMPOSITE", compositeShader });
 

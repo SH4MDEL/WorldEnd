@@ -37,8 +37,7 @@ void BlurFilter::Execute(const ComPtr<ID3D12GraphicsCommandList>& commandList, c
 	commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_vertBlurMap.Get(),
 		D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
 
-	for (int i = 0; i < blurCount; ++i)
-	{
+	for (int i = 0; i < blurCount; ++i) {
 		//
 		// Horizontal Blur pass.
 		//
