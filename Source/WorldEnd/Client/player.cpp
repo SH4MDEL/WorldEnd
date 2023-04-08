@@ -252,15 +252,7 @@ void Player::Update(FLOAT timeElapsed)
 			if (chrono::system_clock::now() > m_startDash + PlayerSetting::PLAYER_DASH_DURATION) {
 				ChangeAnimation(ObjectAnimation::RUN);
 				m_moveSpeed = PlayerSetting::PLAYER_RUN_SPEED;
-
-				m_animationController->SetTrackEnable(1, false);
-				m_animationController->SetTrackWeight(0, 1.f);
-				m_animationController->SetBlendingMode(AnimationBlending::NORMAL);
-
 				SendPacket();
-			}
-			else if (chrono::system_clock::now() > m_startDash + 50ms) {
-				m_animationController->SetTrackEnable(1, true);
 			}
 			else if (fabs(track.GetPosition() - animation->GetLength()) <= numeric_limits<float>::epsilon()) {
 				ChangeAnimation(ObjectAnimation::WALK);
@@ -390,8 +382,8 @@ bool Player::ChangeAnimation(USHORT animation)
 	packet.type = CS_PACKET_CHANGE_ANIMATION;
 	packet.animation_type = m_currentAnimation;
 	SetBuffer(&packet, packet.size);
-	return true;
 #endif
+	return true;
 }
 
 void Player::ChangeAnimation(USHORT animation, bool other)

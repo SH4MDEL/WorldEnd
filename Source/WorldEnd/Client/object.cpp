@@ -527,11 +527,10 @@ void GaugeBar::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList)
 	GameObject::Render(commandList);
 }
 
-AnimationObject::AnimationObject()
+AnimationObject::AnimationObject() : m_currentAnimation{ ObjectAnimation::IDLE },
+	m_prevAnimation{ ObjectAnimation::IDLE }
 {
-	// 디폴트 개수인 3개로 트랙의 개수를 지정하여 애니메이션 컨트롤러를 생성함
 	m_animationController = make_unique<AnimationController>(DEFAULT_TRACK_NUM);
-	m_currentAnimation = ObjectAnimation::IDLE;
 }
 
 bool AnimationObject::ChangeAnimation(USHORT animation)
@@ -542,77 +541,75 @@ bool AnimationObject::ChangeAnimation(USHORT animation)
 	int start_num{};
 	switch (animation) {
 	case ObjectAnimation::IDLE:
-		m_animationController->SetTrackType(0, ANIMATION_TYPE_LOOP);
+		ChangeAnimationSettings(AnimationBlending::BLENDING, ANIMATION_TYPE_LOOP,
+			ANIMATION_TYPE_LOOP, m_currentAnimation);
 		break;
 
 	case ObjectAnimation::WALK:
-		m_animationController->SetTrackType(0, ANIMATION_TYPE_LOOP);
+		ChangeAnimationSettings(AnimationBlending::BLENDING, ANIMATION_TYPE_LOOP,
+			ANIMATION_TYPE_LOOP, m_currentAnimation);
 		break;
 
 	case ObjectAnimation::RUN:
-		m_animationController->SetTrackType(0, ANIMATION_TYPE_LOOP);
+		ChangeAnimationSettings(AnimationBlending::BLENDING, ANIMATION_TYPE_LOOP,
+			ANIMATION_TYPE_LOOP, m_currentAnimation);
 		break;
 
 	case ObjectAnimation::ATTACK: 
-		m_animationController->SetTrackType(0, ANIMATION_TYPE_ONCE);
-		m_animationController->SetTrackPosition(0, 0.f);
+		ChangeAnimationSettings(AnimationBlending::NORMAL, ANIMATION_TYPE_ONCE,
+			ANIMATION_TYPE_LOOP, m_currentAnimation);
 		break;
 
 	case ObjectAnimation::DEAD:
-		m_animationController->SetTrackType(0, ANIMATION_TYPE_ONCE);
-		m_animationController->SetTrackPosition(0, 0.f);
+		ChangeAnimationSettings(AnimationBlending::NORMAL, ANIMATION_TYPE_ONCE,
+			ANIMATION_TYPE_LOOP, m_currentAnimation);
 		break;
 
 	case PlayerAnimation::DASH:
-		m_animationController->SetTrackType(0, ANIMATION_TYPE_LOOP);
 		start_num = PlayerAnimation::ANIMATION_START;
-		m_animationController->SetTrackPosition(0, 0.f);
-
-		m_animationController->SetTrackType(1, ANIMATION_TYPE_ONCE);
-		m_animationController->SetTrackPosition(1, 0.f);
-		m_animationController->SetTrackAnimation(1, ObjectAnimation::RUN);
-		m_animationController->SetTrackEnable(1, false); 
-		m_animationController->SetTrackWeight(1, 0.f);
-		m_animationController->SetBlendingMode(AnimationBlending::BLENDING);
-
+		ChangeAnimationSettings(AnimationBlending::BLENDING, ANIMATION_TYPE_LOOP,
+			ANIMATION_TYPE_LOOP, m_currentAnimation);
 		break;
 	case PlayerAnimation::SKILL:
-		m_animationController->SetTrackType(0, ANIMATION_TYPE_ONCE);
 		start_num = PlayerAnimation::ANIMATION_START;
-		m_animationController->SetTrackPosition(0, 0.f);
+		ChangeAnimationSettings(AnimationBlending::NORMAL, ANIMATION_TYPE_ONCE,
+			ANIMATION_TYPE_LOOP, m_currentAnimation);
 		break;
 	case PlayerAnimation::ULTIMATE:
-		m_animationController->SetTrackType(0, ANIMATION_TYPE_ONCE);
 		start_num = PlayerAnimation::ANIMATION_START;
-		m_animationController->SetTrackPosition(0, 0.f);
+		ChangeAnimationSettings(AnimationBlending::NORMAL, ANIMATION_TYPE_ONCE,
+			ANIMATION_TYPE_LOOP, m_currentAnimation);
 		break;
 	case PlayerAnimation::ROLL:
-		m_animationController->SetTrackType(0, ANIMATION_TYPE_ONCE);
 		start_num = PlayerAnimation::ANIMATION_START;
-		m_animationController->SetTrackPosition(0, 0.f);
+		ChangeAnimationSettings(AnimationBlending::NORMAL, ANIMATION_TYPE_ONCE,
+			ANIMATION_TYPE_LOOP, m_currentAnimation);
 		break;
 
 	case MonsterAnimation::LOOK_AROUND:
-		m_animationController->SetTrackType(0, ANIMATION_TYPE_LOOP);
 		start_num = MonsterAnimation::ANIMATION_START;
+		ChangeAnimationSettings(AnimationBlending::NORMAL, ANIMATION_TYPE_LOOP,
+			ANIMATION_TYPE_LOOP, m_currentAnimation);
 		break;
 	case MonsterAnimation::TAUNT:
-		m_animationController->SetTrackType(0, ANIMATION_TYPE_LOOP);
 		start_num = MonsterAnimation::ANIMATION_START;
+		ChangeAnimationSettings(AnimationBlending::NORMAL, ANIMATION_TYPE_LOOP,
+			ANIMATION_TYPE_LOOP, m_currentAnimation);
 		break;
 	case MonsterAnimation::BLOCK:
-		m_animationController->SetTrackType(0, ANIMATION_TYPE_ONCE);
 		start_num = MonsterAnimation::ANIMATION_START;
+		ChangeAnimationSettings(AnimationBlending::NORMAL, ANIMATION_TYPE_ONCE,
+			ANIMATION_TYPE_LOOP, m_currentAnimation);
 		break;
 	case MonsterAnimation::BLOCKIDLE:
-		m_animationController->SetTrackType(0, ANIMATION_TYPE_LOOP);
 		start_num = MonsterAnimation::ANIMATION_START;
+		ChangeAnimationSettings(AnimationBlending::NORMAL, ANIMATION_TYPE_LOOP,
+			ANIMATION_TYPE_LOOP, m_currentAnimation);
 		break;
 	}
 	m_prevAnimation = m_currentAnimation;
 	m_currentAnimation = animation;
 	m_animationController->SetTrackAnimation(0, animation - start_num);
-	m_animationController->SetTrackWeight(0, 1.f);
 
 	return true;
 }
@@ -658,6 +655,42 @@ void AnimationObject::SetAnimationOnTrack(int animationTrackNumber, int animatio
 	m_animationController->SetTrackAnimation(animationTrackNumber, animation);
 }
 
+void AnimationObject::ChangeAnimationSettings(AnimationBlending blendingMode, int trackType, int trackType1,
+	USHORT blendingAnimation)
+{
+	m_animationController->SetBlendingMode(blendingMode);
+
+	switch (blendingMode) {
+		case AnimationBlending::NORMAL:
+			m_animationController->SetTrackType(0, trackType);
+			m_animationController->SetTrackPosition(0, 0.f);
+			m_animationController->SetTrackWeight(0, 1.f);
+			m_animationController->SetTrackEnable(1, false);
+			break;
+
+		case AnimationBlending::BLENDING: {
+			m_animationController->SetTrackType(0, trackType);
+			m_animationController->SetTrackPosition(0, 0.f);
+			m_animationController->SetTrackWeight(0, 0.f);
+
+			/*if (blendingAnimation >= MonsterAnimation::ANIMATION_START) {
+				blendingAnimation -= MonsterAnimation::ANIMATION_START;
+			}
+			else if (blendingAnimation >= PlayerAnimation::ANIMATION_START) {
+				blendingAnimation -= PlayerAnimation::ANIMATION_START;
+			}
+			shared_ptr<Animation> animation = m_animationController->GetAnimationSet()->GetAnimations()[blendingAnimation];
+			float pos = animation->GetLength() - 0.5f;*/
+
+			m_animationController->SetTrackEnable(1, true);
+			m_animationController->SetTrackType(1, trackType1);
+			m_animationController->SetTrackPosition(1, 0.f);
+			m_animationController->SetTrackWeight(1, 1.f);
+			break; 
+		}
+	}
+}
+
 void AnimationObject::LoadObject(ifstream& in)
 {
 	GameObject::LoadObject(in, shared_from_this());
@@ -689,8 +722,6 @@ XMFLOAT4X4 Animation::GetTransform(int boneNumber, float position)
 	XMFLOAT4X4 transform;
 	XMStoreFloat4x4(&transform, XMMatrixIdentity());
 	
-	// 벡터는 정렬되어 있는데 현재 재생 위치를 찾아갈 때
-	// 이진 탐색을 사용할 수 있다면?
 	size_t keyFrames = m_keyFrameTimes.size();
 	for (size_t i = 0; i < keyFrames - 1; ++i) {
 		if ((m_keyFrameTimes[i] <= position) && (position < m_keyFrameTimes[i + 1])) {
@@ -699,7 +730,6 @@ XMFLOAT4X4 Animation::GetTransform(int boneNumber, float position)
 			break;
 		}
 	}
-
 
 	if (position >= m_keyFrameTimes[keyFrames - 1])
 		transform = m_keyFrameTransforms[keyFrames - 1][boneNumber];
@@ -938,13 +968,19 @@ void AnimationController::Update(float timeElapsed, const shared_ptr<GameObject>
 				}
 			}
 
-			m_animationTracks[0].DecreaseWeight(timeElapsed);
-			m_animationTracks[1].IncreaseWeight(timeElapsed);
-			if (m_animationTracks[1].GetWeight() >= 1.f) {
+			m_animationTracks[0].IncreaseWeight(timeElapsed);
+			m_animationTracks[1].DecreaseWeight(timeElapsed);
+			if (m_animationTracks[0].GetWeight() >= 1.f) {
 				m_blendingMode = AnimationBlending::NORMAL;
 				m_animationTracks[1].SetEnable(false);
 			}
-
+			/*else if (ANIMATION_TYPE_ONCE == m_animationTracks[1].GetAnimationType()&&
+				m_animationTracks[1].GetPosition() == m_animationSet->GetAnimations()[m_animationTracks[1].GetAnimation()]->GetLength())
+			{
+				m_blendingMode = AnimationBlending::NORMAL;
+				m_animationTracks[1].SetEnable(false);
+			}*/
+			
 		}
 		rootObject->UpdateAnimationTransform(nullptr);
 

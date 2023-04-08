@@ -199,6 +199,7 @@ public:
 
 	void SetAnimationSet(const shared_ptr<AnimationSet>& animations);
 	void SetAnimationOnTrack(int animationTrackNumber, int animation);
+	void ChangeAnimationSettings(AnimationBlending blendingMode, int trackType, int trackType1, USHORT blendingAnimation);
 
 	virtual void LoadObject(ifstream& in) override;
 
@@ -268,6 +269,7 @@ public:
 	float GetPosition() const { return m_position; }
 	float GetWeight() const { return m_weight; }
 	int   GetAnimation() const { return m_animation; }
+	int   GetAnimationType() const { return m_type; }
 
 	void IncreaseWeight(float timeElapsed);
 	void DecreaseWeight(float timeElapsed);
