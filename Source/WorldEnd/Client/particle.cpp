@@ -58,6 +58,7 @@ void PumperParticle::Update(FLOAT timeElapsed)
 	m_age += timeElapsed;
 	if (m_age > m_lifeTime) {
 		m_age = 0.f;
+		m_running = false;
 	}
 }
 

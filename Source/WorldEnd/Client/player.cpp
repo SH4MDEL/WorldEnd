@@ -113,33 +113,10 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 		}
 	}
 	
-	if (!m_dashed && GetAsyncKeyState(VK_SHIFT) & 0x8000) {
-		if (!m_cooltimeList[CooltimeType::DASH]) {
-
-			if (m_stamina >= PlayerSetting::MINIMUM_DASH_STAMINA) {
-				m_dashed = true;
-				ChangeAnimation(PlayerAnimation::DASH);
-				m_moveSpeed = PlayerSetting::PLAYER_DASH_SPEED;
-				m_startDash = chrono::system_clock::now();
-
-				CreateCooltimePacket(CooltimeType::DASH);
-				CreateChangeStaminaPacket(false);
-
-				SendPacket();
-			}
-		}
-	}
-	if (m_dashed && GetAsyncKeyState(VK_SHIFT) == 0x0000) {
-		m_dashed = false;
-		CreateChangeStaminaPacket(true);
-		SendPacket();
-	}
-	
 	if (GetAsyncKeyState('E') & 0x8000) {
 		if (!m_cooltimeList[CooltimeType::SKILL]) {
 
 			ChangeAnimation(PlayerAnimation::SKILL);
-
 
 			XMFLOAT3 pos = Vector3::Add(Vector3::Mul(m_front, 0.8f), GetPosition());
 			CreateAttackPacket(pos, AttackType::SKILL, CollisionType::MULTIPLE_TIMES,
@@ -161,25 +138,60 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 
 void Player::OnProcessingMouseMessage(UINT message, LPARAM lParam)
 {
-	if (m_cooltimeList[CooltimeType::NORMAL_ATTACK])
-		return;
 
-	ChangeAnimation(ObjectAnimation::ATTACK);
+	switch (message)
+	{
+	case WM_LBUTTONDOWN:
+		if (m_cooltimeList[CooltimeType::NORMAL_ATTACK])
+			return;
 
-	if (PlayerType::WARRIOR == m_type) {
-		XMFLOAT3 pos = Vector3::Add(Vector3::Mul(m_front, 0.8f), GetPosition());
-		CreateAttackPacket(pos, AttackType::NORMAL, CollisionType::MULTIPLE_TIMES,
-			chrono::system_clock::now() + PlayerSetting::WARRIOR_ATTACK_COLLISION_TIME,
-			CooltimeType::NORMAL_ATTACK);
+		ChangeAnimation(ObjectAnimation::ATTACK);
+
+		if (PlayerType::WARRIOR == m_type) {
+			XMFLOAT3 pos = Vector3::Add(Vector3::Mul(m_front, 0.8f), GetPosition());
+			CreateAttackPacket(pos, AttackType::NORMAL, CollisionType::MULTIPLE_TIMES,
+				chrono::system_clock::now() + PlayerSetting::WARRIOR_ATTACK_COLLISION_TIME,
+				CooltimeType::NORMAL_ATTACK);
+		}
+		else if (PlayerType::ARCHER == m_type) {
+
+		}
+		SendPacket();
+		break;
+	case WM_RBUTTONDOWN:
+		if (!m_dashed) {
+			if (!m_cooltimeList[CooltimeType::DASH]) {
+
+				if (m_stamina >= PlayerSetting::MINIMUM_DASH_STAMINA) {
+					m_dashed = true;
+					ChangeAnimation(PlayerAnimation::DASH);
+					m_moveSpeed = PlayerSetting::PLAYER_DASH_SPEED;
+					m_startDash = chrono::system_clock::now();
+
+					CreateCooltimePacket(CooltimeType::DASH);
+					CreateChangeStaminaPacket(false);
+
+					SendPacket();
+				}
+			}
+		}
+		break;
+	case WM_RBUTTONUP:
+		if (m_dashed) {
+			m_dashed = false;
+			CreateChangeStaminaPacket(true);
+			SendPacket();
+		}
+		break;
+	default:
+		break;
 	}
-	else if (PlayerType::ARCHER == m_type) {
 
-	}
-	SendPacket();
 }
 
 void Player::Update(FLOAT timeElapsed)
 {
+
 	AnimationObject::Update(timeElapsed);
 
 	// 애니메이션 상태 머신에 들어갈 내용
@@ -312,6 +324,11 @@ void Player::Update(FLOAT timeElapsed)
 		staminaBarPosition.z += cameraRight.z;
 		staminaBarPosition.y += 1.f;
 		m_staminaBar->SetPosition(staminaBarPosition);
+
+		if (m_stamina < m_maxStamina) {
+			m_stamina += PlayerSetting::DEFAULT_STAMINA_CHANGE_AMOUNT * timeElapsed;
+			SetStamina(m_stamina);
+		}
 	}
 #ifndef USE_NETWORK
 	Move(m_velocity);

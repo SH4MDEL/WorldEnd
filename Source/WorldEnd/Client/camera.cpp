@@ -75,7 +75,6 @@ void ThirdPersonCamera::Update(FLOAT timeElapsed)
 void ThirdPersonCamera::Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw)
 {
 	XMMATRIX rotate{ XMMatrixIdentity() };
-
 	if (roll != 0.0f)
 	{
 		m_roll += roll;

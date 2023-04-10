@@ -132,6 +132,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         g_GameFramework.SetIsActive((BOOL)wParam);
         break;
     case WM_LBUTTONDOWN:
+    case WM_RBUTTONDOWN:
+    case WM_RBUTTONUP:
         g_GameFramework.OnProcessingMouseMessage(message, lParam);
         break;
     case WM_DESTROY:

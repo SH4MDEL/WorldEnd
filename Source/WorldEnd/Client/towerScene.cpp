@@ -194,8 +194,6 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 		static_pointer_cast<ParticleShader>(m_shaders["EMITTERPARTICLE"]), 
 		static_pointer_cast<ParticleShader>(m_shaders["PUMPERPARTICLE"]));
 
-	g_particleSystem->CreateParticle(ParticleSystem::Type::PUMPER, XMFLOAT3{0.f, 0.f, 0.f});
-
 	// UI 생성
 	m_exitUI = make_shared<BackgroundUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{1.f, 1.f});
 	auto exitUI{ make_shared<StandardUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.4f, 0.5f}) };
@@ -425,14 +423,14 @@ void TowerScene::PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandLis
 	case 0:
 	{
 		if (CheckState(State::BlurLevel5)) {
-			m_blurFilter->Execute(commandList, renderTarget, 1);
+			m_blurFilter->Execute(commandList, renderTarget, 5);
 			commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_COPY_DEST));
 			commandList->CopyResource(renderTarget.Get(), m_blurFilter->GetBlurMap().Get());
 			commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_COPY_SOURCE));
 			m_blurFilter->ResetResourceBarrier(commandList);
 		}
 		else if (CheckState(State::BlurLevel4)) {
-			m_blurFilter->Execute(commandList, renderTarget, 2);
+			m_blurFilter->Execute(commandList, renderTarget, 4);
 			commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_COPY_DEST));
 			commandList->CopyResource(renderTarget.Get(), m_blurFilter->GetBlurMap().Get());
 			commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_COPY_SOURCE));
@@ -446,24 +444,24 @@ void TowerScene::PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandLis
 			m_blurFilter->ResetResourceBarrier(commandList);
 		}
 		else if (CheckState(State::BlurLevel2)) {
-			m_blurFilter->Execute(commandList, renderTarget, 4);
+			m_blurFilter->Execute(commandList, renderTarget, 2);
 			commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_COPY_DEST));
 			commandList->CopyResource(renderTarget.Get(), m_blurFilter->GetBlurMap().Get());
 			commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_COPY_SOURCE));
 			m_blurFilter->ResetResourceBarrier(commandList);
 		}
 		else if (CheckState(State::BlurLevel1)) {
-			m_blurFilter->Execute(commandList, renderTarget, 5);
+			m_blurFilter->Execute(commandList, renderTarget, 1);
 			commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_COPY_DEST));
 			commandList->CopyResource(renderTarget.Get(), m_blurFilter->GetBlurMap().Get());
 			commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_COPY_SOURCE));
 			m_blurFilter->ResetResourceBarrier(commandList);
 		}
 
-		//m_sobelFilter->Execute(commandList, renderTarget);
-		//commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET));
-		//m_shaders["COMPOSITE"]->Render(commandList);
-		//commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE));
+		m_sobelFilter->Execute(commandList, renderTarget);
+		commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET));
+		m_shaders["COMPOSITE"]->Render(commandList);
+		commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE));
 
 		break;
 	}
@@ -621,12 +619,12 @@ bool TowerScene::CheckState(State sceneState)
 
 void TowerScene::SetState(State sceneState)
 {
-	m_sceneState |= (1 << ((INT)sceneState - 1));
+	m_sceneState |= (INT)sceneState;
 }
 
 void TowerScene::ResetState(State sceneState)
 {
-	m_sceneState &= ~(1 << ((INT)sceneState - 1));
+	m_sceneState &= ~(INT)sceneState;
 }
 
 
@@ -885,6 +883,8 @@ void TowerScene::RecvAddMonsterPacket(char* ptr)
 	SetHpBar(monster);
 
 	m_shaders["ANIMATION"]->SetMonster(monster_data.id, monster);
+
+	g_particleSystem->CreateParticle(ParticleSystem::Type::PUMPER, monster_data.pos);
 }
 
 void TowerScene::RecvUpdateMonster(char* ptr)
@@ -1003,6 +1003,7 @@ void TowerScene::RecvWarpNextFloor(char* ptr)
 {
 	SC_WARP_NEXT_FLOOR_PACKET* packet = reinterpret_cast<SC_WARP_NEXT_FLOOR_PACKET*>(ptr);
 	
+	SetState(State::Fading);
 	m_fadeFilter->FadeOut([&]() {
 		XMFLOAT3 startPosition{ 0.f, 0.f, 0.f };
 		m_player->SetPosition(startPosition);
@@ -1017,6 +1018,6 @@ void TowerScene::RecvWarpNextFloor(char* ptr)
 			m_player->ResetCooltime(static_cast<char>(i));
 		}
 
-		m_fadeFilter->FadeIn([&](){});
+		m_fadeFilter->FadeIn([&](){ ResetState(State::Fading); });
 	});
 }

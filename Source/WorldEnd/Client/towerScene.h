@@ -9,12 +9,14 @@ public:
 		None				= 0x00,
 		OutputExitUI		= 0x01,
 		OutputResult		= 0x02,
-		BlurLevel1			= -1,
-		BlurLevel2			= -1,
+		Fading				= 0x04,
+		Unused				= 0x80000000,
+		BlurLevel1			= Unused,
+		BlurLevel2			= Unused,
 		BlurLevel3			= OutputExitUI,
-		BlurLevel4			= -1,
+		BlurLevel4			= Unused,
 		BlurLevel5			= OutputResult,
-		CantPlayerControl	= OutputExitUI | OutputResult
+		CantPlayerControl	= OutputExitUI | OutputResult | Fading
 	};
 
 	TowerScene();
