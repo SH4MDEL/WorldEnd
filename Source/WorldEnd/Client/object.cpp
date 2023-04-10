@@ -551,7 +551,7 @@ bool AnimationObject::ChangeAnimation(USHORT animation)
 		break;
 
 	case ObjectAnimation::RUN:
-		ChangeAnimationSettings(AnimationBlending::BLENDING, ANIMATION_TYPE_LOOP,
+		ChangeAnimationSettings(AnimationBlending::NORMAL, ANIMATION_TYPE_LOOP,
 			ANIMATION_TYPE_LOOP, m_currentAnimation);
 		break;
 
@@ -560,14 +560,14 @@ bool AnimationObject::ChangeAnimation(USHORT animation)
 			ANIMATION_TYPE_LOOP, m_currentAnimation);
 		break;
 
-	case ObjectAnimation::DEAD:
+	case ObjectAnimation::DEATH:
 		ChangeAnimationSettings(AnimationBlending::NORMAL, ANIMATION_TYPE_ONCE,
 			ANIMATION_TYPE_LOOP, m_currentAnimation);
 		break;
 
 	case PlayerAnimation::DASH:
 		start_num = PlayerAnimation::ANIMATION_START;
-		ChangeAnimationSettings(AnimationBlending::BLENDING, ANIMATION_TYPE_LOOP,
+		ChangeAnimationSettings(AnimationBlending::NORMAL, ANIMATION_TYPE_LOOP,
 			ANIMATION_TYPE_LOOP, m_currentAnimation);
 		break;
 	case PlayerAnimation::SKILL:

@@ -181,8 +181,8 @@ void WarpPortal::SendEvent(const std::span<INT>& ids, void* c)
 }
 
 MovementObject::MovementObject() : m_velocity{ 0.f, 0.f, 0.f },
-m_state{ State::ST_FREE }, m_name{}, m_hp{}, m_damage{},
-m_room_num{ static_cast<USHORT>(-1) }
+	m_state{ State::ST_FREE }, m_name{}, m_hp{}, m_damage{},
+	m_room_num{ static_cast<USHORT>(-1) }
 {
 }
 

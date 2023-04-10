@@ -16,6 +16,9 @@ Player::~Player()
 
 void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 {
+	if (ObjectAnimation::DEATH == m_currentAnimation)
+		return;
+
 	if (GetAsyncKeyState('Q') & 0x8000) {
 		if (!m_cooltimeList[CooltimeType::ULTIMATE]) {
 
@@ -161,6 +164,9 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 
 void Player::OnProcessingMouseMessage(UINT message, LPARAM lParam)
 {
+	if (ObjectAnimation::DEATH == m_currentAnimation)
+		return;
+
 	if (m_cooltimeList[CooltimeType::NORMAL_ATTACK])
 		return;
 
@@ -185,6 +191,10 @@ void Player::Update(FLOAT timeElapsed)
 	// 애니메이션 상태 머신에 들어갈 내용
 	// 상태 전환을 하는 함수를 작성하고 해당 함수를 호출하도록 해야 함
 	if (m_animationController) {
+		if (ObjectAnimation::DEATH == m_currentAnimation) {
+			return;
+		}
+
 		if (ObjectAnimation::ATTACK == m_currentAnimation) {
 			auto& track = m_animationController->GetAnimationTrack(0);
 			auto& animation = m_animationController->GetAnimationSet()->GetAnimations()[track.GetAnimation()];

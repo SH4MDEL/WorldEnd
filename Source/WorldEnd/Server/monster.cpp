@@ -57,20 +57,6 @@ XMFLOAT3 Monster::GetPlayerDirection(INT player_id)
 
 	Server& server = Server::GetInstance();
 
-	// 타겟 플레이어가 사망 or 접속 종료되면 타겟 변경
-	auto game_room = server.GetGameRoomManager()->GetGameRoom(m_room_num);
-	auto& ids = game_room->GetPlayerIds();
-	auto it = find(ids.begin(), ids.end(), player_id);
-	if (it == ids.end()) {
-		UpdateTarget();
-		return XMFLOAT3(0.f, 0.f, 0.f);
-	}
-
-	if (State::ST_INGAME != server.m_clients[player_id]->GetState()) {
-		UpdateTarget();
-		return XMFLOAT3(0.f, 0.f, 0.f);
-	}
-
 	XMFLOAT3 sub = Vector3::Sub(server.m_clients[player_id]->GetPosition(), m_position);
 	return Vector3::Normalize(sub);
 }
@@ -198,7 +184,7 @@ void Monster::ChangeBehavior(MonsterBehavior behavior)
 
 		break;
 	case MonsterBehavior::DEAD:
-		m_current_animation = ObjectAnimation::DEAD;
+		m_current_animation = ObjectAnimation::DEATH;
 		ev.event_time = current_time + MonsterSetting::DEAD_TIME;
 		ev.next_behavior_type = MonsterBehavior::DEAD;
 		break;
@@ -273,9 +259,10 @@ void Monster::DecreaseHp(FLOAT damage, INT id)
 
 	m_hp -= damage;
 	if (m_hp <= 0) {
+		m_hp = 0.f;
 		{
 			std::lock_guard<std::mutex> l{ m_state_lock };
-			m_state = State::ST_DEAD;
+			m_state = State::ST_DEATH;
 		}
 		// 죽은것 전송
 		ChangeBehavior(MonsterBehavior::DEAD);
@@ -304,6 +291,22 @@ void Monster::DecreaseAggroLevel()
 	
 }
 
+bool Monster::CheckPlayer()
+{
+	Server& server = Server::GetInstance();
+	
+	// 타겟 플레이어가 접속 종료되면 추격 X
+	auto game_room = server.GetGameRoomManager()->GetGameRoom(m_room_num);
+	auto& ids = game_room->GetPlayerIds();
+
+	if (State::ST_INGAME != server.m_clients[m_target_id]->GetState()) {
+		return false;
+	}
+	else if (std::ranges::find(ids, m_target_id) == ids.end()) {
+		return false;
+	}
+}
+
 void Monster::UpdateTarget()
 {
 	if (AggroLevel::NORMAL_AGGRO < m_aggro_level)
@@ -318,6 +321,7 @@ void Monster::UpdateTarget()
 	FLOAT length{}, min_length{ std::numeric_limits<FLOAT>::max() };
 	for (INT id : ids) {
 		if (-1 == id) continue;
+		if (State::ST_INGAME != server.m_clients[id]->GetState()) continue;
 
 		sub = Vector3::Sub(m_position, server.m_clients[id]->GetPosition());
 		length = Vector3::Length(sub);
@@ -331,6 +335,10 @@ void Monster::UpdateTarget()
 
 void Monster::ChasePlayer(FLOAT elapsed_time)
 {
+	if (!CheckPlayer()) {
+		UpdateTarget();
+	}
+
 	// 타게팅한 플레이어 추격
 	XMFLOAT3 player_dir = GetPlayerDirection(m_target_id);
 
@@ -351,12 +359,20 @@ void Monster::Retarget()
 
 void Monster::Taunt()
 {
+	if (!CheckPlayer()) {
+		UpdateTarget();
+	}
+
 	XMFLOAT3 player_dir = GetPlayerDirection(m_target_id);
 	UpdateRotation(player_dir);
 }
 
 void Monster::PrepareAttack()
 {
+	if (!CheckPlayer()) {
+		UpdateTarget();
+	}
+
 	// 공격 전 공격함을 알리기 위한 행동
 
 	XMFLOAT3 player_dir = GetPlayerDirection(m_target_id);
@@ -365,13 +381,12 @@ void Monster::PrepareAttack()
 
 void Monster::Attack()
 {
+	if (!CheckPlayer()) {
+		ChangeBehavior(MonsterBehavior::RETARGET);
+	}
 	// 플레이어 공격
 	Server& server = Server::GetInstance();
 
-	
-	// 타겟과 거리가 멀면 추격 행동으로 전환
-	// 타겟과 거리가 가까우면 공격 범위 내 행동으로 전환
-	// 몬스터별 차이 둘 필요있음
 }
 
 void Monster::CollisionCheck()

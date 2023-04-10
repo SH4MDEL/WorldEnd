@@ -49,8 +49,10 @@ void Shader::Update(FLOAT timeElapsed)
 	for (const auto& elm : m_multiPlayers)
 		elm.second->UpdateAnimation(timeElapsed);
 
-	for (const auto& elm : m_monsters)
-		elm.second->UpdateAnimation(timeElapsed);
+	for (const auto& elm : m_monsters) {
+		if(elm.second->GetIsShowing())
+			elm.second->UpdateAnimation(timeElapsed);
+	}
 }
 
 void Shader::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const
@@ -123,6 +125,13 @@ void Shader::SetMultiPlayer(INT ID, const shared_ptr<Player>& player)
 void Shader::SetMonster(INT ID, const shared_ptr<Monster>& monster)
 {
 	m_monsters.insert({ ID, monster });
+}
+
+bool Shader::FindObject(const shared_ptr<GameObject>& object)
+{
+	if (ranges::find(m_gameObjects, object) != m_gameObjects.end())
+		return true;
+	return false;
 }
 
 void Shader::RemoveObject(const shared_ptr<GameObject>& object)

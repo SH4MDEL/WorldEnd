@@ -142,7 +142,7 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 
 	// 플레이어 생성
 	m_player = make_shared<Player>();
-	m_player->SetType(PlayerType::WARRIOR);
+	m_player->SetType(PlayerType::ARCHER);
 	LoadPlayerFromFile(m_player);
 
 	m_player->SetPosition(XMFLOAT3{ 0.f, 0.f, 0.f });
@@ -707,22 +707,22 @@ void TowerScene::ProcessPacket(char* ptr)
 	switch (ptr[1])
 	{
 	case SC_PACKET_LOGIN_OK:
-		RecvLoginOkPacket(ptr);
+		RecvLoginOk(ptr);
 		break;
 	case SC_PACKET_ADD_OBJECT:
-		RecvAddObjectPacket(ptr);
+		RecvAddObject(ptr);
 		break;
 	case SC_PACKET_REMOVE_PLAYER:
-		RecvRemovePlayerPacket(ptr);
+		RecvRemovePlayer(ptr);
 		break;
 	case SC_PACKET_REMOVE_MONSTER:
-		RecvRemoveMonsterPacket(ptr);
+		RecvRemoveMonster(ptr);
 		break;
 	case SC_PACKET_UPDATE_CLIENT:
 		RecvUpdateClient(ptr);
 		break;
 	case SC_PACKET_ADD_MONSTER:
-		RecvAddMonsterPacket(ptr);
+		RecvAddMonster(ptr);
 		break;
 	case SC_PACKET_UPDATE_MONSTER:
 		RecvUpdateMonster(ptr);
@@ -760,6 +760,9 @@ void TowerScene::ProcessPacket(char* ptr)
 	case SC_PACKET_WARP_NEXT_FLOOR:
 		RecvWarpNextFloor(ptr);
 		break;
+	case SC_PACKET_PLAYER_DEATH:
+		RecvPlayerDeath(ptr);
+		break;
 	}
 }
 
@@ -793,13 +796,13 @@ void TowerScene::PacketReassembly(char* net_buf, size_t io_byte)
 	}
 }
 
-void TowerScene::RecvLoginOkPacket(char* ptr)
+void TowerScene::RecvLoginOk(char* ptr)
 {
 	SC_LOGIN_OK_PACKET* packet = reinterpret_cast<SC_LOGIN_OK_PACKET*>(ptr);
-	m_player->SetID(packet->player_data.id);
+	m_player->SetId(packet->player_data.id);
 }
 
-void TowerScene::RecvAddObjectPacket(char* ptr)
+void TowerScene::RecvAddObject(char* ptr)
 {
 	SC_ADD_OBJECT_PACKET* packet = reinterpret_cast<SC_ADD_OBJECT_PACKET*>(ptr);
 
@@ -824,14 +827,14 @@ void TowerScene::RecvAddObjectPacket(char* ptr)
 
 }
 
-void TowerScene::RecvRemovePlayerPacket(char* ptr)
+void TowerScene::RecvRemovePlayer(char* ptr)
 {
 	SC_REMOVE_PLAYER_PACKET* packet = reinterpret_cast<SC_REMOVE_PLAYER_PACKET*>(ptr);
 
 	m_multiPlayers[packet->id]->SetPosition(XMFLOAT3(FAR_POSITION, FAR_POSITION, FAR_POSITION));
 }
 
-void TowerScene::RecvRemoveMonsterPacket(char* ptr)
+void TowerScene::RecvRemoveMonster(char* ptr)
 {
 	SC_REMOVE_MONSTER_PACKET* packet = reinterpret_cast<SC_REMOVE_MONSTER_PACKET*>(ptr);
 	m_monsters[packet->id]->SetPosition(XMFLOAT3(FAR_POSITION, FAR_POSITION, FAR_POSITION));
@@ -847,7 +850,7 @@ void TowerScene::RecvUpdateClient(char* ptr)
 		return;
 	}
 
-	if (packet->data.id == m_player->GetID()) {
+	if (packet->data.id == m_player->GetId()) {
 		m_player->SetPosition(packet->data.pos);
 	}
 	else {
@@ -861,7 +864,7 @@ void TowerScene::RecvUpdateClient(char* ptr)
 	}
 }
 
-void TowerScene::RecvAddMonsterPacket(char* ptr)
+void TowerScene::RecvAddMonster(char* ptr)
 {
 	SC_ADD_MONSTER_PACKET* packet = reinterpret_cast<SC_ADD_MONSTER_PACKET*>(ptr);
 
@@ -883,6 +886,9 @@ void TowerScene::RecvAddMonsterPacket(char* ptr)
 	m_monsters.insert({ static_cast<INT>(monster_data.id), monster });
 
 	SetHpBar(monster);
+
+	if (!m_shaders["OBJECT"]->FindObject(m_gate))
+		monster->SetIsShowing(true);
 
 	m_shaders["ANIMATION"]->SetMonster(monster_data.id, monster);
 }
@@ -962,7 +968,7 @@ void TowerScene::RecvMonsterAttackCollision(char* ptr)
 	for (size_t i = 0; INT id : packet->ids) {
 		if (-1 == id) break;
 
-		if (id == m_player->GetID()) {
+		if (id == m_player->GetId()) {
 			//m_player->ChangeAnimation(ObjectAnimation::HIT);
 			m_player->SetHp(packet->hps[i]);
 		}
@@ -996,7 +1002,8 @@ void TowerScene::RecvStartBattle(char* ptr)
 	m_player->SetInteractable(false);
 	m_player->SetInteractableType(InteractableType::NONE);
 
-	m_shaders["OBJECT"]->RemoveObject(m_gate);
+	if(m_shaders["OBJECT"]->FindObject(m_gate))
+		m_shaders["OBJECT"]->RemoveObject(m_gate);
 }
 
 void TowerScene::RecvWarpNextFloor(char* ptr)
@@ -1019,4 +1026,16 @@ void TowerScene::RecvWarpNextFloor(char* ptr)
 
 		m_fadeFilter->FadeIn([&](){});
 	});
+}
+
+void TowerScene::RecvPlayerDeath(char* ptr)
+{
+	SC_PLAYER_DEATH_PACKET* packet = reinterpret_cast<SC_PLAYER_DEATH_PACKET*>(ptr);
+	
+	if (packet->id == m_player->GetId()) {
+		m_player->ChangeAnimation(ObjectAnimation::DEATH, false);
+	}
+	else {
+		m_multiPlayers[packet->id]->ChangeAnimation(ObjectAnimation::DEATH, false);
+	}
 }

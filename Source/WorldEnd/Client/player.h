@@ -44,8 +44,8 @@ public:
 	void ChangeAnimation(USHORT animation, bool other);
 
 	// 추가
-	void SetID(INT id) { m_id = id; }
-	INT GetID() const { return m_id; }
+	void SetId(INT id) { m_id = id; }
+	INT GetId() const { return m_id; }
 
 	void CreateMovePacket();
 	void CreateCooltimePacket(CooltimeType type);

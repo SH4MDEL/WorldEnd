@@ -32,6 +32,7 @@ public:
 	void SetMonster(INT ID, const shared_ptr<Monster>& monster);
 	virtual void SetUI(const shared_ptr<UI>& ui) {};
 
+	bool FindObject(const shared_ptr<GameObject>& object);
 	void RemoveObject(const shared_ptr<GameObject>& object);
 	void DeleteMultiPlayer(INT id);
 

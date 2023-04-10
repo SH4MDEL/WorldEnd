@@ -12,7 +12,7 @@ struct SCORE_DATA
 	}
 };
 
-enum class State { ST_FREE, ST_ACCEPT, ST_INGAME, ST_DEAD };
+enum class State { ST_FREE, ST_ACCEPT, ST_INGAME, ST_DEATH };
 
 class GameObject
 {
@@ -45,11 +45,11 @@ protected:
 	INT						m_id;
 };
 
-class Npc : public GameObject
+class EventObject : public GameObject
 {
 public:
-	Npc() = default;
-	virtual ~Npc() = default;
+	EventObject() = default;
+	virtual ~EventObject() = default;
 
 	void SetEventBoundingBox(const BoundingOrientedBox& obb) { m_event_bounding_box = obb; }
 
@@ -62,7 +62,7 @@ protected:
 	BoundingOrientedBox m_event_bounding_box;
 };
 
-class RecordBoard : public Npc
+class RecordBoard : public EventObject
 {
 public:
 	RecordBoard();
@@ -80,7 +80,7 @@ private:
 	std::array<SCORE_DATA, MAX_RECORD_NUM> m_solo_squad_records;
 };
 
-class Enhancment : public Npc
+class Enhancment : public EventObject
 {
 public:
 	Enhancment();
@@ -89,7 +89,7 @@ public:
 	virtual void SendEvent(INT player_id, void* c) override;
 };
 
-class BattleStarter : public Npc
+class BattleStarter : public EventObject
 {
 public:
 	BattleStarter();
@@ -105,7 +105,7 @@ private:
 	std::mutex	m_valid_lock;
 };
 
-class WarpPortal : public Npc
+class WarpPortal : public EventObject
 {
 public:
 	WarpPortal();
@@ -149,7 +149,8 @@ public:
 	USHORT GetRoomNum() const { return m_room_num; }
 
 
-	virtual void Update(FLOAT elapsed_time) {};
+	virtual void Update(FLOAT elapsed_time) {}
+	virtual void DecreaseHp(FLOAT damage, INT it) {}
 
 	virtual PLAYER_DATA GetPlayerData() const { return PLAYER_DATA(); }
 	virtual PlayerType GetPlayerType() const { return PlayerType::UNKNOWN; }

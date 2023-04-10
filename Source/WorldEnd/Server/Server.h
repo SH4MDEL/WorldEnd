@@ -47,9 +47,11 @@ public:
 	void ProcessPacket(int id, char* p);
 	void Disconnect(int id);
 
-	void SendLoginOkPacket(const std::shared_ptr<Client>& player) const;
-	void SendMoveInGameRoom(int id);
+	void SendLoginOkPacket(int client_id);
+	void SendMoveInGameRoom(int client_id);
+	void SendDeathPacket(int client_id);
 
+	bool IsInGameRoom(int client_id);
 	void GameRoomPlayerCollisionCheck(const std::shared_ptr<Client>& player);
 
 	void Timer();

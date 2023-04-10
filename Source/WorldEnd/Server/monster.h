@@ -27,8 +27,9 @@ public:
 	void ChangeBehavior(MonsterBehavior behavior);
 	void DoBehavior(FLOAT elapsed_time);
 	bool IsDoAttack();
-	void DecreaseHp(FLOAT damage, INT id);
+	virtual void DecreaseHp (FLOAT damage, INT id) override;
 	void DecreaseAggroLevel();
+	bool CheckPlayer();
 
 	void UpdateTarget();					// 타게팅 설정
 	void ChasePlayer(FLOAT elapsed_time);	// 추격

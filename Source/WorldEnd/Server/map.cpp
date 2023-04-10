@@ -69,6 +69,9 @@ void GameRoom::SetPlayer(INT player_id)
 	for (int& id : m_player_ids) {
 		if (-1 == id) {
 			id = player_id;
+			if (GameRoomState::INGAME == m_state) {
+				m_battle_starter->SendEvent(player_id, nullptr);
+			}
 			break;
 		}
 	}
@@ -293,7 +296,7 @@ void GameRoom::InitEnvironment()
 
 void GameRoom::CollideWithEventObject(INT player_id, InteractableType type)
 {
-	std::shared_ptr<Npc> object{};
+	std::shared_ptr<EventObject> object{};
 	switch(type) {
 	case InteractableType::BATTLE_STARTER:
 		object = m_battle_starter;

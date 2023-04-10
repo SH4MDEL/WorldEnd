@@ -53,6 +53,7 @@ constexpr char SC_PACKET_MONSTER_ATTACK_COLLISION = 15;
 constexpr char SC_PACKET_SET_INTERACTABLE = 16;
 constexpr char SC_PACKET_START_BATTLE = 17;
 constexpr char SC_PACKET_WARP_NEXT_FLOOR = 18;
+constexpr char SC_PACKET_PLAYER_DEATH = 19;
 
 enum class PlayerType : char { WARRIOR, ARCHER, UNKNOWN };
 enum class AttackType : char { NORMAL, SKILL, ULTIMATE };
@@ -146,7 +147,7 @@ class ObjectAnimation
 {
 public:
 	enum USHORT {
-		IDLE, WALK, RUN, ATTACK, DEAD,
+		IDLE, WALK, RUN, ATTACK, DEATH,
 		END
 	};
 };
@@ -444,6 +445,13 @@ struct SC_WARP_NEXT_FLOOR_PACKET
 	UCHAR type;
 	BYTE floor;
 	// 플레이어의 초기 장소까지 같이 알려줘야 하는지
+};
+
+struct SC_PLAYER_DEATH_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+	INT id;
 };
 
 #pragma pack (pop)

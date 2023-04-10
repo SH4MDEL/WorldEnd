@@ -63,13 +63,13 @@ public:
 	void RecvPacket();
 	void ProcessPacket(char* ptr);
 	void PacketReassembly(char* net_buf, size_t io_byte);
-	void RecvLoginOkPacket(char* ptr);
-	void RecvAddObjectPacket(char* ptr);
-	void RecvRemovePlayerPacket(char* ptr);
-	void RecvRemoveMonsterPacket(char* ptr);
+	void RecvLoginOk(char* ptr);
+	void RecvAddObject(char* ptr);
+	void RecvRemovePlayer(char* ptr);
+	void RecvRemoveMonster(char* ptr);
 	void RecvUpdateClient(char* ptr);
 	void RecvChangeAnimation(char* ptr);
-	void RecvAddMonsterPacket(char* ptr);
+	void RecvAddMonster(char* ptr);
 	void RecvUpdateMonster(char* ptr);
 	void RecvChangeMonsterBehavior(char* ptr);
 	void RecvResetCooltime(char* ptr);
@@ -81,6 +81,7 @@ public:
 	void RecvSetInteractable(char* ptr);
 	void RecvStartBattle(char* ptr);
 	void RecvWarpNextFloor(char* ptr);
+	void RecvPlayerDeath(char* ptr);
 
 protected:
 	ComPtr<ID3D12Resource>					m_sceneBuffer;

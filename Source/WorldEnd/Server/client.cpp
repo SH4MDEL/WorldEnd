@@ -173,10 +173,24 @@ PLAYER_DATA Client::GetPlayerData() const
 void Client::ChangeStamina(FLOAT value)
 {
 	m_stamina += value;
-	if (m_stamina <= 0.f)
-		m_stamina = 0.f;
+	if (m_stamina <= 0)
+		m_stamina = 0;
 }
 
+void Client::DecreaseHp(FLOAT damage, INT id)
+{
+	if (m_hp <= 0)
+		return;
+
+	m_hp -= damage;
+	if (m_hp <= 0) {
+		m_hp = 0;
+
+		// INGAME 에서 State를 바꾸는 것에는 경합이 필요 없으므로 lock 걸지 않음
+		m_state = State::ST_DEATH;
+		m_current_animation = ObjectAnimation::DEATH;
+	}
+}
 
 void Client::SetBoundingBox(PlayerType type)
 {

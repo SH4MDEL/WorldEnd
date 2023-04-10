@@ -60,6 +60,7 @@ public:
 	PLAYER_DATA GetPlayerData() const override;
 
 	void ChangeStamina(FLOAT value);
+	virtual void DecreaseHp(FLOAT damage, INT id) override;
 
 private:
 	// 통신 관련 변수
