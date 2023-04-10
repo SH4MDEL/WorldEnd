@@ -8,6 +8,8 @@
 #define TYPE_BACKGROUND 1
 #define TYPE_TEXT 2
 #define TYPE_BUTTON 3
+#define TYPE_HORZGAUGE 4
+#define TYPE_VERTGAUGE 5
 
 
 struct VS_UI_OUTPUT
@@ -57,6 +59,19 @@ void GS_UI_MAIN(point VS_UI_OUTPUT input[1], inout TriangleStream<GS_UI_OUTPUT> 
 
 float4 PS_UI_MAIN(GS_UI_OUTPUT input) : SV_TARGET
 {
-	if (g_type == TYPE_BACKGROUND) return float4(0.f, 0.f, 0.f, 0.f);
+	if (g_type == TYPE_BACKGROUND) 
+		return float4(0.f, 0.f, 0.f, 0.f);
+	if (g_type == TYPE_HORZGAUGE) {
+		if (input.uv.x <= g_age + (1 - g_age) * (g_gauge / g_maxGauge)) {
+			return g_baseTexture.Sample(g_samplerWrap, input.uv);
+		}
+		return g_subTexture.Sample(g_samplerWrap, input.uv);
+	}
+	if (g_type == TYPE_VERTGAUGE) {
+		if (1 - input.uv.y <= g_age + (1 - g_age) * (g_gauge / g_maxGauge)) {
+			return g_baseTexture.Sample(g_samplerWrap, input.uv);
+		}
+		return g_subTexture.Sample(g_samplerWrap, input.uv);
+	}
 	return g_baseTexture.Sample(g_samplerWrap, input.uv);
 }

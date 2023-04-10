@@ -195,10 +195,17 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 		static_pointer_cast<ParticleShader>(m_shaders["PUMPERPARTICLE"]));
 
 	// UI 생성
+	auto skillUI = make_shared<VertGaugeUI>(XMFLOAT2{ -0.60f, -0.80f }, XMFLOAT2{ 0.15f, 0.15f }, 0.f);
+	skillUI->SetTexture(m_textures["WARRIORSKILL"]);
+	m_shaders["UI"]->SetUI(skillUI);
+	auto ultimateUI = make_shared<VertGaugeUI>(XMFLOAT2{ -0.85f, -0.80f }, XMFLOAT2{ 0.15f, 0.15f }, 0.f);
+	ultimateUI->SetTexture(m_textures["WARRIORULTIMATE"]);
+	m_shaders["UI"]->SetUI(ultimateUI);
+
 	m_exitUI = make_shared<BackgroundUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{1.f, 1.f});
 	auto exitUI{ make_shared<StandardUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.4f, 0.5f}) };
 	exitUI->SetTexture(m_textures["FRAMEUI"]);
-	auto exitTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.0f}, XMFLOAT2{100.f, 20.f}) };
+	auto exitTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.0f}, XMFLOAT2{120.f, 20.f}) };
 	exitTextUI->SetText(L"던전에서 나가시겠습니까?");
 	exitUI->SetChild(exitTextUI);
 	auto exitButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.f, -0.7f}, XMFLOAT2{0.15f, 0.075f}) };
@@ -458,10 +465,10 @@ void TowerScene::PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandLis
 			m_blurFilter->ResetResourceBarrier(commandList);
 		}
 
-		m_sobelFilter->Execute(commandList, renderTarget);
-		commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET));
-		m_shaders["COMPOSITE"]->Render(commandList);
-		commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE));
+		//m_sobelFilter->Execute(commandList, renderTarget);
+		//commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET));
+		//m_shaders["COMPOSITE"]->Render(commandList);
+		//commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE));
 
 		break;
 	}

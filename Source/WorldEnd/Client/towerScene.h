@@ -107,6 +107,7 @@ protected:
 	unique_ptr<FadeFilter>					m_fadeFilter;
 	unique_ptr<SobelFilter>					m_sobelFilter;
 
+	// UI 관련
 	shared_ptr<UI>							m_exitUI;
 	shared_ptr<UI>							m_resultUI;
 	shared_ptr<UI>							m_resultTextUI;

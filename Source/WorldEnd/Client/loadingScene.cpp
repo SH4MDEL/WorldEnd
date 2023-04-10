@@ -23,11 +23,11 @@ void LoadingScene::OnCreate(const ComPtr<ID3D12Device>& device,
 
 	auto textFormat = ComPtr<IDWriteTextFormat>();
 	DX::ThrowIfFailed(g_GameFramework.GetWriteFactory()->CreateTextFormat(
-		TEXT("돋움체"), nullptr,
+		TEXT("./Resource/Font/KoPub Dotum Bold.ttf"), nullptr,
 		DWRITE_FONT_WEIGHT_NORMAL,
 		DWRITE_FONT_STYLE_NORMAL,
 		DWRITE_FONT_STRETCH_NORMAL,
-		20.f,
+		24.f,
 		TEXT("ko-kr"),
 		&textFormat
 	));
@@ -104,17 +104,28 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	auto uiShader{ make_shared<UIShader>(device, rootsignature) };
 	auto postUiShader{ make_shared<UIShader>(device, rootsignature) };
 	auto frameUITexture{ make_shared<Texture>() };
-	frameUITexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/UI_Background.dds"), (INT)ShaderRegister::BaseTexture); // SubTexture
+	frameUITexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/UI_Background.dds"), (INT)ShaderRegister::BaseTexture);
 	frameUITexture->CreateSrvDescriptorHeap(device);
 	frameUITexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
 	auto cancelUITexture{ make_shared<Texture>() };
-	cancelUITexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/UI_Cancel.dds"), (INT)ShaderRegister::BaseTexture); // SubTexture
+	cancelUITexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/UI_Cancel.dds"), (INT)ShaderRegister::BaseTexture);
 	cancelUITexture->CreateSrvDescriptorHeap(device);
 	cancelUITexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
 	auto buttonUITexture{ make_shared<Texture>() };
-	buttonUITexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/UI_Button.dds"), (INT)ShaderRegister::BaseTexture); // SubTexture
+	buttonUITexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/UI_Button.dds"), (INT)ShaderRegister::BaseTexture);
 	buttonUITexture->CreateSrvDescriptorHeap(device);
 	buttonUITexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+
+	auto warriorSkillTexture{ make_shared<Texture>() };
+	warriorSkillTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/SkillTexture/Warrior_Skill.dds"), (INT)ShaderRegister::BaseTexture);
+	warriorSkillTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/SkillTexture/Warrior_Skill_Cool.dds"), (INT)ShaderRegister::SubTexture);
+	warriorSkillTexture->CreateSrvDescriptorHeap(device);
+	warriorSkillTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+	auto warriorUltimateTexture{ make_shared<Texture>() };
+	warriorUltimateTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/SkillTexture/Warrior_Ultimate.dds"), (INT)ShaderRegister::BaseTexture);
+	warriorUltimateTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/SkillTexture/Warrior_Ultimate_Cool.dds"), (INT)ShaderRegister::SubTexture);
+	warriorUltimateTexture->CreateSrvDescriptorHeap(device);
+	warriorUltimateTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
 
 	// 게이지 셰이더 로딩
 	auto horzGaugeShader{ make_shared<HorzGaugeShader>(device, rootsignature) };
@@ -218,6 +229,8 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	m_textures.insert({ "FRAMEUI", frameUITexture });
 	m_textures.insert({ "CANCELUI", cancelUITexture });
 	m_textures.insert({ "BUTTONUI", buttonUITexture });
+	m_textures.insert({ "WARRIORSKILL", warriorSkillTexture });
+	m_textures.insert({ "WARRIORULTIMATE", warriorUltimateTexture });
 
 	// 셰이더 설정
 	m_shaders.insert({ "ANIMATION", animationShader });

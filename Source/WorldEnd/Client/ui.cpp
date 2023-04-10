@@ -111,11 +111,11 @@ TextUI::TextUI(XMFLOAT2 position, XMFLOAT2 size) : UI(position, size)
 
 	auto textFormat = ComPtr<IDWriteTextFormat>();
 	DX::ThrowIfFailed(g_GameFramework.GetWriteFactory()->CreateTextFormat(
-		TEXT("µ¸¿òÃ¼"), nullptr,
+		TEXT("./Resource/Font/KoPub Dotum Bold.ttf"), nullptr,
 		DWRITE_FONT_WEIGHT_NORMAL,
 		DWRITE_FONT_STYLE_NORMAL,
 		DWRITE_FONT_STRETCH_NORMAL,
-		16.f,
+		18.f,
 		TEXT("ko-kr"),
 		&textFormat
 	));
@@ -175,4 +175,42 @@ ButtonUI::ButtonUI(XMFLOAT2 position, XMFLOAT2 size) : UI(position, size)
 	m_type = Type::BUTTON;
 	XMStoreFloat4x4(&m_uiMatrix, XMMatrixIdentity());
 	m_size.x /= g_GameFramework.GetAspectRatio();
+}
+
+HorzGaugeUI::HorzGaugeUI(XMFLOAT2 position, XMFLOAT2 size, FLOAT border) : 
+	UI(position, size), m_border{ border }
+{
+	m_type = Type::HORZGAUGE;
+	XMStoreFloat4x4(&m_uiMatrix, XMMatrixIdentity());
+	m_size.x /= g_GameFramework.GetAspectRatio();
+}
+
+void HorzGaugeUI::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, const shared_ptr<UI>& parent)
+{
+	if (!m_enable) return;
+
+	commandList->SetGraphicsRoot32BitConstants((INT)ShaderRegister::GameObject, 1, &(m_gauge), 16);
+	commandList->SetGraphicsRoot32BitConstants((INT)ShaderRegister::GameObject, 1, &(m_maxGauge), 17);
+	commandList->SetGraphicsRoot32BitConstants((INT)ShaderRegister::GameObject, 1, &(m_border), 18);
+
+	UI::Render(commandList, parent);
+}
+
+VertGaugeUI::VertGaugeUI(XMFLOAT2 position, XMFLOAT2 size, FLOAT border) : 
+	UI(position, size), m_border{ border }
+{
+	m_type = Type::VERTGAUGE;
+	XMStoreFloat4x4(&m_uiMatrix, XMMatrixIdentity());
+	m_size.x /= g_GameFramework.GetAspectRatio();
+}
+
+void VertGaugeUI::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, const shared_ptr<UI>& parent)
+{
+	if (!m_enable) return;
+
+	commandList->SetGraphicsRoot32BitConstants((INT)ShaderRegister::GameObject, 1, &(m_gauge), 16);
+	commandList->SetGraphicsRoot32BitConstants((INT)ShaderRegister::GameObject, 1, &(m_maxGauge), 17);
+	commandList->SetGraphicsRoot32BitConstants((INT)ShaderRegister::GameObject, 1, &(m_border), 18);
+
+	UI::Render(commandList, parent);
 }

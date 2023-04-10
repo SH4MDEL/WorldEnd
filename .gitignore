@@ -21,6 +21,7 @@ mono_crash.*
 *.txt
 *.dds
 *.zip
+*.ttf
 
 # Build results
 [Dd]ebug/
