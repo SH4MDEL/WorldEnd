@@ -140,9 +140,15 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 {
 	CreateShaderVariable(device, commandlist);
 
+	// 임시 화살 생성
+	m_arrow = make_shared<GameObject>();
+	LoadObjectFromFile(TEXT("./Resource/Model/Archer_WeaponArrow.bin"), m_arrow);
+	m_arrow->SetPosition(XMFLOAT3{ 0.f, 0.5f, 0.f });
+	m_shaders["OBJECT"]->SetObject(m_arrow);
+
 	// 플레이어 생성
 	m_player = make_shared<Player>();
-	m_player->SetType(PlayerType::ARCHER);
+	m_player->SetType(PlayerType::WARRIOR);
 	LoadPlayerFromFile(m_player);
 
 	m_player->SetPosition(XMFLOAT3{ 0.f, 0.f, 0.f });
@@ -1020,7 +1026,7 @@ void TowerScene::RecvWarpNextFloor(char* ptr)
 
 		m_shaders["OBJECT"]->SetObject(m_gate);
 
-		for (size_t i = 0; i < CooltimeType::COUNT; ++i) {
+		for (size_t i = 0; i < ActionType::COUNT; ++i) {
 			m_player->ResetCooltime(static_cast<char>(i));
 		}
 

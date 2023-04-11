@@ -1,5 +1,7 @@
 ﻿#include "loadingScene.h"
 
+constexpr int LOAD_COUNT = 63;
+
 LoadingScene::LoadingScene() : m_loadEnd{false}
 {
 
@@ -15,7 +17,7 @@ void LoadingScene::OnCreate(const ComPtr<ID3D12Device>& device,
 	const ComPtr<ID3D12RootSignature>& rootSignature, 
 	const ComPtr<ID3D12RootSignature>& postRootSignature)
 {
-	m_loadingText = make_shared<LoadingText>(61);
+	m_loadingText = make_shared<LoadingText>(LOAD_COUNT);
 
 	auto textBrush = ComPtr<ID2D1SolidColorBrush>();
 	DX::ThrowIfFailed(g_GameFramework.GetD2DDeviceContext()->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::SkyBlue, 1.f), &textBrush));
@@ -65,14 +67,19 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 {
 	// 플레이어 로딩
 	auto animationShader{ make_shared<AnimationShader>(device, rootsignature) };
-	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/WarriorMesh.bin"));
-	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/ArcherMesh.bin"));
+	LoadAnimationMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/WarriorMesh.bin"));
+	LoadAnimationMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/ArcherMesh.bin"));
 
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/WarriorTexture.bin"));
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/ArcherTexture.bin"));
 
 	LoadAnimationSetFromFile(TEXT("./Resource/Animation/WarriorAnimation.bin"), "WarriorAnimation");
 	LoadAnimationSetFromFile(TEXT("./Resource/Animation/ArcherAnimation.bin"), "ArcherAnimation");
+
+	// 화살 로딩
+	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/MeshArrowMesh.bin"));
+	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/Archer_WeaponArrowTexture.bin"));
+
 
 	auto objectShader{ make_shared<StaticObjectShader>(device, rootsignature) };
 
@@ -141,7 +148,7 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	auto compositeShader{ make_shared<CompositeShader>(device, postRootSignature) };
 
 	// 몬스터 로딩
-	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/Undead_WarriorMesh.bin"));
+	LoadAnimationMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/Undead_WarriorMesh.bin"));
 	LoadAnimationSetFromFile(TEXT("./Resource/Animation/Undead_WarriorAnimation.bin"), "Undead_WarriorAnimation");
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/Undead_WarriorTexture.bin"));
 
@@ -261,6 +268,35 @@ void LoadingScene::RenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext)
 }
 
 void LoadingScene::LoadMeshFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, wstring fileName)
+{
+	ifstream in{ fileName, std::ios::binary };
+	if (!in) return;
+
+	m_loadingText->SetFileName(fileName);
+
+	BYTE strLength;
+	string backup;
+	while (1) {
+		in.read((char*)(&strLength), sizeof(BYTE));
+		string strToken(strLength, '\0');
+		in.read(&strToken[0], sizeof(char) * strLength);
+
+		if (strToken == "<Hierarchy>:") {}
+		else if (strToken == "<Mesh>:") {
+			auto mesh = make_shared<MeshFromFile>();
+			mesh->LoadMesh(device, commandList, in);
+
+			m_meshs.insert({ mesh->GetMeshName(), mesh });
+		}
+		else if (strToken == "</Hierarchy>") {
+			break;
+		}
+	}
+
+	m_loadingText->LoadingFile();
+}
+
+void LoadingScene::LoadAnimationMeshFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, wstring fileName)
 {
 	ifstream in{ fileName, std::ios::binary };
 	if (!in) return;

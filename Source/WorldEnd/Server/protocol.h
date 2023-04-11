@@ -55,91 +55,20 @@ constexpr char SC_PACKET_START_BATTLE = 17;
 constexpr char SC_PACKET_WARP_NEXT_FLOOR = 18;
 constexpr char SC_PACKET_PLAYER_DEATH = 19;
 
-enum class PlayerType : char { WARRIOR, ARCHER, UNKNOWN };
-enum class AttackType : char { NORMAL, SKILL, ULTIMATE };
-enum class MonsterType : char { WARRIOR, ARCHER, WIZARD };
+enum class PlayerType : char { WARRIOR, ARCHER, COUNT };
+enum class MonsterType : char { WARRIOR, ARCHER, WIZARD, COUNT };
 enum class EnvironmentType : char { RAIN, FOG, GAS, TRAP };
 
 enum class CollisionType : char { PERSISTENCE, ONE_OFF, MULTIPLE_TIMES };
-enum CooltimeType : char {
+enum ActionType : char {
 	NORMAL_ATTACK, SKILL, ULTIMATE, DASH, ROLL, COUNT
 };
 enum class MonsterBehavior : char {
-	CHASE, RETARGET, TAUNT, PREPARE_ATTACK, ATTACK, DEAD, NONE
+	CHASE, RETARGET, TAUNT, PREPARE_ATTACK, ATTACK, DEATH, COUNT
 };
 enum InteractableType : char {
 	BATTLE_STARTER, PORTAL, ENHANCMENT, RECORD_BOARD, NONE
 };
-
-namespace PlayerSetting
-{
-	using namespace std::literals;
-
-	constexpr float PLAYER_WALK_SPEED = 4.f;
-	constexpr float	PLAYER_RUN_SPEED = 10.f;
-	constexpr float	PLAYER_DASH_SPEED = 12.f;
-	constexpr float PLAYER_ROLL_SPEED = 10.f;
-
-	constexpr auto PLAYER_DASH_DURATION = 300ms;
-	constexpr float PLAYER_MAX_STAMINA = 120.f;
-	constexpr float MINIMUM_DASH_STAMINA = 10.f;
-	constexpr float MINIMUM_ROLL_STAMINA = 15.f;
-	constexpr float DEFAULT_STAMINA_CHANGE_AMOUNT = 10.f;
-	constexpr float ROLL_STAMINA_CHANGE_AMOUNT = 15.f;
-
-	constexpr auto PLAYER_ROOL_COOLTIME = 3s;
-	constexpr auto PLAYER_DASH_COOLTIME = 1200ms;
-
-	constexpr auto WARRIOR_ATTACK_COLLISION_TIME = 210ms;
-	constexpr auto WARRIOR_SKILL_COLLISION_TIME = 340ms;
-	constexpr auto WARRIOR_ULTIMATE_COLLISION_TIME = 930ms;
-	constexpr auto WARRIOR_ATTACK_COOLTIME = 1s;
-	constexpr auto WARRIOR_SKILL_COOLTIME = 7s;
-	constexpr auto WARRIOR_ULTIMATE_COOLTIME = 20s;
-	constexpr DirectX::XMFLOAT3 WARRIOR_ULTIMATE_EXTENT { 2.f, 2.f, 2.f };
-
-	constexpr auto ARCHER_ATTACK_COLLISION_TIME = 400ms;
-	constexpr auto ARCHER_ATTACK_COOLTIME = 1s;
-	constexpr auto ARCHER_SKILL_COOLTIME = 7s;
-	constexpr auto ARCHER_ULTIMATE_COOLTIME = 20s;
-}
-
-namespace MonsterSetting 
-{
-	using namespace std::literals;
-
-	constexpr float WALK_SPEED = 3.f;
-	constexpr auto LOOK_AROUND_TIME = 3s;
-	constexpr auto RETARGET_TIME = 10s;
-	constexpr auto TAUNT_TIME = 2s;
-	constexpr auto PREPARE_ATTACK_TIME = 1s;
-	constexpr auto ATTACK_TIME = 625ms;
-	constexpr auto DEAD_TIME = 2s;
-	constexpr auto DECREASE_AGRO_LEVEL_TIME = 10s;
-
-	constexpr float WARRIOR_MONSTER_ATTACK_RANGE = 1.f;
-	constexpr float WARRIOR_MONSTER_BORDER_RANGE = 2.f;
-	constexpr auto WARRIOR_MONSTER_ATK_COLLISION_TIME = 300ms;
-
-}
-
-namespace RoomSetting
-{
-	constexpr float DEFAULT_HEIGHT = 0.f;
-	constexpr unsigned char BOSS_FLOOR = 5;
-
-	constexpr float DOWNSIDE_STAIRS_HEIGHT = 4.4f;
-	constexpr float DOWNSIDE_STAIRS_FRONT = -7.f;
-	constexpr float DOWNSIDE_STAIRS_BACK = -17.f;
-
-	constexpr float TOPSIDE_STAIRS_HEIGHT = 4.67f;
-	constexpr float TOPSIDE_STAIRS_FRONT = 53.f;
-	constexpr float TOPSIDE_STAIRS_BACK = 43.f;
-
-	constexpr float EVENT_RADIUS = 1.f;
-	constexpr DirectX::XMFLOAT3 BATTLE_STARTER_POSITION { 0.f, 0.f, 24.f };
-	constexpr DirectX::XMFLOAT3 WARP_PORTAL_POSITION { -1.f, TOPSIDE_STAIRS_HEIGHT, 60.f };
-}
 
 // ----- 애니메이션 enum 클래스 -----
 // 애니메이션이 100개 이하로 떨어질 것이라 생각하여 100을 단위로 잡음
@@ -173,7 +102,99 @@ public:
 };
 // ----------------------------------
 
+namespace PlayerSetting
+{
+	using namespace std::literals;
 
+	constexpr float WALK_SPEED = 4.f;
+	constexpr float	RUN_SPEED = 10.f;
+	constexpr float	DASH_SPEED = 12.f;
+	constexpr float ROLL_SPEED = 10.f;
+
+	constexpr auto DASH_DURATION = 300ms;
+	constexpr float MAX_STAMINA = 120.f;
+	constexpr float MINIMUM_DASH_STAMINA = 10.f;
+	constexpr float MINIMUM_ROLL_STAMINA = 15.f;
+	constexpr float DEFAULT_STAMINA_CHANGE_AMOUNT = 10.f;
+	constexpr float ROLL_STAMINA_CHANGE_AMOUNT = 15.f;
+
+	constexpr auto ROLL_COOLTIME = 3s;
+	constexpr auto DASH_COOLTIME = 1200ms;
+
+	constexpr std::chrono::milliseconds
+		ATTACK_COLLISION_TIME[static_cast<int>(PlayerType::COUNT)]{ 210ms, 0ms };
+	constexpr std::chrono::milliseconds
+		SKILL_COLLISION_TIME[static_cast<int>(PlayerType::COUNT)]{ 340ms, 0ms };
+	constexpr std::chrono::milliseconds
+		ULTIMATE_COLLISION_TIME[static_cast<int>(PlayerType::COUNT)]{ 930ms, 0ms };
+	constexpr std::chrono::milliseconds
+		ATTACK_COOLTIME[static_cast<int>(PlayerType::COUNT)]{ 1000ms, 1000ms };
+	constexpr std::chrono::seconds
+		SKILL_COOLTIME[static_cast<int>(PlayerType::COUNT)]{ 7s, 7s };
+	constexpr std::chrono::seconds
+		ULTIMATE_COOLTIME[static_cast<int>(PlayerType::COUNT)]{ 20s, 20s };
+	constexpr DirectX::XMFLOAT3
+		ULTIMATE_EXTENT[static_cast<int>(PlayerType::COUNT)]{
+			DirectX::XMFLOAT3{ 2.f, 2.f, 2.f },
+			DirectX::XMFLOAT3{ 0.f, 0.f, 0.f } 
+		};
+
+}
+
+namespace MonsterSetting 
+{
+	using namespace std::literals;
+
+	constexpr float WALK_SPEED = 3.f;
+
+	constexpr auto DECREASE_AGRO_LEVEL_TIME = 10s;
+
+	constexpr USHORT BEHAVIOR_ANIMATION[static_cast<int>(MonsterBehavior::COUNT)]{
+		ObjectAnimation::RUN,
+		MonsterAnimation::LOOK_AROUND,
+		MonsterAnimation::TAUNT,
+		MonsterAnimation::TAUNT,
+		ObjectAnimation::ATTACK,
+		ObjectAnimation::DEATH
+	};
+	constexpr MonsterBehavior NEXT_BEHAVIOR[static_cast<int>(MonsterBehavior::COUNT)][2]{
+		{MonsterBehavior::RETARGET, MonsterBehavior::TAUNT}, 
+		{MonsterBehavior::CHASE, MonsterBehavior::CHASE},
+		{MonsterBehavior::CHASE, MonsterBehavior::CHASE},
+		{MonsterBehavior::ATTACK, MonsterBehavior::ATTACK},
+		{MonsterBehavior::PREPARE_ATTACK, MonsterBehavior::CHASE},
+		{MonsterBehavior::DEATH, MonsterBehavior::DEATH},
+	};
+
+	constexpr std::chrono::milliseconds
+		BEHAVIOR_TIME[static_cast<int>(MonsterBehavior::COUNT)]{
+			7000ms, 3000ms, 2000ms, 1000ms, 625ms, 2000ms
+		};
+	constexpr float ATTACK_RANGE[static_cast<int>(MonsterType::COUNT)]{
+		1.f, 7.f };
+	constexpr float BORDER_RANGE[static_cast<int>(MonsterType::COUNT)]{
+		2.f, 5.f };
+	constexpr std::chrono::milliseconds
+		ATK_COLLISION_TIME[static_cast<int>(MonsterType::COUNT)]{ 300ms, 0ms };
+}
+
+namespace RoomSetting
+{
+	constexpr float DEFAULT_HEIGHT = 0.f;
+	constexpr unsigned char BOSS_FLOOR = 5;
+
+	constexpr float DOWNSIDE_STAIRS_HEIGHT = 4.4f;
+	constexpr float DOWNSIDE_STAIRS_FRONT = -7.f;
+	constexpr float DOWNSIDE_STAIRS_BACK = -17.f;
+
+	constexpr float TOPSIDE_STAIRS_HEIGHT = 4.67f;
+	constexpr float TOPSIDE_STAIRS_FRONT = 53.f;
+	constexpr float TOPSIDE_STAIRS_BACK = 43.f;
+
+	constexpr float EVENT_RADIUS = 1.f;
+	constexpr DirectX::XMFLOAT3 BATTLE_STARTER_POSITION { 0.f, 0.f, 24.f };
+	constexpr DirectX::XMFLOAT3 WARP_PORTAL_POSITION { -1.f, TOPSIDE_STAIRS_HEIGHT, 60.f };
+}
 
 #pragma pack(push,1)
 struct PLAYER_DATA
@@ -238,7 +259,7 @@ struct CS_COOLTIME_PACKET
 {
 	UCHAR size;
 	UCHAR type;
-	CooltimeType cooltime_type;
+	ActionType cooltime_type;
 };
 
 struct CS_ARROW_PACKET       // 공격키를 눌렀을때 투사체를 생성해주는 패킷
@@ -252,11 +273,9 @@ struct CS_ATTACK_PACKET
 {
 	UCHAR size;
 	UCHAR type;
-	std::chrono::system_clock::time_point event_time;
-	AttackType attack_type;
+	ActionType attack_type;
 	CollisionType collision_type;
-	CooltimeType cooltime_type;
-	DirectX::XMFLOAT3 position;
+	std::chrono::system_clock::time_point attack_time; 
 };
 
 struct CS_CHANGE_ANIMATION_PACKET
@@ -387,7 +406,7 @@ struct SC_RESET_COOLTIME_PACKET
 {
 	UCHAR size;
 	UCHAR type;
-	CooltimeType cooltime_type;
+	ActionType cooltime_type;
 };
 
 struct SC_CLEAR_FLOOR_PACKET

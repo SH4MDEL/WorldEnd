@@ -10,7 +10,7 @@ std::uniform_int_distribution<int> random_behavior(1, 100);
 std::uniform_int_distribution<int> random_retarget_time(5, 10);
 
 Monster::Monster() : m_target_id{ -1 }, m_current_animation{ ObjectAnimation::IDLE },
-	m_current_behavior{ MonsterBehavior::NONE }, m_aggro_level{ 0 },
+	m_current_behavior{ MonsterBehavior::COUNT }, m_aggro_level{ 0 },
 	m_last_behavior_id{ 0 }
 {
 }
@@ -19,7 +19,7 @@ void Monster::Init()
 {
 	m_target_id = -1;
 	m_current_animation = ObjectAnimation::IDLE;
-	m_current_behavior = MonsterBehavior::NONE;
+	m_current_behavior = MonsterBehavior::COUNT;
 	m_aggro_level = 0;
 	m_last_behavior_id = 0;
 }
@@ -86,6 +86,51 @@ void Monster::MakeDecreaseAggroLevelEvent()
 	server.SetTimerEvent(ev);
 }
 
+void Monster::SetBehaviorTimerEvent(MonsterBehavior behavior)
+{
+	m_current_behavior = behavior;
+	m_current_animation =
+		MonsterSetting::BEHAVIOR_ANIMATION[static_cast<int>(behavior)];
+
+	TIMER_EVENT ev{.obj_id = m_id, .event_type = EventType::BEHAVIOR_CHANGE,
+	.aggro_level = m_aggro_level};
+
+	if (std::numeric_limits<BYTE>::max() == m_last_behavior_id)
+		m_last_behavior_id = 0;
+	ev.latest_id = ++m_last_behavior_id;
+
+	ev.event_time = std::chrono::system_clock::now() +
+		MonsterSetting::BEHAVIOR_TIME[static_cast<int>(behavior)];
+
+	int behavior_num{ 0 };
+	switch (behavior) {
+		case MonsterBehavior::CHASE: {
+			int percent = random_behavior(dre);
+			if (0 < percent && percent <= 50) {
+				behavior_num = 0;
+			}
+			else {
+				behavior_num = 1;
+			}
+			break;
+		}
+		case MonsterBehavior::ATTACK:
+			if (CanAttack()) {
+				behavior_num = 0;
+			}
+			else {
+				behavior_num = 1;
+			}
+			break;
+	}
+
+	ev.next_behavior_type = 
+		MonsterSetting::NEXT_BEHAVIOR[static_cast<int>(behavior)][behavior_num];
+
+	Server& server = Server::GetInstance();
+	server.SetTimerEvent(ev);
+}
+
 void Monster::SetTarget(INT id)
 {
 	m_target_id = id;
@@ -106,14 +151,6 @@ MONSTER_DATA Monster::GetMonsterData() const
 	return MONSTER_DATA( m_id, m_position, m_velocity, m_yaw, m_hp );
 }
 
-XMFLOAT3 Monster::GetFront() const
-{
-	XMFLOAT3 front{ 0.f, 0.f, 1.f };
-	XMMATRIX rotate{ XMMatrixRotationRollPitchYaw(0.f, XMConvertToRadians(m_yaw), 0.f) };
-	XMStoreFloat3(&front, XMVector3TransformNormal(XMLoadFloat3(&front), rotate));
-	return front;
-}
-
 bool Monster::ChangeAnimation(BYTE animation)
 {
 	if (m_current_animation == animation)
@@ -125,75 +162,9 @@ bool Monster::ChangeAnimation(BYTE animation)
 
 void Monster::ChangeBehavior(MonsterBehavior behavior)
 {
-	m_current_behavior = behavior;
-
-	TIMER_EVENT ev{};
-	ev.obj_id = m_id;
-	ev.event_type = EventType::BEHAVIOR_CHANGE;
-	ev.aggro_level = m_aggro_level;
-	auto current_time = std::chrono::system_clock::now();
-
-	if (std::numeric_limits<BYTE>::max() == m_last_behavior_id)
-		m_last_behavior_id = 0;
-	ev.latest_id = ++m_last_behavior_id;
-
-	switch (m_current_behavior) {
-	case MonsterBehavior::CHASE: {
-		m_current_animation = ObjectAnimation::RUN;
-		int time = random_retarget_time(dre);
-		ev.event_time = current_time + static_cast<std::chrono::seconds>(time);
-
-		int percent = random_behavior(dre);
-		if (0 < percent && percent <= 50) {
-			ev.next_behavior_type = MonsterBehavior::RETARGET;
-		}
-		else {
-			ev.next_behavior_type = MonsterBehavior::TAUNT;
-		}
-		break;
-	}
-	case MonsterBehavior::RETARGET:
-		m_current_animation = MonsterAnimation::LOOK_AROUND;
-		ev.event_time = current_time + MonsterSetting::LOOK_AROUND_TIME;
-		ev.next_behavior_type = MonsterBehavior::CHASE;
-		break;
-	case MonsterBehavior::TAUNT:
-		m_current_animation = MonsterAnimation::TAUNT;
-		ev.event_time = current_time + MonsterSetting::TAUNT_TIME;
-		ev.next_behavior_type = MonsterBehavior::CHASE;
-		break;
-	case MonsterBehavior::PREPARE_ATTACK:
-		// 공격 준비 시간 이후 공격으로 변경
-		m_current_animation = MonsterAnimation::TAUNT;
-		ev.event_time = current_time + MonsterSetting::PREPARE_ATTACK_TIME;
-		ev.next_behavior_type = MonsterBehavior::ATTACK;
-		break;
-	case MonsterBehavior::ATTACK:
-		// 공격 가능하면 공격, 공격 이후 공격 준비 재전환 
-		// 불가능하면 바로 추격
-		if (CanAttack()) {
-			m_current_animation = ObjectAnimation::ATTACK;
-			ev.event_time = current_time + MonsterSetting::ATTACK_TIME;
-			ev.next_behavior_type = MonsterBehavior::PREPARE_ATTACK;
-		}
-		else {
-			m_current_animation = ObjectAnimation::WALK;
-			ev.event_time = current_time;
-			ev.next_behavior_type = MonsterBehavior::CHASE;
-		}
-
-		break;
-	case MonsterBehavior::DEAD:
-		m_current_animation = ObjectAnimation::DEATH;
-		ev.event_time = current_time + MonsterSetting::DEAD_TIME;
-		ev.next_behavior_type = MonsterBehavior::DEAD;
-		break;
-	default:
-		return;
-	}
+	SetBehaviorTimerEvent(behavior);
 
 	Server& server = Server::GetInstance();
-	server.SetTimerEvent(ev);
 
 	auto game_room = server.GetGameRoomManager()->GetGameRoom(m_room_num);
 	auto& ids = game_room->GetPlayerIds();
@@ -265,7 +236,7 @@ void Monster::DecreaseHp(FLOAT damage, INT id)
 			m_state = State::ST_DEATH;
 		}
 		// 죽은것 전송
-		ChangeBehavior(MonsterBehavior::DEAD);
+		ChangeBehavior(MonsterBehavior::DEATH);
 		return;
 	}
 
@@ -305,6 +276,7 @@ bool Monster::CheckPlayer()
 	else if (std::ranges::find(ids, m_target_id) == ids.end()) {
 		return false;
 	}
+	return true;
 }
 
 void Monster::UpdateTarget()

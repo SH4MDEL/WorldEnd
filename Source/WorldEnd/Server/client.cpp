@@ -30,7 +30,7 @@ ExpOver::ExpOver(char* packet, INT packet_count)
 }
 
 Client::Client() : m_socket{}, m_ready_check{ false }, m_remain_size{ 0 },
-	m_recv_over{}, m_stamina{ PlayerSetting::PLAYER_MAX_STAMINA },
+	m_recv_over{}, m_stamina{ PlayerSetting::MAX_STAMINA },
 	m_interactable{ false }, m_latest_id{ 0 }
 {
 	m_name = "Player";
@@ -106,13 +106,13 @@ void Client::SetPlayerType(PlayerType type)
 	SetBoundingBox(type);
 }
 
-void Client::SetSkillRatio(AttackType type, FLOAT ratio)
+void Client::SetSkillRatio(ActionType type, FLOAT ratio)
 {
 	switch (type) {
-	case AttackType::SKILL:
+	case ActionType::SKILL:
 		m_skill_ratio = ratio;
 		break;
-	case AttackType::ULTIMATE:
+	case ActionType::ULTIMATE:
 		m_ultimate_ratio = ratio;
 		break;
 	}
@@ -148,14 +148,14 @@ void Client::SetCurrentAnimation(USHORT animation)
 	m_current_animation = animation;
 }
 
-FLOAT Client::GetSkillRatio(AttackType type) const
+FLOAT Client::GetSkillRatio(ActionType type) const
 {
 	FLOAT ratio{};
 	switch (type) {
-	case AttackType::SKILL:
+	case ActionType::SKILL:
 		ratio = m_skill_ratio;
 		break;
-	case AttackType::ULTIMATE:
+	case ActionType::ULTIMATE:
 		ratio = m_ultimate_ratio;
 		break;
 	default:

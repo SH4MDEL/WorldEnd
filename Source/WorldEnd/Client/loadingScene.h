@@ -35,6 +35,7 @@ public:
 	shared_ptr<Shadow> GetShadow() override { return nullptr; }
  
 	void LoadMeshFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, wstring fileName);
+	void LoadAnimationMeshFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, wstring fileName);
 	void LoadMaterialFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, wstring fileName);
 	void LoadAnimationSetFromFile(wstring fileName, const string& animationSetName);
 

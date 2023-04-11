@@ -37,7 +37,7 @@ public:
 	void SetRemainSize(INT size) { m_remain_size = size; }
 	void SetReadyCheck(bool ready_check) { m_ready_check = ready_check; }
 	void SetPlayerType(PlayerType type);
-	void SetSkillRatio(AttackType type, FLOAT ratio);
+	void SetSkillRatio(ActionType type, FLOAT ratio);
 	void SetWeaponCenter(const XMFLOAT3& center);
 	void SetWeaponOrientation(const XMFLOAT4& orientation);
 	void SetStamina(FLOAT stamina);
@@ -50,7 +50,7 @@ public:
 	INT GetRemainSize() const { return m_remain_size; }
 	bool GetReadyCheck() const { return m_ready_check; }
 	PlayerType GetPlayerType() const override { return m_player_type; }
-	virtual FLOAT GetSkillRatio(AttackType type) const override;
+	virtual FLOAT GetSkillRatio(ActionType type) const override;
 	const BoundingOrientedBox& GetWeaponBoundingBox() const { return m_weopon_bounding_box; }
 	FLOAT GetStamina() const { return m_stamina; }
 	BYTE GetLatestId() const { return m_latest_id; }

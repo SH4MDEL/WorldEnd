@@ -113,5 +113,8 @@ protected:
 	// 서버 추가 코드
 	unordered_map<INT, shared_ptr<Player>>	            m_multiPlayers;
 	unordered_map<INT, shared_ptr<Monster>>             m_monsters;
+
+	// 임시 코드
+	shared_ptr<GameObject> m_arrow;
 };
 

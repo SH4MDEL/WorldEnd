@@ -48,10 +48,8 @@ public:
 	INT GetId() const { return m_id; }
 
 	void CreateMovePacket();
-	void CreateCooltimePacket(CooltimeType type);
-	void CreateAttackPacket(const XMFLOAT3& pos, AttackType attackType,
-		CollisionType collisionType, chrono::system_clock::time_point eventTime,
-		CooltimeType cooltimeType);
+	void CreateCooltimePacket(ActionType type);
+	void CreateAttackPacket(ActionType cooltimeType, CollisionType collisionType);
 	void CreateInteractPacket();
 	void CreateChangeStaminaPacket(bool value);
 	void SetBuffer(void* mess, size_t size);
@@ -75,7 +73,7 @@ private:
 
 	PlayerType				m_type = PlayerType::WARRIOR;
 
-	array<bool, CooltimeType::COUNT> m_cooltimeList;	// 쿨타임이면 true, 쿨타임중이 아니면 false
+	array<bool, ActionType::COUNT> m_cooltimeList;	// 쿨타임이면 true, 쿨타임중이 아니면 false
 	
 	chrono::system_clock::time_point	m_startDash;
 	bool								m_dashed;

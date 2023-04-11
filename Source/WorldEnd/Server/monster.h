@@ -20,7 +20,6 @@ public:
 	BYTE GetAggroLevel() const { return m_aggro_level; }
 	MonsterBehavior GetBehavior() const { return m_current_behavior; }
 	BYTE GetLastBehaviorId() const { return m_last_behavior_id; }
-	XMFLOAT3 GetFront() const;
 
 	bool ChangeAnimation(BYTE animation);
 
@@ -56,6 +55,7 @@ protected:
 	XMFLOAT3 GetPlayerDirection(INT player_id);
 	bool CanAttack();
 	void MakeDecreaseAggroLevelEvent();
+	void SetBehaviorTimerEvent(MonsterBehavior behavior);
 };
 
 class WarriorMonster : public Monster

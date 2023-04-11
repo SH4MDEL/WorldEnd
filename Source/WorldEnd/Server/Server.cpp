@@ -234,7 +234,7 @@ void Server::WorkerThread()
 			SC_RESET_COOLTIME_PACKET packet{};
 			packet.size = sizeof(packet);
 			packet.type = SC_PACKET_RESET_COOLTIME;
-			packet.cooltime_type = static_cast<CooltimeType>(exp_over->_send_buf[0]);
+			packet.cooltime_type = static_cast<ActionType>(exp_over->_send_buf[0]);
 
 			m_clients[static_cast<int>(key)]->DoSend(&packet);
 
@@ -330,7 +330,7 @@ void Server::WorkerThread()
 		}
 		case OP_ATTACK_COLLISION: {
 			auto client = dynamic_pointer_cast<Client>(m_clients[static_cast<int>(key)]);
-			AttackType attack_type = static_cast<AttackType>(exp_over->_send_buf[0]);
+			ActionType attack_type = static_cast<ActionType>(exp_over->_send_buf[0]);
 			CollisionType collision_type = static_cast<CollisionType>(exp_over->_send_buf[1]);
 			XMFLOAT3* pos = reinterpret_cast<XMFLOAT3*>(&exp_over->_send_buf[2]);
 
@@ -356,20 +356,21 @@ void Server::WorkerThread()
 				client->SetWeaponOrientation(q);
 
 				switch (attack_type) {
-				case AttackType::NORMAL:
+				case ActionType::NORMAL_ATTACK:
 					obb = client->GetWeaponBoundingBox();
 					obb.Center = *pos;
 					break;
 
-				case AttackType::SKILL:
+				case ActionType::SKILL:
 					obb = client->GetWeaponBoundingBox();
 					obb.Center = *pos;
 					break;
 
-				case AttackType::ULTIMATE:
+				case ActionType::ULTIMATE:
 					obb = client->GetWeaponBoundingBox();
 					obb.Center = *pos;
-					obb.Extents = PlayerSetting::WARRIOR_ULTIMATE_EXTENT;
+					obb.Extents = PlayerSetting::
+						ULTIMATE_EXTENT[static_cast<int>(client->GetPlayerType())];
 					break;
 				}
 			}
@@ -422,7 +423,7 @@ void Server::WorkerThread()
 		}
 		case OP_MONSTER_ATTACK_COLLISION: {
 			auto monster = dynamic_pointer_cast<WarriorMonster>(m_clients[static_cast<int>(key)]);
-			AttackType attack_type = static_cast<AttackType>(exp_over->_send_buf[0]);
+			ActionType attack_type = static_cast<ActionType>(exp_over->_send_buf[0]);
 			CollisionType collision_type = static_cast<CollisionType>(exp_over->_send_buf[1]);
 			XMFLOAT3* pos = reinterpret_cast<XMFLOAT3*>(&exp_over->_send_buf[2]);		// 공격 충돌 위치
 
@@ -504,9 +505,9 @@ void Server::WorkerThread()
 				}
 
 				// 달리는중이 아니면 최대에 도달했을 때 끝내기
-				if (client->GetStamina() >= PlayerSetting::PLAYER_MAX_STAMINA) {
-					client->SetStamina(PlayerSetting::PLAYER_MAX_STAMINA);
-					packet.stamina = PlayerSetting::PLAYER_MAX_STAMINA;
+				if (client->GetStamina() >= PlayerSetting::MAX_STAMINA) {
+					client->SetStamina(PlayerSetting::MAX_STAMINA);
+					packet.stamina = PlayerSetting::MAX_STAMINA;
 					client->DoSend(&packet);
 					delete exp_over;
 					break;
@@ -545,26 +546,26 @@ void Server::WorkerThread()
 void Server::ProcessPacket(int id, char* p) 
 {
 	unsigned char type = p[1];
-	auto cl = dynamic_pointer_cast<Client>(m_clients[id]);
+	auto client = dynamic_pointer_cast<Client>(m_clients[id]);
 	
 	switch (type){
 	case CS_PACKET_LOGIN: {
 		CS_LOGIN_PACKET* packet = reinterpret_cast<CS_LOGIN_PACKET*>(p);
-		cl->SetPlayerType(packet->player_type);
-		cl->SetName(packet->name);
+		client->SetPlayerType(packet->player_type);
+		client->SetName(packet->name);
 		{
-			std::lock_guard<std::mutex> lock{ cl->GetStateMutex() };
-			cl->SetState(State::ST_INGAME);
+			std::lock_guard<std::mutex> lock{ client->GetStateMutex() };
+			client->SetState(State::ST_INGAME);
 		}
 		SendLoginOkPacket(id);
 
 		// 원래는 던전 진입 시 던전에 배치해야하지만
 		// 현재 마을이 없이 바로 던전에 진입하므로 던전에 입장시킴
-		cl->SetRoomNum(0);
-		m_game_room_manager->SetPlayer(cl->GetRoomNum(), id);
-		m_game_room_manager->SendAddMonster(cl->GetRoomNum(), id);
+		client->SetRoomNum(0);
+		m_game_room_manager->SetPlayer(client->GetRoomNum(), id);
+		m_game_room_manager->SendAddMonster(client->GetRoomNum(), id);
 
-		std::cout << cl->GetId() << " is connect" << std::endl;
+		std::cout << client->GetId() << " is connect" << std::endl;
 		break;
 	}
 	case CS_PACKET_PLAYER_MOVE: {
@@ -572,31 +573,31 @@ void Server::ProcessPacket(int id, char* p)
 
 		// 위치는 서버에서 저장하므로 굳이 받을 필요는 없을 것
 		// 속도만 받아와서 처리해도 됨
-		cl->SetVelocity(packet->velocity);
+		client->SetVelocity(packet->velocity);
 
 		XMFLOAT3 pos = packet->pos;
 		pos.x += packet->velocity.x;
 		pos.y += packet->velocity.y;
 		pos.z += packet->velocity.z;
-		cl->SetYaw(packet->yaw);
+		client->SetYaw(packet->yaw);
 
-		Move(cl, pos);
+		Move(client, pos);
 		break;
 	}
 	case CS_PACKET_SET_COOLTIME: {
 		CS_COOLTIME_PACKET* packet = reinterpret_cast<CS_COOLTIME_PACKET*>(p);
 
 		TIMER_EVENT ev{ .obj_id = id, .event_type = EventType::COOLTIME_RESET,
-				.cooltime_type = packet->cooltime_type };
+				.action_type = packet->cooltime_type };
 
 		// 쿨타임 중인지 검사 필요
 		// 공격 외 쿨타임 처리
 		switch (packet->cooltime_type) {
-		case CooltimeType::DASH:
-			ev.event_time = std::chrono::system_clock::now() + PlayerSetting::PLAYER_DASH_COOLTIME;
+		case ActionType::DASH:
+			ev.event_time = std::chrono::system_clock::now() + PlayerSetting::DASH_COOLTIME;
 			break;
-		case CooltimeType::ROLL:
-			ev.event_time = std::chrono::system_clock::now() + PlayerSetting::PLAYER_ROOL_COOLTIME;
+		case ActionType::ROLL:
+			ev.event_time = std::chrono::system_clock::now() + PlayerSetting::ROLL_COOLTIME;
 			break;
 		}
 
@@ -606,49 +607,17 @@ void Server::ProcessPacket(int id, char* p)
 	}
 	case CS_PACKET_ATTACK: {
 		CS_ATTACK_PACKET* packet = reinterpret_cast<CS_ATTACK_PACKET*>(p);
-		int room_num = m_clients[id]->GetRoomNum();
-	
-		// 공격 충돌 처리
-		TIMER_EVENT ev{ .event_time = packet->event_time, .obj_id = id,
-			.position = packet->position, .event_type = EventType::ATTACK_COLLISION,
-		.attack_type = packet->attack_type, .collision_type = packet->collision_type, };
-		
-		m_timer_queue.push(ev);
 
-		// 공격 쿨타임 처리
-		// 쿨타임인지 검사 필요함 (변조 방지)
-		ev.event_type = EventType::COOLTIME_RESET;
-		ev.obj_id = id;
-		ev.cooltime_type = packet->cooltime_type;
-
-		if (PlayerType::WARRIOR == m_clients[id]->GetPlayerType()) {
-			switch (packet->cooltime_type) {
-			case CooltimeType::NORMAL_ATTACK:
-				ev.event_time = std::chrono::system_clock::now() + PlayerSetting::WARRIOR_ATTACK_COOLTIME;
-				break;
-			case CooltimeType::SKILL:
-				ev.event_time = std::chrono::system_clock::now() + PlayerSetting::WARRIOR_SKILL_COOLTIME;
-				break;
-			case CooltimeType::ULTIMATE:
-				ev.event_time = std::chrono::system_clock::now() + PlayerSetting::WARRIOR_ULTIMATE_COOLTIME;
-				break;
-			}
+		// 충돌 위치, 시간을 서버에서 결정
+		if (PlayerType::WARRIOR == client->GetPlayerType()) {
+			SetAttackTimerEvent(id, packet->attack_type, packet->collision_type,
+				packet->attack_time);
 		}
 		else if (PlayerType::ARCHER == m_clients[id]->GetPlayerType()) {
-			switch (packet->cooltime_type) {
-			case CooltimeType::NORMAL_ATTACK:
-				ev.event_time = std::chrono::system_clock::now() + PlayerSetting::ARCHER_ATTACK_COOLTIME;
-				break;
-			case CooltimeType::SKILL:
-				ev.event_time = std::chrono::system_clock::now() + PlayerSetting::ARCHER_SKILL_COOLTIME;
-				break;
-			case CooltimeType::ULTIMATE:
-				ev.event_time = std::chrono::system_clock::now() + PlayerSetting::ARCHER_ULTIMATE_COOLTIME;
-				break;
-			}
+			//SetHitScanTimerEvent(id);
 		}
 
-		m_timer_queue.push(ev);
+		SetCooltimeTimerEvent(id, packet->attack_type);
 		
 		break;
 	}
@@ -1034,14 +1003,14 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 	case EventType::COOLTIME_RESET: {
 		ExpOver* over = new ExpOver;
 		over->_comp_type = OP_COOLTIME_RESET;	
-		memcpy(&over->_send_buf, &ev.cooltime_type, sizeof(CooltimeType));
+		memcpy(&over->_send_buf, &ev.action_type, sizeof(ActionType));
 
 		PostQueuedCompletionStatus(m_handle_iocp, 1, ev.obj_id, &over->_wsa_over);
 		break;
 	}
 	case EventType::BEHAVIOR_CHANGE: {
 		auto monster = dynamic_pointer_cast<Monster>(m_clients[ev.obj_id]);
-		if (MonsterBehavior::DEAD == ev.next_behavior_type) {
+		if (MonsterBehavior::DEATH == ev.next_behavior_type) {
 			ExpOver* over = new ExpOver;
 			over->_comp_type = OP_MONSTER_REMOVE;
 
@@ -1054,14 +1023,14 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 			return;
 
 		// 죽었다면 기존에 타이머큐에 있던 동작이 넘어오면 넘겨버림
-		if (MonsterBehavior::DEAD == monster->GetBehavior())
+		if (MonsterBehavior::DEATH == monster->GetBehavior())
 			return;
 
 		if (MonsterBehavior::ATTACK == ev.next_behavior_type) {
-			TIMER_EVENT attack_ev{ .event_time = system_clock::now() + MonsterSetting::WARRIOR_MONSTER_ATK_COLLISION_TIME,
+			TIMER_EVENT attack_ev{ .event_time = system_clock::now() + MonsterSetting::ATK_COLLISION_TIME[static_cast<int>(monster->GetMonsterType())],
 				.obj_id = ev.obj_id, .targat_id = monster->GetRoomNum(),
 				.position = Vector3::Add(monster->GetPosition(), monster->GetFront()),
-				.event_type = EventType::MONSTER_ATTACK_COLLISION, .attack_type = AttackType::NORMAL,
+				.event_type = EventType::MONSTER_ATTACK_COLLISION, .action_type = ActionType::NORMAL_ATTACK,
 				.collision_type = CollisionType::MULTIPLE_TIMES };
 
 			m_timer_queue.push(attack_ev);
@@ -1085,16 +1054,17 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 	}
 	case EventType::ATTACK_COLLISION: {
 		auto client = dynamic_pointer_cast<Client>(m_clients[ev.obj_id]);
-		switch (ev.attack_type) {
-		case AttackType::NORMAL:
+
+		switch (ev.action_type) {
+		case ActionType::NORMAL_ATTACK:
 			if (ObjectAnimation::ATTACK != client->GetCurrentAnimation())
 				return;
 			break;
-		case AttackType::SKILL:
+		case ActionType::SKILL:
 			if (PlayerAnimation::SKILL != client->GetCurrentAnimation())
 				return;
 			break;
-		case AttackType::ULTIMATE:
+		case ActionType::ULTIMATE:
 			if (PlayerAnimation::ULTIMATE != client->GetCurrentAnimation())
 				return;
 			break;
@@ -1102,7 +1072,7 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 
 		ExpOver* over = new ExpOver;
 		over->_comp_type = OP_ATTACK_COLLISION;
-		memcpy(&over->_send_buf[0], &ev.attack_type, sizeof(AttackType));
+		memcpy(&over->_send_buf[0], &ev.action_type, sizeof(ActionType));
 		memcpy(&over->_send_buf[1], &ev.collision_type, sizeof(CollisionType));
 		memcpy(&over->_send_buf[2], &ev.position, sizeof(XMFLOAT3));
 		PostQueuedCompletionStatus(m_handle_iocp, 1, ev.obj_id, &over->_wsa_over);
@@ -1111,7 +1081,7 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 	case EventType::MONSTER_ATTACK_COLLISION: {
 		ExpOver* over = new ExpOver;
 		over->_comp_type = OP_MONSTER_ATTACK_COLLISION;
-		memcpy(&over->_send_buf[0], &ev.attack_type, sizeof(AttackType));
+		memcpy(&over->_send_buf[0], &ev.action_type, sizeof(ActionType));
 		memcpy(&over->_send_buf[1], &ev.collision_type, sizeof(CollisionType));
 		memcpy(&over->_send_buf[2], &ev.position, sizeof(XMFLOAT3));
 		PostQueuedCompletionStatus(m_handle_iocp, 1, ev.obj_id, &over->_wsa_over);
@@ -1137,6 +1107,67 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 void Server::SetTimerEvent(const TIMER_EVENT& ev)
 {
 	m_timer_queue.push(ev);
+}
+
+void Server::SetAttackTimerEvent(int id, ActionType attack_type, CollisionType collision_type,
+	std::chrono::system_clock::time_point attack_time)
+{
+	auto client = dynamic_pointer_cast<Client>(m_clients[id]);
+	int player_type = static_cast<int>(client->GetPlayerType());
+
+	TIMER_EVENT ev{ .obj_id = id, .action_type = attack_type,
+		.collision_type = collision_type, };
+
+	switch (client->GetPlayerType()) {
+	case PlayerType::WARRIOR:
+		ev.event_type = EventType::ATTACK_COLLISION;
+
+		switch (attack_type) {
+		case ActionType::NORMAL_ATTACK:
+			ev.event_time = attack_time + PlayerSetting::ATTACK_COLLISION_TIME[player_type];
+			ev.position = Vector3::Add(client->GetPosition(), Vector3::Mul(client->GetFront(), 0.8f));
+			break;
+		case ActionType::SKILL:
+			ev.event_time = attack_time + PlayerSetting::SKILL_COLLISION_TIME[player_type];
+			ev.position = Vector3::Add(client->GetPosition(), Vector3::Mul(client->GetFront(), 0.8f));
+			break;
+		case ActionType::ULTIMATE:
+			ev.event_time = attack_time + PlayerSetting::ULTIMATE_COLLISION_TIME[player_type];
+			ev.position = Vector3::Add(client->GetPosition(), Vector3::Mul(client->GetFront(), 0.8f));
+			break;
+		}
+		break;
+	}
+	SetTimerEvent(ev);
+}
+
+void Server::SetCooltimeTimerEvent(int id, ActionType action_type)
+{
+	int player_type = static_cast<int>(m_clients[id]->GetPlayerType());
+
+	TIMER_EVENT ev{.obj_id = id, .event_type = EventType::COOLTIME_RESET,
+		.action_type = action_type };
+
+	ev.event_time = std::chrono::system_clock::now();
+
+	switch (action_type) {
+	case ActionType::NORMAL_ATTACK:
+		ev.event_time += PlayerSetting::ATTACK_COOLTIME[player_type];
+		break;
+	case ActionType::SKILL:
+		ev.event_time += PlayerSetting::SKILL_COOLTIME[player_type];
+		break;
+	case ActionType::ULTIMATE:
+		ev.event_time += PlayerSetting::ULTIMATE_COOLTIME[player_type];
+		break;
+	case ActionType::DASH:
+		ev.event_time += PlayerSetting::DASH_COOLTIME;
+		break;
+	case ActionType::ROLL:
+		ev.event_time += PlayerSetting::ROLL_COOLTIME;
+		break;
+	}
+	SetTimerEvent(ev);
 }
 
 // 연속적인 컨테이너, 여기선 array 를 상관없이 받도록 하기 위해 span 사용

@@ -198,3 +198,11 @@ void MovementObject::SetName(const char* c)
 	SetName(std::string(c));
 }
 
+XMFLOAT3 MovementObject::GetFront() const
+{
+	XMFLOAT3 front{ 0.f, 0.f, 1.f };
+	XMMATRIX rotate{ XMMatrixRotationRollPitchYaw(0.f, XMConvertToRadians(m_yaw), 0.f) };
+	XMStoreFloat3(&front, XMVector3TransformNormal(XMLoadFloat3(&front), rotate));
+	return front;
+}
+

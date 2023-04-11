@@ -3,8 +3,8 @@
 #include "particleSystem.h"
 
 Player::Player() : m_velocity{ 0.0f, 0.0f, 0.0f }, m_maxVelocity{ 10.0f }, m_friction{ 0.5f }, 
-	m_hp{ 100.f }, m_maxHp{ 100.f }, m_stamina{ PlayerSetting::PLAYER_MAX_STAMINA }, m_maxStamina{ PlayerSetting::PLAYER_MAX_STAMINA }, 
-	m_id{ -1 }, m_cooltimeList{ false, }, m_dashed{ false }, m_moveSpeed{ PlayerSetting::PLAYER_WALK_SPEED },
+	m_hp{ 100.f }, m_maxHp{ 100.f }, m_stamina{ PlayerSetting::MAX_STAMINA }, m_maxStamina{ PlayerSetting::MAX_STAMINA }, 
+	m_id{ -1 }, m_cooltimeList{ false, }, m_dashed{ false }, m_moveSpeed{ PlayerSetting::WALK_SPEED },
 	m_interactable{ false }, m_interactableType{ InteractableType::NONE }, m_bufSize{ 0 }
 {
 }
@@ -20,14 +20,12 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 		return;
 
 	if (GetAsyncKeyState('Q') & 0x8000) {
-		if (!m_cooltimeList[CooltimeType::ULTIMATE]) {
+		if (!m_cooltimeList[ActionType::ULTIMATE]) {
 
 			ChangeAnimation(PlayerAnimation::ULTIMATE);
 
 			XMFLOAT3 pos = Vector3::Add(Vector3::Mul(m_front, 0.8f), GetPosition());
-			CreateAttackPacket(pos, AttackType::ULTIMATE, CollisionType::MULTIPLE_TIMES,
-				chrono::system_clock::now() + PlayerSetting::WARRIOR_ULTIMATE_COLLISION_TIME,
-				CooltimeType::ULTIMATE);
+			CreateAttackPacket(ActionType::ULTIMATE, CollisionType::MULTIPLE_TIMES);
 
 			SendPacket();
 		}
@@ -102,13 +100,13 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 	}
 
 	if (GetAsyncKeyState(VK_SPACE) & 0x8000) {
-		if (!m_cooltimeList[CooltimeType::ROLL]) {
+		if (!m_cooltimeList[ActionType::ROLL]) {
 			if (m_stamina >= PlayerSetting::MINIMUM_ROLL_STAMINA) {
 
 				ChangeAnimation(PlayerAnimation::ROLL);
-				m_moveSpeed = PlayerSetting::PLAYER_ROLL_SPEED;
+				m_moveSpeed = PlayerSetting::ROLL_SPEED;
 
-				CreateCooltimePacket(CooltimeType::ROLL);
+				CreateCooltimePacket(ActionType::ROLL);
 				CreateChangeStaminaPacket(false);
 
 				SendPacket();
@@ -117,15 +115,15 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 	}
 	
 	if (!m_dashed && GetAsyncKeyState(VK_SHIFT) & 0x8000) {
-		if (!m_cooltimeList[CooltimeType::DASH]) {
+		if (!m_cooltimeList[ActionType::DASH]) {
 
 			if (m_stamina >= PlayerSetting::MINIMUM_DASH_STAMINA) {
 				m_dashed = true;
 				ChangeAnimation(PlayerAnimation::DASH);
-				m_moveSpeed = PlayerSetting::PLAYER_DASH_SPEED;
+				m_moveSpeed = PlayerSetting::DASH_SPEED;
 				m_startDash = chrono::system_clock::now();
 
-				CreateCooltimePacket(CooltimeType::DASH);
+				CreateCooltimePacket(ActionType::DASH);
 				CreateChangeStaminaPacket(false);
 
 				SendPacket();
@@ -139,15 +137,13 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 	}
 	
 	if (GetAsyncKeyState('E') & 0x8000) {
-		if (!m_cooltimeList[CooltimeType::SKILL]) {
+		if (!m_cooltimeList[ActionType::SKILL]) {
 
 			ChangeAnimation(PlayerAnimation::SKILL);
 
 
 			XMFLOAT3 pos = Vector3::Add(Vector3::Mul(m_front, 0.8f), GetPosition());
-			CreateAttackPacket(pos, AttackType::SKILL, CollisionType::MULTIPLE_TIMES,
-				chrono::system_clock::now() + PlayerSetting::WARRIOR_SKILL_COLLISION_TIME,
-				CooltimeType::SKILL);
+			CreateAttackPacket(ActionType::SKILL, CollisionType::MULTIPLE_TIMES);
 
 			SendPacket();
 		}
@@ -167,16 +163,14 @@ void Player::OnProcessingMouseMessage(UINT message, LPARAM lParam)
 	if (ObjectAnimation::DEATH == m_currentAnimation)
 		return;
 
-	if (m_cooltimeList[CooltimeType::NORMAL_ATTACK])
+	if (m_cooltimeList[ActionType::NORMAL_ATTACK])
 		return;
 
 	ChangeAnimation(ObjectAnimation::ATTACK);
 
 	if (PlayerType::WARRIOR == m_type) {
 		XMFLOAT3 pos = Vector3::Add(Vector3::Mul(m_front, 0.8f), GetPosition());
-		CreateAttackPacket(pos, AttackType::NORMAL, CollisionType::MULTIPLE_TIMES,
-			chrono::system_clock::now() + PlayerSetting::WARRIOR_ATTACK_COLLISION_TIME,
-			CooltimeType::NORMAL_ATTACK);
+		CreateAttackPacket(ActionType::NORMAL_ATTACK, CollisionType::MULTIPLE_TIMES);
 	}
 	else if (PlayerType::ARCHER == m_type) {
 
@@ -243,11 +237,11 @@ void Player::Update(FLOAT timeElapsed)
 			if (fabs(track.GetPosition() - animation->GetLength()) <= 0.25f) {
 				if (m_dashed && (PlayerAnimation::RUN == m_prevAnimation)) {
 					ChangeAnimation(PlayerAnimation::RUN);
-					m_moveSpeed = PlayerSetting::PLAYER_RUN_SPEED;
+					m_moveSpeed = PlayerSetting::RUN_SPEED;
 				}
 				else {
 					ChangeAnimation(ObjectAnimation::IDLE);
-					m_moveSpeed = PlayerSetting::PLAYER_WALK_SPEED;
+					m_moveSpeed = PlayerSetting::WALK_SPEED;
 					
 					CreateChangeStaminaPacket(true);
 				}
@@ -259,14 +253,14 @@ void Player::Update(FLOAT timeElapsed)
 			auto& animation = m_animationController->GetAnimationSet()->GetAnimations()[track.GetAnimation()];
 
 			
-			if (chrono::system_clock::now() > m_startDash + PlayerSetting::PLAYER_DASH_DURATION) {
+			if (chrono::system_clock::now() > m_startDash + PlayerSetting::DASH_DURATION) {
 				ChangeAnimation(ObjectAnimation::RUN);
-				m_moveSpeed = PlayerSetting::PLAYER_RUN_SPEED;
+				m_moveSpeed = PlayerSetting::RUN_SPEED;
 				SendPacket();
 			}
 			else if (fabs(track.GetPosition() - animation->GetLength()) <= numeric_limits<float>::epsilon()) {
 				ChangeAnimation(ObjectAnimation::WALK);
-				m_moveSpeed = PlayerSetting::PLAYER_WALK_SPEED;
+				m_moveSpeed = PlayerSetting::WALK_SPEED;
 				SendPacket();
 			}
 		}
@@ -280,7 +274,7 @@ void Player::Update(FLOAT timeElapsed)
 				if (m_dashed) {
 					if (m_stamina <= numeric_limits<float>::epsilon()) {
 						m_dashed = false;
-						m_moveSpeed = PlayerSetting::PLAYER_WALK_SPEED;
+						m_moveSpeed = PlayerSetting::WALK_SPEED;
 
 						ChangeAnimation(ObjectAnimation::WALK);
 						CreateChangeStaminaPacket(true);
@@ -293,7 +287,7 @@ void Player::Update(FLOAT timeElapsed)
 				}
 				else {
 					ChangeAnimation(ObjectAnimation::WALK);
-					m_moveSpeed = PlayerSetting::PLAYER_WALK_SPEED;
+					m_moveSpeed = PlayerSetting::WALK_SPEED;
 					SendPacket();
 				}
 			}
@@ -414,7 +408,7 @@ void Player::CreateMovePacket()
 #endif
 }
 
-void Player::CreateCooltimePacket(CooltimeType type)
+void Player::CreateCooltimePacket(ActionType type)
 {
 #ifdef USE_NETWORK
 	m_cooltimeList[type] = true;
@@ -427,21 +421,17 @@ void Player::CreateCooltimePacket(CooltimeType type)
 #endif
 }
 
-void Player::CreateAttackPacket(const XMFLOAT3& pos, AttackType attackType,
-	CollisionType collisionType, chrono::system_clock::time_point eventTime,
-	CooltimeType cooltimeType)
+void Player::CreateAttackPacket(ActionType attackType, CollisionType collisionType)
 {
 #ifdef USE_NETWORK
-	m_cooltimeList[cooltimeType] = true;
+	m_cooltimeList[attackType] = true;
 
 	CS_ATTACK_PACKET packet;
 	packet.size = sizeof(packet);
 	packet.type = CS_PACKET_ATTACK;
-	packet.position = pos;
-	packet.attack_type = attackType;
 	packet.collision_type = collisionType;
-	packet.event_time = eventTime;
-	packet.cooltime_type = cooltimeType;
+	packet.attack_type = attackType;
+	packet.attack_time = chrono::system_clock::now();
 	SetBuffer(&packet, packet.size);
 #endif
 }

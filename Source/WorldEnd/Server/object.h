@@ -151,10 +151,11 @@ public:
 
 	virtual void Update(FLOAT elapsed_time) {}
 	virtual void DecreaseHp(FLOAT damage, INT it) {}
+	XMFLOAT3 GetFront() const;
 
 	virtual PLAYER_DATA GetPlayerData() const { return PLAYER_DATA(); }
-	virtual PlayerType GetPlayerType() const { return PlayerType::UNKNOWN; }
-	virtual FLOAT GetSkillRatio(AttackType type) const { return 0.f; }
+	virtual PlayerType GetPlayerType() const { return PlayerType::COUNT; }
+	virtual FLOAT GetSkillRatio(ActionType type) const { return 0.f; }
 	virtual MONSTER_DATA GetMonsterData() const { return MONSTER_DATA(); }
 	virtual MonsterType GetMonsterType() const { return MonsterType::WARRIOR; }
 	virtual const SOCKET& GetSocket() const { return SOCKET(); }

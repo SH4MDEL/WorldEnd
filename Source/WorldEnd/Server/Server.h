@@ -18,11 +18,10 @@ struct TIMER_EVENT {
 	INT targat_id;
 	XMFLOAT3 position;
 	EventType event_type;
-	CooltimeType cooltime_type;
+	ActionType action_type;
 	MonsterBehavior next_behavior_type;
 	BYTE latest_id;
 	BYTE aggro_level;
-	AttackType attack_type;
 	CollisionType collision_type;
 	bool is_stamina_increase;
 
@@ -58,6 +57,10 @@ public:
 	void ProcessEvent(const TIMER_EVENT& ev);
 
 	void SetTimerEvent(const TIMER_EVENT& ev);
+	void SetAttackTimerEvent(int id, ActionType attack_type, CollisionType collision_type,
+		std::chrono::system_clock::time_point attack_time);
+	void SetCooltimeTimerEvent(int id, ActionType action_type);
+	void SetHitScanTimerEvent(int id);
 
 	INT GetNewId();
 	INT GetNewMonsterId(MonsterType type);
