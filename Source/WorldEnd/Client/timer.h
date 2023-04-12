@@ -1,7 +1,8 @@
 #pragma once
 #include "stdafx.h"
+#include "singleton.h"
 
-class Timer
+class Timer : public Singleton<Timer>
 {
 public:
 	Timer();

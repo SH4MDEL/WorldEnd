@@ -52,6 +52,7 @@ void LoadingScene::ReleaseUploadBuffer()
 {
 	for (const auto& mesh : m_meshs) mesh.second->ReleaseUploadBuffer();
 	for (const auto& texture : m_textures) texture.second->ReleaseUploadBuffer();
+	for (const auto& material : m_materials) material.second->ReleaseUploadBuffer();
 }
 
 void LoadingScene::CreateShaderVariable(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList) {}
@@ -261,7 +262,10 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 void LoadingScene::Update(FLOAT timeElapsed) 
 {
 	m_loadingText->Update(timeElapsed);
-	if (m_loadEnd) g_GameFramework.ChangeScene(SCENETAG::TowerScene);
+	if (m_loadEnd) {
+		ReleaseUploadBuffer();
+		g_GameFramework.ChangeScene(SCENETAG::TowerScene);
+	}
 }
 
 void LoadingScene::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) const {}

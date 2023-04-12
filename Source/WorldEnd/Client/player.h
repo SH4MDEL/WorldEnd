@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "stdafx.h"
 #include "object.h"
+#include "ui.h"
 
 
 class Camera;
@@ -27,6 +28,8 @@ public:
 	void SetStamina(FLOAT stamina);
 	void SetHpBar(const shared_ptr<GaugeBar>& hpBar) override { m_hpBar = hpBar; }
 	void SetStaminaBar(const shared_ptr<GaugeBar>& staminaBar) { m_staminaBar = staminaBar; }
+	void SetSkillGauge(const shared_ptr<VertGaugeUI>& skillGauge) { m_skillGauge = skillGauge; }
+	void SetUltimateGauge(const shared_ptr<VertGaugeUI>& ultimateGauge) { m_ultimateGauge = ultimateGauge; }
 	void SetType(PlayerType type) { m_type = type; }
 	void SetInteractable(bool value) { m_interactable = value; }
 	void SetInteractableType(InteractableType type) { m_interactableType = type; }
@@ -37,9 +40,10 @@ public:
 	FLOAT GetStamina() const { return m_stamina; }
 	FLOAT GetMaxStamina() const { return m_maxStamina; }
 	PlayerType GetType() const { return m_type; }
-	InteractableType GetInteractableType() const { return m_interactableType; }
+	InteractableType GetInteractableType() const { return m_interactableType; }	
 
 	void ResetCooltime(char type);
+	void ResetAllCooltime();
 	virtual bool ChangeAnimation(USHORT animation) override;
 	void ChangeAnimation(USHORT animation, bool other);
 
@@ -67,9 +71,15 @@ private:
 	FLOAT					m_stamina;
 	FLOAT					m_maxStamina;
 
+	FLOAT					m_skillCool;
+	FLOAT					m_ultimateCool;
+
 	shared_ptr<Camera>		m_camera;		// 카메라
 	shared_ptr<GaugeBar>	m_hpBar;		// HP바
 	shared_ptr<GaugeBar>	m_staminaBar;	// 스테미너 바
+
+	shared_ptr<VertGaugeUI>	m_skillGauge;	// 스킬 쿨타임 게이지
+	shared_ptr<VertGaugeUI>	m_ultimateGauge;// 궁극기 쿨타임 게이지
 
 	INT						m_id;			// 플레이어 고유 아이디
 

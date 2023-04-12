@@ -37,6 +37,17 @@ void Material::UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& com
 	if (m_type & MATERIAL_EMISSION_MAP) m_emissionMap->UpdateShaderVariable(commandList);
 }
 
+void Material::ReleaseUploadBuffer()
+{
+	if (m_albedoMap) m_albedoMap->ReleaseUploadBuffer();
+	if (m_specularMap) m_specularMap->ReleaseUploadBuffer();
+	if (m_normalMap) m_normalMap->ReleaseUploadBuffer();
+	if (m_metallicMap) m_metallicMap->ReleaseUploadBuffer();
+	if (m_emissionMap) m_emissionMap->ReleaseUploadBuffer();
+	if (m_detailAlbedoMap) m_detailAlbedoMap->ReleaseUploadBuffer();
+	if (m_detailNormalMap) m_detailNormalMap->ReleaseUploadBuffer();
+}
+
 void Materials::LoadMaterials(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, ifstream& in)
 {
 	BYTE strLength;
@@ -146,4 +157,9 @@ void Materials::LoadMaterials(const ComPtr<ID3D12Device>& device, const ComPtr<I
 			break;
 		}
 	}
+}
+
+void Materials::ReleaseUploadBuffer()
+{
+	for (auto& material : m_materials) material.ReleaseUploadBuffer();
 }

@@ -162,8 +162,6 @@ private:
 	UINT64														m_fenceValue;
 	HANDLE														m_fenceEvent;
 
-	Timer														m_timer;
-
 	vector<unique_ptr<Scene>>									m_scenes;
 	INT															m_sceneIndex;
 	BOOL														m_shadowPass;

@@ -7,7 +7,7 @@ TowerScene::TowerScene() :
 				0.0f, -0.5f, 0.0f, 0.0f,
 				0.0f, 0.0f, 1.0f, 0.0f,
 				0.5f, 0.5f, 0.0f, 1.0f),
-	m_sceneState{ (INT)State::None }
+	m_sceneState{ (INT)State::Unused }
 {}
 
 TowerScene::~TowerScene()
@@ -194,15 +194,35 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 		static_pointer_cast<ParticleShader>(m_shaders["EMITTERPARTICLE"]), 
 		static_pointer_cast<ParticleShader>(m_shaders["PUMPERPARTICLE"]));
 
+	BuildUI(device, commandlist);
+
+	// 필터 생성
+	m_blurFilter = make_unique<BlurFilter>(device, g_GameFramework.GetWindowWidth(), g_GameFramework.GetWindowHeight());
+	m_fadeFilter = make_unique<FadeFilter>(device, g_GameFramework.GetWindowWidth(), g_GameFramework.GetWindowHeight());
+	m_sobelFilter = make_unique<SobelFilter>(device, g_GameFramework.GetWindowWidth(), g_GameFramework.GetWindowHeight(), postRootSignature);
+
+	// 오브젝트 설정	
+	m_object.push_back(skybox);
+
+	// 조명 생성
+	BuildLight(device, commandlist);
+
+	InitServer();
+}
+
+void TowerScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist)
+{
 	// UI 생성
 	auto skillUI = make_shared<VertGaugeUI>(XMFLOAT2{ -0.60f, -0.80f }, XMFLOAT2{ 0.15f, 0.15f }, 0.f);
 	skillUI->SetTexture(m_textures["WARRIORSKILL"]);
 	m_shaders["UI"]->SetUI(skillUI);
+	m_player->SetSkillGauge(skillUI);
 	auto ultimateUI = make_shared<VertGaugeUI>(XMFLOAT2{ -0.85f, -0.80f }, XMFLOAT2{ 0.15f, 0.15f }, 0.f);
 	ultimateUI->SetTexture(m_textures["WARRIORULTIMATE"]);
 	m_shaders["UI"]->SetUI(ultimateUI);
+	m_player->SetUltimateGauge(ultimateUI);
 
-	m_exitUI = make_shared<BackgroundUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{1.f, 1.f});
+	m_exitUI = make_shared<BackgroundUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 1.f, 1.f });
 	auto exitUI{ make_shared<StandardUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.4f, 0.5f}) };
 	exitUI->SetTexture(m_textures["FRAMEUI"]);
 	auto exitTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.0f}, XMFLOAT2{120.f, 20.f}) };
@@ -224,7 +244,7 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	m_resultUI = make_shared<BackgroundUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 1.f, 1.f });
 	auto resultUI{ make_shared<StandardUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.4f, 0.5f}) };
 	resultUI->SetTexture(m_textures["FRAMEUI"]);
-	m_resultTextUI = make_shared<TextUI>(XMFLOAT2{0.f, 0.0f}, XMFLOAT2{100.f, 20.f});
+	m_resultTextUI = make_shared<TextUI>(XMFLOAT2{ 0.f, 0.0f }, XMFLOAT2{ 100.f, 20.f });
 	m_resultTextUI->SetText(L"클리어!");
 	resultUI->SetChild(m_resultTextUI);
 	auto resultButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.f, -0.7f}, XMFLOAT2{0.15f, 0.075f}) };
@@ -241,22 +261,9 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	m_resultUI->SetChild(resultUI);
 	m_resultUI->SetDisable();
 	m_shaders["POSTUI"]->SetUI(m_resultUI);
-
-	// 필터 생성
-	m_blurFilter = make_unique<BlurFilter>(device, g_GameFramework.GetWindowWidth(), g_GameFramework.GetWindowHeight());
-	m_fadeFilter = make_unique<FadeFilter>(device, g_GameFramework.GetWindowWidth(), g_GameFramework.GetWindowHeight());
-	m_sobelFilter = make_unique<SobelFilter>(device, g_GameFramework.GetWindowWidth(), g_GameFramework.GetWindowHeight(), postRootSignature);
-
-	// 오브젝트 설정	
-	m_object.push_back(skybox);
-
-	// 조명 생성
-	CreateLight(device, commandlist);
-
-	InitServer();
 }
 
-void TowerScene::CreateLight(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist)
+void TowerScene::BuildLight(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist)
 {
 	m_lightSystem = make_shared<LightSystem>();
 	m_lightSystem->m_globalAmbient = XMFLOAT4{ 0.1f, 0.1f, 0.1f, 1.f };
@@ -1021,9 +1028,7 @@ void TowerScene::RecvWarpNextFloor(char* ptr)
 
 		m_shaders["OBJECT"]->SetObject(m_gate);
 
-		for (size_t i = 0; i < CooltimeType::COUNT; ++i) {
-			m_player->ResetCooltime(static_cast<char>(i));
-		}
+		m_player->ResetAllCooltime();
 
 		m_fadeFilter->FadeIn([&](){ ResetState(State::Fading); });
 	});

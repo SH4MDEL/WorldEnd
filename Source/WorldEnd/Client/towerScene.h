@@ -6,11 +6,10 @@ class TowerScene : public Scene
 {
 public:
 	enum class State {
-		None				= 0x00,
+		Unused				= 0x00,
 		OutputExitUI		= 0x01,
 		OutputResult		= 0x02,
 		Fading				= 0x04,
-		Unused				= 0x80000000,
 		BlurLevel1			= Unused,
 		BlurLevel2			= Unused,
 		BlurLevel3			= OutputExitUI,
@@ -35,7 +34,6 @@ public:
 
 	void BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, 
 		const ComPtr<ID3D12RootSignature>& rootsignature, const ComPtr<ID3D12RootSignature>& postRootSignature) override;
-	void CreateLight(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist);
 	
 	void OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime) override;
 	void OnProcessingMouseMessage(UINT message, LPARAM lParam) override;
@@ -83,6 +81,10 @@ public:
 	void RecvSetInteractable(char* ptr);
 	void RecvStartBattle(char* ptr);
 	void RecvWarpNextFloor(char* ptr);
+
+private:
+	void BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist);
+	void BuildLight(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist);
 
 protected:
 	ComPtr<ID3D12Resource>					m_sceneBuffer;

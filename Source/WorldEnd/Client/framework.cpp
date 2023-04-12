@@ -52,7 +52,7 @@ void GameFramework::OnDestroy()
 
 void GameFramework::OnProcessingMouseMessage() const
 {
-	if (m_scenes[m_sceneIndex]) m_scenes[m_sceneIndex]->OnProcessingMouseMessage(m_hWnd, m_width, m_height, m_timer.GetDeltaTime());
+	if (m_scenes[m_sceneIndex]) m_scenes[m_sceneIndex]->OnProcessingMouseMessage(m_hWnd, m_width, m_height, Timer::GetInstance().GetDeltaTime());
 }
 
 void GameFramework::OnProcessingMouseMessage(UINT message, LPARAM lParam) const
@@ -62,7 +62,7 @@ void GameFramework::OnProcessingMouseMessage(UINT message, LPARAM lParam) const
 
 void GameFramework::OnProcessingKeyboardMessage() const
 {
-	if (m_scenes[m_sceneIndex]) m_scenes[m_sceneIndex]->OnProcessingKeyboardMessage(m_timer.GetDeltaTime());
+	if (m_scenes[m_sceneIndex]) m_scenes[m_sceneIndex]->OnProcessingKeyboardMessage(Timer::GetInstance().GetDeltaTime());
 }
 
 void GameFramework::StartPipeline()
@@ -548,7 +548,7 @@ void GameFramework::CreateShaderVariable()
 
 void GameFramework::UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& commandList)
 {
-	FLOAT timeElapsed = m_timer.GetDeltaTime();
+	FLOAT timeElapsed = Timer::GetInstance().GetDeltaTime();
 	::memcpy(&m_frameworkBufferPointer->timeElapsed, &timeElapsed, sizeof(FLOAT));
 	D3D12_GPU_VIRTUAL_ADDRESS virtualAddress = m_frameworkBuffer->GetGPUVirtualAddress();
 	commandList->SetGraphicsRootConstantBufferView((INT)ShaderRegister::Framework, virtualAddress);
@@ -573,9 +573,10 @@ void GameFramework::BuildObjects()
 
 	WaitForPreviousFrame();
 
-	for (const auto& scene : m_scenes) scene->ReleaseUploadBuffer();
+	//for (const auto& scene : m_scenes) scene->ReleaseUploadBuffer();
+	// 멀티쓰레드를 통해 리소스를 로딩하므로 여기서 부르면 안된다. 
 
-	m_timer.Tick();
+	Timer::GetInstance().Tick();
 }
 
 void GameFramework::CreateThread()
@@ -603,21 +604,21 @@ void GameFramework::ChangeScene(SCENETAG tag)
 
 void GameFramework::FrameAdvance()
 {
-	m_timer.Tick();
+	Timer::GetInstance().Tick();
 
 	if (m_isActive)
 	{
 		OnProcessingMouseMessage();
 		OnProcessingKeyboardMessage();
 	}
-	Update(m_timer.GetDeltaTime());
+	Update(Timer::GetInstance().GetDeltaTime());
 	Render();
 
 }
 
 void GameFramework::Update(FLOAT timeElapsed)
 {
-	wstring title{ TEXT("세상끝 (") + to_wstring((int)(m_timer.GetFPS())) + TEXT("FPS)") };
+	wstring title{ TEXT("세상끝 (") + to_wstring((int)(Timer::GetInstance().GetFPS())) + TEXT("FPS)") };
 	SetWindowText(m_hWnd, title.c_str());
 
 	if (m_scenes[m_sceneIndex]) m_scenes[m_sceneIndex]->Update(timeElapsed);

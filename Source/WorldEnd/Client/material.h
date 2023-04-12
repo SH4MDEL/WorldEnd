@@ -40,6 +40,7 @@ struct Material
 
 	void CreateShaderVariable(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList);
 	void UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& commandList) const;
+	void ReleaseUploadBuffer();
 
 	ComPtr<ID3D12Resource>	m_materialBuffer;
 	MaterialInfo*			m_materialBufferPointer;
@@ -68,6 +69,7 @@ struct Material
 struct Materials 
 {
 	void LoadMaterials(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, ifstream& in);
+	void ReleaseUploadBuffer();
 
 	string					m_materialName;
 	vector<Material>		m_materials;

@@ -4,6 +4,7 @@
 
 Player::Player() : m_velocity{ 0.0f, 0.0f, 0.0f }, m_maxVelocity{ 10.0f }, m_friction{ 0.5f }, 
 	m_hp{ 100.f }, m_maxHp{ 100.f }, m_stamina{ PlayerSetting::PLAYER_MAX_STAMINA }, m_maxStamina{ PlayerSetting::PLAYER_MAX_STAMINA }, 
+	m_skillCool{ static_cast<FLOAT>(PlayerSetting ::WARRIOR_SKILL_COOLTIME.count())}, m_ultimateCool{ static_cast<FLOAT>(PlayerSetting::WARRIOR_ULTIMATE_COOLTIME.count()) },
 	m_id{ -1 }, m_cooltimeList{ false, }, m_dashed{ false }, m_moveSpeed{ PlayerSetting::PLAYER_WALK_SPEED },
 	m_interactable{ false }, m_interactableType{ InteractableType::NONE }, m_bufSize{ 0 }
 {
@@ -18,7 +19,7 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 {
 	if (GetAsyncKeyState('Q') & 0x8000) {
 		if (!m_cooltimeList[CooltimeType::ULTIMATE]) {
-
+			m_ultimateCool = 0.f;
 			ChangeAnimation(PlayerAnimation::ULTIMATE);
 
 			XMFLOAT3 pos = Vector3::Add(Vector3::Mul(m_front, 0.8f), GetPosition());
@@ -115,7 +116,7 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 	
 	if (GetAsyncKeyState('E') & 0x8000) {
 		if (!m_cooltimeList[CooltimeType::SKILL]) {
-
+			m_skillCool = 0.f;
 			ChangeAnimation(PlayerAnimation::SKILL);
 
 			XMFLOAT3 pos = Vector3::Add(Vector3::Mul(m_front, 0.8f), GetPosition());
@@ -330,6 +331,18 @@ void Player::Update(FLOAT timeElapsed)
 			SetStamina(m_stamina);
 		}
 	}
+	if (m_skillGauge) {
+		if (PlayerSetting::WARRIOR_SKILL_COOLTIME.count() > m_skillCool) m_skillCool += timeElapsed;
+		m_skillGauge->SetMaxGauge(static_cast<FLOAT>(PlayerSetting::WARRIOR_SKILL_COOLTIME.count()));
+		m_skillGauge->SetGauge(m_skillCool);
+	}
+	if (m_ultimateGauge) {
+		if (PlayerSetting::WARRIOR_ULTIMATE_COOLTIME.count() > m_ultimateCool) m_ultimateCool += timeElapsed;
+		m_ultimateGauge->SetMaxGauge(static_cast<FLOAT>(PlayerSetting::WARRIOR_ULTIMATE_COOLTIME.count()));
+		m_ultimateGauge->SetGauge(m_ultimateCool);
+	}
+
+
 #ifndef USE_NETWORK
 	Move(m_velocity);
 #endif // !USE_NETWORK
@@ -397,6 +410,23 @@ void Player::ResetCooltime(char type)
 	m_cooltimeList[type] = false;
 }
 
+void Player::ResetAllCooltime()
+{
+	if (m_skillGauge) {
+		m_skillCool = static_cast<FLOAT>(PlayerSetting::WARRIOR_SKILL_COOLTIME.count());
+		m_skillGauge->SetMaxGauge(static_cast<FLOAT>(PlayerSetting::WARRIOR_SKILL_COOLTIME.count()));
+		m_skillGauge->SetGauge(static_cast<FLOAT>(PlayerSetting::WARRIOR_SKILL_COOLTIME.count()));
+	}
+	if (m_ultimateGauge) {
+		m_ultimateCool = static_cast<FLOAT>(PlayerSetting::WARRIOR_ULTIMATE_COOLTIME.count());
+		m_ultimateGauge->SetMaxGauge(static_cast<FLOAT>(PlayerSetting::WARRIOR_ULTIMATE_COOLTIME.count()));
+		m_ultimateGauge->SetGauge(static_cast<FLOAT>(PlayerSetting::WARRIOR_ULTIMATE_COOLTIME.count()));
+	}
+	for (size_t i = 0; i < CooltimeType::COUNT; ++i) {
+		m_cooltimeList[i] = false;
+	}
+}
+
 bool Player::ChangeAnimation(USHORT animation)
 {
 	if (!AnimationObject::ChangeAnimation(animation))
@@ -407,8 +437,8 @@ bool Player::ChangeAnimation(USHORT animation)
 	packet.type = CS_PACKET_CHANGE_ANIMATION;
 	packet.animation_type = m_currentAnimation;
 	SetBuffer(&packet, packet.size);
-	return true;
 #endif
+	return true;
 }
 
 void Player::ChangeAnimation(USHORT animation, bool other)
