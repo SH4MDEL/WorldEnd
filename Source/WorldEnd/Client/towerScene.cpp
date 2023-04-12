@@ -148,7 +148,7 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 
 	// 플레이어 생성
 	m_player = make_shared<Player>();
-	m_player->SetType(PlayerType::WARRIOR);
+	m_player->SetType(PlayerType::ARCHER);
 	LoadPlayerFromFile(m_player);
 
 	m_player->SetPosition(XMFLOAT3{ 0.f, 0.f, 0.f });
@@ -957,7 +957,7 @@ void TowerScene::RecvChangeAnimation(char* ptr)
 {
 	SC_CHANGE_ANIMATION_PACKET* packet = reinterpret_cast<SC_CHANGE_ANIMATION_PACKET*>(ptr);
 
-	m_multiPlayers[packet->id]->ChangeAnimation(packet->animation_type, false);
+	m_multiPlayers[packet->id]->ChangeAnimation(packet->animation, false);
 }
 
 void TowerScene::RecvChangeStamina(char* ptr)

@@ -187,7 +187,7 @@ void Client::DecreaseHp(FLOAT damage, INT id)
 		m_hp = 0;
 
 		// INGAME 에서 State를 바꾸는 것에는 경합이 필요 없으므로 lock 걸지 않음
-		m_state = State::ST_DEATH;
+		m_state = State::DEATH;
 		m_current_animation = ObjectAnimation::DEATH;
 	}
 }

@@ -169,11 +169,10 @@ void Player::OnProcessingMouseMessage(UINT message, LPARAM lParam)
 	ChangeAnimation(ObjectAnimation::ATTACK);
 
 	if (PlayerType::WARRIOR == m_type) {
-		XMFLOAT3 pos = Vector3::Add(Vector3::Mul(m_front, 0.8f), GetPosition());
 		CreateAttackPacket(ActionType::NORMAL_ATTACK, CollisionType::MULTIPLE_TIMES);
 	}
 	else if (PlayerType::ARCHER == m_type) {
-
+		CreateAttackPacket(ActionType::NORMAL_ATTACK, CollisionType::MULTIPLE_TIMES);
 	}
 	SendPacket();
 }
@@ -384,7 +383,7 @@ bool Player::ChangeAnimation(USHORT animation)
 	CS_CHANGE_ANIMATION_PACKET packet{};
 	packet.size = sizeof(packet);
 	packet.type = CS_PACKET_CHANGE_ANIMATION;
-	packet.animation_type = m_currentAnimation;
+	packet.animation = m_currentAnimation;
 	SetBuffer(&packet, packet.size);
 #endif
 	return true;

@@ -110,6 +110,8 @@ namespace PlayerSetting
 	constexpr float	RUN_SPEED = 10.f;
 	constexpr float	DASH_SPEED = 12.f;
 	constexpr float ROLL_SPEED = 10.f;
+	constexpr float ARROW_SPEED = 20.f;
+	constexpr float AUTO_TARET_RANGE = 12.f;
 
 	constexpr auto DASH_DURATION = 300ms;
 	constexpr float MAX_STAMINA = 120.f;
@@ -146,6 +148,8 @@ namespace MonsterSetting
 	using namespace std::literals;
 
 	constexpr float WALK_SPEED = 3.f;
+	constexpr float ARROW_SPEED = 15.f;
+	constexpr float RECOGNIZE_RANGE = 20.f;
 
 	constexpr auto DECREASE_AGRO_LEVEL_TIME = 10s;
 
@@ -282,7 +286,7 @@ struct CS_CHANGE_ANIMATION_PACKET
 {
 	UCHAR size;
 	UCHAR type;
-	USHORT animation_type;
+	USHORT animation;
 };
 
 struct CS_CHANGE_STAMINA_PACKET
@@ -399,7 +403,7 @@ struct SC_CHANGE_ANIMATION_PACKET
 	UCHAR size;
 	UCHAR type;
 	INT id;
-	USHORT animation_type;
+	USHORT animation;
 };
 
 struct SC_RESET_COOLTIME_PACKET

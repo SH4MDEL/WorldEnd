@@ -9,7 +9,8 @@
 enum class EventType : char 
 {
 	COOLTIME_RESET, BEHAVIOR_CHANGE, AGRO_LEVEL_DECREASE,
-	ATTACK_COLLISION, MONSTER_ATTACK_COLLISION, STAMINA_CHANGE
+	ATTACK_COLLISION, MONSTER_ATTACK_COLLISION, STAMINA_CHANGE,
+	HIT_SCAN
 };
 
 struct TIMER_EVENT {
@@ -17,6 +18,7 @@ struct TIMER_EVENT {
 	INT obj_id;
 	INT targat_id;
 	XMFLOAT3 position;
+	XMFLOAT3 direction;
 	EventType event_type;
 	ActionType action_type;
 	MonsterBehavior next_behavior_type;
@@ -46,11 +48,20 @@ public:
 	void ProcessPacket(int id, char* p);
 	void Disconnect(int id);
 
-	void SendLoginOkPacket(int client_id);
+	void SendLoginOk(int client_id);
 	void SendMoveInGameRoom(int client_id);
-	void SendDeathPacket(int client_id);
+	void SendPlayerDeath(int client_id);
+	void SendChangeAnimation(int client_id, USHORT animation);
+	void SendCreateParticle(int client_id, const std::span<int>& receiver,
+		const std::span<int>& creater);
+	void SendCreateParticle(int client_id, const std::span<int>& receiver,
+		int hit_id);
+	void SendMonsterAttack(int client_id, const std::span<int>& clients,
+		const BoundingOrientedBox& obb);
+	void SendMonsterAttack(int monster_id, int player_id);
 
 	bool IsInGameRoom(int client_id);
+	bool IsPlayer(int client_id);
 	void GameRoomPlayerCollisionCheck(const std::shared_ptr<Client>& player);
 
 	void Timer();
@@ -60,7 +71,9 @@ public:
 	void SetAttackTimerEvent(int id, ActionType attack_type, CollisionType collision_type,
 		std::chrono::system_clock::time_point attack_time);
 	void SetCooltimeTimerEvent(int id, ActionType action_type);
-	void SetHitScanTimerEvent(int id);
+	void SetStaminaTimerEvent(int client_id, bool is_increase);
+	void SetHitScanTimerEvent(int id, int target_id);
+	
 
 	INT GetNewId();
 	INT GetNewMonsterId(MonsterType type);
@@ -71,6 +84,7 @@ public:
 	void Move(const std::shared_ptr<Client>& client, XMFLOAT3 position);
 
 	// 오브젝트 처리
+	int GetNearTarget(int client_id, float max_range);
 	static void MoveObject(const std::shared_ptr<GameObject>& object, XMFLOAT3 position);
 	static void RotateBoundingBox(const std::shared_ptr<GameObject>& object);
 	void SetPositionOnStairs(const std::shared_ptr<GameObject>& object);

@@ -54,7 +54,7 @@ protected:
 	void UpdateRotation(const XMFLOAT3& dir);
 	XMFLOAT3 GetPlayerDirection(INT player_id);
 	bool CanAttack();
-	void MakeDecreaseAggroLevelEvent();
+	void SetDecreaseAggroLevelEvent();
 	void SetBehaviorTimerEvent(MonsterBehavior behavior);
 };
 

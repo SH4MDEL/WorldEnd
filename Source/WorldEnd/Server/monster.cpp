@@ -64,7 +64,7 @@ XMFLOAT3 Monster::GetPlayerDirection(INT player_id)
 bool Monster::CanAttack()
 {
 	Server& server = Server::GetInstance();
-	if (-1 == server.m_clients[m_target_id]->GetId())
+	if (-1 == m_target_id)
 		return false;
 
 	FLOAT dist = Vector3::Distance(server.m_clients[m_target_id]->GetPosition(), m_position);
@@ -75,7 +75,7 @@ bool Monster::CanAttack()
 	return false;
 }
 
-void Monster::MakeDecreaseAggroLevelEvent()
+void Monster::SetDecreaseAggroLevelEvent()
 {
 	TIMER_EVENT ev{ .event_time = std::chrono::system_clock::now() + 
 			MonsterSetting::DECREASE_AGRO_LEVEL_TIME, .obj_id = m_id,
@@ -142,7 +142,7 @@ void Monster::SetAggroLevel(BYTE aggro_level)
 	if (m_aggro_level < aggro_level) {
 		m_aggro_level = aggro_level;
 		
-		MakeDecreaseAggroLevelEvent();
+		SetDecreaseAggroLevelEvent();
 	}
 }
 
@@ -233,7 +233,7 @@ void Monster::DecreaseHp(FLOAT damage, INT id)
 		m_hp = 0.f;
 		{
 			std::lock_guard<std::mutex> l{ m_state_lock };
-			m_state = State::ST_DEATH;
+			m_state = State::DEATH;
 		}
 		// 죽은것 전송
 		ChangeBehavior(MonsterBehavior::DEATH);
@@ -257,20 +257,23 @@ void Monster::DecreaseAggroLevel()
 		m_aggro_level = 0;
 	}
 	else {
-		MakeDecreaseAggroLevelEvent();
+		SetDecreaseAggroLevelEvent();
 	}
 	
 }
 
 bool Monster::CheckPlayer()
 {
+	if (-1 == m_target_id)
+		return false;
+
 	Server& server = Server::GetInstance();
 	
 	// 타겟 플레이어가 접속 종료되면 추격 X
 	auto game_room = server.GetGameRoomManager()->GetGameRoom(m_room_num);
 	auto& ids = game_room->GetPlayerIds();
 
-	if (State::ST_INGAME != server.m_clients[m_target_id]->GetState()) {
+	if (State::INGAME != server.m_clients[m_target_id]->GetState()) {
 		return false;
 	}
 	else if (std::ranges::find(ids, m_target_id) == ids.end()) {
@@ -284,24 +287,9 @@ void Monster::UpdateTarget()
 	if (AggroLevel::NORMAL_AGGRO < m_aggro_level)
 		return;
 
-	// 거리를 계산하여 가장 가까운 플레이어를 타겟으로 함
 	Server& server = Server::GetInstance();
-	auto game_room = server.GetGameRoomManager()->GetGameRoom(m_room_num);
-	auto& ids = game_room->GetPlayerIds();
+	m_target_id = server.GetNearTarget(m_id, MonsterSetting::RECOGNIZE_RANGE);
 
-	XMFLOAT3 sub{};
-	FLOAT length{}, min_length{ std::numeric_limits<FLOAT>::max() };
-	for (INT id : ids) {
-		if (-1 == id) continue;
-		if (State::ST_INGAME != server.m_clients[id]->GetState()) continue;
-
-		sub = Vector3::Sub(m_position, server.m_clients[id]->GetPosition());
-		length = Vector3::Length(sub);
-		if (length < min_length) {
-			min_length = length;
-			m_target_id = id;
-		}
-	}
 	SetAggroLevel(AggroLevel::NORMAL_AGGRO);
 }
 
@@ -408,7 +396,7 @@ void WarriorMonster::Init()
 
 void WarriorMonster::Update(FLOAT elapsed_time)
 {
-	if (State::ST_INGAME != m_state) return;
+	if (State::INGAME != m_state) return;
 
 	DoBehavior(elapsed_time);
 }

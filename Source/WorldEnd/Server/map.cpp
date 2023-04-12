@@ -44,7 +44,7 @@ void GameRoom::StartBattle()
 
 		auto monster = dynamic_pointer_cast<Monster>(server.m_clients[id]);
 
-		monster->SetState(State::ST_INGAME);
+		monster->SetState(State::INGAME);
 		monster->ChangeBehavior(MonsterBehavior::CHASE);
 	}
 }
@@ -189,7 +189,7 @@ void GameRoom::RemovePlayer(INT player_id)
 			if (-1 == id) continue;
 			{
 				std::lock_guard<std::mutex> lock{ server.m_clients[id]->GetStateMutex() };
-				if (State::ST_INGAME != server.m_clients[id]->GetState()) continue;
+				if (State::INGAME != server.m_clients[id]->GetState()) continue;
 			}
 
 			server.m_clients[id]->DoSend(&packet);
@@ -239,7 +239,7 @@ void GameRoom::RemoveMonster(INT room_num, INT monster_id)
 
 	{
 		std::lock_guard<std::mutex> lock{ server.m_clients[monster_id]->GetStateMutex() };
-		server.m_clients[monster_id]->SetState(State::ST_FREE);
+		server.m_clients[monster_id]->SetState(State::FREE);
 	}
 }
 
@@ -284,7 +284,7 @@ void GameRoom::InitMonsters(INT room_num)
 		monster->InitializePosition();
 		monster->SetRoomNum(room_num);
 		monster->SetTarget(0);
-		monster->SetState(State::ST_ACCEPT);
+		monster->SetState(State::ACCEPT);
 		++m_monster_count;
 	}
 }

@@ -34,7 +34,7 @@ Server::Server()
 Server::~Server()
 {
 	for (size_t i = 0; i < MAX_USER; ++i) {
-		if (State::ST_INGAME == m_clients[i]->GetState())
+		if (State::INGAME == m_clients[i]->GetState())
 			Disconnect(m_clients[i]->GetId());
 	}
 
@@ -336,12 +336,8 @@ void Server::WorkerThread()
 
 			int room_num = client->GetRoomNum();
 			auto game_room = m_game_room_manager->GetGameRoom(room_num);
-			auto& monter_ids = game_room->GetMonsterIds();
+			auto& monster_ids = game_room->GetMonsterIds();
 			auto& player_ids = game_room->GetPlayerIds();
-
-			// 충돌된 몬스터 빼내는 컨테이너
-			std::vector<int> v;
-			v.reserve(MAX_INGAME_MONSTER);
 
 			BoundingOrientedBox obb{};
 			
@@ -375,12 +371,15 @@ void Server::WorkerThread()
 				}
 			}
 
+			// 충돌된 몬스터 빼내는 컨테이너
+			std::vector<int> v;
+			v.reserve(MAX_INGAME_MONSTER);
 			FLOAT damage{ client->GetDamage() };
 			damage *= client->GetSkillRatio(attack_type);
 
-			for (int id : monter_ids) {
+			for (int id : monster_ids) {
 				if (-1 == id) continue;
-				if (State::ST_INGAME != m_clients[id]->GetState()) continue;
+				if (State::INGAME != m_clients[id]->GetState()) continue;
 				
 				if (m_clients[id]->GetBoundingBox().Intersects(obb)) {
 					auto monster = dynamic_pointer_cast<Monster>(m_clients[id]);
@@ -388,35 +387,10 @@ void Server::WorkerThread()
 					monster->DecreaseHp(damage, client->GetId());
 					v.push_back(id);
 
-					// 충돌이 한마리에게만 일어나면 빠져나오도록 함
-					if (CollisionType::ONE_OFF == collision_type) {
-						break;
-					}
 				}
 			}
 
-			// 지속성 공격이면 타이머로 넘겨서 지속적으로 충돌이 발생하도록 해야 함
-			// 공격의 주기가 필요할 것
-			//  -> 공격 주기는 스킬 클래스를 만들어 가지고 있던가 constexpr 로 정의하던가 해야 함
-			if (CollisionType::PERSISTENCE == collision_type) {
-				//
-			}
-
-			// 일반 공격만 파티클 생성이 되는지?
-			// 파티클은 충돌할 때마다 생성되는지?
-			SC_CREATE_PARTICLE_PACKET packet{};
-			packet.size = sizeof(packet);
-			packet.type = SC_PACKET_CREATE_PARTICLE;
-
-			for (int player_id : player_ids) {
-				if (-1 == player_id) continue;
-				if (State::ST_INGAME != m_clients[player_id]->GetState()) continue;
-
-				for (int monster_id : v) {
-					packet.position = m_clients[monster_id]->GetPosition();
-					m_clients[player_id]->DoSend(&packet);
-				}
-			}
+			SendCreateParticle(static_cast<int>(key), player_ids, v);
 
 			delete exp_over;
 			break;
@@ -440,41 +414,7 @@ void Server::WorkerThread()
 				damage = monster->GetDamage();
 			}
 
-			SC_MONSTER_ATTACK_COLLISION_PACKET packet{};
-			packet.size = sizeof(packet);
-			packet.type = SC_PACKET_MONSTER_ATTACK_COLLISION;
-			for (int i = 0; i < MAX_INGAME_USER; ++i) {
-				packet.ids[i] = -1;
-				packet.hps[i] = 0;
-			}
-
-			for (size_t i = 0; int id : player_ids) {
-				if (-1 == id) continue;
-				if (State::ST_INGAME != m_clients[id]->GetState()) continue;
-
-				// 충돌했을 경우에만 index 증가
-				if (obb.Intersects(m_clients[id]->GetBoundingBox())) {
-					m_clients[id]->DecreaseHp(damage, static_cast<int>(key));
-
-					// 플레이어가 피격 후 죽었다면
-					if (State::ST_DEATH == m_clients[id]->GetState()) {
-						SendDeathPacket(id);
-					}
-					else {
-						packet.ids[i] = id;
-						packet.hps[i] = m_clients[id]->GetHp();
-					}
-					++i;
-				}
-			}
-
-			if (-1 != packet.ids[0]) {
-				for (int id : player_ids) {
-					if (-1 == id) break;
-
-					m_clients[id]->DoSend(&packet);
-				}
-			}
+			SendMonsterAttack(static_cast<int>(key), player_ids, obb);
 
 			delete exp_over;
 			break;
@@ -538,6 +478,57 @@ void Server::WorkerThread()
 			delete exp_over;
 			break;
 		}
+		case OP_HIT_SCAN: {
+			int id = static_cast<int>(key);
+			int room_num = m_clients[id]->GetRoomNum();
+			XMFLOAT3* position = reinterpret_cast<XMFLOAT3*>(exp_over->_send_buf);
+			XMFLOAT3* direction = reinterpret_cast<XMFLOAT3*>((exp_over->_send_buf + sizeof(XMFLOAT3)));
+
+			std::span<int> ids{};
+			float damage = m_clients[id]->GetDamage();
+			if (IsPlayer(id)) {
+				ids = m_game_room_manager->GetGameRoom(room_num)->GetMonsterIds();
+				// 플레이어면 충돌대상은 몬스터이므로 ids는 몬스터
+			}
+			else {
+				ids = m_game_room_manager->GetGameRoom(room_num)->GetPlayerIds();
+				// 플레이어가 아니면 충돌대상은 플레이어이므로 ids는 플레이어
+			}
+
+			// 화살이 날아갈 거리, 임시값 30
+			float length{ 30.f };
+			float near_dist{std::numeric_limits<float>::max()};
+			int near_id{ -1 };
+			XMVECTOR pos{ XMLoadFloat3(position) };
+			XMVECTOR dir{ XMLoadFloat3(direction) };
+
+			// 광선 충돌 검사 후 가장 가까운 id 구함
+			for (int client_id : ids) {
+				if (-1 == client_id) continue;
+				if (State::DEATH == m_clients[client_id]->GetState()) continue;
+
+				auto& obb = m_clients[client_id]->GetBoundingBox();
+				if (obb.Intersects(pos, dir, length)) {
+					float dist{ Vector3::Length(Vector3::Sub(m_clients[client_id]->GetPosition(), m_clients[id]->GetPosition())) };
+					if (dist < near_dist ) {
+						near_dist = dist;
+						near_id = client_id;
+					}
+				}
+			}
+
+			if (IsPlayer(id)) {
+				m_clients[near_id]->DecreaseHp(m_clients[id]->GetDamage(), id);
+				auto& player_ids = m_game_room_manager->GetGameRoom(room_num)->GetPlayerIds();
+				SendCreateParticle(id, player_ids, near_id);
+			}
+			else {
+				SendMonsterAttack(id, near_id);
+			}
+			
+			delete exp_over;
+			break;
+		}
 
 		}
 	}
@@ -555,9 +546,9 @@ void Server::ProcessPacket(int id, char* p)
 		client->SetName(packet->name);
 		{
 			std::lock_guard<std::mutex> lock{ client->GetStateMutex() };
-			client->SetState(State::ST_INGAME);
+			client->SetState(State::INGAME);
 		}
-		SendLoginOkPacket(id);
+		SendLoginOk(id);
 
 		// 원래는 던전 진입 시 던전에 배치해야하지만
 		// 현재 마을이 없이 바로 던전에 진입하므로 던전에 입장시킴
@@ -587,22 +578,7 @@ void Server::ProcessPacket(int id, char* p)
 	case CS_PACKET_SET_COOLTIME: {
 		CS_COOLTIME_PACKET* packet = reinterpret_cast<CS_COOLTIME_PACKET*>(p);
 
-		TIMER_EVENT ev{ .obj_id = id, .event_type = EventType::COOLTIME_RESET,
-				.action_type = packet->cooltime_type };
-
-		// 쿨타임 중인지 검사 필요
-		// 공격 외 쿨타임 처리
-		switch (packet->cooltime_type) {
-		case ActionType::DASH:
-			ev.event_time = std::chrono::system_clock::now() + PlayerSetting::DASH_COOLTIME;
-			break;
-		case ActionType::ROLL:
-			ev.event_time = std::chrono::system_clock::now() + PlayerSetting::ROLL_COOLTIME;
-			break;
-		}
-
-		m_timer_queue.push(ev);
-		
+		SetCooltimeTimerEvent(id, packet->cooltime_type);
 		break;
 	}
 	case CS_PACKET_ATTACK: {
@@ -613,88 +589,34 @@ void Server::ProcessPacket(int id, char* p)
 			SetAttackTimerEvent(id, packet->attack_type, packet->collision_type,
 				packet->attack_time);
 		}
-		else if (PlayerType::ARCHER == m_clients[id]->GetPlayerType()) {
-			//SetHitScanTimerEvent(id);
+		// 궁수는 공격별 분리 필요
+		else if (PlayerType::ARCHER == client->GetPlayerType()) {
+			int target = GetNearTarget(id, PlayerSetting::AUTO_TARET_RANGE);
+			SetHitScanTimerEvent(id, target);
 		}
 
 		SetCooltimeTimerEvent(id, packet->attack_type);
-		
 		break;
 	}
 	case CS_PACKET_CHANGE_ANIMATION: {
-		CS_CHANGE_ANIMATION_PACKET* animation_packet = 
+		CS_CHANGE_ANIMATION_PACKET* packet = 
 			reinterpret_cast<CS_CHANGE_ANIMATION_PACKET*>(p);
 
-		auto client = dynamic_pointer_cast<Client>(m_clients[id]);
-		client->SetCurrentAnimation(animation_packet->animation_type);
+		client->SetCurrentAnimation(packet->animation);
 
-		SC_CHANGE_ANIMATION_PACKET packet{};
-		packet.size = sizeof(packet);
-		packet.type = SC_PACKET_CHANGE_ANIMATION;
-		packet.id = id;
-		packet.animation_type = animation_packet->animation_type;
-
-		// 마을, 게임룸 구분하여 보낼 필요 있음
-		auto& ids = m_game_room_manager->GetGameRoom(client->GetRoomNum())->GetPlayerIds();
-		for (int client_id : ids) {
-			if (-1 == client_id) continue;
-			if (id == client_id) continue;
-			
-			m_clients[client_id]->DoSend(&packet);
-		}
-
-
+		SendChangeAnimation(id, packet->animation);
 		break;
 	}
 	case CS_PACKET_CHANGE_STAMINA: {
 		CS_CHANGE_STAMINA_PACKET* packet =
 			reinterpret_cast<CS_CHANGE_STAMINA_PACKET*>(p);
 
-		auto client = dynamic_pointer_cast<Client>(m_clients[id]);
-
-		TIMER_EVENT ev{ .obj_id = id, .event_type = EventType::STAMINA_CHANGE };
-
-		// 대쉬 스태미너 타이머 처리
-		if (!packet->is_increase){
-			ev.event_time = std::chrono::system_clock::now();
-			ev.is_stamina_increase = false;
-
-			if (PlayerAnimation::ROLL == client->GetCurrentAnimation()) {
-				ev.targat_id = -PlayerSetting::ROLL_STAMINA_CHANGE_AMOUNT;
-			}
-			else {
-				ev.targat_id = -PlayerSetting::DEFAULT_STAMINA_CHANGE_AMOUNT;
-			}
-
-			BYTE latest_id{ client->GetLatestId() };
-			if (std::numeric_limits<BYTE>::max() == latest_id)
-				latest_id = 0;
-			ev.latest_id = ++latest_id;
-			client->SetLatestId(latest_id);
-
-			m_timer_queue.push(ev);
-		}
-		else{
-			ev.event_time = std::chrono::system_clock::now() + std::chrono::seconds(2);
-			ev.is_stamina_increase = true;
-			ev.targat_id = PlayerSetting::DEFAULT_STAMINA_CHANGE_AMOUNT;
-
-			BYTE latest_id{ client->GetLatestId() };
-			if (std::numeric_limits<BYTE>::max() == latest_id)
-				latest_id = 0;
-			ev.latest_id = ++latest_id;
-			client->SetLatestId(latest_id);
-
-			m_timer_queue.push(ev);
-		}
-
+		SetStaminaTimerEvent(id, packet->is_increase);
 		break;
 	}
 	case CS_PACKET_INTERACT_OBJECT: {
 		CS_INTERACT_OBJECT_PACKET* packet =
 			reinterpret_cast<CS_INTERACT_OBJECT_PACKET*>(p);
-
-		auto client = dynamic_pointer_cast<Client>(m_clients[id]);
 
 		// 해당 아이디에 타입에 맞는 상호작용 처리
 		switch (packet->interactable_type) {
@@ -747,10 +669,10 @@ void Server::Disconnect(int id)
 	closesocket(cl->GetSocket());
 
 	std::lock_guard<std::mutex> lock{ cl->GetStateMutex() };
-	cl->SetState(State::ST_FREE);
+	cl->SetState(State::FREE);
 }
 
-void Server::SendLoginOkPacket(int client_id)
+void Server::SendLoginOk(int client_id)
 {
 	SC_LOGIN_OK_PACKET packet{};
 	packet.size = sizeof(packet);
@@ -806,7 +728,7 @@ void Server::SendMoveInGameRoom(int client_id)
 	}
 }
 
-void Server::SendDeathPacket(int client_id)
+void Server::SendPlayerDeath(int client_id)
 {
 	SC_PLAYER_DEATH_PACKET packet{};
 	packet.size = sizeof(packet);
@@ -823,12 +745,156 @@ void Server::SendDeathPacket(int client_id)
 	}
 }
 
+void Server::SendChangeAnimation(int client_id, USHORT animation)
+{
+	SC_CHANGE_ANIMATION_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = SC_PACKET_CHANGE_ANIMATION;
+	packet.id = client_id;
+	packet.animation = animation;
+
+	// 마을, 게임룸 구분하여 보낼 필요 있음
+	if (IsInGameRoom(client_id)) {
+		auto& ids = m_game_room_manager->GetGameRoom(m_clients[client_id]->GetRoomNum())->GetPlayerIds();
+
+		for (int id : ids) {
+			if (-1 == id) continue;
+			if (id == client_id) continue;
+
+			m_clients[id]->DoSend(&packet);
+		}
+	}
+	// 마을 처리
+	else {
+		
+	}
+}
+
+void Server::SendCreateParticle(int client_id, const std::span<int>& receiver,
+	const std::span<int>& creater)
+{
+	SC_CREATE_PARTICLE_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = SC_PACKET_CREATE_PARTICLE;
+
+	for (int id : receiver) {
+		if (-1 == id) continue;
+		if (State::FREE == m_clients[id]->GetState() ||
+			State::ACCEPT == m_clients[id]->GetState()) 
+			continue;
+
+		for (int client_id : creater) {
+			packet.position = m_clients[client_id]->GetPosition();
+			m_clients[id]->DoSend(&packet);
+		}
+	}
+}
+
+void Server::SendCreateParticle(int client_id, const std::span<int>& receiver, int hit_id)
+{
+	SC_CREATE_PARTICLE_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = SC_PACKET_CREATE_PARTICLE;
+	packet.position = m_clients[hit_id]->GetPosition();
+
+	for (int id : receiver) {
+		if (-1 == id) continue;
+		if (State::FREE == m_clients[id]->GetState() ||
+			State::ACCEPT == m_clients[id]->GetState())
+			continue;
+
+		m_clients[id]->DoSend(&packet);
+	}
+}
+
+void Server::SendMonsterAttack(int client_id, const std::span<int>& clients,
+	const BoundingOrientedBox& obb)
+{
+	SC_MONSTER_ATTACK_COLLISION_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = SC_PACKET_MONSTER_ATTACK_COLLISION;
+	for (int i = 0; i < MAX_INGAME_USER; ++i) {
+		packet.ids[i] = -1;
+		packet.hps[i] = 0;
+	}
+
+	for (size_t i = 0; int id : clients) {
+		if (-1 == id) continue;
+		if (State::INGAME != m_clients[id]->GetState()) continue;
+
+		// 충돌했을 경우에만 index 증가
+		if (obb.Intersects(m_clients[id]->GetBoundingBox())) {
+			m_clients[id]->DecreaseHp(m_clients[client_id]->GetDamage(), -1);
+			// player의 DecreaseHp의 2번째인자는 함수 내에서 사용 X, 아무값 작성한 것
+
+			// 플레이어가 피격 후 죽었다면
+			if (State::DEATH == m_clients[id]->GetState()) {
+				SendPlayerDeath(id);
+			}
+			else {
+				packet.ids[i] = id;
+				packet.hps[i] = m_clients[id]->GetHp();
+			}
+			++i;
+		}
+	}
+
+	if (-1 != packet.ids[0]) {
+		for (int id : clients) {
+			if (-1 == id) break;
+
+			m_clients[id]->DoSend(&packet);
+		}
+	}
+}
+
+void Server::SendMonsterAttack(int monster_id, int player_id)
+{
+	SC_MONSTER_ATTACK_COLLISION_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = SC_PACKET_MONSTER_ATTACK_COLLISION;
+	for (int i = 0; i < MAX_INGAME_USER; ++i) {
+		packet.ids[i] = -1;
+		packet.hps[i] = 0;
+	}
+
+	m_clients[player_id]->DecreaseHp(m_clients[monster_id]->GetDamage(), -1);
+	// player의 DecreaseHp의 2번째인자는 함수 내에서 사용 X, 아무값 작성한 것
+
+	// 플레이어가 피격 후 죽었다면
+	if (State::DEATH == m_clients[player_id]->GetState()) {
+		SendPlayerDeath(player_id);
+	}
+	else {
+		packet.ids[0] = player_id;
+		packet.hps[0] = m_clients[player_id]->GetHp();
+	}
+
+	auto& clients = m_game_room_manager->
+		GetGameRoom(m_clients[player_id]->GetRoomNum())->GetPlayerIds();
+
+	if (-1 != packet.ids[0]) {
+		for (int id : clients) {
+			if (-1 == id) break;
+
+			m_clients[id]->DoSend(&packet);
+		}
+	}
+}
+
 bool Server::IsInGameRoom(int client_id)
 {
 	if (-1 == m_clients[client_id]->GetRoomNum())
 		return false;
 	else
 		return true;
+}
+
+bool Server::IsPlayer(int client_id)
+{
+	if (client_id < MAX_USER)
+		return true;
+	return false;
 }
 
 void Server::GameRoomPlayerCollisionCheck(const std::shared_ptr<Client>& player)
@@ -859,8 +925,8 @@ INT Server::GetNewId()
 {
 	for (size_t i = 0; i < MAX_USER; ++i) {
 		std::lock_guard<std::mutex> lock{ m_clients[i]->GetStateMutex() };
-		if (State::ST_FREE == m_clients[i]->GetState()) {
-			m_clients[i]->SetState(State::ST_ACCEPT);
+		if (State::FREE == m_clients[i]->GetState()) {
+			m_clients[i]->SetState(State::ACCEPT);
 			return i;
 		}
 	}
@@ -888,8 +954,8 @@ INT Server::GetNewMonsterId(MonsterType type)
 
 	for (size_t i = start_num; i < end_num; ++i) {
 		std::lock_guard<std::mutex> lock{ m_clients[i]->GetStateMutex() };
-		if (State::ST_FREE == m_clients[i]->GetState()) {
-			m_clients[i]->SetState(State::ST_ACCEPT);
+		if (State::FREE == m_clients[i]->GetState()) {
+			m_clients[i]->SetState(State::ACCEPT);
 			return i;
 		}
 	}
@@ -913,6 +979,37 @@ void Server::Move(const std::shared_ptr<Client>& client, XMFLOAT3 position)
 	else {
 
 	}
+}
+
+int Server::GetNearTarget(int client_id, float max_range)
+{
+	std::span<int> ids{};
+
+	auto game_room = m_game_room_manager->GetGameRoom(m_clients[client_id]->GetRoomNum());
+	if (IsPlayer(client_id)) {
+		ids = game_room->GetMonsterIds();
+	}
+	else {
+		ids = game_room->GetPlayerIds();
+	}
+
+	XMFLOAT3 sub{};
+	float length{}, min_length{ std::numeric_limits<float>::max() };
+	XMFLOAT3 pos{ m_clients[client_id]->GetPosition() };
+	int target{ -1 };
+	for (int id : ids) {
+		if (-1 == id) continue;
+		if (State::INGAME != m_clients[id]->GetState()) continue;
+
+		sub = Vector3::Sub(pos, m_clients[id]->GetPosition());
+		length = Vector3::Length(sub);
+		if (length < min_length && length < max_range) {
+			min_length = length;
+			target = id;
+		}
+	}
+
+	return target;
 }
 
 void Server::MoveObject(const std::shared_ptr<GameObject>& object, XMFLOAT3 position)
@@ -1100,6 +1197,15 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 		PostQueuedCompletionStatus(m_handle_iocp, 1, ev.obj_id, &over->_wsa_over);
 		break;
 	}
+	case EventType::HIT_SCAN: {
+		ExpOver* over = new ExpOver;
+		over->_comp_type = OP_HIT_SCAN;
+		memcpy(&over->_send_buf, &ev.position, sizeof(XMFLOAT3));
+		memcpy((over->_send_buf + sizeof(XMFLOAT3)),
+			&ev.direction, sizeof(XMFLOAT3));
+		PostQueuedCompletionStatus(m_handle_iocp, 1, ev.obj_id, &over->_wsa_over);
+		break;
+	}
 	
 	}
 }
@@ -1138,7 +1244,7 @@ void Server::SetAttackTimerEvent(int id, ActionType attack_type, CollisionType c
 		}
 		break;
 	}
-	SetTimerEvent(ev);
+	m_timer_queue.push(ev);
 }
 
 void Server::SetCooltimeTimerEvent(int id, ActionType action_type)
@@ -1150,6 +1256,8 @@ void Server::SetCooltimeTimerEvent(int id, ActionType action_type)
 
 	ev.event_time = std::chrono::system_clock::now();
 
+	// 쿨타임 중인지 검사 필요
+	// 공격 외 쿨타임 처리
 	switch (action_type) {
 	case ActionType::NORMAL_ATTACK:
 		ev.event_time += PlayerSetting::ATTACK_COOLTIME[player_type];
@@ -1167,17 +1275,84 @@ void Server::SetCooltimeTimerEvent(int id, ActionType action_type)
 		ev.event_time += PlayerSetting::ROLL_COOLTIME;
 		break;
 	}
-	SetTimerEvent(ev);
+	m_timer_queue.push(ev);
 }
 
-// 연속적인 컨테이너, 여기선 array 를 상관없이 받도록 하기 위해 span 사용
+void Server::SetStaminaTimerEvent(int client_id, bool is_increase)
+{
+	auto client = dynamic_pointer_cast<Client>(m_clients[client_id]);
+
+	TIMER_EVENT ev{ .obj_id = client_id, .event_type = EventType::STAMINA_CHANGE };
+
+	if (!is_increase) {
+		ev.event_time = std::chrono::system_clock::now();
+		ev.is_stamina_increase = false;
+
+		if (PlayerAnimation::ROLL == client->GetCurrentAnimation()) {
+			ev.targat_id = -PlayerSetting::ROLL_STAMINA_CHANGE_AMOUNT;
+		}
+		else {
+			ev.targat_id = -PlayerSetting::DEFAULT_STAMINA_CHANGE_AMOUNT;
+		}
+
+		BYTE latest_id{ client->GetLatestId() };
+		if (std::numeric_limits<BYTE>::max() == latest_id)
+			latest_id = 0;
+		ev.latest_id = ++latest_id;
+		client->SetLatestId(latest_id);
+
+		m_timer_queue.push(ev);
+	}
+	else {
+		ev.event_time = std::chrono::system_clock::now() + std::chrono::seconds(2);
+		ev.is_stamina_increase = true;
+		ev.targat_id = PlayerSetting::DEFAULT_STAMINA_CHANGE_AMOUNT;
+
+		BYTE latest_id{ client->GetLatestId() };
+		if (std::numeric_limits<BYTE>::max() == latest_id)
+			latest_id = 0;
+		ev.latest_id = ++latest_id;
+		client->SetLatestId(latest_id);
+
+		m_timer_queue.push(ev);
+	}
+}
+
+void Server::SetHitScanTimerEvent(int id, int target_id)
+{
+	if (-1 == target_id)
+		return;
+
+	auto now = std::chrono::system_clock::now();
+
+	XMFLOAT3 dir = Vector3::Sub(m_clients[target_id]->GetPosition(),
+		m_clients[id]->GetPosition());
+	float length = Vector3::Length(dir);
+	float speed{};
+
+	if (IsPlayer(id)) {
+		speed = PlayerSetting::ARROW_SPEED;
+	}
+	else {
+		speed = MonsterSetting::ARROW_SPEED;
+	}
+	float time = length * 1000 / speed;		// ms
+	std::chrono::milliseconds ms{static_cast<long long>(time)};
+
+	TIMER_EVENT ev{ .event_time = now + ms, .obj_id = id, 
+		.position = m_clients[id]->GetPosition(), .direction = Vector3::Normalize(dir), 
+		.event_type = EventType::HIT_SCAN };
+	
+	m_timer_queue.push(ev);
+}
+
 void Server::CollideObject(const std::shared_ptr<GameObject>& object, const std::span<INT>& ids,
 	std::function<void(const std::shared_ptr<GameObject>&, const std::shared_ptr<GameObject>&)> func)
 {
 	for (INT id : ids) {
 		if (-1 == id) continue;
 		if (id == object->GetId()) continue;
-		if (State::ST_INGAME != m_clients[id]->GetState()) continue;
+		if (State::INGAME != m_clients[id]->GetState()) continue;
 
 		if (object->GetBoundingBox().Intersects(m_clients[id]->GetBoundingBox())) {
 			func(object, m_clients[id]);

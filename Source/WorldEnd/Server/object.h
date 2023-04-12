@@ -12,7 +12,7 @@ struct SCORE_DATA
 	}
 };
 
-enum class State { ST_FREE, ST_ACCEPT, ST_INGAME, ST_DEATH };
+enum class State { FREE, ACCEPT, INGAME, DEATH };
 
 class GameObject
 {
@@ -33,7 +33,7 @@ public:
 	const BoundingOrientedBox& GetBoundingBox() const { return m_bounding_box; }
 	BoundingOrientedBox& GetBoundingBox() { return m_bounding_box; }
 	INT GetId() const { return m_id; }
-	virtual State GetState() const { return State::ST_FREE; }
+	virtual State GetState() const { return State::FREE; }
 
 	virtual void SendEvent(INT id, void* c) {}
 	virtual void SendEvent(const std::span<INT>& ids, void* c) {}
@@ -157,7 +157,7 @@ public:
 	virtual PlayerType GetPlayerType() const { return PlayerType::COUNT; }
 	virtual FLOAT GetSkillRatio(ActionType type) const { return 0.f; }
 	virtual MONSTER_DATA GetMonsterData() const { return MONSTER_DATA(); }
-	virtual MonsterType GetMonsterType() const { return MonsterType::WARRIOR; }
+	virtual MonsterType GetMonsterType() const { return MonsterType::COUNT; }
 	virtual const SOCKET& GetSocket() const { return SOCKET(); }
 	virtual void DoSend(void* p) {}
 	virtual void DoSend(void* p, INT packet_count) {}

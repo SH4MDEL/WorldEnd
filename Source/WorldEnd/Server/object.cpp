@@ -130,7 +130,7 @@ void BattleStarter::SendEvent(const std::span<INT>& ids, void* c)
 			if (-1 == id) continue;
 			{
 				std::lock_guard<std::mutex> lock{ server.m_clients[id]->GetStateMutex() };
-				if (State::ST_INGAME != server.m_clients[id]->GetState()) continue;
+				if (State::INGAME != server.m_clients[id]->GetState()) continue;
 			}
 
 			server.m_clients[id]->DoSend(&packet);
@@ -172,7 +172,7 @@ void WarpPortal::SendEvent(const std::span<INT>& ids, void* c)
 		if (-1 == id) continue;
 		{
 			std::lock_guard<std::mutex> lock{ server.m_clients[id]->GetStateMutex() };
-			if (State::ST_INGAME != server.m_clients[id]->GetState()) continue;
+			if (State::INGAME != server.m_clients[id]->GetState()) continue;
 		}
 
 		server.MoveObject(server.m_clients[id], XMFLOAT3(0.f, 0.f, 0.f));
@@ -181,7 +181,7 @@ void WarpPortal::SendEvent(const std::span<INT>& ids, void* c)
 }
 
 MovementObject::MovementObject() : m_velocity{ 0.f, 0.f, 0.f },
-	m_state{ State::ST_FREE }, m_name{}, m_hp{}, m_damage{},
+	m_state{ State::FREE }, m_name{}, m_hp{}, m_damage{},
 	m_room_num{ static_cast<USHORT>(-1) }
 {
 }
