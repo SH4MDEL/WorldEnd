@@ -87,32 +87,34 @@ private:
 	void BuildLight(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist);
 
 protected:
-	ComPtr<ID3D12Resource>					m_sceneBuffer;
-	SceneInfo*								m_sceneBufferPointer;
+	ComPtr<ID3D12Resource>								m_sceneBuffer;
+	SceneInfo*											m_sceneBufferPointer;
 
-	INT										m_sceneState;
+	INT													m_sceneState;
 
-	XMMATRIX								m_lightView;
-	XMMATRIX								m_lightProj;
-	XMMATRIX								m_NDCspace;
+	XMMATRIX											m_lightView;
+	XMMATRIX											m_lightProj;
+	XMMATRIX											m_NDCspace;
 
-	vector<shared_ptr<GameObject>>			m_object;
+	vector<shared_ptr<GameObject>>						m_object;
 
-	shared_ptr<Player>						m_player;
-	shared_ptr<Camera>						m_camera;
+	shared_ptr<Player>									m_player;
+	shared_ptr<Camera>									m_camera;
 
-	shared_ptr<GameObject>					m_gate;
+	shared_ptr<GameObject>								m_gate;
 
-	shared_ptr<LightSystem>					m_lightSystem;
-	shared_ptr<Shadow>						m_shadow;
-	unique_ptr<BlurFilter>					m_blurFilter;
-	unique_ptr<FadeFilter>					m_fadeFilter;
-	unique_ptr<SobelFilter>					m_sobelFilter;
+	shared_ptr<LightSystem>								m_lightSystem;
+	shared_ptr<Shadow>									m_shadow;
+	unique_ptr<BlurFilter>								m_blurFilter;
+	unique_ptr<FadeFilter>								m_fadeFilter;
+	unique_ptr<SobelFilter>								m_sobelFilter;
 
 	// UI 관련
-	shared_ptr<UI>							m_exitUI;
-	shared_ptr<UI>							m_resultUI;
-	shared_ptr<UI>							m_resultTextUI;
+	array<shared_ptr<HorzGaugeUI>, MAX_INGAME_USER - 1>	m_hpUI;
+	unordered_map<INT, INT>								m_idSet;
+	shared_ptr<UI>										m_exitUI;
+	shared_ptr<UI>										m_resultUI;
+	shared_ptr<UI>										m_resultTextUI;
 
 	// 서버 추가 코드
 	unordered_map<INT, shared_ptr<Player>>	            m_multiPlayers;

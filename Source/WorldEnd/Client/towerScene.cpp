@@ -197,9 +197,11 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	BuildUI(device, commandlist);
 
 	// 필터 생성
-	m_blurFilter = make_unique<BlurFilter>(device, g_GameFramework.GetWindowWidth(), g_GameFramework.GetWindowHeight());
-	m_fadeFilter = make_unique<FadeFilter>(device, g_GameFramework.GetWindowWidth(), g_GameFramework.GetWindowHeight());
-	m_sobelFilter = make_unique<SobelFilter>(device, g_GameFramework.GetWindowWidth(), g_GameFramework.GetWindowHeight(), postRootSignature);
+	auto windowWidth = g_GameFramework.GetWindowWidth();
+	auto windowHeight = g_GameFramework.GetWindowHeight();
+	m_blurFilter = make_unique<BlurFilter>(device, windowWidth, windowHeight);
+	m_fadeFilter = make_unique<FadeFilter>(device, windowWidth, windowHeight);
+	m_sobelFilter = make_unique<SobelFilter>(device, windowWidth, windowHeight, postRootSignature);
 
 	// 오브젝트 설정	
 	m_object.push_back(skybox);
@@ -212,7 +214,14 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 
 void TowerScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist)
 {
-	// UI 생성
+	for (int i = 0; i < m_hpUI.size(); ++i) {
+		m_hpUI[i] = make_shared<HorzGaugeUI>(XMFLOAT2{ -0.75f, 0.75f - i * 0.3f }, XMFLOAT2{ 0.4f, 0.08f }, 0.f);
+		m_hpUI[i]->SetTexture(m_textures["HPBAR"]);
+		m_hpUI[i]->SetMaxGauge(100.f);
+		m_hpUI[i]->SetDisable();
+		m_shaders["UI"]->SetUI(m_hpUI[i]);
+	}
+
 	auto skillUI = make_shared<VertGaugeUI>(XMFLOAT2{ -0.60f, -0.80f }, XMFLOAT2{ 0.15f, 0.15f }, 0.f);
 	skillUI->SetTexture(m_textures["WARRIORSKILL"]);
 	m_shaders["UI"]->SetUI(skillUI);
@@ -831,6 +840,9 @@ void TowerScene::RecvAddObjectPacket(char* ptr)
 
 	SetHpBar(multiPlayer);
 
+	m_idSet.insert({ player_data.id, m_idSet.size() });
+	m_hpUI[m_idSet[player_data.id]]->SetEnable();
+
 	m_shaders["ANIMATION"]->SetMultiPlayer(player_data.id, multiPlayer);
 	cout << "add player" << static_cast<int>(player_data.id) << endl;
 
@@ -870,6 +882,7 @@ void TowerScene::RecvUpdateClient(char* ptr)
 		player->SetVelocity(packet->data.velocity);
 		player->Rotate(0.f, 0.f, packet->data.yaw - player->GetYaw());
 		player->SetHp(packet->data.hp);
+		m_hpUI[m_idSet[packet->data.id]]->SetGauge(packet->data.hp);
 	}
 }
 
@@ -983,6 +996,7 @@ void TowerScene::RecvMonsterAttackCollision(char* ptr)
 		else {
 			//m_multiPlayers[id]->ChangeAnimation(ObjectAnimation::HIT, true);
 			m_multiPlayers[id]->SetHp(packet->hps[i]);
+			m_hpUI[m_idSet[id]]->SetGauge(packet->hps[i]);
 		}
 		++i;
 	}
