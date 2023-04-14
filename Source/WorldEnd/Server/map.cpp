@@ -4,7 +4,7 @@
 #include "map.h"
 
 GameRoom::GameRoom() : m_state{ GameRoomState::EMPTY }, m_floor{ 1 },
-m_type{ EnvironmentType::FOG }, m_monster_count{ 0 }
+m_type{ EnvironmentType::FOG }, m_monster_count{ 0 }, m_arrow_id{ 0 }
 {
 	for (INT& id : m_player_ids)
 		id = -1;
@@ -60,6 +60,13 @@ void GameRoom::WarpNextFloor(INT room_num)
 		// 보스 룸 진입
 	}
 	InitGameRoom(room_num);
+
+	// 방 넘어갈 때 생성한 몬스터 정보 다시 넘기기
+	for (INT id : m_player_ids) {
+		if (-1 == id) continue;
+
+		SendAddMonster(id);
+	}
 }
 
 // 파티 생성하지 않고 진입 시 사용하는 함수
@@ -80,6 +87,15 @@ void GameRoom::SetPlayer(INT player_id)
 std::shared_ptr<BattleStarter> GameRoom::GetBattleStarter() const
 {
 	return m_battle_starter;
+}
+
+INT GameRoom::GetArrowId()
+{
+	std::lock_guard<std::mutex> lock{ m_arrow_lock };
+	int id = m_arrow_id;
+	m_arrow_id = (m_arrow_id + 1) % RoomSetting::MAX_ARROWS;
+
+	return id;
 }
 
 void GameRoom::SendMonsterData()
@@ -146,6 +162,10 @@ void GameRoom::SendAddMonster(INT player_id)
 	
 
 	server.m_clients[player_id]->DoSend(&packet, monster_count);
+	
+	if (GameRoomState::INGAME == m_state) {
+		m_battle_starter->SendEvent(player_id, nullptr);
+	}
 }
 
 void GameRoom::RemovePlayer(INT player_id)
@@ -199,6 +219,8 @@ void GameRoom::RemovePlayer(INT player_id)
 
 void GameRoom::RemoveMonster(INT room_num, INT monster_id)
 {
+	Server& server = Server::GetInstance();
+
 	BYTE old_value{}; 
 	std::array<INT, MAX_INGAME_MONSTER> ids{};
 	{
@@ -206,16 +228,15 @@ void GameRoom::RemoveMonster(INT room_num, INT monster_id)
 		ids = m_monster_ids;
 		old_value = m_monster_count.load();
 	}
-
-	while (m_monster_count.compare_exchange_weak(old_value, old_value - 1)) {}
-
 	auto it = find(ids.begin(), ids.end(), monster_id);
 	if (it == ids.end())
 		return;
-	
-	Server& server = Server::GetInstance();
 
-	INT end_index = static_cast<int>(old_value);
+	while (!m_monster_count.compare_exchange_weak(old_value, m_monster_count - 1)) {
+		
+	}
+
+	INT end_index = static_cast<int>(m_monster_count);
 	if (0 == end_index) {
 		ExpOver* over = new ExpOver();
 		over->_comp_type = OP_FLOOR_CLEAR;

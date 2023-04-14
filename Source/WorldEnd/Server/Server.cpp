@@ -331,8 +331,7 @@ void Server::WorkerThread()
 		case OP_ATTACK_COLLISION: {
 			auto client = dynamic_pointer_cast<Client>(m_clients[static_cast<int>(key)]);
 			ActionType attack_type = static_cast<ActionType>(exp_over->_send_buf[0]);
-			CollisionType collision_type = static_cast<CollisionType>(exp_over->_send_buf[1]);
-			XMFLOAT3* pos = reinterpret_cast<XMFLOAT3*>(&exp_over->_send_buf[2]);
+			XMFLOAT3* pos = reinterpret_cast<XMFLOAT3*>(&exp_over->_send_buf[1]);
 
 			int room_num = client->GetRoomNum();
 			auto game_room = m_game_room_manager->GetGameRoom(room_num);
@@ -390,7 +389,7 @@ void Server::WorkerThread()
 				}
 			}
 
-			SendCreateParticle(static_cast<int>(key), player_ids, v);
+			SendMonsterHit(static_cast<int>(key), player_ids, v);
 
 			delete exp_over;
 			break;
@@ -398,8 +397,7 @@ void Server::WorkerThread()
 		case OP_MONSTER_ATTACK_COLLISION: {
 			auto monster = dynamic_pointer_cast<WarriorMonster>(m_clients[static_cast<int>(key)]);
 			ActionType attack_type = static_cast<ActionType>(exp_over->_send_buf[0]);
-			CollisionType collision_type = static_cast<CollisionType>(exp_over->_send_buf[1]);
-			XMFLOAT3* pos = reinterpret_cast<XMFLOAT3*>(&exp_over->_send_buf[2]);		// 공격 충돌 위치
+			XMFLOAT3* pos = reinterpret_cast<XMFLOAT3*>(&exp_over->_send_buf[1]);		// 공격 충돌 위치
 
 			int room_num = monster->GetRoomNum();
 			auto game_room = m_game_room_manager->GetGameRoom(room_num);
@@ -481,8 +479,10 @@ void Server::WorkerThread()
 		case OP_HIT_SCAN: {
 			int id = static_cast<int>(key);
 			int room_num = m_clients[id]->GetRoomNum();
-			XMFLOAT3* position = reinterpret_cast<XMFLOAT3*>(exp_over->_send_buf);
-			XMFLOAT3* direction = reinterpret_cast<XMFLOAT3*>((exp_over->_send_buf + sizeof(XMFLOAT3)));
+			int* arrow_id = reinterpret_cast<int*>(&exp_over->_send_buf);
+			XMFLOAT3* position = reinterpret_cast<XMFLOAT3*>((exp_over->_send_buf + sizeof(int)));
+			XMFLOAT3* direction = reinterpret_cast<XMFLOAT3*>(
+				(exp_over->_send_buf + sizeof(int) + sizeof(XMFLOAT3)));
 
 			std::span<int> ids{};
 			float damage = m_clients[id]->GetDamage();
@@ -517,15 +517,30 @@ void Server::WorkerThread()
 				}
 			}
 
+			// 빗나감
+			if (-1 == near_id) {
+				delete exp_over;
+				break;
+			}
+
 			if (IsPlayer(id)) {
+				SendRemoveArrow(id, *arrow_id);
 				m_clients[near_id]->DecreaseHp(m_clients[id]->GetDamage(), id);
 				auto& player_ids = m_game_room_manager->GetGameRoom(room_num)->GetPlayerIds();
-				SendCreateParticle(id, player_ids, near_id);
+				SendMonsterHit(id, player_ids, near_id);
 			}
 			else {
 				SendMonsterAttack(id, near_id);
 			}
 			
+			delete exp_over;
+			break;
+		}
+		case OP_ARROW_REMOVE: {
+			int id = static_cast<int>(key);
+			int* arrow_id = reinterpret_cast<int*>(exp_over->_send_buf);
+
+			SendRemoveArrow(id, *arrow_id);
 			delete exp_over;
 			break;
 		}
@@ -586,13 +601,37 @@ void Server::ProcessPacket(int id, char* p)
 
 		// 충돌 위치, 시간을 서버에서 결정
 		if (PlayerType::WARRIOR == client->GetPlayerType()) {
-			SetAttackTimerEvent(id, packet->attack_type, packet->collision_type,
-				packet->attack_time);
+			SetAttackTimerEvent(id, packet->attack_type, packet->attack_time);
 		}
-		// 궁수는 공격별 분리 필요
-		else if (PlayerType::ARCHER == client->GetPlayerType()) {
+
+		SetCooltimeTimerEvent(id, packet->attack_type);
+		break;
+	}
+	case CS_PACKET_SHOOT: {
+		CS_SHOOT_PACKET* packet = reinterpret_cast<CS_SHOOT_PACKET*>(p);
+		auto game_room = m_game_room_manager->GetGameRoom(client->GetRoomNum());
+
+		int arrow_id = game_room->GetArrowId();
+
+		switch (packet->attack_type) {
+		case ActionType::NORMAL_ATTACK: {
+			SetRemoveArrowTimerEvent(id, arrow_id);
+
 			int target = GetNearTarget(id, PlayerSetting::AUTO_TARET_RANGE);
-			SetHitScanTimerEvent(id, target);
+			SendPlayerShoot(id, arrow_id, target);
+			SetHitScanTimerEvent(id, target, arrow_id);
+			break; 
+		}
+
+		case ActionType::SKILL: {
+
+			break; 
+		}
+
+		case ActionType::ULTIMATE: {
+
+			break;
+		}
 		}
 
 		SetCooltimeTimerEvent(id, packet->attack_type);
@@ -770,12 +809,12 @@ void Server::SendChangeAnimation(int client_id, USHORT animation)
 	}
 }
 
-void Server::SendCreateParticle(int client_id, const std::span<int>& receiver,
+void Server::SendMonsterHit(int client_id, const std::span<int>& receiver,
 	const std::span<int>& creater)
 {
-	SC_CREATE_PARTICLE_PACKET packet{};
+	SC_CREATE_MONSTER_HIT packet{};
 	packet.size = sizeof(packet);
-	packet.type = SC_PACKET_CREATE_PARTICLE;
+	packet.type = SC_PACKET_MONSTER_HIT;
 
 	for (int id : receiver) {
 		if (-1 == id) continue;
@@ -784,18 +823,20 @@ void Server::SendCreateParticle(int client_id, const std::span<int>& receiver,
 			continue;
 
 		for (int client_id : creater) {
-			packet.position = m_clients[client_id]->GetPosition();
+			packet.id = client_id;
+			packet.hp = m_clients[client_id]->GetHp();
 			m_clients[id]->DoSend(&packet);
 		}
 	}
 }
 
-void Server::SendCreateParticle(int client_id, const std::span<int>& receiver, int hit_id)
+void Server::SendMonsterHit(int client_id, const std::span<int>& receiver, int hit_id)
 {
-	SC_CREATE_PARTICLE_PACKET packet{};
+	SC_CREATE_MONSTER_HIT packet{};
 	packet.size = sizeof(packet);
-	packet.type = SC_PACKET_CREATE_PARTICLE;
-	packet.position = m_clients[hit_id]->GetPosition();
+	packet.type = SC_PACKET_MONSTER_HIT;
+	packet.id = hit_id;
+	packet.hp = m_clients[hit_id]->GetHp();
 
 	for (int id : receiver) {
 		if (-1 == id) continue;
@@ -879,6 +920,50 @@ void Server::SendMonsterAttack(int monster_id, int player_id)
 
 			m_clients[id]->DoSend(&packet);
 		}
+	}
+}
+
+void Server::SendPlayerShoot(int client_id, int arrow_id, int target_id)
+{
+	SC_PLAYER_SHOOT_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = SC_PACKET_PLAYER_SHOOT;
+	packet.id = client_id;
+	packet.arrow_id = arrow_id;
+	packet.target_id = target_id;
+
+	if (IsInGameRoom(client_id)) {
+		auto& ids = m_game_room_manager->GetGameRoom(m_clients[client_id]->GetRoomNum())->GetPlayerIds();
+
+		for (int id : ids) {
+			if (-1 == id) continue;
+
+			m_clients[id]->DoSend(&packet);
+		}
+	}
+	else {
+
+	}
+}
+
+void Server::SendRemoveArrow(int client_id, int arrow_id)
+{
+	SC_REMOVE_ARROW_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = SC_PACKET_REMOVE_ARROW;
+	packet.arrow_id = arrow_id;
+
+	if (IsInGameRoom(client_id)) {
+		auto& ids = m_game_room_manager->GetGameRoom(m_clients[client_id]->GetRoomNum())->GetPlayerIds();
+
+		for (int id : ids) {
+			if (-1 == id) continue;
+
+			m_clients[id]->DoSend(&packet);
+		}
+	}
+	else {
+
 	}
 }
 
@@ -1128,7 +1213,7 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 				.obj_id = ev.obj_id, .targat_id = monster->GetRoomNum(),
 				.position = Vector3::Add(monster->GetPosition(), monster->GetFront()),
 				.event_type = EventType::MONSTER_ATTACK_COLLISION, .action_type = ActionType::NORMAL_ATTACK,
-				.collision_type = CollisionType::MULTIPLE_TIMES };
+			};
 
 			m_timer_queue.push(attack_ev);
 		}
@@ -1170,8 +1255,7 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 		ExpOver* over = new ExpOver;
 		over->_comp_type = OP_ATTACK_COLLISION;
 		memcpy(&over->_send_buf[0], &ev.action_type, sizeof(ActionType));
-		memcpy(&over->_send_buf[1], &ev.collision_type, sizeof(CollisionType));
-		memcpy(&over->_send_buf[2], &ev.position, sizeof(XMFLOAT3));
+		memcpy(&over->_send_buf[1], &ev.position, sizeof(XMFLOAT3));
 		PostQueuedCompletionStatus(m_handle_iocp, 1, ev.obj_id, &over->_wsa_over);
 		break;
 	}
@@ -1179,8 +1263,7 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 		ExpOver* over = new ExpOver;
 		over->_comp_type = OP_MONSTER_ATTACK_COLLISION;
 		memcpy(&over->_send_buf[0], &ev.action_type, sizeof(ActionType));
-		memcpy(&over->_send_buf[1], &ev.collision_type, sizeof(CollisionType));
-		memcpy(&over->_send_buf[2], &ev.position, sizeof(XMFLOAT3));
+		memcpy(&over->_send_buf[1], &ev.position, sizeof(XMFLOAT3));
 		PostQueuedCompletionStatus(m_handle_iocp, 1, ev.obj_id, &over->_wsa_over);
 		break;
 	}
@@ -1200,9 +1283,17 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 	case EventType::HIT_SCAN: {
 		ExpOver* over = new ExpOver;
 		over->_comp_type = OP_HIT_SCAN;
-		memcpy(&over->_send_buf, &ev.position, sizeof(XMFLOAT3));
-		memcpy((over->_send_buf + sizeof(XMFLOAT3)),
+		memcpy(over->_send_buf, &ev.targat_id, sizeof(int));
+		memcpy((over->_send_buf + sizeof(int)), &ev.position, sizeof(XMFLOAT3));
+		memcpy((over->_send_buf + sizeof(int) + sizeof(XMFLOAT3)),
 			&ev.direction, sizeof(XMFLOAT3));
+		PostQueuedCompletionStatus(m_handle_iocp, 1, ev.obj_id, &over->_wsa_over);
+		break;
+	}
+	case EventType::ARROW_REMOVE: {
+		ExpOver* over = new ExpOver;
+		over->_comp_type = OP_ARROW_REMOVE;
+		memcpy(over->_send_buf, &ev.targat_id, sizeof(int));
 		PostQueuedCompletionStatus(m_handle_iocp, 1, ev.obj_id, &over->_wsa_over);
 		break;
 	}
@@ -1215,14 +1306,13 @@ void Server::SetTimerEvent(const TIMER_EVENT& ev)
 	m_timer_queue.push(ev);
 }
 
-void Server::SetAttackTimerEvent(int id, ActionType attack_type, CollisionType collision_type,
+void Server::SetAttackTimerEvent(int id, ActionType attack_type,
 	std::chrono::system_clock::time_point attack_time)
 {
 	auto client = dynamic_pointer_cast<Client>(m_clients[id]);
 	int player_type = static_cast<int>(client->GetPlayerType());
 
-	TIMER_EVENT ev{ .obj_id = id, .action_type = attack_type,
-		.collision_type = collision_type, };
+	TIMER_EVENT ev{ .obj_id = id, .action_type = attack_type };
 
 	switch (client->GetPlayerType()) {
 	case PlayerType::WARRIOR:
@@ -1318,7 +1408,7 @@ void Server::SetStaminaTimerEvent(int client_id, bool is_increase)
 	}
 }
 
-void Server::SetHitScanTimerEvent(int id, int target_id)
+void Server::SetHitScanTimerEvent(int id, int target_id, int arrow_id)
 {
 	if (-1 == target_id)
 		return;
@@ -1339,10 +1429,19 @@ void Server::SetHitScanTimerEvent(int id, int target_id)
 	float time = length * 1000 / speed;		// ms
 	std::chrono::milliseconds ms{static_cast<long long>(time)};
 
-	TIMER_EVENT ev{ .event_time = now + ms, .obj_id = id, 
+	TIMER_EVENT ev{ .event_time = now + ms, .obj_id = id, .targat_id = arrow_id,
 		.position = m_clients[id]->GetPosition(), .direction = Vector3::Normalize(dir), 
 		.event_type = EventType::HIT_SCAN };
 	
+	m_timer_queue.push(ev);
+}
+
+void Server::SetRemoveArrowTimerEvent(int client_id, int arrow_id)
+{
+	TIMER_EVENT ev{ .event_time = std::chrono::system_clock::now() + RoomSetting::ARROW_REMOVE_TIME,
+		.obj_id = client_id, .targat_id = arrow_id,
+		.event_type = EventType::ARROW_REMOVE };
+
 	m_timer_queue.push(ev);
 }
 

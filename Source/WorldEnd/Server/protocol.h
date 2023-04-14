@@ -31,9 +31,10 @@ constexpr char CS_PACKET_LOGIN = 1;
 constexpr char CS_PACKET_PLAYER_MOVE = 2;
 constexpr char CS_PACKET_SET_COOLTIME = 4;
 constexpr char CS_PACKET_ATTACK = 5;
-constexpr char CS_PACKET_CHANGE_ANIMATION = 6;
-constexpr char CS_PACKET_CHANGE_STAMINA = 7;
-constexpr char CS_PACKET_INTERACT_OBJECT = 8;
+constexpr char CS_PACKET_SHOOT = 6;
+constexpr char CS_PACKET_CHANGE_ANIMATION = 7;
+constexpr char CS_PACKET_CHANGE_STAMINA = 8;
+constexpr char CS_PACKET_INTERACT_OBJECT = 9;
 
 constexpr char SC_PACKET_LOGIN_OK = 1;
 constexpr char SC_PACKET_ADD_OBJECT = 2;
@@ -47,19 +48,20 @@ constexpr char SC_PACKET_CHANGE_ANIMATION = 9;
 constexpr char SC_PACKET_RESET_COOLTIME = 10;
 constexpr char SC_PACKET_CLEAR_FLOOR = 11;
 constexpr char SC_PACKET_FAIL_FLOOR = 12;
-constexpr char SC_PACKET_CREATE_PARTICLE = 13;
+constexpr char SC_PACKET_MONSTER_HIT = 13;
 constexpr char SC_PACKET_CHANGE_STAMINA = 14;
 constexpr char SC_PACKET_MONSTER_ATTACK_COLLISION = 15;
 constexpr char SC_PACKET_SET_INTERACTABLE = 16;
 constexpr char SC_PACKET_START_BATTLE = 17;
 constexpr char SC_PACKET_WARP_NEXT_FLOOR = 18;
 constexpr char SC_PACKET_PLAYER_DEATH = 19;
+constexpr char SC_PACKET_PLAYER_SHOOT = 20;
+constexpr char SC_PACKET_REMOVE_ARROW = 21;
 
 enum class PlayerType : char { WARRIOR, ARCHER, COUNT };
 enum class MonsterType : char { WARRIOR, ARCHER, WIZARD, COUNT };
 enum class EnvironmentType : char { RAIN, FOG, GAS, TRAP };
 
-enum class CollisionType : char { PERSISTENCE, ONE_OFF, MULTIPLE_TIMES };
 enum ActionType : char {
 	NORMAL_ATTACK, SKILL, ULTIMATE, DASH, ROLL, COUNT
 };
@@ -184,8 +186,12 @@ namespace MonsterSetting
 
 namespace RoomSetting
 {
+	using namespace std::literals;
+
 	constexpr float DEFAULT_HEIGHT = 0.f;
 	constexpr unsigned char BOSS_FLOOR = 5;
+	constexpr int MAX_ARROWS = 30;
+	constexpr auto ARROW_REMOVE_TIME = 3s;
 
 	constexpr float DOWNSIDE_STAIRS_HEIGHT = 4.4f;
 	constexpr float DOWNSIDE_STAIRS_FRONT = -7.f;
@@ -278,8 +284,14 @@ struct CS_ATTACK_PACKET
 	UCHAR size;
 	UCHAR type;
 	ActionType attack_type;
-	CollisionType collision_type;
 	std::chrono::system_clock::time_point attack_time; 
+};
+
+struct CS_SHOOT_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+	ActionType attack_type;
 };
 
 struct CS_CHANGE_ANIMATION_PACKET
@@ -426,11 +438,12 @@ struct SC_FAIL_FLOOR_PACKET
 	UCHAR type;
 };
 
-struct SC_CREATE_PARTICLE_PACKET
+struct SC_CREATE_MONSTER_HIT
 {
 	UCHAR size;
 	UCHAR type;
-	DirectX::XMFLOAT3 position;
+	INT id;		// 몬스터 id
+	FLOAT hp;	// 체력
 };
 
 struct SC_CHANGE_STAMINA_PACKET
@@ -475,6 +488,22 @@ struct SC_PLAYER_DEATH_PACKET
 	UCHAR size;
 	UCHAR type;
 	INT id;
+};
+
+struct SC_PLAYER_SHOOT_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+	INT id;
+	INT arrow_id;
+	INT target_id;
+};
+
+struct SC_REMOVE_ARROW_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+	INT arrow_id;
 };
 
 #pragma pack (pop)

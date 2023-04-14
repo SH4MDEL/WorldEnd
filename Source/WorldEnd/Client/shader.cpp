@@ -49,10 +49,12 @@ void Shader::Update(FLOAT timeElapsed)
 	for (const auto& elm : m_multiPlayers)
 		elm.second->UpdateAnimation(timeElapsed);
 
-	for (const auto& elm : m_monsters) {
-		if(elm.second->GetIsShowing())
-			elm.second->UpdateAnimation(timeElapsed);
-	}
+	for (const auto& elm : m_arrows)
+		elm.second->Update(timeElapsed);
+
+	for (const auto& elm : m_monsters) 
+		elm.second->UpdateAnimation(timeElapsed);
+	
 }
 
 void Shader::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const
@@ -67,12 +69,11 @@ void Shader::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const
 	for (const auto& elm : m_multiPlayers)
 		if (elm.second) elm.second->Render(commandList);
 
-	for (const auto& elm : m_monsters) {
-		if (elm.second) {
-			if(elm.second->GetIsShowing())
-				elm.second->Render(commandList); 
-		}
-	}
+	for (const auto& elm : m_arrows)
+		if (elm.second) elm.second->Render(commandList);
+
+	for (const auto& elm : m_monsters)
+		if (elm.second) elm.second->Render(commandList); 
 }
 
 void Shader::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, const shared_ptr<Shader>& shader) const
@@ -87,12 +88,11 @@ void Shader::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, const 
 	for (const auto& elm : m_multiPlayers)
 		if (elm.second) elm.second->Render(commandList);
 
-	for (const auto& elm : m_monsters) {
-		if (elm.second) {
-			if(elm.second->GetIsShowing())
-				elm.second->Render(commandList);
-		}
-	}
+	for (const auto& elm : m_arrows)
+		if (elm.second) elm.second->Render(commandList);
+
+	for (const auto& elm : m_monsters)
+		if (elm.second) elm.second->Render(commandList);
 }
 
 void Shader::UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& commandList) const
@@ -127,6 +127,11 @@ void Shader::SetMonster(INT ID, const shared_ptr<Monster>& monster)
 	m_monsters.insert({ ID, monster });
 }
 
+void Shader::SetArrow(INT id, const shared_ptr<Arrow>& arrow)
+{
+	m_arrows.insert({id, arrow});
+}
+
 bool Shader::FindObject(const shared_ptr<GameObject>& object)
 {
 	if (ranges::find(m_gameObjects, object) != m_gameObjects.end())
@@ -134,16 +139,36 @@ bool Shader::FindObject(const shared_ptr<GameObject>& object)
 	return false;
 }
 
+shared_ptr<Arrow> Shader::FindArrow(int id)
+{
+	if (m_arrows.contains(id)) {
+		return m_arrows[id];
+	}
+	return nullptr;
+}
+
 void Shader::RemoveObject(const shared_ptr<GameObject>& object)
 {
 	erase(m_gameObjects, object);
 }
 
-void Shader::DeleteMultiPlayer(INT id)
+void Shader::RemoveMultiPlayer(INT id)
 {
-	m_multiPlayers.erase(id);
+	if(m_multiPlayers.contains(id))
+		m_multiPlayers.erase(id);
 }
 
+void Shader::RemoveMonster(INT id)
+{
+	if (m_monsters.contains(id))
+		m_monsters.erase(id);
+}
+
+void Shader::RemoveArrow(INT id)
+{
+	if(m_arrows.contains(id))
+		m_arrows.erase(id);
+}
 
 InstancingShader::InstancingShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature, const Mesh& mesh, UINT count) : 
 	m_instancingCount(count)

@@ -52,6 +52,8 @@ public:
 	void LoadMonsterFromFile(const shared_ptr<Monster>& monster);
 
 	void SetHpBar(const shared_ptr<AnimationObject>& object);
+	void SetArrow(const shared_ptr<Player>& player, INT arrowId);
+	void RotateToTarget(const shared_ptr<Player>& player, INT targetId);
 
 	bool CheckState(State sceneState);
 	void SetState(State sceneState);
@@ -75,13 +77,15 @@ public:
 	void RecvResetCooltime(char* ptr);
 	void RecvClearFloor(char* ptr);
 	void RecvFailFloor(char* ptr);
-	void RecvCreateParticle(char* ptr);
+	void RecvMonsterHit(char* ptr);
 	void RecvChangeStamina(char* ptr);
 	void RecvMonsterAttackCollision(char* ptr);
 	void RecvSetInteractable(char* ptr);
 	void RecvStartBattle(char* ptr);
 	void RecvWarpNextFloor(char* ptr);
 	void RecvPlayerDeath(char* ptr);
+	void RecvPlayerShoot(char* ptr);
+	void RecvRemoveArrow(char* ptr);
 
 protected:
 	ComPtr<ID3D12Resource>					m_sceneBuffer;
@@ -114,7 +118,6 @@ protected:
 	unordered_map<INT, shared_ptr<Player>>	            m_multiPlayers;
 	unordered_map<INT, shared_ptr<Monster>>             m_monsters;
 
-	// 임시 코드
-	shared_ptr<GameObject> m_arrow;
+	unordered_map<INT, shared_ptr<Arrow>>	m_arrows;
 };
 

@@ -10,7 +10,7 @@ enum class EventType : char
 {
 	COOLTIME_RESET, BEHAVIOR_CHANGE, AGRO_LEVEL_DECREASE,
 	ATTACK_COLLISION, MONSTER_ATTACK_COLLISION, STAMINA_CHANGE,
-	HIT_SCAN
+	HIT_SCAN, ARROW_REMOVE
 };
 
 struct TIMER_EVENT {
@@ -24,7 +24,6 @@ struct TIMER_EVENT {
 	MonsterBehavior next_behavior_type;
 	BYTE latest_id;
 	BYTE aggro_level;
-	CollisionType collision_type;
 	bool is_stamina_increase;
 
 	constexpr bool operator <(const TIMER_EVENT& left)const
@@ -52,13 +51,15 @@ public:
 	void SendMoveInGameRoom(int client_id);
 	void SendPlayerDeath(int client_id);
 	void SendChangeAnimation(int client_id, USHORT animation);
-	void SendCreateParticle(int client_id, const std::span<int>& receiver,
+	void SendMonsterHit(int client_id, const std::span<int>& receiver,
 		const std::span<int>& creater);
-	void SendCreateParticle(int client_id, const std::span<int>& receiver,
+	void SendMonsterHit(int client_id, const std::span<int>& receiver,
 		int hit_id);
 	void SendMonsterAttack(int client_id, const std::span<int>& clients,
 		const BoundingOrientedBox& obb);
 	void SendMonsterAttack(int monster_id, int player_id);
+	void SendPlayerShoot(int client_id, int arrow_id, int target_id);
+	void SendRemoveArrow(int client_id, int arrow_id);
 
 	bool IsInGameRoom(int client_id);
 	bool IsPlayer(int client_id);
@@ -68,12 +69,12 @@ public:
 	void ProcessEvent(const TIMER_EVENT& ev);
 
 	void SetTimerEvent(const TIMER_EVENT& ev);
-	void SetAttackTimerEvent(int id, ActionType attack_type, CollisionType collision_type,
+	void SetAttackTimerEvent(int id, ActionType attack_type,
 		std::chrono::system_clock::time_point attack_time);
 	void SetCooltimeTimerEvent(int id, ActionType action_type);
 	void SetStaminaTimerEvent(int client_id, bool is_increase);
-	void SetHitScanTimerEvent(int id, int target_id);
-	
+	void SetHitScanTimerEvent(int id, int target_id, int arrow_id);
+	void SetRemoveArrowTimerEvent(int client_id, int arrow_id);
 
 	INT GetNewId();
 	INT GetNewMonsterId(MonsterType type);

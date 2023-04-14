@@ -29,6 +29,7 @@ public:
 	BYTE GetMonsterCount() const { return m_monster_count; }
 	std::chrono::system_clock::time_point GetStartTime() const { return m_start_time; }
 	std::shared_ptr<BattleStarter> GetBattleStarter() const;
+	INT GetArrowId();
 
 	void SendMonsterData();
 	void SendAddMonster(INT player_id);
@@ -59,6 +60,8 @@ private:
 	BYTE					m_floor;
 	GameRoomState			m_state;
 	std::mutex				m_state_lock;
+	INT						m_arrow_id;
+	std::mutex				m_arrow_lock;
 
 	void CollideWithEventObject(INT player_id, InteractableType type);
 };

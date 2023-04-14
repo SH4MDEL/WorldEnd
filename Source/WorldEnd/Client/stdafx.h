@@ -22,6 +22,7 @@
 #include <unordered_map>
 #include <vector>
 #include <stack>
+#include <queue>
 #include <stdlib.h>
 #include <malloc.h>
 #include <memory.h>

@@ -2,14 +2,13 @@
 #include "stdafx.h"
 #include "object.h"
 
-
 class Camera;
 
 class Player : public AnimationObject
 {
 public:
 	Player();
-	~Player();
+	virtual ~Player();
 
 	void OnProcessingKeyboardMessage(FLOAT timeElapsed);
 	void OnProcessingMouseMessage(UINT message, LPARAM lParam);
@@ -49,7 +48,8 @@ public:
 
 	void CreateMovePacket();
 	void CreateCooltimePacket(ActionType type);
-	void CreateAttackPacket(ActionType cooltimeType, CollisionType collisionType);
+	void CreateAttackPacket(ActionType cooltimeType);
+	void CreateShootPacket(ActionType cooltimeType);
 	void CreateInteractPacket();
 	void CreateChangeStaminaPacket(bool value);
 	void SetBuffer(void* mess, size_t size);
@@ -84,4 +84,21 @@ private:
 
 	CHAR				m_sendBuffer[BUFSIZ];
 	int					m_bufSize;
+};
+
+class Arrow : public GameObject
+{
+public:
+	Arrow();
+	~Arrow() = default;
+
+	void Update(FLOAT timeElapsed) override;
+	void Reset();
+
+	XMFLOAT3 GetVelocity() const { return m_velocity; }
+
+	void SetVelocity(XMFLOAT3 velocity) { m_velocity = velocity; }
+
+private:
+	XMFLOAT3	m_velocity;
 };

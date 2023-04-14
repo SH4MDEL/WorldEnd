@@ -140,11 +140,12 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 {
 	CreateShaderVariable(device, commandlist);
 
-	// 임시 화살 생성
-	m_arrow = make_shared<GameObject>();
-	LoadObjectFromFile(TEXT("./Resource/Model/Archer_WeaponArrow.bin"), m_arrow);
-	m_arrow->SetPosition(XMFLOAT3{ 0.f, 0.5f, 0.f });
-	m_shaders["OBJECT"]->SetObject(m_arrow);
+	// 화살 생성
+	for (size_t i = 0; i < RoomSetting::MAX_ARROWS; ++i) {
+		auto arrow = make_shared<Arrow>();
+		LoadObjectFromFile(TEXT("./Resource/Model/Archer_WeaponArrow.bin"), arrow);
+		m_arrows.insert({ i, arrow });
+	}
 
 	// 플레이어 생성
 	m_player = make_shared<Player>();
@@ -564,12 +565,12 @@ void TowerScene::LoadPlayerFromFile(const shared_ptr<Player>& player)
 		animationSet = "WarriorAnimation";
 		break;
 
-	case PlayerType::ARCHER:
+	case PlayerType::ARCHER: 
 		filePath = TEXT("./Resource/Model/Archer.bin");
 		animationSet = "ArcherAnimation";
-		break;
+		break; 
 	}
-	
+
 	LoadObjectFromFile(filePath, player);
 
 	player->SetAnimationSet(m_animationSets[animationSet]);
@@ -618,6 +619,39 @@ void TowerScene::SetHpBar(const shared_ptr<AnimationObject>& object)
 	hpBar->SetPosition(XMFLOAT3{ FAR_POSITION, FAR_POSITION, FAR_POSITION });
 	m_shaders["HORZGAUGE"]->SetObject(hpBar);
 	object->SetHpBar(hpBar);
+}
+
+void TowerScene::SetArrow(const shared_ptr<Player>& player, INT arrowId)
+{
+	auto& arrow = m_arrows[arrowId];
+	arrow->SetPosition(Vector3::Add(player->GetPosition(), XMFLOAT3{ 0.f, 0.9f, 0.f }));
+	
+	arrow->SetVelocity({ Vector3::Mul(Vector3::Normalize(player->GetFront()), PlayerSetting::ARROW_SPEED) });
+	arrow->Rotate(0.f, 0.f, player->GetYaw());
+
+	m_shaders["OBJECT"]->SetArrow(arrowId, arrow);
+}
+
+void TowerScene::RotateToTarget(const shared_ptr<Player>& player, INT targetId)
+{
+	if (-1 == targetId) {
+		return;
+	}
+
+	auto& monster = m_monsters[targetId];
+	if (!monster)
+		return;
+
+	XMFLOAT3 dir = Vector3::Normalize(
+		Vector3::Sub(monster->GetPosition(), player->GetPosition()));
+	XMFLOAT3 front{ player->GetFront() };
+
+	XMVECTOR radian{ XMVector3AngleBetweenNormals(XMLoadFloat3(&front), XMLoadFloat3(&dir))};
+	FLOAT angle{ XMConvertToDegrees(XMVectorGetX(radian)) };
+	XMFLOAT3 clockwise{ Vector3::Cross(front, dir) };
+	angle = clockwise.y < 0 ? -angle : angle;
+
+	player->Rotate(0.f, 0.f, angle);
 }
 
 bool TowerScene::CheckState(State sceneState)
@@ -748,8 +782,8 @@ void TowerScene::ProcessPacket(char* ptr)
 	case SC_PACKET_FAIL_FLOOR:
 		RecvFailFloor(ptr);
 		break;
-	case SC_PACKET_CREATE_PARTICLE:
-		RecvCreateParticle(ptr);
+	case SC_PACKET_MONSTER_HIT:
+		RecvMonsterHit(ptr);
 		break;
 	case SC_PACKET_CHANGE_STAMINA:
 		RecvChangeStamina(ptr);
@@ -768,6 +802,12 @@ void TowerScene::ProcessPacket(char* ptr)
 		break;
 	case SC_PACKET_PLAYER_DEATH:
 		RecvPlayerDeath(ptr);
+		break;
+	case SC_PACKET_PLAYER_SHOOT:
+		RecvPlayerShoot(ptr);
+		break;
+	case SC_PACKET_REMOVE_ARROW:
+		RecvRemoveArrow(ptr);
 		break;
 	}
 }
@@ -845,7 +885,9 @@ void TowerScene::RecvRemoveMonster(char* ptr)
 	SC_REMOVE_MONSTER_PACKET* packet = reinterpret_cast<SC_REMOVE_MONSTER_PACKET*>(ptr);
 	m_monsters[packet->id]->SetPosition(XMFLOAT3(FAR_POSITION, FAR_POSITION, FAR_POSITION));
 
-	m_monsters[packet->id]->SetIsShowing(false);
+	// 임시 삭제
+	m_shaders["ANIMATION"]->RemoveMonster(packet->id);
+	m_monsters.erase(packet->id);
 }
 
 void TowerScene::RecvUpdateClient(char* ptr)
@@ -892,11 +934,6 @@ void TowerScene::RecvAddMonster(char* ptr)
 	m_monsters.insert({ static_cast<INT>(monster_data.id), monster });
 
 	SetHpBar(monster);
-
-	if (!m_shaders["OBJECT"]->FindObject(m_gate))
-		monster->SetIsShowing(true);
-
-	m_shaders["ANIMATION"]->SetMonster(monster_data.id, monster);
 }
 
 void TowerScene::RecvUpdateMonster(char* ptr)
@@ -906,6 +943,9 @@ void TowerScene::RecvUpdateMonster(char* ptr)
 	if (packet->monster_data.id < 0) return;
 
 	auto& monster = m_monsters[packet->monster_data.id];
+	if (!monster)
+		return;
+
 	monster->SetPosition(packet->monster_data.pos);
 	monster->SetHp(packet->monster_data.hp);
 
@@ -920,6 +960,9 @@ void TowerScene::RecvChangeMonsterBehavior(char* ptr)
 		reinterpret_cast<SC_CHANGE_MONSTER_BEHAVIOR_PACKET*>(ptr);
 
 	auto& monster = m_monsters[packet->id];
+	if (!monster)
+		return;
+
 	monster->ChangeAnimation(packet->animation);
 	//monster->ChangeBehavior(packet->behavior);
 }
@@ -944,11 +987,18 @@ void TowerScene::RecvFailFloor(char* ptr)
 	
 }
 
-void TowerScene::RecvCreateParticle(char* ptr)
+void TowerScene::RecvMonsterHit(char* ptr)
 {
-	SC_CREATE_PARTICLE_PACKET* packet = reinterpret_cast<SC_CREATE_PARTICLE_PACKET*>(ptr);
+	SC_CREATE_MONSTER_HIT* packet = reinterpret_cast<SC_CREATE_MONSTER_HIT*>(ptr);
 
-	XMFLOAT3 particlePosition = packet->position;
+	auto& monster = m_monsters[packet->id];
+	if (!monster)
+		return;
+
+	monster->SetHp(packet->hp);
+
+	// 파티클 생성
+	XMFLOAT3 particlePosition = monster->GetPosition();
 	particlePosition.y += 1.f;
 	g_particleSystem->CreateParticle(ParticleSystem::Type::EMITTER, particlePosition);
 }
@@ -1000,16 +1050,16 @@ void TowerScene::RecvStartBattle(char* ptr)
 {
 	SC_START_BATTLE_PACKET* packet = reinterpret_cast<SC_START_BATTLE_PACKET*>(ptr);
 
-	for (auto& elm : m_monsters) {
-		elm.second->SetIsShowing(true);
-	}
-	
 	// 오브젝트와 상호작용했다면 해당 오브젝트는 다시 상호작용 X
 	m_player->SetInteractable(false);
 	m_player->SetInteractableType(InteractableType::NONE);
 
 	if(m_shaders["OBJECT"]->FindObject(m_gate))
 		m_shaders["OBJECT"]->RemoveObject(m_gate);
+
+	for (auto& monster : m_monsters) {
+		m_shaders["ANIMATION"]->SetMonster(monster.first, monster.second);
+	}
 }
 
 void TowerScene::RecvWarpNextFloor(char* ptr)
@@ -1044,4 +1094,31 @@ void TowerScene::RecvPlayerDeath(char* ptr)
 	else {
 		m_multiPlayers[packet->id]->ChangeAnimation(ObjectAnimation::DEATH, false);
 	}
+}
+
+void TowerScene::RecvPlayerShoot(char* ptr)
+{
+	SC_PLAYER_SHOOT_PACKET* packet = reinterpret_cast<SC_PLAYER_SHOOT_PACKET*>(ptr);
+
+	if (packet->id == m_player->GetId()) {
+		RotateToTarget(m_player, packet->target_id);
+		SetArrow(m_player, packet->arrow_id);
+	}
+	else {
+		auto& player = m_multiPlayers[packet->id];
+		RotateToTarget(player, packet->target_id);
+		SetArrow(player, packet->arrow_id);
+	}
+}
+
+void TowerScene::RecvRemoveArrow(char* ptr)
+{
+	SC_REMOVE_ARROW_PACKET* packet = reinterpret_cast<SC_REMOVE_ARROW_PACKET*>(ptr);
+
+	auto arrow = m_shaders["OBJECT"]->FindArrow(packet->arrow_id);
+	if (!arrow)
+		return;
+
+	arrow->Reset();
+	m_shaders["OBJECT"]->RemoveArrow(packet->arrow_id);
 }

@@ -23,18 +23,23 @@ public:
 	shared_ptr<Player> GetPlayer() const { return m_player; }
 	shared_ptr<Camera> GetCamera() const { return m_camera; }
 	const vector<shared_ptr<GameObject>>& GetObjects() const { return m_gameObjects; }
+	const unordered_map<INT, shared_ptr<Monster>>& GetMonsters() const { return m_monsters; }
 	ComPtr<ID3D12PipelineState> GetPipelineState() const { return m_pipelineState; }
 
 	void SetPlayer(const shared_ptr<Player>& player);
 	void SetCamera(const shared_ptr<Camera>& camera);
 	void SetObject(const shared_ptr<GameObject>& object);
-	void SetMultiPlayer(INT ID, const shared_ptr<Player>& player);
-	void SetMonster(INT ID, const shared_ptr<Monster>& monster);
+	void SetMultiPlayer(INT id, const shared_ptr<Player>& player);
+	void SetMonster(INT id, const shared_ptr<Monster>& monster);
+	void SetArrow(INT id, const shared_ptr<Arrow>& arrow);
 	virtual void SetUI(const shared_ptr<UI>& ui) {};
 
 	bool FindObject(const shared_ptr<GameObject>& object);
+	shared_ptr<Arrow> FindArrow(int id);
 	void RemoveObject(const shared_ptr<GameObject>& object);
-	void DeleteMultiPlayer(INT id);
+	void RemoveMultiPlayer(INT id);
+	void RemoveMonster(INT id);
+	void RemoveArrow(INT id);
 
 protected:
 	ComPtr<ID3D12PipelineState>				m_pipelineState;
@@ -47,6 +52,7 @@ protected:
 
 	unordered_map<INT, shared_ptr<Player>>	m_multiPlayers;
 	unordered_map<INT, shared_ptr<Monster>>	m_monsters;
+	unordered_map<INT, shared_ptr<Arrow>>	m_arrows;
 };
 
 struct InstancingData

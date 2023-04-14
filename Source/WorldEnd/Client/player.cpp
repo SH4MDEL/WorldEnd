@@ -25,7 +25,7 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 			ChangeAnimation(PlayerAnimation::ULTIMATE);
 
 			XMFLOAT3 pos = Vector3::Add(Vector3::Mul(m_front, 0.8f), GetPosition());
-			CreateAttackPacket(ActionType::ULTIMATE, CollisionType::MULTIPLE_TIMES);
+			CreateAttackPacket(ActionType::ULTIMATE);
 
 			SendPacket();
 		}
@@ -143,7 +143,7 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 
 
 			XMFLOAT3 pos = Vector3::Add(Vector3::Mul(m_front, 0.8f), GetPosition());
-			CreateAttackPacket(ActionType::SKILL, CollisionType::MULTIPLE_TIMES);
+			CreateAttackPacket(ActionType::SKILL);
 
 			SendPacket();
 		}
@@ -168,12 +168,16 @@ void Player::OnProcessingMouseMessage(UINT message, LPARAM lParam)
 
 	ChangeAnimation(ObjectAnimation::ATTACK);
 
-	if (PlayerType::WARRIOR == m_type) {
-		CreateAttackPacket(ActionType::NORMAL_ATTACK, CollisionType::MULTIPLE_TIMES);
+	switch (m_type) {
+	case PlayerType::WARRIOR:
+		CreateAttackPacket(ActionType::NORMAL_ATTACK);
+		break;
+
+	case PlayerType::ARCHER:
+		CreateShootPacket(ActionType::NORMAL_ATTACK);
+		break;
 	}
-	else if (PlayerType::ARCHER == m_type) {
-		CreateAttackPacket(ActionType::NORMAL_ATTACK, CollisionType::MULTIPLE_TIMES);
-	}
+	
 	SendPacket();
 }
 
@@ -420,17 +424,29 @@ void Player::CreateCooltimePacket(ActionType type)
 #endif
 }
 
-void Player::CreateAttackPacket(ActionType attackType, CollisionType collisionType)
+void Player::CreateAttackPacket(ActionType attackType)
 {
 #ifdef USE_NETWORK
 	m_cooltimeList[attackType] = true;
 
-	CS_ATTACK_PACKET packet;
+	CS_ATTACK_PACKET packet{};
 	packet.size = sizeof(packet);
 	packet.type = CS_PACKET_ATTACK;
-	packet.collision_type = collisionType;
 	packet.attack_type = attackType;
 	packet.attack_time = chrono::system_clock::now();
+	SetBuffer(&packet, packet.size);
+#endif
+}
+
+void Player::CreateShootPacket(ActionType attackType)
+{
+#ifdef USE_NETWORK
+	m_cooltimeList[attackType] = true;
+
+	CS_SHOOT_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = CS_PACKET_SHOOT;
+	packet.attack_type = attackType;
 	SetBuffer(&packet, packet.size);
 #endif
 }
@@ -473,4 +489,22 @@ void Player::SendPacket()
 	send(g_socket, m_sendBuffer, m_bufSize, 0);
 	m_bufSize = 0;
 #endif
+}
+
+Arrow::Arrow() : m_velocity{ 0.f, 0.f, 0.f }
+{
+}
+
+void Arrow::Update(FLOAT timeElapsed)
+{
+	GameObject::Update(timeElapsed);
+
+	Move(Vector3::Mul(m_velocity, timeElapsed));
+}
+
+void Arrow::Reset()
+{
+	XMStoreFloat4x4(&m_worldMatrix, XMMatrixIdentity());
+	XMStoreFloat4x4(&m_transformMatrix, XMMatrixIdentity());
+	m_velocity = XMFLOAT3(0.f, 0.f, 0.f);
 }
