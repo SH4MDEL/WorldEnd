@@ -13,8 +13,7 @@ GameFramework::GameFramework(UINT width, UINT height) :
 	m_scissorRect{0, 0, (LONG)width, (LONG)height}, 
 	m_rtvDescriptorSize {0}, 
 	m_isGameEnd {false}, 
-	m_sceneIndex{static_cast<int>(SCENETAG::LoadingScene)},
-	m_shadowPass{false}
+	m_sceneIndex{static_cast<int>(SCENETAG::TowerLoadingScene)}
 {
 	m_aspectRatio = (FLOAT)width / (FLOAT)height;
 	m_scenes.resize(static_cast<int>(SCENETAG::Count));
@@ -36,9 +35,12 @@ void GameFramework::OnCreate(HINSTANCE hInstance, HWND hWnd)
 	m_hInstance = hInstance;
 	m_hWnd = hWnd;
 
-	StartPipeline();
-	BuildObjects();
+	CreatePipeline();
 	CreateThread();
+	BuildObjects();
+
+	ChangeScene(SCENETAG::TowerLoadingScene);
+
 }
 
 void GameFramework::OnDestroy()
@@ -65,7 +67,7 @@ void GameFramework::OnProcessingKeyboardMessage() const
 	if (m_scenes[m_sceneIndex]) m_scenes[m_sceneIndex]->OnProcessingKeyboardMessage(Timer::GetInstance().GetDeltaTime());
 }
 
-void GameFramework::StartPipeline()
+void GameFramework::CreatePipeline()
 {
 	UINT dxgiFactoryFlags = 0;
 #if defined(_DEBUG)
@@ -560,21 +562,17 @@ void GameFramework::BuildObjects()
 
 	CreateShaderVariable();
 
-	m_scenes[static_cast<int>(SCENETAG::LoadingScene)] = make_unique<LoadingScene>();
-	m_scenes[static_cast<int>(SCENETAG::TowerScene)] = make_unique<TowerScene>();
-	//m_scenes[static_cast<int>(SCENETAG::LoadingScene)]->BuildObjects(m_device, m_mainCommandList, m_rootSignature);
-	//m_scenes[static_cast<int>(SCENETAG::TowerScene)]->BuildObjects(m_device, m_mainCommandList, m_rootSignature);
-
-	m_scenes[m_sceneIndex]->OnCreate(m_device, m_mainCommandList, m_rootSignature, m_postRootSignature);
+	m_scenes[static_cast<INT>(SCENETAG::GlobalLoadingScene)] = make_unique<GlobalLoadingScene>();
+	m_scenes[static_cast<INT>(SCENETAG::VillageLoadingScene)] = make_unique<VillageLoadingScene>();
+	m_scenes[static_cast<INT>(SCENETAG::LoginScene)] = make_unique<LoginScene>();
+	m_scenes[static_cast<INT>(SCENETAG::TowerLoadingScene)] = make_unique<TowerLoadingScene>();
+	m_scenes[static_cast<INT>(SCENETAG::TowerScene)] = make_unique<TowerScene>();
 
 	m_mainCommandList->Close();
 	ID3D12CommandList* ppCommandList[] = { m_mainCommandList.Get() };
 	m_commandQueue->ExecuteCommandLists(_countof(ppCommandList), ppCommandList);
 
 	WaitForPreviousFrame();
-
-	//for (const auto& scene : m_scenes) scene->ReleaseUploadBuffer();
-	// 멀티쓰레드를 통해 리소스를 로딩하므로 여기서 부르면 안된다. 
 
 	Timer::GetInstance().Tick();
 }
@@ -593,7 +591,25 @@ void GameFramework::ChangeScene(SCENETAG tag)
 
 	m_scenes[m_sceneIndex]->OnDestroy();
 	m_scenes[m_sceneIndex = static_cast<int>(tag)]->OnCreate(m_device, m_mainCommandList, m_rootSignature, m_postRootSignature);
-	m_shadowPass = true;
+
+	m_mainCommandList->Close();
+	ID3D12CommandList* ppCommandList[] = { m_mainCommandList.Get() };
+	m_commandQueue->ExecuteCommandLists(_countof(ppCommandList), ppCommandList);
+
+	WaitForPreviousFrame();
+}
+
+void GameFramework::ChangeScene(SCENETAG tag,
+	unordered_map<string, shared_ptr<Mesh>>&& meshs,
+	unordered_map<string, shared_ptr<Texture>>&& textures,
+	unordered_map<string, shared_ptr<Materials>>&& materials,
+	unordered_map<string, shared_ptr<AnimationSet>>&& animationSets)
+{
+	m_mainCommandList->Reset(m_mainCommandAllocator.Get(), nullptr);
+
+	m_scenes[m_sceneIndex]->OnDestroy();
+	m_scenes[m_sceneIndex = static_cast<int>(tag)]->OnCreate(m_device, m_mainCommandList, m_rootSignature, m_postRootSignature, 
+		move(meshs), move(textures), move(materials), move(animationSets));
 
 	m_mainCommandList->Close();
 	ID3D12CommandList* ppCommandList[] = { m_mainCommandList.Get() };
@@ -700,7 +716,7 @@ void GameFramework::BeginFrame()
 		DX::ThrowIfFailed(m_commandLists[i]->Reset(m_commandAllocators[i].Get(), nullptr));
 	}
 
-	if (m_shadowPass) {
+	if (m_scenes[m_sceneIndex]->GetShadow()) {
 		// Clear the depth stencil buffer in preparation for rendering the shadow map.
 		m_commandLists[COMMANDLIST_PRE]->ClearDepthStencilView(m_scenes[m_sceneIndex]->GetShadow()->GetCpuDsv(),
 			D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.f, 0, 0, nullptr);
@@ -738,7 +754,7 @@ void GameFramework::BeginFrame()
 void GameFramework::MidFrame()
 {
 	// Transition the shadow map from writeable to readable.
-	if (m_shadowPass) {
+	if (m_scenes[m_sceneIndex]->GetShadow()) {
 		m_commandLists[COMMANDLIST_MID]->ResourceBarrier(1,
 			&CD3DX12_RESOURCE_BARRIER::Transition(m_scenes[m_sceneIndex]->GetShadow()->GetShadowMap().Get(),
 				D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_GENERIC_READ));
@@ -755,7 +771,7 @@ void GameFramework::PostFrame()
 
 void GameFramework::EndFrame()
 {
-	if (m_shadowPass) {
+	if (m_scenes[m_sceneIndex]->GetShadow()) {
 		m_commandLists[COMMANDLIST_END]->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_scenes[m_sceneIndex]->GetShadow()->GetShadowMap().Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_DEPTH_WRITE));
 	}
 	m_commandLists[COMMANDLIST_END]->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_frameIndex].Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET));
@@ -774,7 +790,7 @@ void GameFramework::WorkerThread(UINT threadIndex)
 
 		m_shadowCommandLists[threadIndex]->SetGraphicsRootSignature(m_rootSignature.Get());
 
-		if (m_shadowPass) {
+		if (m_scenes[m_sceneIndex]->GetShadow()) {
 			ID3D12DescriptorHeap* ppHeaps[] = { m_scenes[m_sceneIndex]->GetShadow()->GetSrvDiscriptorHeap().Get() };
 			m_shadowCommandLists[threadIndex]->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
 			m_shadowCommandLists[threadIndex]->SetGraphicsRootDescriptorTable((INT)ShaderRegister::ShadowMap, m_scenes[m_sceneIndex]->GetShadow()->GetGpuSrv());
@@ -808,7 +824,7 @@ void GameFramework::WorkerThread(UINT threadIndex)
 		// passes for this frame have been submitted.
 		m_sceneCommandLists[threadIndex]->SetGraphicsRootSignature(m_rootSignature.Get());
 
-		if (m_shadowPass) {
+		if (m_scenes[m_sceneIndex]->GetShadow()) {
 			ID3D12DescriptorHeap* ppHeaps[] = { m_scenes[m_sceneIndex]->GetShadow()->GetSrvDiscriptorHeap().Get() };
 			m_sceneCommandLists[threadIndex]->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
 			m_sceneCommandLists[threadIndex]->SetGraphicsRootDescriptorTable((INT)ShaderRegister::ShadowMap, m_scenes[m_sceneIndex]->GetShadow()->GetGpuSrv());

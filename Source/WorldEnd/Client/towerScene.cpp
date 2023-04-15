@@ -153,8 +153,8 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 
 	// 스테미나 바 생성
 	auto staminaBar = make_shared<GaugeBar>(0.015f);
-	staminaBar->SetMesh(m_meshs["STAMINABAR"]);
-	staminaBar->SetTexture(m_textures["STAMINABAR"]);
+	staminaBar->SetMesh(m_globalMeshs["STAMINABAR"]);
+	staminaBar->SetTexture(m_globalTextures["STAMINABAR"]);
 	staminaBar->SetMaxGauge(m_player->GetMaxStamina());
 	staminaBar->SetGauge(m_player->GetStamina());
 	staminaBar->SetPosition(XMFLOAT3(FAR_POSITION, FAR_POSITION, FAR_POSITION));
@@ -185,8 +185,8 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 
 	// 스카이 박스 생성
 	auto skybox{ make_shared<GameObject>() };
-	skybox->SetMesh(m_meshs["SKYBOX"]);
-	skybox->SetTexture(m_textures["SKYBOX"]);
+	skybox->SetMesh(m_globalMeshs["SKYBOX"]);
+	skybox->SetTexture(m_globalTextures["SKYBOX"]);
 	m_shaders["SKYBOX"]->SetObject(skybox);
 
 	// 파티클 시스템 생성
@@ -216,29 +216,29 @@ void TowerScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 {
 	for (int i = 0; i < m_hpUI.size(); ++i) {
 		m_hpUI[i] = make_shared<HorzGaugeUI>(XMFLOAT2{ -0.75f, 0.75f - i * 0.3f }, XMFLOAT2{ 0.4f, 0.08f }, 0.f);
-		m_hpUI[i]->SetTexture(m_textures["HPBAR"]);
+		m_hpUI[i]->SetTexture(m_globalTextures["HPBAR"]);
 		m_hpUI[i]->SetMaxGauge(100.f);
 		m_hpUI[i]->SetDisable();
 		m_shaders["UI"]->SetUI(m_hpUI[i]);
 	}
 
 	auto skillUI = make_shared<VertGaugeUI>(XMFLOAT2{ -0.60f, -0.80f }, XMFLOAT2{ 0.15f, 0.15f }, 0.f);
-	skillUI->SetTexture(m_textures["WARRIORSKILL"]);
+	skillUI->SetTexture(m_globalTextures["WARRIORSKILL"]);
 	m_shaders["UI"]->SetUI(skillUI);
 	m_player->SetSkillGauge(skillUI);
 	auto ultimateUI = make_shared<VertGaugeUI>(XMFLOAT2{ -0.85f, -0.80f }, XMFLOAT2{ 0.15f, 0.15f }, 0.f);
-	ultimateUI->SetTexture(m_textures["WARRIORULTIMATE"]);
+	ultimateUI->SetTexture(m_globalTextures["WARRIORULTIMATE"]);
 	m_shaders["UI"]->SetUI(ultimateUI);
 	m_player->SetUltimateGauge(ultimateUI);
 
 	m_exitUI = make_shared<BackgroundUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 1.f, 1.f });
 	auto exitUI{ make_shared<StandardUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.4f, 0.5f}) };
-	exitUI->SetTexture(m_textures["FRAMEUI"]);
+	exitUI->SetTexture(m_globalTextures["FRAMEUI"]);
 	auto exitTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.0f}, XMFLOAT2{120.f, 20.f}) };
 	exitTextUI->SetText(L"던전에서 나가시겠습니까?");
 	exitUI->SetChild(exitTextUI);
 	auto exitButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.f, -0.7f}, XMFLOAT2{0.15f, 0.075f}) };
-	exitButtonUI->SetTexture(m_textures["BUTTONUI"]);
+	exitButtonUI->SetTexture(m_globalTextures["BUTTONUI"]);
 	exitButtonUI->SetClickEvent([]() {
 		cout << "종료" << endl;
 		});
@@ -252,12 +252,12 @@ void TowerScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 
 	m_resultUI = make_shared<BackgroundUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 1.f, 1.f });
 	auto resultUI{ make_shared<StandardUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.4f, 0.5f}) };
-	resultUI->SetTexture(m_textures["FRAMEUI"]);
+	resultUI->SetTexture(m_globalTextures["FRAMEUI"]);
 	m_resultTextUI = make_shared<TextUI>(XMFLOAT2{ 0.f, 0.0f }, XMFLOAT2{ 100.f, 20.f });
 	m_resultTextUI->SetText(L"클리어!");
 	resultUI->SetChild(m_resultTextUI);
 	auto resultButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.f, -0.7f}, XMFLOAT2{0.15f, 0.075f}) };
-	resultButtonUI->SetTexture(m_textures["BUTTONUI"]);
+	resultButtonUI->SetTexture(m_globalTextures["BUTTONUI"]);
 	resultButtonUI->SetClickEvent([&]() {
 		m_resultUI->SetDisable();
 		ResetState(State::OutputResult);
@@ -587,7 +587,7 @@ void TowerScene::LoadPlayerFromFile(const shared_ptr<Player>& player)
 	
 	LoadObjectFromFile(filePath, player);
 
-	player->SetAnimationSet(m_animationSets[animationSet]);
+	player->SetAnimationSet(m_globalAnimationSets[animationSet]);
 	player->SetAnimationOnTrack(0, ObjectAnimation::IDLE);
 	player->GetAnimationController()->SetTrackEnable(1, false);
 	player->GetAnimationController()->SetTrackEnable(2, false);
@@ -617,7 +617,7 @@ void TowerScene::LoadMonsterFromFile(const shared_ptr<Monster>& monster)
 
 	LoadObjectFromFile(filePath, monster);
 
-	monster->SetAnimationSet(m_animationSets[animationSet]);
+	monster->SetAnimationSet(m_globalAnimationSets[animationSet]);
 	monster->SetAnimationOnTrack(0, ObjectAnimation::IDLE);
 	monster->GetAnimationController()->SetTrackEnable(1, false);
 	monster->GetAnimationController()->SetTrackEnable(2, false);
@@ -626,8 +626,8 @@ void TowerScene::LoadMonsterFromFile(const shared_ptr<Monster>& monster)
 void TowerScene::SetHpBar(const shared_ptr<AnimationObject>& object)
 {
 	auto hpBar = make_shared<GaugeBar>();
-	hpBar->SetMesh(m_meshs["HPBAR"]);
-	hpBar->SetTexture(m_textures["HPBAR"]);
+	hpBar->SetMesh(m_globalMeshs["HPBAR"]);
+	hpBar->SetTexture(m_globalTextures["HPBAR"]);
 	hpBar->SetMaxGauge(object->GetMaxHp());
 	hpBar->SetGauge(object->GetHp());
 	hpBar->SetPosition(XMFLOAT3{ FAR_POSITION, FAR_POSITION, FAR_POSITION });
@@ -840,7 +840,7 @@ void TowerScene::RecvAddObjectPacket(char* ptr)
 
 	SetHpBar(multiPlayer);
 
-	m_idSet.insert({ player_data.id, m_idSet.size() });
+	m_idSet.insert({ player_data.id, (INT)m_idSet.size() });
 	m_hpUI[m_idSet[player_data.id]]->SetEnable();
 
 	m_shaders["ANIMATION"]->SetMultiPlayer(player_data.id, multiPlayer);

@@ -1,18 +1,18 @@
-ï»¿#include "loadingScene.h"
+#include "villageLoadingScene.h"
 
-LoadingScene::LoadingScene() : m_loadEnd{false}
+VillageLoadingScene::VillageLoadingScene() : m_loadEnd{ false }
 {
 
 }
 
-LoadingScene::~LoadingScene()
+VillageLoadingScene::~VillageLoadingScene()
 {
 
 }
 
-void LoadingScene::OnCreate(const ComPtr<ID3D12Device>& device,
+void VillageLoadingScene::OnCreate(const ComPtr<ID3D12Device>& device,
 	const ComPtr<ID3D12GraphicsCommandList>& commandList,
-	const ComPtr<ID3D12RootSignature>& rootSignature, 
+	const ComPtr<ID3D12RootSignature>& rootSignature,
 	const ComPtr<ID3D12RootSignature>& postRootSignature)
 {
 	m_loadingText = make_shared<LoadingText>(61);
@@ -39,32 +39,26 @@ void LoadingScene::OnCreate(const ComPtr<ID3D12Device>& device,
 	DX::ThrowIfFailed(device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_threadCommandAllocator)));
 	DX::ThrowIfFailed(device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_threadCommandAllocator.Get(), nullptr, IID_PPV_ARGS(&m_threadCommandList)));
 
-	m_loadingThread = thread{ &LoadingScene::BuildObjects, this, device, m_threadCommandList, rootSignature, postRootSignature };
+	m_loadingThread = thread{ &VillageLoadingScene::BuildObjects, this, device, m_threadCommandList, rootSignature, postRootSignature };
 	m_loadingThread.detach();
 }
 
-void LoadingScene::OnDestroy()
+void VillageLoadingScene::OnDestroy()
 {
 	m_loadingText.reset();
 }
 
-void LoadingScene::ReleaseUploadBuffer()
+void VillageLoadingScene::ReleaseUploadBuffer()
 {
-	for (const auto& mesh : m_meshs) mesh.second->ReleaseUploadBuffer();
-	for (const auto& texture : m_textures) texture.second->ReleaseUploadBuffer();
-	for (const auto& material : m_materials) material.second->ReleaseUploadBuffer();
+	for (const auto& mesh : m_globalMeshs) mesh.second->ReleaseUploadBuffer();
+	for (const auto& texture : m_globalTextures) texture.second->ReleaseUploadBuffer();
+	for (const auto& material : m_globalMaterials) material.second->ReleaseUploadBuffer();
 }
 
-void LoadingScene::CreateShaderVariable(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList) {}
-void LoadingScene::UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& commandList) {}
-void LoadingScene::OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime) {}
-void LoadingScene::OnProcessingMouseMessage(UINT message, LPARAM lParam) {}
-void LoadingScene::OnProcessingKeyboardMessage(FLOAT timeElapsed) {}
-
-void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, 
+void VillageLoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist,
 	const ComPtr<ID3D12RootSignature>& rootsignature, const ComPtr<ID3D12RootSignature>& postRootSignature)
 {
-	// í”Œë ˆì´ì–´ ë¡œë”©
+	// ÇÃ·¹ÀÌ¾î ·Îµù
 	auto animationShader{ make_shared<AnimationShader>(device, rootsignature) };
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/WarriorMesh.bin"));
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/ArcherMesh.bin"));
@@ -77,7 +71,7 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 
 	auto objectShader{ make_shared<StaticObjectShader>(device, rootsignature) };
 
-	// ì²´ë ¥ ë°” ë¡œë”©
+	// Ã¼·Â ¹Ù ·Îµù
 	auto hpBarMesh{ make_shared<BillboardMesh>(device, commandlist, XMFLOAT3{ 0.f, 0.f, 0.f }, XMFLOAT2{ 0.75f, 0.15f }) };
 	auto hpBarTexture{ make_shared<Texture>() };
 	hpBarTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/Full_HpBar.dds"), (INT)ShaderRegister::BaseTexture); // BaseTexture
@@ -85,7 +79,7 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	hpBarTexture->CreateSrvDescriptorHeap(device);
 	hpBarTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
 
-	// ìŠ¤í…Œë¯¸ë„ˆ ë°” ë¡œë”©
+	// ½ºÅ×¹Ì³Ê ¹Ù ·Îµù
 	auto staminaBarMesh{ make_shared<BillboardMesh>(device, commandlist, XMFLOAT3{ 0.f, 0.f, 0.f }, XMFLOAT2{ 0.1f, 0.89f }) };
 	auto staminaBarTexture{ make_shared<Texture>() };
 	staminaBarTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/Full_StaminaBar.dds"), (INT)ShaderRegister::BaseTexture); // BaseTexture
@@ -93,15 +87,15 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	staminaBarTexture->CreateSrvDescriptorHeap(device);
 	staminaBarTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
 
-	// ìŠ¤ì¹´ì´ë°•ìŠ¤ ë¡œë”©
+	// ½ºÄ«ÀÌ¹Ú½º ·Îµù
 	auto skyboxShader{ make_shared<SkyboxShader>(device, rootsignature) };
-	auto skyboxMesh{ make_shared <SkyboxMesh>(device, commandlist, 20.0f, 20.0f, 20.0f)};
+	auto skyboxMesh{ make_shared <SkyboxMesh>(device, commandlist, 20.0f, 20.0f, 20.0f) };
 	auto skyboxTexture{ make_shared<Texture>() };
 	skyboxTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/SkyBox.dds"), (INT)ShaderRegister::SkyboxTexture);	// Skybox
 	skyboxTexture->CreateSrvDescriptorHeap(device);
 	skyboxTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURECUBE);
 
-	// UI ë¡œë”©
+	// UI ·Îµù
 	auto uiShader{ make_shared<UIShader>(device, rootsignature) };
 	auto postUiShader{ make_shared<UIShader>(device, rootsignature) };
 	auto frameUITexture{ make_shared<Texture>() };
@@ -128,36 +122,36 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	warriorUltimateTexture->CreateSrvDescriptorHeap(device);
 	warriorUltimateTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
 
-	// ê²Œì´ì§€ ì…°ì´ë” ë¡œë”©
+	// °ÔÀÌÁö ¼ÎÀÌ´õ ·Îµù
 	auto horzGaugeShader{ make_shared<HorzGaugeShader>(device, rootsignature) };
 	auto vertGaugeShader{ make_shared<VertGaugeShader>(device, rootsignature) };
 
-	// ê·¸ë¦¼ì ì…°ì´ë” ë¡œë”©
+	// ±×¸²ÀÚ ¼ÎÀÌ´õ ·Îµù
 	auto shadowShader{ make_shared<ShadowShader>(device, rootsignature) };
 	auto animationShadowShader{ make_shared<AnimationShadowShader>(device, rootsignature) };
 
-	// íŒŒí‹°í´ ì…°ì´ë” ë¡œë”©
+	// ÆÄÆ¼Å¬ ¼ÎÀÌ´õ ·Îµù
 	auto emitterParticleShader{ make_shared<EmitterParticleShader>(device, rootsignature) };
 	auto pumperParticleShader{ make_shared<PumperParticleShader>(device, rootsignature) };
 
 
-	// ë¸”ëŸ¬ í•„í„° ì…°ì´ë” ë¡œë”©
+	// ºí·¯ ÇÊÅÍ ¼ÎÀÌ´õ ·Îµù
 	auto horzBlurShader{ make_shared<HorzBlurShader>(device, postRootSignature) };
 	auto vertBlurShader{ make_shared<VertBlurShader>(device, postRootSignature) };
 
-	// í˜ì´ë“œ ì…°ì´ë” ë¡œë”©
+	// ÆäÀÌµå ¼ÎÀÌ´õ ·Îµù
 	auto fadeShader{ make_shared<FadeShader>(device, postRootSignature) };
 
-	// ì†Œë²¨ í•„í„° ì…°ì´ë” ë¡œë”©
+	// ¼Òº§ ÇÊÅÍ ¼ÎÀÌ´õ ·Îµù
 	auto sobelShader{ make_shared<SobelShader>(device, postRootSignature) };
 	auto compositeShader{ make_shared<CompositeShader>(device, postRootSignature) };
 
-	// ëª¬ìŠ¤í„° ë¡œë”©
+	// ¸ó½ºÅÍ ·Îµù
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/Undead_WarriorMesh.bin"));
 	LoadAnimationSetFromFile(TEXT("./Resource/Animation/Undead_WarriorAnimation.bin"), "Undead_WarriorAnimation");
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/Undead_WarriorTexture.bin"));
 
-	// íƒ€ì›Œ ì”¬ ë©”ì‰¬ ë¡œë”©
+	// Å¸¿ö ¾À ¸Ş½¬ ·Îµù
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/AD_ArchDeco_A_01Mesh.bin"));
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/AD_ArchPillar_A_01Mesh.bin"));
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/AD_ArchPillar_B_01Mesh.bin"));
@@ -182,7 +176,7 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/AD_Wall_C_01Mesh.bin"));
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/AD_Wall_D_01Mesh.bin"));
 
-	//íƒ€ì›Œ ì”¬ í…ìŠ¤ì²˜ ë¡œë”©
+	//Å¸¿ö ¾À ÅØ½ºÃ³ ·Îµù
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/AD_ArchDeco_A_01Texture.bin"));
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/AD_ArchPillar_A_01Texture.bin"));
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/AD_ArchPillar_B_01Texture.bin"));
@@ -207,33 +201,33 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/AD_Wall_C_01Texture.bin"));
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/AD_Wall_D_01Texture.bin"));
 
-	// ë£¬ ê²Œì´íŠ¸ ë©”ì‰¬ ë¡œë”©
+	// ·é °ÔÀÌÆ® ¸Ş½¬ ·Îµù
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/AD_RuneGate_A_01Mesh.bin"));
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/AD_RuneGate_B_01Mesh.bin"));
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/AD_RuneGateGround_B_01Mesh.bin"));
 
-	// ë£¬ ê²Œì´íŠ¸ í…ìŠ¤ì²˜ ë¡œë”©
+	// ·é °ÔÀÌÆ® ÅØ½ºÃ³ ·Îµù
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/AD_RuneGate_A_01Texture.bin"));
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/AD_RuneGate_B_01Texture.bin"));
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/AD_RuneGateGround_B_01Texture.bin"));
 
-	// ë©”ì‰¬ ì„¤ì •
-	m_meshs.insert({ "SKYBOX", skyboxMesh });
-	m_meshs.insert({ "HPBAR", hpBarMesh });
-	m_meshs.insert({ "STAMINABAR", staminaBarMesh });
+	// ¸Ş½¬ ¼³Á¤
+	m_globalMeshs.insert({ "SKYBOX", skyboxMesh });
+	m_globalMeshs.insert({ "HPBAR", hpBarMesh });
+	m_globalMeshs.insert({ "STAMINABAR", staminaBarMesh });
 
-	// í…ìŠ¤ì²˜ ì„¤ì •
-	m_textures.insert({ "SKYBOX", skyboxTexture });
-	m_textures.insert({ "HPBAR", hpBarTexture });
-	m_textures.insert({ "STAMINABAR", staminaBarTexture });
-	// UI ê´€ë ¨ í…ìŠ¤ì²˜
-	m_textures.insert({ "FRAMEUI", frameUITexture });
-	m_textures.insert({ "CANCELUI", cancelUITexture });
-	m_textures.insert({ "BUTTONUI", buttonUITexture });
-	m_textures.insert({ "WARRIORSKILL", warriorSkillTexture });
-	m_textures.insert({ "WARRIORULTIMATE", warriorUltimateTexture });
+	// ÅØ½ºÃ³ ¼³Á¤
+	m_globalTextures.insert({ "SKYBOX", skyboxTexture });
+	m_globalTextures.insert({ "HPBAR", hpBarTexture });
+	m_globalTextures.insert({ "STAMINABAR", staminaBarTexture });
+	// UI °ü·Ã ÅØ½ºÃ³
+	m_globalTextures.insert({ "FRAMEUI", frameUITexture });
+	m_globalTextures.insert({ "CANCELUI", cancelUITexture });
+	m_globalTextures.insert({ "BUTTONUI", buttonUITexture });
+	m_globalTextures.insert({ "WARRIORSKILL", warriorSkillTexture });
+	m_globalTextures.insert({ "WARRIORULTIMATE", warriorUltimateTexture });
 
-	// ì…°ì´ë” ì„¤ì •
+	// ¼ÎÀÌ´õ ¼³Á¤
 	m_shaders.insert({ "ANIMATION", animationShader });
 	m_shaders.insert({ "OBJECT", objectShader });
 	m_shaders.insert({ "SKYBOX", skyboxShader });
@@ -259,7 +253,7 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	m_loadEnd = true;
 }
 
-void LoadingScene::Update(FLOAT timeElapsed) 
+void VillageLoadingScene::Update(FLOAT timeElapsed)
 {
 	m_loadingText->Update(timeElapsed);
 	if (m_loadEnd) {
@@ -268,16 +262,12 @@ void LoadingScene::Update(FLOAT timeElapsed)
 	}
 }
 
-void LoadingScene::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) const {}
-void LoadingScene::PreProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) {}
-void LoadingScene::PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList, const ComPtr<ID3D12Resource>& renderTarget, UINT threadIndex) {}
-
-void LoadingScene::RenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext)
+void VillageLoadingScene::RenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext)
 {
 	m_loadingText->Render(deviceContext);
 }
 
-void LoadingScene::LoadMeshFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, wstring fileName)
+void VillageLoadingScene::LoadMeshFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, wstring fileName)
 {
 	ifstream in{ fileName, std::ios::binary };
 	if (!in) return;
@@ -297,14 +287,14 @@ void LoadingScene::LoadMeshFromFile(const ComPtr<ID3D12Device>& device, const Co
 			animationMesh->LoadAnimationMesh(device, commandList, in);
 			animationMesh->SetType(AnimationSetting::ANIMATION_MESH);
 
-			m_meshs.insert({ animationMesh->GetAnimationMeshName(), animationMesh });
+			m_globalMeshs.insert({ animationMesh->GetAnimationMeshName(), animationMesh });
 		}
 		else if (strToken == "<Mesh>:") {
 			auto mesh = make_shared<AnimationMesh>();
 			mesh->LoadAnimationMesh(device, commandList, in);
 			mesh->SetType(AnimationSetting::STANDARD_MESH);
 
-			m_meshs.insert({ mesh->GetAnimationMeshName(), mesh });
+			m_globalMeshs.insert({ mesh->GetAnimationMeshName(), mesh });
 		}
 		else if (strToken == "</Hierarchy>") {
 			break;
@@ -314,7 +304,7 @@ void LoadingScene::LoadMeshFromFile(const ComPtr<ID3D12Device>& device, const Co
 	m_loadingText->LoadingFile();
 }
 
-void LoadingScene::LoadMaterialFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, wstring fileName)
+void VillageLoadingScene::LoadMaterialFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, wstring fileName)
 {
 	ifstream in{ fileName, std::ios::binary };
 	if (!in) return;
@@ -341,9 +331,9 @@ void LoadingScene::LoadMaterialFromFile(const ComPtr<ID3D12Device>& device, cons
 			in.read((&materials->m_materialName[0]), sizeof(char) * strLength);
 
 			materials->LoadMaterials(device, commandList, in);
-			
-			m_materials.insert({ materials->m_materialName, materials });
-			m_materials.insert({ "@" + materials->m_materialName, materials});
+
+			m_globalMaterials.insert({ materials->m_materialName, materials });
+			m_globalMaterials.insert({ "@" + materials->m_materialName, materials });
 		}
 		else if (strToken == "</Hierarchy>") {
 			break;
@@ -353,7 +343,7 @@ void LoadingScene::LoadMaterialFromFile(const ComPtr<ID3D12Device>& device, cons
 	m_loadingText->LoadingFile();
 }
 
-void LoadingScene::LoadAnimationSetFromFile(wstring fileName, const string& animationSetName)
+void VillageLoadingScene::LoadAnimationSetFromFile(wstring fileName, const string& animationSetName)
 {
 	ifstream in{ fileName, std::ios::binary };
 	if (!in) return;
@@ -368,11 +358,11 @@ void LoadingScene::LoadAnimationSetFromFile(wstring fileName, const string& anim
 
 	INT dummy{};
 	in.read((char*)(&dummy), sizeof(INT));
-	
+
 	auto animationSet = make_shared<AnimationSet>();
 	animationSet->LoadAnimationSet(in, animationSetName);
 
-	m_animationSets.insert({ animationSetName, animationSet });
+	m_globalAnimationSets.insert({ animationSetName, animationSet });
 
 	m_loadingText->LoadingFile();
 }

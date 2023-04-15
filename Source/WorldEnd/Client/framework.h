@@ -4,7 +4,10 @@
 #include "camera.h"
 #include "object.h"
 #include "scene.h"
-#include "loadingScene.h"
+#include "globalLoadingScene.h"
+#include "villageLoadingScene.h"
+#include "loginScene.h"
+#include "towerLoadingScene.h"
 #include "towerScene.h"
 
 struct FrameworkInfo
@@ -24,7 +27,7 @@ public:
 	void OnProcessingMouseMessage() const;
 	void OnProcessingMouseMessage(UINT message, LPARAM lParam) const;
 	void OnProcessingKeyboardMessage() const;
-	void StartPipeline();
+	void CreatePipeline();
 	
 	// 1. 디바이스 생성
 	void CreateDevice();
@@ -72,6 +75,11 @@ public:
 	void BuildObjects();
 	void CreateThread();
 	void ChangeScene(SCENETAG tag);
+	void ChangeScene(SCENETAG tag, 
+		unordered_map<string, shared_ptr<Mesh>>&& meshs,
+		unordered_map<string, shared_ptr<Texture>>&& textures,
+		unordered_map<string, shared_ptr<Materials>>&& materials,	
+		unordered_map<string, shared_ptr<AnimationSet>>&& animationSets);
 
 	void FrameAdvance();
 	void Update(FLOAT timeElapsed);
@@ -164,6 +172,5 @@ private:
 
 	vector<unique_ptr<Scene>>									m_scenes;
 	INT															m_sceneIndex;
-	BOOL														m_shadowPass;
 };
 

@@ -102,7 +102,7 @@
     <ClInclude Include="player.h">
       <Filter>헤더 파일\Object</Filter>
     </ClInclude>
-    <ClInclude Include="loadingScene.h">
+    <ClInclude Include="towerLoadingScene.h">
       <Filter>헤더 파일\Scene</Filter>
     </ClInclude>
     <ClInclude Include="shader.h">
@@ -159,6 +159,15 @@
     <ClInclude Include="fadeFilter.h">
       <Filter>헤더 파일\Filter</Filter>
     </ClInclude>
+    <ClInclude Include="villageLoadingScene.h">
+      <Filter>헤더 파일\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="loginScene.h">
+      <Filter>헤더 파일\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="globalLoadingScene.h">
+      <Filter>헤더 파일\Scene</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Client.cpp">
@@ -182,7 +191,7 @@
     <ClCompile Include="player.cpp">
       <Filter>소스 파일\Object</Filter>
     </ClCompile>
-    <ClCompile Include="loadingScene.cpp">
+    <ClCompile Include="towerLoadingScene.cpp">
       <Filter>소스 파일\Scene</Filter>
     </ClCompile>
     <ClCompile Include="camera.cpp">
@@ -241,6 +250,15 @@
     </ClCompile>
     <ClCompile Include="fadeFilter.cpp">
       <Filter>소스 파일\Filter</Filter>
+    </ClCompile>
+    <ClCompile Include="villageLoadingScene.cpp">
+      <Filter>소스 파일\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="loginScene.cpp">
+      <Filter>소스 파일\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="globalLoadingScene.cpp">
+      <Filter>소스 파일\Scene</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -214,7 +214,7 @@ void GameObject::LoadObject(ifstream& in)
 			string meshName(strLength, '\0');
 			in.read(&meshName[0], sizeof(CHAR) * strLength);
 
-			SetMesh(Scene::m_meshs[meshName]);
+			SetMesh(Scene::m_globalMeshs[meshName]);
 			SetBoundingBox(m_mesh->GetBoundingBox());
 		}
 		else if (strToken == "<SkinningInfo>:") {		// 스킨메쉬 정보
@@ -224,7 +224,7 @@ void GameObject::LoadObject(ifstream& in)
 
 			// 스킨메쉬는 메쉬정보까지 담고 있으므로
 			// 메쉬까지 읽기만 하고 넘기도록 함
-			SetMesh(Scene::m_meshs[meshName]);
+			SetMesh(Scene::m_globalMeshs[meshName]);
 			SetBoundingBox(m_mesh->GetBoundingBox());
 
 			// </SkinningInfo>		읽고 넘김
@@ -242,7 +242,7 @@ void GameObject::LoadObject(ifstream& in)
 			in.read((char*)(&strLength), sizeof(BYTE));
 			string materialName(strLength, '\0');
 			in.read(&materialName[0], sizeof(CHAR) * strLength);
-			SetMaterials(Scene::m_materials[materialName]);
+			SetMaterials(Scene::m_globalMaterials[materialName]);
 		}
 		else if (strToken == "<Children>:") {
 			INT childNum = 0;
@@ -300,9 +300,9 @@ void GameObject::LoadObject(ifstream& in, const shared_ptr<GameObject>& rootObje
 			string meshName(strLength, '\0');
 			in.read(&meshName[0], sizeof(CHAR) * strLength);
 
-			Scene::m_meshs[meshName]->CreateShaderVariables(rootObject.get());
+			Scene::m_globalMeshs[meshName]->CreateShaderVariables(rootObject.get());
 
-			SetMesh(Scene::m_meshs[meshName]);
+			SetMesh(Scene::m_globalMeshs[meshName]);
 			SetBoundingBox(m_mesh->GetBoundingBox());
 		}
 		else if (strToken == "<SkinningInfo>:") {		// 스킨메쉬 정보
@@ -310,11 +310,11 @@ void GameObject::LoadObject(ifstream& in, const shared_ptr<GameObject>& rootObje
 			string meshName(strLength, '\0');
 			in.read(&meshName[0], sizeof(CHAR) * strLength);
 
-			Scene::m_meshs[meshName]->CreateShaderVariables(rootObject.get());
+			Scene::m_globalMeshs[meshName]->CreateShaderVariables(rootObject.get());
 
 			// 스킨메쉬는 메쉬정보까지 담고 있으므로
 			// 메쉬까지 읽기만 하고 넘기도록 함
-			SetMesh(Scene::m_meshs[meshName]);
+			SetMesh(Scene::m_globalMeshs[meshName]);
 			SetBoundingBox(m_mesh->GetBoundingBox());
 
 			// </SkinningInfo>		읽고 넘김
@@ -332,7 +332,7 @@ void GameObject::LoadObject(ifstream& in, const shared_ptr<GameObject>& rootObje
 			in.read((char*)(&strLength), sizeof(BYTE));
 			string materialName(strLength, '\0');
 			in.read(&materialName[0], sizeof(CHAR) * strLength);
-			SetMaterials(Scene::m_materials[materialName]);
+			SetMaterials(Scene::m_globalMaterials[materialName]);
 		}
 		else if (strToken == "<Children>:") {
 			INT childNum = 0;

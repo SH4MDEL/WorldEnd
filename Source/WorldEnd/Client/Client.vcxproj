@@ -152,8 +152,10 @@
     <ClInclude Include="DDSTextureLoader12.h" />
     <ClInclude Include="fadeFilter.h" />
     <ClInclude Include="framework.h" />
+    <ClInclude Include="globalLoadingScene.h" />
     <ClInclude Include="light.h" />
-    <ClInclude Include="loadingScene.h" />
+    <ClInclude Include="loginScene.h" />
+    <ClInclude Include="towerLoadingScene.h" />
     <ClInclude Include="monster.h" />
     <ClInclude Include="particle.h" />
     <ClInclude Include="particleMesh.h" />
@@ -175,6 +177,7 @@
     <ClInclude Include="texture.h" />
     <ClInclude Include="timer.h" />
     <ClInclude Include="ui.h" />
+    <ClInclude Include="villageLoadingScene.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="blurFilter.cpp" />
@@ -183,8 +186,10 @@
     <ClCompile Include="DDSTextureLoader12.cpp" />
     <ClCompile Include="fadeFilter.cpp" />
     <ClCompile Include="framework.cpp" />
+    <ClCompile Include="globalLoadingScene.cpp" />
     <ClCompile Include="light.cpp" />
-    <ClCompile Include="loadingScene.cpp" />
+    <ClCompile Include="loginScene.cpp" />
+    <ClCompile Include="towerLoadingScene.cpp" />
     <ClCompile Include="monster.cpp" />
     <ClCompile Include="particle.cpp" />
     <ClCompile Include="particleMesh.cpp" />
@@ -204,6 +209,7 @@
     <ClCompile Include="texture.cpp" />
     <ClCompile Include="timer.cpp" />
     <ClCompile Include="ui.cpp" />
+    <ClCompile Include="villageLoadingScene.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Client.rc" />

@@ -24,7 +24,14 @@ struct SceneInfo
 	XMFLOAT4X4			NDCspace;	// 카메라 위치
 };
 
-enum class SCENETAG : INT;
+enum class SCENETAG : INT {
+	GlobalLoadingScene,
+	VillageLoadingScene,
+	LoginScene,
+	TowerLoadingScene,
+	TowerScene,
+	Count
+};
 
 class Scene abstract
 {
@@ -36,6 +43,16 @@ public:
 		const ComPtr<ID3D12GraphicsCommandList>& commandList, 
 		const ComPtr<ID3D12RootSignature>& rootSignature, 
 		const ComPtr<ID3D12RootSignature>& postRootSignature) = 0;			// 해당 씬으로 변경될 때 호출
+
+	virtual void OnCreate(const ComPtr<ID3D12Device>& device,
+		const ComPtr<ID3D12GraphicsCommandList>& commandList,
+		const ComPtr<ID3D12RootSignature>& rootSignature,
+		const ComPtr<ID3D12RootSignature>& postRootSignature, 
+		unordered_map<string, shared_ptr<Mesh>>&& meshs,
+		unordered_map<string, shared_ptr<Texture>>&& textures,
+		unordered_map<string, shared_ptr<Materials>>&& materials,
+		unordered_map<string, shared_ptr<AnimationSet>>&& animationSets);
+
 	virtual void OnDestroy() = 0;			// 해당 씬에서 탈출할 때 호출
 	virtual void ReleaseUploadBuffer() = 0;
 
@@ -57,18 +74,36 @@ public:
 	
 	virtual shared_ptr<Shadow> GetShadow() = 0;
 
-	static unordered_map<string, shared_ptr<Mesh>>			m_meshs;
-	static unordered_map<string, shared_ptr<Texture>>		m_textures;
-	static unordered_map<string, shared_ptr<Materials>>		m_materials;
+	static unordered_map<string, shared_ptr<Mesh>>			m_globalMeshs;
+	static unordered_map<string, shared_ptr<Texture>>		m_globalTextures;
+	static unordered_map<string, shared_ptr<Materials>>		m_globalMaterials;
 	static unordered_map<string, shared_ptr<Shader>>		m_shaders;
-	static unordered_map<string, shared_ptr<AnimationSet>>	m_animationSets;
-
+	static unordered_map<string, shared_ptr<AnimationSet>>	m_globalAnimationSets;
 
 protected:
+	unordered_map<string, shared_ptr<Mesh>>					m_meshs;
+	unordered_map<string, shared_ptr<Texture>>				m_textures;
+	unordered_map<string, shared_ptr<Materials>>			m_materials;
+	unordered_map<string, shared_ptr<AnimationSet>>			m_animationSets;
 };
 
-enum class SCENETAG {
-	LoadingScene,
-	TowerScene,
-	Count
+class LoadingScene abstract : public Scene
+{
+public:
+	LoadingScene() = default;
+	virtual ~LoadingScene() = default;
+
+	virtual void CreateShaderVariable(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList) override;
+	virtual void UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& commandList) override;
+	virtual void OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime) override;
+	virtual void OnProcessingMouseMessage(UINT message, LPARAM lParam) override;
+	virtual void OnProcessingKeyboardMessage(FLOAT timeElapsed) override;
+
+	virtual void Update(FLOAT timeElapsed) override;
+	virtual void PreProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) override;
+	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) const override;
+	virtual void PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList, const ComPtr<ID3D12Resource>& renderTarget, UINT threadIndex) override;
+	virtual void RenderText(const ComPtr< ID2D1DeviceContext2>& deviceContext) override;
+
+	virtual shared_ptr<Shadow> GetShadow() override;
 };
