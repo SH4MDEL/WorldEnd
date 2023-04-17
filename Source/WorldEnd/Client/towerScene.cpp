@@ -654,6 +654,35 @@ void TowerScene::RotateToTarget(const shared_ptr<Player>& player, INT targetId)
 	player->Rotate(0.f, 0.f, angle);
 }
 
+void TowerScene::RotateToTarget(const shared_ptr<Player>& player)
+{
+	INT target = SetTarget(player);
+	RotateToTarget(player, target);
+}
+
+INT TowerScene::SetTarget(const shared_ptr<Player>& player)
+{
+	XMFLOAT3 sub{};
+	float length{}, min_length{ std::numeric_limits<float>::max() };
+	XMFLOAT3 pos{ player->GetPosition() };
+	int target{ -1 };
+	for (const auto& elm : m_monsters) {
+		if (elm.second) {
+			if (elm.second->GetHp() <= std::numeric_limits<float>::epsilon()) continue;
+			// 체력이 0이면(죽었다면) 건너뜀
+
+			sub = Vector3::Sub(pos, elm.second->GetPosition());
+			length = Vector3::Length(sub);
+			if (length < min_length && length < PlayerSetting::AUTO_TARET_RANGE) {
+				min_length = length;
+				target = elm.first;
+			}
+		}
+	}
+
+	return target;
+}
+
 bool TowerScene::CheckState(State sceneState)
 {
 	return m_sceneState & (INT)sceneState;
@@ -1007,7 +1036,23 @@ void TowerScene::RecvChangeAnimation(char* ptr)
 {
 	SC_CHANGE_ANIMATION_PACKET* packet = reinterpret_cast<SC_CHANGE_ANIMATION_PACKET*>(ptr);
 
-	m_multiPlayers[packet->id]->ChangeAnimation(packet->animation, false);
+	if (packet->id == m_player->GetId()) {
+		if (PlayerType::ARCHER == m_player->GetType() &&
+			packet->animation == ObjectAnimation::ATTACK )
+		{
+			RotateToTarget(m_player);
+		}
+	}
+	else {
+		auto& player = m_multiPlayers[packet->id];
+		player->ChangeAnimation(packet->animation, false);
+
+		if (PlayerType::ARCHER == player->GetType() &&
+			packet->animation == ObjectAnimation::ATTACK)
+		{
+			RotateToTarget(player);
+		}
+	}
 }
 
 void TowerScene::RecvChangeStamina(char* ptr)
@@ -1101,12 +1146,12 @@ void TowerScene::RecvPlayerShoot(char* ptr)
 	SC_PLAYER_SHOOT_PACKET* packet = reinterpret_cast<SC_PLAYER_SHOOT_PACKET*>(ptr);
 
 	if (packet->id == m_player->GetId()) {
-		RotateToTarget(m_player, packet->target_id);
+		//RotateToTarget(m_player, packet->target_id);
 		SetArrow(m_player, packet->arrow_id);
 	}
 	else {
 		auto& player = m_multiPlayers[packet->id];
-		RotateToTarget(player, packet->target_id);
+		//RotateToTarget(player, packet->target_id);
 		SetArrow(player, packet->arrow_id);
 	}
 }

@@ -60,7 +60,7 @@ constexpr char SC_PACKET_REMOVE_ARROW = 21;
 
 enum class PlayerType : char { WARRIOR, ARCHER, COUNT };
 enum class MonsterType : char { WARRIOR, ARCHER, WIZARD, COUNT };
-enum class EnvironmentType : char { RAIN, FOG, GAS, TRAP };
+enum class EnvironmentType : char { RAIN, FOG, GAS, TRAP, COUNT };
 
 enum ActionType : char {
 	NORMAL_ATTACK, SKILL, ULTIMATE, DASH, ROLL, COUNT
@@ -126,9 +126,9 @@ namespace PlayerSetting
 	constexpr auto DASH_COOLTIME = 1200ms;
 
 	constexpr std::chrono::milliseconds
-		ATTACK_COLLISION_TIME[static_cast<int>(PlayerType::COUNT)]{ 210ms, 0ms };
+		ATTACK_COLLISION_TIME[static_cast<int>(PlayerType::COUNT)]{ 210ms, 360ms };
 	constexpr std::chrono::milliseconds
-		SKILL_COLLISION_TIME[static_cast<int>(PlayerType::COUNT)]{ 340ms, 0ms };
+		SKILL_COLLISION_TIME[static_cast<int>(PlayerType::COUNT)]{ 340ms, 560ms };
 	constexpr std::chrono::milliseconds
 		ULTIMATE_COLLISION_TIME[static_cast<int>(PlayerType::COUNT)]{ 930ms, 0ms };
 	constexpr std::chrono::milliseconds
@@ -188,6 +188,7 @@ namespace RoomSetting
 {
 	using namespace std::literals;
 
+	constexpr auto RESET_TIME = 5s;
 	constexpr float DEFAULT_HEIGHT = 0.f;
 	constexpr unsigned char BOSS_FLOOR = 5;
 	constexpr int MAX_ARROWS = 30;
@@ -292,6 +293,7 @@ struct CS_SHOOT_PACKET
 	UCHAR size;
 	UCHAR type;
 	ActionType attack_type;
+	std::chrono::system_clock::time_point attack_time;
 };
 
 struct CS_CHANGE_ANIMATION_PACKET

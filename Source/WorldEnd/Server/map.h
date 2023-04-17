@@ -4,7 +4,7 @@
 #include "client.h"
 #include "monster.h"
 
-enum class GameRoomState { EMPTY, ACCEPT, INGAME, CLEAR };
+enum class GameRoomState { EMPTY, ACCEPT, INGAME, CLEAR, COUNT };
 
 class GameRoom : public std::enable_shared_from_this<GameRoom>
 {
@@ -34,8 +34,8 @@ public:
 	void SendMonsterData();
 	void SendAddMonster(INT player_id);
 
-	void RemovePlayer(INT player_id);
-	void RemoveMonster(INT room_num, INT monster_id);
+	void RemovePlayer(INT player_id, INT room_num);
+	void RemoveMonster(INT monster_id);
 	void EventCollisionCheck(INT player_id);
 
 	void InitGameRoom(INT room_num);
@@ -86,10 +86,15 @@ public:
 	void Update(float elapsed_time);
 
 	void SetPlayer(INT room_num, INT player_id);
+	bool IsValidRoomNum(INT room_num);
 
 	std::vector<std::shared_ptr<GameObject>>& GetStructures() { return m_structures; }
-	std::array<std::shared_ptr<GameRoom>, MAX_GAME_ROOM_NUM>& GetGameRooms() { return m_game_rooms; }
-	std::shared_ptr<GameRoom> GetGameRoom(INT room_num) { return m_game_rooms[room_num]->GetGameRoom(); }
+	std::shared_ptr<GameRoom> GetGameRoom(INT room_num);
+	/*std::chrono::system_clock::time_point GetStartTime(INT room_num);
+	EnvironmentType GetEnvironment(INT room_num);
+	GameRoomState GetRoomState(INT room_num);
+	INT GetArrowId(INT room_num);*/
+
 
 	void InitGameRoom(INT room_num);
 	void LoadMap();
@@ -97,8 +102,8 @@ public:
 	void WarpNextFloor(INT room_num);
 
 	bool EnterGameRoom(const std::shared_ptr<Party>& party);
-	void RemovePlayer(INT room_num, INT player_id);
-	void RemoveMonster(INT room_num, INT monster_id);
+	void RemovePlayer(INT player_id);
+	void RemoveMonster(INT monster_id);
 	void EventCollisionCheck(INT room_num, INT player_id);
 
 	void SendMonsterData();

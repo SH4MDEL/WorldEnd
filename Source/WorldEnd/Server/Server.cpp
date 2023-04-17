@@ -150,14 +150,11 @@ void Server::WorkerThread()
 		ExpOver* exp_over = reinterpret_cast<ExpOver*>(over);
 		
 		if (FALSE == ret) {
-			if (exp_over->_comp_type == OP_ACCEPT) 
-				std::cout << "Accept Error";
-			else {
-				std::cout << "GQCS Error on client[" << static_cast<INT>(key) << "]\n";
-				//Disconnect(static_cast<int>(key));
-				if (exp_over->_comp_type == OP_SEND) delete exp_over;
-				continue;
-			}
+			std::cout << "GQCS Error on client[" << static_cast<INT>(key) << "]\n";
+			Disconnect(static_cast<int>(key));
+			if (OP_SEND == exp_over->_comp_type)
+				delete exp_over;
+			continue;
 		}
 
 		switch (exp_over->_comp_type) {
@@ -173,10 +170,6 @@ void Server::WorkerThread()
 				auto cl = dynamic_pointer_cast<Client>(m_clients[new_id]);
 				cl->SetId(new_id);
 				cl->SetSocket(c_socket);
-
-				// client 클래스의 생성자에서 remain_size, EXP_OVER를 초기화함
-				// 이후 Disconnect에서 나간 클라이언트를 다시 초기값으로 해주면
-				// 여기서 다시 할 필요는 없을 것
 
 				CreateIoCompletionPort(reinterpret_cast<HANDLE>(c_socket), m_handle_iocp, new_id, 0);
 				cl->DoRecv();
@@ -195,7 +188,7 @@ void Server::WorkerThread()
 			int id = static_cast<int>(key);
 
 			if (num_bytes == 0) {
-				Disconnect(static_cast<int>(key));
+				Disconnect(id);
 				continue;
 			}
 			auto cl = dynamic_pointer_cast<Client>(m_clients[id]);
@@ -251,9 +244,13 @@ void Server::WorkerThread()
 			packet.type = SC_PACKET_REMOVE_MONSTER;
 			packet.id = monster_id;
 
-			m_game_room_manager->RemoveMonster(room_num, monster_id);
-
+			m_game_room_manager->RemoveMonster(monster_id);
 			auto game_room = m_game_room_manager->GetGameRoom(room_num);
+			if (!game_room) {
+				delete exp_over;
+				break;
+			}
+
 			auto& ids = game_room->GetPlayerIds();
 			for (int id : ids) {
 				if (-1 == id) continue;
@@ -266,7 +263,11 @@ void Server::WorkerThread()
 		case OP_FLOOR_CLEAR: {
 			int room_num = static_cast<int>(key);
 			auto game_room = m_game_room_manager->GetGameRoom(room_num);
-			
+			if (!game_room) {
+				delete exp_over;
+				break;
+			}
+
 			auto now = std::chrono::system_clock::now();
 			auto exec = std::chrono::duration_cast<std::chrono::milliseconds>
 				(now - game_room->GetStartTime());
@@ -284,14 +285,10 @@ void Server::WorkerThread()
 				m_clients[id]->DoSend(&packet);
 			}
 
-			// 던전 CLEAR 로 변경
 			{
 				std::lock_guard<std::mutex> l{ game_room->GetStateMutex() };
 				game_room->SetState(GameRoomState::CLEAR);
 			}
-
-			// 포탈 상호작용 시 되어야 할 동작
-			//game_room->InitGameRoom(room_num);
 
 			delete exp_over;
 			break;
@@ -299,7 +296,10 @@ void Server::WorkerThread()
 		case OP_FLOOR_FAIL: {
 			int room_num = static_cast<int>(key);
 			auto game_room = m_game_room_manager->GetGameRoom(room_num);
-
+			if (!game_room) {
+				delete exp_over;
+				break;
+			}
 
 			SC_FAIL_FLOOR_PACKET packet{};
 			packet.size = sizeof(packet);
@@ -335,6 +335,11 @@ void Server::WorkerThread()
 
 			int room_num = client->GetRoomNum();
 			auto game_room = m_game_room_manager->GetGameRoom(room_num);
+			if (!game_room) {
+				delete exp_over;
+				break;
+			}
+
 			auto& monster_ids = game_room->GetMonsterIds();
 			auto& player_ids = game_room->GetPlayerIds();
 
@@ -401,6 +406,11 @@ void Server::WorkerThread()
 
 			int room_num = monster->GetRoomNum();
 			auto game_room = m_game_room_manager->GetGameRoom(room_num);
+			if (!game_room) {
+				delete exp_over;
+				break;
+			}
+
 			auto& player_ids = game_room->GetPlayerIds();
 
 			BoundingOrientedBox obb{};
@@ -484,14 +494,20 @@ void Server::WorkerThread()
 			XMFLOAT3* direction = reinterpret_cast<XMFLOAT3*>(
 				(exp_over->_send_buf + sizeof(int) + sizeof(XMFLOAT3)));
 
+			auto game_room = m_game_room_manager->GetGameRoom(room_num);
+			if (!game_room) {
+				delete exp_over;
+				break;
+			}
+
 			std::span<int> ids{};
 			float damage = m_clients[id]->GetDamage();
 			if (IsPlayer(id)) {
-				ids = m_game_room_manager->GetGameRoom(room_num)->GetMonsterIds();
+				ids = game_room->GetMonsterIds();
 				// 플레이어면 충돌대상은 몬스터이므로 ids는 몬스터
 			}
 			else {
-				ids = m_game_room_manager->GetGameRoom(room_num)->GetPlayerIds();
+				ids = game_room->GetPlayerIds();
 				// 플레이어가 아니면 충돌대상은 플레이어이므로 ids는 플레이어
 			}
 
@@ -526,7 +542,7 @@ void Server::WorkerThread()
 			if (IsPlayer(id)) {
 				SendRemoveArrow(id, *arrow_id);
 				m_clients[near_id]->DecreaseHp(m_clients[id]->GetDamage(), id);
-				auto& player_ids = m_game_room_manager->GetGameRoom(room_num)->GetPlayerIds();
+				auto& player_ids = game_room->GetPlayerIds();
 				SendMonsterHit(id, player_ids, near_id);
 			}
 			else {
@@ -536,11 +552,68 @@ void Server::WorkerThread()
 			delete exp_over;
 			break;
 		}
+		case OP_ARROW_SHOOT: {
+			int id = static_cast<int>(key);
+			ActionType* type = reinterpret_cast<ActionType*>(exp_over->_send_buf);
+			
+			auto game_room = m_game_room_manager->GetGameRoom(m_clients[id]->GetRoomNum());
+			int arrow_id = game_room->GetArrowId();
+
+			switch (*type) {
+			case ActionType::NORMAL_ATTACK: {
+				SetRemoveArrowTimerEvent(id, arrow_id);
+
+				int target = GetNearTarget(id, PlayerSetting::AUTO_TARET_RANGE);
+				SendPlayerShoot(id, arrow_id, target);
+				SetHitScanTimerEvent(id, target, arrow_id);
+				break;
+			}
+
+			case ActionType::SKILL: {
+
+				break;
+			}
+
+			case ActionType::ULTIMATE: {
+
+				break;
+			}
+			}
+
+			delete exp_over;
+			break;
+		}
 		case OP_ARROW_REMOVE: {
 			int id = static_cast<int>(key);
 			int* arrow_id = reinterpret_cast<int*>(exp_over->_send_buf);
 
 			SendRemoveArrow(id, *arrow_id);
+			delete exp_over;
+			break;
+		}
+		case OP_GAME_ROOM_RESET: {
+			printf("방 초기화!\n");
+			int room_num = static_cast<int>(key);
+			auto game_room = m_game_room_manager->GetGameRoom(room_num);
+			if (!game_room) {
+				delete exp_over;
+				return;
+			}
+
+			// 방의 모든 몬스터들을 FREE로 만들고 배열을 -1 로 초기화
+			auto& ids = game_room->GetMonsterIds();
+			for (int& id : ids) {
+				if (-1 == id) continue;
+
+				std::lock_guard<std::mutex> lock{ m_clients[id]->GetStateMutex() };
+				m_clients[id]->SetState(State::FREE);
+				id = -1;
+			}
+
+			// 방을 비어 있는 상태로 변경
+			std::lock_guard<std::mutex> lock{ game_room->GetStateMutex() };
+			game_room->SetState(GameRoomState::EMPTY);
+
 			delete exp_over;
 			break;
 		}
@@ -609,31 +682,8 @@ void Server::ProcessPacket(int id, char* p)
 	}
 	case CS_PACKET_SHOOT: {
 		CS_SHOOT_PACKET* packet = reinterpret_cast<CS_SHOOT_PACKET*>(p);
-		auto game_room = m_game_room_manager->GetGameRoom(client->GetRoomNum());
 
-		int arrow_id = game_room->GetArrowId();
-
-		switch (packet->attack_type) {
-		case ActionType::NORMAL_ATTACK: {
-			SetRemoveArrowTimerEvent(id, arrow_id);
-
-			int target = GetNearTarget(id, PlayerSetting::AUTO_TARET_RANGE);
-			SendPlayerShoot(id, arrow_id, target);
-			SetHitScanTimerEvent(id, target, arrow_id);
-			break; 
-		}
-
-		case ActionType::SKILL: {
-
-			break; 
-		}
-
-		case ActionType::ULTIMATE: {
-
-			break;
-		}
-		}
-
+		SetArrowShootTimerEvent(id, packet->attack_type, packet->attack_time);
 		SetCooltimeTimerEvent(id, packet->attack_type);
 		break;
 	}
@@ -685,18 +735,19 @@ void Server::ProcessPacket(int id, char* p)
 void Server::Disconnect(int id)
 {
 	auto cl = dynamic_pointer_cast<Client>(m_clients[id]);
-
-	if (IsInGameRoom(id)) {
-		m_game_room_manager->RemovePlayer(cl->GetRoomNum(), cl->GetId());
+	if (m_game_room_manager->IsValidRoomNum(m_clients[id]->GetRoomNum())) {
+		m_game_room_manager->RemovePlayer(cl->GetId());
 	}
 	else {
 		// 마을 내 플레이어 제거
 	}
 	cl->SetId(-1);
+	cl->SetRoomNum(-1);
 	cl->SetPosition(0.f, 0.f, 0.f);
 	cl->SetVelocity(0.f, 0.f, 0.f);
 	cl->SetYaw(0.f);
-	
+	cl->SetStamina(PlayerSetting::MAX_STAMINA);
+
 	cl->SetRemainSize(0);
 	ExpOver& ex_over = cl->GetExpOver();
 	ex_over._comp_type = OP_RECV;
@@ -704,13 +755,13 @@ void Server::Disconnect(int id)
 	ex_over._wsa_buf.len = BUF_SIZE;
 	ZeroMemory(&ex_over._wsa_over, sizeof(ex_over._wsa_over));
 	
-
 	closesocket(cl->GetSocket());
 
 	std::lock_guard<std::mutex> lock{ cl->GetStateMutex() };
 	cl->SetState(State::FREE);
 }
 
+// 마을, 던전 구분 필요
 void Server::SendLoginOk(int client_id)
 {
 	SC_LOGIN_OK_PACKET packet{};
@@ -750,14 +801,20 @@ void Server::SendLoginOk(int client_id)
 	}
 }
 
-void Server::SendMoveInGameRoom(int client_id)
+void Server::SendMoveInGameRoom(int client_id, int room_num)
 {
+	if (-1 == client_id)
+		return;
+
 	SC_UPDATE_CLIENT_PACKET packet{};
 	packet.size = sizeof(packet);
 	packet.type = SC_PACKET_UPDATE_CLIENT;
 	packet.data = m_clients[client_id]->GetPlayerData();
 
-	auto game_room = m_game_room_manager->GetGameRoom(m_clients[client_id]->GetRoomNum());
+	auto game_room = m_game_room_manager->GetGameRoom(room_num);
+	if (!game_room)
+		return;
+
 	auto& ids = game_room->GetPlayerIds();
 
 	for (int id : ids) {
@@ -775,8 +832,10 @@ void Server::SendPlayerDeath(int client_id)
 	packet.id = client_id;
 
 	auto game_room = m_game_room_manager->GetGameRoom(m_clients[client_id]->GetRoomNum());
-	auto& ids = game_room->GetPlayerIds();
+	if (!game_room)
+		return;
 
+	auto& ids = game_room->GetPlayerIds();
 	for (int id : ids) {
 		if (-1 == id) continue;
 
@@ -792,13 +851,17 @@ void Server::SendChangeAnimation(int client_id, USHORT animation)
 	packet.id = client_id;
 	packet.animation = animation;
 
+	int room_num = m_clients[client_id]->GetRoomNum();
 	// 마을, 게임룸 구분하여 보낼 필요 있음
-	if (IsInGameRoom(client_id)) {
-		auto& ids = m_game_room_manager->GetGameRoom(m_clients[client_id]->GetRoomNum())->GetPlayerIds();
+	if (m_game_room_manager->IsValidRoomNum(room_num)) {
+		auto game_room = m_game_room_manager->GetGameRoom(room_num);
+		if (!game_room)
+			return;
 
+		auto& ids = game_room->GetPlayerIds();
 		for (int id : ids) {
 			if (-1 == id) continue;
-			if (id == client_id) continue;
+			//if (id == client_id) continue;
 
 			m_clients[id]->DoSend(&packet);
 		}
@@ -911,9 +974,12 @@ void Server::SendMonsterAttack(int monster_id, int player_id)
 		packet.hps[0] = m_clients[player_id]->GetHp();
 	}
 
-	auto& clients = m_game_room_manager->
-		GetGameRoom(m_clients[player_id]->GetRoomNum())->GetPlayerIds();
+	auto game_room = m_game_room_manager->GetGameRoom(m_clients[player_id]->GetRoomNum());
+	if (!game_room) {
+		return;
+	}
 
+	auto& clients = game_room->GetPlayerIds();
 	if (-1 != packet.ids[0]) {
 		for (int id : clients) {
 			if (-1 == id) break;
@@ -932,8 +998,13 @@ void Server::SendPlayerShoot(int client_id, int arrow_id, int target_id)
 	packet.arrow_id = arrow_id;
 	packet.target_id = target_id;
 
-	if (IsInGameRoom(client_id)) {
-		auto& ids = m_game_room_manager->GetGameRoom(m_clients[client_id]->GetRoomNum())->GetPlayerIds();
+	int room_num = m_clients[client_id]->GetRoomNum();
+	if (m_game_room_manager->IsValidRoomNum(room_num)) {
+		auto game_room = m_game_room_manager->GetGameRoom(room_num);
+		if (!game_room)
+			return;
+
+		auto& ids = game_room->GetPlayerIds();
 
 		for (int id : ids) {
 			if (-1 == id) continue;
@@ -953,9 +1024,14 @@ void Server::SendRemoveArrow(int client_id, int arrow_id)
 	packet.type = SC_PACKET_REMOVE_ARROW;
 	packet.arrow_id = arrow_id;
 
-	if (IsInGameRoom(client_id)) {
-		auto& ids = m_game_room_manager->GetGameRoom(m_clients[client_id]->GetRoomNum())->GetPlayerIds();
+	int room_num = m_clients[client_id]->GetRoomNum();
 
+	if (m_game_room_manager->IsValidRoomNum(room_num)) {
+		auto game_room = m_game_room_manager->GetGameRoom(room_num);
+		if (!game_room)
+			return;
+
+		auto& ids = game_room->GetPlayerIds();
 		for (int id : ids) {
 			if (-1 == id) continue;
 
@@ -967,14 +1043,6 @@ void Server::SendRemoveArrow(int client_id, int arrow_id)
 	}
 }
 
-bool Server::IsInGameRoom(int client_id)
-{
-	if (-1 == m_clients[client_id]->GetRoomNum())
-		return false;
-	else
-		return true;
-}
-
 bool Server::IsPlayer(int client_id)
 {
 	if (client_id < MAX_USER)
@@ -982,11 +1050,15 @@ bool Server::IsPlayer(int client_id)
 	return false;
 }
 
-void Server::GameRoomPlayerCollisionCheck(const std::shared_ptr<Client>& player)
+void Server::GameRoomPlayerCollisionCheck(const std::shared_ptr<Client>& player,
+	int room_num)
 {
 	BoundingOrientedBox& player_obb = player->GetBoundingBox();
 
 	auto game_room = m_game_room_manager->GetGameRoom(player->GetRoomNum());
+	if (!game_room)
+		return;
+
 	auto& player_ids = game_room->GetPlayerIds();
 	auto& monster_ids = game_room->GetMonsterIds();
 
@@ -1051,14 +1123,15 @@ INT Server::GetNewMonsterId(MonsterType type)
 void Server::Move(const std::shared_ptr<Client>& client, XMFLOAT3 position)
 {
 	// 게임 룸에 진입한채 움직이면 시야처리 X (타워 씬)
-	if (IsInGameRoom(client->GetId())) {
+	int room_num = client->GetRoomNum();
+	if (m_game_room_manager->IsValidRoomNum(room_num)) {
 		MoveObject(client, position);
 		SetPositionOnStairs(client);
 		RotateBoundingBox(client);
 
-		GameRoomPlayerCollisionCheck(client);
+		GameRoomPlayerCollisionCheck(client, room_num);
 
-		SendMoveInGameRoom(client->GetId());
+		SendMoveInGameRoom(client->GetId(), room_num);
 	}
 	// 게임 룸이 아닌채 움직이면 시야처리 (마을 씬)
 	else {
@@ -1071,6 +1144,9 @@ int Server::GetNearTarget(int client_id, float max_range)
 	std::span<int> ids{};
 
 	auto game_room = m_game_room_manager->GetGameRoom(m_clients[client_id]->GetRoomNum());
+	if (!game_room)
+		return -1;
+
 	if (IsPlayer(client_id)) {
 		ids = game_room->GetMonsterIds();
 	}
@@ -1184,7 +1260,7 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 	switch (ev.event_type) {
 	case EventType::COOLTIME_RESET: {
 		ExpOver* over = new ExpOver;
-		over->_comp_type = OP_COOLTIME_RESET;	
+		over->_comp_type = OP_COOLTIME_RESET;
 		memcpy(&over->_send_buf, &ev.action_type, sizeof(ActionType));
 
 		PostQueuedCompletionStatus(m_handle_iocp, 1, ev.obj_id, &over->_wsa_over);
@@ -1271,7 +1347,7 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 		auto client = dynamic_pointer_cast<Client>(m_clients[ev.obj_id]);
 		if (ev.latest_id != client->GetLatestId())
 			return;
-		
+
 		ExpOver* over = new ExpOver;
 		over->_comp_type = OP_STAMINA_CHANGE;
 		memcpy(&over->_send_buf[0], &ev.is_stamina_increase, sizeof(bool));
@@ -1290,10 +1366,25 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 		PostQueuedCompletionStatus(m_handle_iocp, 1, ev.obj_id, &over->_wsa_over);
 		break;
 	}
+	case EventType::ARROW_SHOOT: {
+		ExpOver* over = new ExpOver;
+		over->_comp_type = OP_ARROW_SHOOT;
+		memcpy(&over->_send_buf, &ev.action_type, sizeof(ActionType));
+		PostQueuedCompletionStatus(m_handle_iocp, 1, ev.obj_id, &over->_wsa_over);
+		break;
+	}
 	case EventType::ARROW_REMOVE: {
 		ExpOver* over = new ExpOver;
 		over->_comp_type = OP_ARROW_REMOVE;
 		memcpy(over->_send_buf, &ev.targat_id, sizeof(int));
+		PostQueuedCompletionStatus(m_handle_iocp, 1, ev.obj_id, &over->_wsa_over);
+		break;
+	}
+	case EventType::GAME_ROOM_RESET: {
+		ExpOver* over = new ExpOver;
+		over->_comp_type = OP_GAME_ROOM_RESET;
+
+		// room_num 을 obj_id 로 넘김
 		PostQueuedCompletionStatus(m_handle_iocp, 1, ev.obj_id, &over->_wsa_over);
 		break;
 	}
@@ -1433,6 +1524,29 @@ void Server::SetHitScanTimerEvent(int id, int target_id, int arrow_id)
 		.position = m_clients[id]->GetPosition(), .direction = Vector3::Normalize(dir), 
 		.event_type = EventType::HIT_SCAN };
 	
+	m_timer_queue.push(ev);
+}
+
+void Server::SetArrowShootTimerEvent(int id, ActionType attack_type, 
+	std::chrono::system_clock::time_point attack_time)
+{
+	auto client = dynamic_pointer_cast<Client>(m_clients[id]);
+
+	TIMER_EVENT ev{ .obj_id = id, .event_type = EventType::ARROW_SHOOT,
+		.action_type = attack_type };
+
+	int type = static_cast<int>(PlayerType::ARCHER);
+	switch (attack_type) {
+	case ActionType::NORMAL_ATTACK:
+		ev.event_time = attack_time + PlayerSetting::ATTACK_COLLISION_TIME[type];
+		break;
+	case ActionType::SKILL:
+		ev.event_time = attack_time + PlayerSetting::SKILL_COLLISION_TIME[type];
+		break;
+	case ActionType::ULTIMATE:
+		ev.event_time = attack_time + PlayerSetting::ULTIMATE_COLLISION_TIME[type];
+		break;
+	}
 	m_timer_queue.push(ev);
 }
 

@@ -447,6 +447,7 @@ void Player::CreateShootPacket(ActionType attackType)
 	packet.size = sizeof(packet);
 	packet.type = CS_PACKET_SHOOT;
 	packet.attack_type = attackType;
+	packet.attack_time = chrono::system_clock::now();
 	SetBuffer(&packet, packet.size);
 #endif
 }
@@ -476,7 +477,7 @@ void Player::CreateChangeStaminaPacket(bool value)
 void Player::SetBuffer(void* mess, size_t size)
 {
 	char* c = reinterpret_cast<char*>(mess);
-	memcpy(m_sendBuffer + static_cast<char>(m_bufSize), c, size);
+	memcpy((m_sendBuffer + m_bufSize), c, size);
 	m_bufSize += static_cast<int>(size);
 }
 

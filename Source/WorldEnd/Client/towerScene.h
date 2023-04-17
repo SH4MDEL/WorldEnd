@@ -54,6 +54,8 @@ public:
 	void SetHpBar(const shared_ptr<AnimationObject>& object);
 	void SetArrow(const shared_ptr<Player>& player, INT arrowId);
 	void RotateToTarget(const shared_ptr<Player>& player, INT targetId);
+	void RotateToTarget(const shared_ptr<Player>& player);
+	INT SetTarget(const shared_ptr<Player>& player);
 
 	bool CheckState(State sceneState);
 	void SetState(State sceneState);

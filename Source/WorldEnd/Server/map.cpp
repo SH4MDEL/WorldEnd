@@ -168,34 +168,25 @@ void GameRoom::SendAddMonster(INT player_id)
 	}
 }
 
-void GameRoom::RemovePlayer(INT player_id)
+void GameRoom::RemovePlayer(INT player_id, INT room_num)
 {
-	std::array<INT, MAX_INGAME_USER> ids{};
-	{
-		std::lock_guard<std::mutex> lock{ m_player_lock };
-		ids = m_player_ids;
+	for (INT& id : m_player_ids) {
+		if (id == player_id) {
+			std::lock_guard<std::mutex> lock{ m_player_lock };
+			id = -1;
+		}
 	}
 
-	auto it = find(ids.begin(), ids.end(), player_id);
-	if (it == ids.end())
-		return;
-	*it = -1;
-	
-	{
-		std::lock_guard<std::mutex> lock{ m_player_lock };
-		m_player_ids.swap(ids);
-	}
-
-	INT num = count(ids.begin(), ids.end(), -1);
+	// 방이 아예 비었다면
+	INT num = count(m_player_ids.begin(), m_player_ids.end(), -1);
 	if (MAX_INGAME_USER == num) {
-		std::lock_guard<std::mutex> lock{ m_state_lock };
-		m_state = GameRoomState::EMPTY;
+		Server& server = Server::GetInstance();
 
-		for (INT& id : ids)
-			id = -1;
+		TIMER_EVENT ev{ .event_time = std::chrono::system_clock::now() +
+			RoomSetting::RESET_TIME, .obj_id = room_num,
+			.event_type = EventType::GAME_ROOM_RESET };
 
-		for (INT& id : m_monster_ids)
-			id = -1;
+		server.SetTimerEvent(ev);
 	}
 	else {
 		Server& server = Server::GetInstance();
@@ -205,7 +196,7 @@ void GameRoom::RemovePlayer(INT player_id)
 		packet.type = SC_PACKET_REMOVE_PLAYER;
 		packet.id = player_id;
 
-		for (INT id : ids) {
+		for (INT id : m_player_ids) {
 			if (-1 == id) continue;
 			{
 				std::lock_guard<std::mutex> lock{ server.m_clients[id]->GetStateMutex() };
@@ -217,7 +208,7 @@ void GameRoom::RemovePlayer(INT player_id)
 	}
 }
 
-void GameRoom::RemoveMonster(INT room_num, INT monster_id)
+void GameRoom::RemoveMonster(INT monster_id)
 {
 	Server& server = Server::GetInstance();
 
@@ -236,8 +227,18 @@ void GameRoom::RemoveMonster(INT room_num, INT monster_id)
 		
 	}
 
+	/*INT monster_count{};
+	for (INT id : m_monster_ids) {
+		if (id == monster_id) {
+			std::lock_guard<std::mutex> lock{ m_player_lock };
+			id = -1;
+		}
+	}*/
+
+
 	INT end_index = static_cast<int>(m_monster_count);
 	if (0 == end_index) {
+		INT room_num = server.m_clients[monster_id]->GetRoomNum();
 		ExpOver* over = new ExpOver();
 		over->_comp_type = OP_FLOOR_CLEAR;
 		PostQueuedCompletionStatus(server.GetIOCPHandle(), 1, room_num, &over->_wsa_over);
@@ -378,6 +379,45 @@ void GameRoomManager::SetPlayer(INT room_num, INT player_id)
 	m_game_rooms[room_num]->SetPlayer(player_id);
 }
 
+std::shared_ptr<GameRoom> GameRoomManager::GetGameRoom(INT room_num)
+{
+	if (!IsValidRoomNum(room_num))
+		return nullptr;
+	return m_game_rooms[room_num]->GetGameRoom();
+}
+
+//std::chrono::system_clock::time_point GameRoomManager::GetStartTime(INT room_num)
+//{
+//	if (!IsValidRoomNum(room_num)) {
+//		return std::chrono::system_clock::now();
+//	}
+//	return m_game_rooms[room_num]->GetStartTime();
+//}
+//
+//EnvironmentType GameRoomManager::GetEnvironment(INT room_num)
+//{
+//	if (!IsValidRoomNum(room_num)) {
+//		return EnvironmentType::COUNT;
+//	}
+//	return m_game_rooms[room_num]->GetType();
+//}
+//
+//GameRoomState GameRoomManager::GetRoomState(INT room_num)
+//{
+//	if (!IsValidRoomNum(room_num)) {
+//		return GameRoomState::COUNT;
+//	}
+//	return m_game_rooms[room_num]->GetState();
+//}
+//
+//INT GameRoomManager::GetArrowId(INT room_num)
+//{
+//	if (!IsValidRoomNum(room_num)) {
+//		return -1;
+//	}
+//	return m_game_rooms[room_num]->GetArrowId();
+//}
+
 void GameRoomManager::InitGameRoom(INT room_num)
 {
 	m_game_rooms[room_num]->InitGameRoom(room_num);
@@ -485,14 +525,24 @@ bool GameRoomManager::EnterGameRoom(const std::shared_ptr<Party>& party)
 	return true;
 }
 
-void GameRoomManager::RemovePlayer(INT room_num, INT player_id)
+void GameRoomManager::RemovePlayer(INT player_id)
 {
-	m_game_rooms[room_num]->RemovePlayer(player_id);
+	Server& server = Server::GetInstance();
+	INT room_num = server.m_clients[player_id]->GetRoomNum();
+	if (!IsValidRoomNum(room_num)) {
+		return;
+	}
+	m_game_rooms[room_num]->RemovePlayer(player_id, room_num);
 }
 
-void GameRoomManager::RemoveMonster(INT room_num, INT monster_id)
+void GameRoomManager::RemoveMonster(INT monster_id)
 {
-	m_game_rooms[room_num]->RemoveMonster(room_num, monster_id);
+	Server& server = Server::GetInstance();
+	INT room_num = server.m_clients[monster_id]->GetRoomNum();
+	if (!IsValidRoomNum(room_num)) {
+		return;
+	}
+	m_game_rooms[room_num]->RemoveMonster(monster_id);
 }
 
 void GameRoomManager::EventCollisionCheck(INT room_num, INT player_id)
@@ -542,4 +592,11 @@ INT GameRoomManager::FindEmptyRoom()
 		++i;
 	}
 	return -1;
+}
+
+bool GameRoomManager::IsValidRoomNum(INT room_num)
+{
+	if(-1 == room_num || room_num >= MAX_GAME_ROOM_NUM)
+		return false;
+	return true;
 }

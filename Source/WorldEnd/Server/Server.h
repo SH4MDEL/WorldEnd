@@ -10,7 +10,7 @@ enum class EventType : char
 {
 	COOLTIME_RESET, BEHAVIOR_CHANGE, AGRO_LEVEL_DECREASE,
 	ATTACK_COLLISION, MONSTER_ATTACK_COLLISION, STAMINA_CHANGE,
-	HIT_SCAN, ARROW_REMOVE
+	HIT_SCAN, ARROW_SHOOT, ARROW_REMOVE, GAME_ROOM_RESET
 };
 
 struct TIMER_EVENT {
@@ -48,7 +48,7 @@ public:
 	void Disconnect(int id);
 
 	void SendLoginOk(int client_id);
-	void SendMoveInGameRoom(int client_id);
+	void SendMoveInGameRoom(int client_id, int room_num);
 	void SendPlayerDeath(int client_id);
 	void SendChangeAnimation(int client_id, USHORT animation);
 	void SendMonsterHit(int client_id, const std::span<int>& receiver,
@@ -61,9 +61,9 @@ public:
 	void SendPlayerShoot(int client_id, int arrow_id, int target_id);
 	void SendRemoveArrow(int client_id, int arrow_id);
 
-	bool IsInGameRoom(int client_id);
 	bool IsPlayer(int client_id);
-	void GameRoomPlayerCollisionCheck(const std::shared_ptr<Client>& player);
+	void GameRoomPlayerCollisionCheck(const std::shared_ptr<Client>& player,
+			int room_num);
 
 	void Timer();
 	void ProcessEvent(const TIMER_EVENT& ev);
@@ -74,6 +74,8 @@ public:
 	void SetCooltimeTimerEvent(int id, ActionType action_type);
 	void SetStaminaTimerEvent(int client_id, bool is_increase);
 	void SetHitScanTimerEvent(int id, int target_id, int arrow_id);
+	void SetArrowShootTimerEvent(int id, ActionType attack_type,
+		std::chrono::system_clock::time_point attack_time);
 	void SetRemoveArrowTimerEvent(int client_id, int arrow_id);
 
 	INT GetNewId();
