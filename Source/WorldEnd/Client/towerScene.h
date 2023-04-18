@@ -34,6 +34,7 @@ public:
 
 	void BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, 
 		const ComPtr<ID3D12RootSignature>& rootsignature, const ComPtr<ID3D12RootSignature>& postRootSignature) override;
+	void DestroyObjects() override;
 	
 	void OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime) override;
 	void OnProcessingMouseMessage(UINT message, LPARAM lParam) override;
@@ -95,8 +96,6 @@ protected:
 	XMMATRIX											m_lightView;
 	XMMATRIX											m_lightProj;
 	XMMATRIX											m_NDCspace;
-
-	vector<shared_ptr<GameObject>>						m_object;
 
 	shared_ptr<Player>									m_player;
 	shared_ptr<Camera>									m_camera;

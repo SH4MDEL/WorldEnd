@@ -48,6 +48,7 @@
 #include <d3dcompiler.h>
 #include <DirectXMath.h>
 #include <DirectXCollision.h>
+#include <dxgidebug.h>
 #include "d3dx12.h"
 using namespace DirectX;
 using Microsoft::WRL::ComPtr;

@@ -45,113 +45,24 @@ void TowerLoadingScene::OnCreate(const ComPtr<ID3D12Device>& device,
 
 void TowerLoadingScene::OnDestroy()
 {
-	m_loadingText.reset();
+	m_loadEnd = false;
+
+	DestroyObjects();
 }
 
 void TowerLoadingScene::ReleaseUploadBuffer()
 {
-	for (const auto& mesh : m_globalMeshs) mesh.second->ReleaseUploadBuffer();
-	for (const auto& texture : m_globalTextures) texture.second->ReleaseUploadBuffer();
-	for (const auto& material : m_globalMaterials) material.second->ReleaseUploadBuffer();
+	for (const auto& mesh : m_meshs) mesh.second->ReleaseUploadBuffer();
+	for (const auto& texture : m_textures) texture.second->ReleaseUploadBuffer();
+	for (const auto& material : m_materials) material.second->ReleaseUploadBuffer();
 }
 
 void TowerLoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, 
 	const ComPtr<ID3D12RootSignature>& rootsignature, const ComPtr<ID3D12RootSignature>& postRootSignature)
 {
-	// 플레이어 로딩
-	auto animationShader{ make_shared<AnimationShader>(device, rootsignature) };
-	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/WarriorMesh.bin"));
-	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/ArcherMesh.bin"));
-
-	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/WarriorTexture.bin"));
-	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/ArcherTexture.bin"));
-
-	LoadAnimationSetFromFile(TEXT("./Resource/Animation/WarriorAnimation.bin"), "WarriorAnimation");
-	LoadAnimationSetFromFile(TEXT("./Resource/Animation/ArcherAnimation.bin"), "ArcherAnimation");
-
-	auto objectShader{ make_shared<StaticObjectShader>(device, rootsignature) };
-
-	// 체력 바 로딩
-	auto hpBarMesh{ make_shared<BillboardMesh>(device, commandlist, XMFLOAT3{ 0.f, 0.f, 0.f }, XMFLOAT2{ 0.75f, 0.15f }) };
-	auto hpBarTexture{ make_shared<Texture>() };
-	hpBarTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/Full_HpBar.dds"), (INT)ShaderRegister::BaseTexture); // BaseTexture
-	hpBarTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/Empty_HpBar.dds"), (INT)ShaderRegister::SubTexture); // SubTexture
-	hpBarTexture->CreateSrvDescriptorHeap(device);
-	hpBarTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
-
-	// 스테미너 바 로딩
-	auto staminaBarMesh{ make_shared<BillboardMesh>(device, commandlist, XMFLOAT3{ 0.f, 0.f, 0.f }, XMFLOAT2{ 0.1f, 0.89f }) };
-	auto staminaBarTexture{ make_shared<Texture>() };
-	staminaBarTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/Full_StaminaBar.dds"), (INT)ShaderRegister::BaseTexture); // BaseTexture
-	staminaBarTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/Empty_StaminaBar.dds"), (INT)ShaderRegister::SubTexture); // SubTexture
-	staminaBarTexture->CreateSrvDescriptorHeap(device);
-	staminaBarTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
-
-	// 스카이박스 로딩
-	auto skyboxShader{ make_shared<SkyboxShader>(device, rootsignature) };
-	auto skyboxMesh{ make_shared <SkyboxMesh>(device, commandlist, 20.0f, 20.0f, 20.0f)};
-	auto skyboxTexture{ make_shared<Texture>() };
-	skyboxTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/SkyBox.dds"), (INT)ShaderRegister::SkyboxTexture);	// Skybox
-	skyboxTexture->CreateSrvDescriptorHeap(device);
-	skyboxTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURECUBE);
-
-	// UI 로딩
-	auto uiShader{ make_shared<UIShader>(device, rootsignature) };
-	auto postUiShader{ make_shared<UIShader>(device, rootsignature) };
-	auto frameUITexture{ make_shared<Texture>() };
-	frameUITexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/UI_Background.dds"), (INT)ShaderRegister::BaseTexture);
-	frameUITexture->CreateSrvDescriptorHeap(device);
-	frameUITexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
-	auto cancelUITexture{ make_shared<Texture>() };
-	cancelUITexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/UI_Cancel.dds"), (INT)ShaderRegister::BaseTexture);
-	cancelUITexture->CreateSrvDescriptorHeap(device);
-	cancelUITexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
-	auto buttonUITexture{ make_shared<Texture>() };
-	buttonUITexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/UI_Button.dds"), (INT)ShaderRegister::BaseTexture);
-	buttonUITexture->CreateSrvDescriptorHeap(device);
-	buttonUITexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
-
-	auto warriorSkillTexture{ make_shared<Texture>() };
-	warriorSkillTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/SkillTexture/Warrior_Skill.dds"), (INT)ShaderRegister::BaseTexture);
-	warriorSkillTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/SkillTexture/Warrior_Skill_Cool.dds"), (INT)ShaderRegister::SubTexture);
-	warriorSkillTexture->CreateSrvDescriptorHeap(device);
-	warriorSkillTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
-	auto warriorUltimateTexture{ make_shared<Texture>() };
-	warriorUltimateTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/SkillTexture/Warrior_Ultimate.dds"), (INT)ShaderRegister::BaseTexture);
-	warriorUltimateTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/SkillTexture/Warrior_Ultimate_Cool.dds"), (INT)ShaderRegister::SubTexture);
-	warriorUltimateTexture->CreateSrvDescriptorHeap(device);
-	warriorUltimateTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
-
-	// 게이지 셰이더 로딩
-	auto horzGaugeShader{ make_shared<HorzGaugeShader>(device, rootsignature) };
-	auto vertGaugeShader{ make_shared<VertGaugeShader>(device, rootsignature) };
-
-	// 그림자 셰이더 로딩
-	auto shadowShader{ make_shared<ShadowShader>(device, rootsignature) };
-	auto animationShadowShader{ make_shared<AnimationShadowShader>(device, rootsignature) };
-
-	// 파티클 셰이더 로딩
-	auto emitterParticleShader{ make_shared<EmitterParticleShader>(device, rootsignature) };
-	auto pumperParticleShader{ make_shared<PumperParticleShader>(device, rootsignature) };
-
-
-	// 블러 필터 셰이더 로딩
-	auto horzBlurShader{ make_shared<HorzBlurShader>(device, postRootSignature) };
-	auto vertBlurShader{ make_shared<VertBlurShader>(device, postRootSignature) };
-
-	// 페이드 셰이더 로딩
-	auto fadeShader{ make_shared<FadeShader>(device, postRootSignature) };
-
-	// 소벨 필터 셰이더 로딩
-	auto sobelShader{ make_shared<SobelShader>(device, postRootSignature) };
-	auto compositeShader{ make_shared<CompositeShader>(device, postRootSignature) };
-
-	// 몬스터 로딩
+	// 메쉬 로딩
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/Undead_WarriorMesh.bin"));
-	LoadAnimationSetFromFile(TEXT("./Resource/Animation/Undead_WarriorAnimation.bin"), "Undead_WarriorAnimation");
-	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/Undead_WarriorTexture.bin"));
 
-	// 타워 씬 메쉬 로딩
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/AD_ArchDeco_A_01Mesh.bin"));
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/AD_ArchPillar_A_01Mesh.bin"));
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/AD_ArchPillar_B_01Mesh.bin"));
@@ -176,7 +87,36 @@ void TowerLoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const C
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/AD_Wall_C_01Mesh.bin"));
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/AD_Wall_D_01Mesh.bin"));
 
-	//타워 씬 텍스처 로딩
+	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/AD_RuneGate_A_01Mesh.bin"));
+	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/AD_RuneGate_B_01Mesh.bin"));
+	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/AD_RuneGateGround_B_01Mesh.bin"));
+
+	auto hpBarMesh{ make_shared<BillboardMesh>(device, commandlist, XMFLOAT3{ 0.f, 0.f, 0.f }, XMFLOAT2{ 0.75f, 0.15f }) };
+	auto skyboxMesh{ make_shared <SkyboxMesh>(device, commandlist, 20.0f, 20.0f, 20.0f) };
+
+	m_meshs.insert({ "SKYBOX", skyboxMesh });
+	m_meshs.insert({ "HPBAR", hpBarMesh });
+
+
+	// 텍스처 로딩
+	auto hpBarTexture{ make_shared<Texture>() };
+	hpBarTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/Full_HpBar.dds"), (INT)ShaderRegister::BaseTexture); // BaseTexture
+	hpBarTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/Empty_HpBar.dds"), (INT)ShaderRegister::SubTexture); // SubTexture
+	hpBarTexture->CreateSrvDescriptorHeap(device);
+	hpBarTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+
+	auto skyboxTexture{ make_shared<Texture>() };
+	skyboxTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/SkyBox.dds"), (INT)ShaderRegister::SkyboxTexture);	// Skybox
+	skyboxTexture->CreateSrvDescriptorHeap(device);
+	skyboxTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURECUBE);
+
+	m_textures.insert({ "SKYBOX", skyboxTexture });
+	m_textures.insert({ "HPBAR", hpBarTexture });
+
+
+	// 메테리얼 로딩
+	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/Undead_WarriorTexture.bin"));
+
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/AD_ArchDeco_A_01Texture.bin"));
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/AD_ArchPillar_A_01Texture.bin"));
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/AD_ArchPillar_B_01Texture.bin"));
@@ -201,49 +141,13 @@ void TowerLoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const C
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/AD_Wall_C_01Texture.bin"));
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/AD_Wall_D_01Texture.bin"));
 
-	// 룬 게이트 메쉬 로딩
-	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/AD_RuneGate_A_01Mesh.bin"));
-	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/AD_RuneGate_B_01Mesh.bin"));
-	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/AD_RuneGateGround_B_01Mesh.bin"));
-
-	// 룬 게이트 텍스처 로딩
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/AD_RuneGate_A_01Texture.bin"));
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/AD_RuneGate_B_01Texture.bin"));
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/TowerSceneTexture/AD_RuneGateGround_B_01Texture.bin"));
 
-	// 메쉬 설정
-	m_globalMeshs.insert({ "SKYBOX", skyboxMesh });
-	m_globalMeshs.insert({ "HPBAR", hpBarMesh });
-	m_globalMeshs.insert({ "STAMINABAR", staminaBarMesh });
+	// 애니메이션 로딩
+	LoadAnimationSetFromFile(TEXT("./Resource/Animation/Undead_WarriorAnimation.bin"), "Undead_WarriorAnimation");
 
-	// 텍스처 설정
-	m_globalTextures.insert({ "SKYBOX", skyboxTexture });
-	m_globalTextures.insert({ "HPBAR", hpBarTexture });
-	m_globalTextures.insert({ "STAMINABAR", staminaBarTexture });
-	// UI 관련 텍스처
-	m_globalTextures.insert({ "FRAMEUI", frameUITexture });
-	m_globalTextures.insert({ "CANCELUI", cancelUITexture });
-	m_globalTextures.insert({ "BUTTONUI", buttonUITexture });
-	m_globalTextures.insert({ "WARRIORSKILL", warriorSkillTexture });
-	m_globalTextures.insert({ "WARRIORULTIMATE", warriorUltimateTexture });
-
-	// 셰이더 설정
-	m_shaders.insert({ "ANIMATION", animationShader });
-	m_shaders.insert({ "OBJECT", objectShader });
-	m_shaders.insert({ "SKYBOX", skyboxShader });
-	m_shaders.insert({ "HORZGAUGE", horzGaugeShader });
-	m_shaders.insert({ "VERTGAUGE", vertGaugeShader });
-	m_shaders.insert({ "SHADOW", shadowShader });
-	m_shaders.insert({ "ANIMATIONSHADOW", animationShadowShader });
-	m_shaders.insert({ "EMITTERPARTICLE", emitterParticleShader });
-	m_shaders.insert({ "PUMPERPARTICLE", pumperParticleShader });
-	m_shaders.insert({ "UI", uiShader });
-	m_shaders.insert({ "POSTUI", postUiShader });
-	m_shaders.insert({ "HORZBLUR", horzBlurShader });
-	m_shaders.insert({ "VERTBLUR", vertBlurShader });
-	m_shaders.insert({ "FADE", fadeShader });
-	m_shaders.insert({ "SOBEL", sobelShader });
-	m_shaders.insert({ "COMPOSITE", compositeShader });
 
 	commandlist->Close();
 	ID3D12CommandList* ppCommandList[]{ commandlist.Get() };
@@ -251,6 +155,11 @@ void TowerLoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const C
 	g_GameFramework.WaitForPreviousFrame();
 
 	m_loadEnd = true;
+}
+
+void TowerLoadingScene::DestroyObjects()
+{
+	m_loadingText.reset();
 }
 
 void TowerLoadingScene::Update(FLOAT timeElapsed) 
@@ -287,14 +196,14 @@ void TowerLoadingScene::LoadMeshFromFile(const ComPtr<ID3D12Device>& device, con
 			animationMesh->LoadAnimationMesh(device, commandList, in);
 			animationMesh->SetType(AnimationSetting::ANIMATION_MESH);
 
-			m_globalMeshs.insert({ animationMesh->GetAnimationMeshName(), animationMesh });
+			m_meshs.insert({ animationMesh->GetAnimationMeshName(), animationMesh });
 		}
 		else if (strToken == "<Mesh>:") {
 			auto mesh = make_shared<AnimationMesh>();
 			mesh->LoadAnimationMesh(device, commandList, in);
 			mesh->SetType(AnimationSetting::STANDARD_MESH);
 
-			m_globalMeshs.insert({ mesh->GetAnimationMeshName(), mesh });
+			m_meshs.insert({ mesh->GetAnimationMeshName(), mesh });
 		}
 		else if (strToken == "</Hierarchy>") {
 			break;
@@ -332,8 +241,8 @@ void TowerLoadingScene::LoadMaterialFromFile(const ComPtr<ID3D12Device>& device,
 
 			materials->LoadMaterials(device, commandList, in);
 			
-			m_globalMaterials.insert({ materials->m_materialName, materials });
-			m_globalMaterials.insert({ "@" + materials->m_materialName, materials});
+			m_materials.insert({ materials->m_materialName, materials });
+			m_materials.insert({ "@" + materials->m_materialName, materials});
 		}
 		else if (strToken == "</Hierarchy>") {
 			break;
@@ -362,7 +271,7 @@ void TowerLoadingScene::LoadAnimationSetFromFile(wstring fileName, const string&
 	auto animationSet = make_shared<AnimationSet>();
 	animationSet->LoadAnimationSet(in, animationSetName);
 
-	m_globalAnimationSets.insert({ animationSetName, animationSet });
+	m_animationSets.insert({ animationSetName, animationSet });
 
 	m_loadingText->LoadingFile();
 }

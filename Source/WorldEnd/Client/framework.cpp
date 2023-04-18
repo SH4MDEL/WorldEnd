@@ -13,7 +13,7 @@ GameFramework::GameFramework(UINT width, UINT height) :
 	m_scissorRect{0, 0, (LONG)width, (LONG)height}, 
 	m_rtvDescriptorSize {0}, 
 	m_isGameEnd {false}, 
-	m_sceneIndex{static_cast<int>(SCENETAG::TowerLoadingScene)}
+	m_sceneIndex{static_cast<int>(SCENETAG::GlobalLoadingScene)}
 {
 	m_aspectRatio = (FLOAT)width / (FLOAT)height;
 	m_scenes.resize(static_cast<int>(SCENETAG::Count));
@@ -39,7 +39,7 @@ void GameFramework::OnCreate(HINSTANCE hInstance, HWND hWnd)
 	CreateThread();
 	BuildObjects();
 
-	ChangeScene(SCENETAG::TowerLoadingScene);
+	ChangeScene((SCENETAG)m_sceneIndex);
 
 }
 
@@ -526,8 +526,8 @@ void GameFramework::CreateD2DRenderTarget()
 
 		DX::ThrowIfFailed(m_11On12Device->CreateWrappedResource(m_renderTargets[i].Get(),
 			&d3d11Flags, 
-			D3D12_RESOURCE_STATE_PRESENT,
-			D3D12_RESOURCE_STATE_PRESENT,
+			D3D12_RESOURCE_STATE_COPY_SOURCE,
+			D3D12_RESOURCE_STATE_COPY_SOURCE,
 			IID_PPV_ARGS(&m_d3d11WrappedRenderTarget[i])));
 		ComPtr<IDXGISurface> dxgiSurface;
 		DX::ThrowIfFailed(m_d3d11WrappedRenderTarget[i]->QueryInterface(__uuidof(IDXGISurface), (void**)&dxgiSurface));
@@ -591,25 +591,6 @@ void GameFramework::ChangeScene(SCENETAG tag)
 
 	m_scenes[m_sceneIndex]->OnDestroy();
 	m_scenes[m_sceneIndex = static_cast<int>(tag)]->OnCreate(m_device, m_mainCommandList, m_rootSignature, m_postRootSignature);
-
-	m_mainCommandList->Close();
-	ID3D12CommandList* ppCommandList[] = { m_mainCommandList.Get() };
-	m_commandQueue->ExecuteCommandLists(_countof(ppCommandList), ppCommandList);
-
-	WaitForPreviousFrame();
-}
-
-void GameFramework::ChangeScene(SCENETAG tag,
-	unordered_map<string, shared_ptr<Mesh>>&& meshs,
-	unordered_map<string, shared_ptr<Texture>>&& textures,
-	unordered_map<string, shared_ptr<Materials>>&& materials,
-	unordered_map<string, shared_ptr<AnimationSet>>&& animationSets)
-{
-	m_mainCommandList->Reset(m_mainCommandAllocator.Get(), nullptr);
-
-	m_scenes[m_sceneIndex]->OnDestroy();
-	m_scenes[m_sceneIndex = static_cast<int>(tag)]->OnCreate(m_device, m_mainCommandList, m_rootSignature, m_postRootSignature, 
-		move(meshs), move(textures), move(materials), move(animationSets));
 
 	m_mainCommandList->Close();
 	ID3D12CommandList* ppCommandList[] = { m_mainCommandList.Get() };
@@ -699,7 +680,6 @@ void GameFramework::Render()
 	// Submit END and post.
 	m_commandQueue->ExecuteCommandLists(THREAD_NUM + 1, m_batchSubmit.data() + 2 * THREAD_NUM + 3);
 
-
 	RenderText();
 
 	DX::ThrowIfFailed(m_swapChain->Present(1, 0));
@@ -742,7 +722,7 @@ void GameFramework::BeginFrame()
 	CD3DX12_CPU_DESCRIPTOR_HANDLE dsvHandle{ m_dsvHeap->GetCPUDescriptorHandleForHeapStart() };
 
 	// 원하는 색상으로 렌더 타겟을 지우고, 원하는 값으로 깊이 스텐실을 지운다.
-	const FLOAT clearColor[]{ 0.f, 0.125f, 0.3f, 1.f };
+	const FLOAT clearColor[]{ 0.f, 0.f, 0.f, 1.f };
 	m_commandLists[COMMANDLIST_PRE]->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
 	m_commandLists[COMMANDLIST_PRE]->ClearDepthStencilView(dsvHandle, 
 		D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);

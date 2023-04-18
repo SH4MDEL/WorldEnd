@@ -23,6 +23,22 @@ ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 
+#ifdef _DEBUG
+void CheckMemoryLeak()
+{
+    HMODULE dxgidebugdll = GetModuleHandleW(L"dxgidebug.dll");
+    decltype(&DXGIGetDebugInterface) GetDebugInterface = reinterpret_cast<decltype(&DXGIGetDebugInterface)>(GetProcAddress(dxgidebugdll, "DXGIGetDebugInterface"));
+
+    IDXGIDebug* debug;
+    GetDebugInterface(IID_PPV_ARGS(&debug));
+
+    OutputDebugString(L"▼▼▼▼▼▼▼▼▼▼▼▼▼▼ 메모리 누수 체크 ▼▼▼▼▼▼▼▼▼▼▼▼▼▼\n");
+    debug->ReportLiveObjects(DXGI_DEBUG_D3D12, DXGI_DEBUG_RLO_SUMMARY);
+    OutputDebugString(L"▲▲▲▲▲ 반환되지 않은 IUnknown 객체가 있을 경우 표시합니다. ▲▲▲▲▲\n");
+
+    debug->Release();
+}
+#endif // !_DEBUG
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     _In_opt_ HINSTANCE hPrevInstance,
@@ -71,6 +87,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     }
 
     g_GameFramework.OnDestroy();
+
+#ifdef _DEBUG
+    //CheckMemoryLeak();
+#endif // !_DEBUG
     return (int)msg.wParam;
 }
 

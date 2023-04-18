@@ -28,9 +28,9 @@ public:
 	virtual void UpdateTransform(XMFLOAT4X4* parentMatrix = nullptr);
 	virtual void UpdateAnimationTransform(XMFLOAT4X4* parentMatrix = nullptr);
 
-	void SetMesh(const shared_ptr<Mesh>& mesh);
-	void SetTexture(const shared_ptr<Texture>& texture);
-	void SetMaterials(const shared_ptr<Materials>& materials);
+	void SetMesh(const string& name);
+	void SetTexture(const string& name);
+	void SetMaterials(const string& name);
 
 	virtual void SetPosition(const XMFLOAT3& position);
 	void SetScale(FLOAT x, FLOAT y, FLOAT z);
@@ -142,7 +142,7 @@ public:
 
 	virtual void UpdateAnimation(FLOAT timeElapsed) override;
 
-	void SetAnimationSet(const shared_ptr<AnimationSet>& animations);
+	void SetAnimationSet(const shared_ptr<AnimationSet>& animations, const string& name);
 	void SetAnimationOnTrack(int animationTrackNumber, int animation);
 
 	virtual void LoadObject(ifstream& in) override;
@@ -234,7 +234,7 @@ public:
 	AnimationController(int animationTracks);
 	~AnimationController();
 
-	void SetAnimationSet(const shared_ptr<AnimationSet>& animationSet);
+	void SetAnimationSet(const shared_ptr<AnimationSet>& animationSet, const string& name);
 
 	void SetTrackAnimation(int animationTrack, int animations);
 	void SetTrackEnable(int animationTrack, bool enable);

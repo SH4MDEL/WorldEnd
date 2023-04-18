@@ -67,6 +67,12 @@
     <Filter Include="셰이더 파일\Compute">
       <UniqueIdentifier>{8808d3f5-7db0-4252-aa11-b9b8dbf44cc6}</UniqueIdentifier>
     </Filter>
+    <Filter Include="소스 파일\Scene\LoadingScene">
+      <UniqueIdentifier>{c68ad9bb-1763-4911-bae2-9b6b3b124274}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Scene\GameScene">
+      <UniqueIdentifier>{c7b51ddc-03d5-46dd-95f7-a03c553b9315}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Client.h">
@@ -191,9 +197,6 @@
     <ClCompile Include="player.cpp">
       <Filter>소스 파일\Object</Filter>
     </ClCompile>
-    <ClCompile Include="towerLoadingScene.cpp">
-      <Filter>소스 파일\Scene</Filter>
-    </ClCompile>
     <ClCompile Include="camera.cpp">
       <Filter>소스 파일\Shader</Filter>
     </ClCompile>
@@ -208,9 +211,6 @@
     </ClCompile>
     <ClCompile Include="texture.cpp">
       <Filter>소스 파일\Shader</Filter>
-    </ClCompile>
-    <ClCompile Include="towerScene.cpp">
-      <Filter>소스 파일\Scene</Filter>
     </ClCompile>
     <ClCompile Include="monster.cpp">
       <Filter>소스 파일\Object</Filter>
@@ -251,14 +251,20 @@
     <ClCompile Include="fadeFilter.cpp">
       <Filter>소스 파일\Filter</Filter>
     </ClCompile>
+    <ClCompile Include="globalLoadingScene.cpp">
+      <Filter>소스 파일\Scene\LoadingScene</Filter>
+    </ClCompile>
+    <ClCompile Include="towerLoadingScene.cpp">
+      <Filter>소스 파일\Scene\LoadingScene</Filter>
+    </ClCompile>
     <ClCompile Include="villageLoadingScene.cpp">
-      <Filter>소스 파일\Scene</Filter>
+      <Filter>소스 파일\Scene\LoadingScene</Filter>
     </ClCompile>
     <ClCompile Include="loginScene.cpp">
-      <Filter>소스 파일\Scene</Filter>
+      <Filter>소스 파일\Scene\GameScene</Filter>
     </ClCompile>
-    <ClCompile Include="globalLoadingScene.cpp">
-      <Filter>소스 파일\Scene</Filter>
+    <ClCompile Include="towerScene.cpp">
+      <Filter>소스 파일\Scene\GameScene</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

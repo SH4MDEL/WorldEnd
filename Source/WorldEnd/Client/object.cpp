@@ -81,21 +81,25 @@ void GameObject::Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw)
 	UpdateTransform(nullptr);
 }
 
-void GameObject::SetMesh(const shared_ptr<Mesh>& mesh)
+void GameObject::SetMesh(const string& name)
 {
 	if (m_mesh) m_mesh.reset();
-	m_mesh = mesh;
+	if (Scene::m_globalMeshs[name]) m_mesh = Scene::m_globalMeshs[name];
+	else m_mesh = Scene::m_meshs[name];
 }
 
-void GameObject::SetTexture(const shared_ptr<Texture>& texture)
+void GameObject::SetTexture(const string& name)
 {
 	if (m_texture) m_texture.reset();
-	m_texture = texture;
+	if (Scene::m_globalTextures[name]) m_texture = Scene::m_globalTextures[name];
+	else m_texture = Scene::m_textures[name];
 }
 
-void GameObject::SetMaterials(const shared_ptr<Materials>& materials)
+void GameObject::SetMaterials(const string& name)
 {
-	m_materials = materials;
+	if (m_materials) m_materials.reset();
+	if (Scene::m_globalMaterials[name]) m_materials = Scene::m_globalMaterials[name];
+	else m_materials = Scene::m_materials[name];
 }
 
 XMFLOAT3 GameObject::GetPosition() const
@@ -214,7 +218,7 @@ void GameObject::LoadObject(ifstream& in)
 			string meshName(strLength, '\0');
 			in.read(&meshName[0], sizeof(CHAR) * strLength);
 
-			SetMesh(Scene::m_globalMeshs[meshName]);
+			SetMesh(meshName);
 			SetBoundingBox(m_mesh->GetBoundingBox());
 		}
 		else if (strToken == "<SkinningInfo>:") {		// 스킨메쉬 정보
@@ -224,7 +228,7 @@ void GameObject::LoadObject(ifstream& in)
 
 			// 스킨메쉬는 메쉬정보까지 담고 있으므로
 			// 메쉬까지 읽기만 하고 넘기도록 함
-			SetMesh(Scene::m_globalMeshs[meshName]);
+			SetMesh(meshName);
 			SetBoundingBox(m_mesh->GetBoundingBox());
 
 			// </SkinningInfo>		읽고 넘김
@@ -242,7 +246,7 @@ void GameObject::LoadObject(ifstream& in)
 			in.read((char*)(&strLength), sizeof(BYTE));
 			string materialName(strLength, '\0');
 			in.read(&materialName[0], sizeof(CHAR) * strLength);
-			SetMaterials(Scene::m_globalMaterials[materialName]);
+			SetMaterials(materialName);
 		}
 		else if (strToken == "<Children>:") {
 			INT childNum = 0;
@@ -300,9 +304,10 @@ void GameObject::LoadObject(ifstream& in, const shared_ptr<GameObject>& rootObje
 			string meshName(strLength, '\0');
 			in.read(&meshName[0], sizeof(CHAR) * strLength);
 
-			Scene::m_globalMeshs[meshName]->CreateShaderVariables(rootObject.get());
+			if (Scene::m_meshs[meshName]) Scene::m_meshs[meshName]->CreateShaderVariables(rootObject.get());
+			else Scene::m_globalMeshs[meshName]->CreateShaderVariables(rootObject.get());
 
-			SetMesh(Scene::m_globalMeshs[meshName]);
+			SetMesh(meshName);
 			SetBoundingBox(m_mesh->GetBoundingBox());
 		}
 		else if (strToken == "<SkinningInfo>:") {		// 스킨메쉬 정보
@@ -310,11 +315,12 @@ void GameObject::LoadObject(ifstream& in, const shared_ptr<GameObject>& rootObje
 			string meshName(strLength, '\0');
 			in.read(&meshName[0], sizeof(CHAR) * strLength);
 
-			Scene::m_globalMeshs[meshName]->CreateShaderVariables(rootObject.get());
+			if (Scene::m_meshs[meshName]) Scene::m_meshs[meshName]->CreateShaderVariables(rootObject.get());
+			else Scene::m_globalMeshs[meshName]->CreateShaderVariables(rootObject.get());
 
 			// 스킨메쉬는 메쉬정보까지 담고 있으므로
 			// 메쉬까지 읽기만 하고 넘기도록 함
-			SetMesh(Scene::m_globalMeshs[meshName]);
+			SetMesh(meshName);
 			SetBoundingBox(m_mesh->GetBoundingBox());
 
 			// </SkinningInfo>		읽고 넘김
@@ -332,7 +338,7 @@ void GameObject::LoadObject(ifstream& in, const shared_ptr<GameObject>& rootObje
 			in.read((char*)(&strLength), sizeof(BYTE));
 			string materialName(strLength, '\0');
 			in.read(&materialName[0], sizeof(CHAR) * strLength);
-			SetMaterials(Scene::m_globalMaterials[materialName]);
+			SetMaterials(materialName);
 		}
 		else if (strToken == "<Children>:") {
 			INT childNum = 0;
@@ -505,10 +511,10 @@ void AnimationObject::UpdateAnimation(FLOAT timeElapsed)
 	m_animationController->Update(timeElapsed, shared_from_this());
 }
 
-void AnimationObject::SetAnimationSet(const shared_ptr<AnimationSet>& animationSet)
+void AnimationObject::SetAnimationSet(const shared_ptr<AnimationSet>& animationSet, const string& name)
 {
 	if (m_animationController)
-		m_animationController->SetAnimationSet(animationSet);
+		m_animationController->SetAnimationSet(animationSet, name);
 }
 
 void AnimationObject::SetAnimationOnTrack(int animationTrackNumber, int animation)
@@ -700,9 +706,11 @@ AnimationController::~AnimationController()
 
 }
 
-void AnimationController::SetAnimationSet(const shared_ptr<AnimationSet>& animationSet)
+void AnimationController::SetAnimationSet(const shared_ptr<AnimationSet>& animationSet, const string& name)
 {
-	m_animationSet = animationSet;
+	if (m_animationSet) m_animationSet.reset();
+	if (animationSet) m_animationSet = animationSet;
+	else m_animationSet = Scene::m_globalAnimationSets[name];
 }
 
 void AnimationController::SetTrackAnimation(int animationTrack, int animation)

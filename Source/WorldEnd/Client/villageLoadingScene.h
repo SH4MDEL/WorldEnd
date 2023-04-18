@@ -18,6 +18,7 @@ public:
 
 	void BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist,
 		const ComPtr<ID3D12RootSignature>& rootsignature, const ComPtr<ID3D12RootSignature>& postRootSignature) override;
+	void DestroyObjects() override;
 
 	void Update(FLOAT timeElapsed) override;
 

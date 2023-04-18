@@ -78,7 +78,11 @@ void UI::RenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext)
 	}
 }
 
-void UI::SetTexture(const shared_ptr<Texture>& texture) { m_texture = texture; }
+void UI::SetTexture(const string& name) 
+{ 
+	if (Scene::m_globalTextures[name]) m_texture = Scene::m_globalTextures[name];
+	else m_texture = Scene::m_textures[name];
+}
 void UI::SetText(const wstring& text) { if (m_text) m_text->SetText(text); }
 void UI::SetChild(const shared_ptr<UI>& ui) { m_children.push_back(ui); }
 void UI::SetClickEvent(function<void()> chickEvent) { m_clickEvent = chickEvent; }

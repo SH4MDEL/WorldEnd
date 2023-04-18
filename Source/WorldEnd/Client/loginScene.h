@@ -5,6 +5,19 @@
 class LoginScene : public Scene
 {
 public:
+	enum class State {
+		Unused = 0x00,
+		OutputExitUI = 0x01,
+		OutputResult = 0x02,
+		Fading = 0x04,
+		BlurLevel1 = Unused,
+		BlurLevel2 = Unused,
+		BlurLevel3 = OutputExitUI,
+		BlurLevel4 = Unused,
+		BlurLevel5 = OutputResult,
+		CantPlayerControl = OutputExitUI | OutputResult | Fading
+	};
+
 	LoginScene();
 	~LoginScene() override;
 
@@ -21,6 +34,7 @@ public:
 
 	void BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist,
 		const ComPtr<ID3D12RootSignature>& rootsignature, const ComPtr<ID3D12RootSignature>& postRootSignature) override;
+	void DestroyObjects() override;
 
 	void OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime) override;
 	void OnProcessingMouseMessage(UINT message, LPARAM lParam) override;
@@ -34,6 +48,16 @@ public:
 
 	shared_ptr<Shadow> GetShadow() override { return nullptr; }
 
+	bool CheckState(State sceneState);
+	void SetState(State sceneState);
+	void ResetState(State sceneState);
+
 private:
+	INT													m_sceneState;
+
+	unique_ptr<BlurFilter>								m_blurFilter;
+	unique_ptr<FadeFilter>								m_fadeFilter;
+
+	shared_ptr<UI>										m_titleUI;
 };
 

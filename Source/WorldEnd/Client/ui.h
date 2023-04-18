@@ -26,7 +26,7 @@ public:
 	void SetEnable() { m_enable = true; }
 	void SetDisable() { m_enable = false; }
 
-	void SetTexture(const shared_ptr<Texture>& texture);
+	void SetTexture(const string& name);
 	void SetText(const wstring& text);
 	void SetChild(const shared_ptr<UI>& ui);
 	void SetClickEvent(function<void()> chickEvent);

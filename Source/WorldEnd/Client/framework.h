@@ -75,11 +75,6 @@ public:
 	void BuildObjects();
 	void CreateThread();
 	void ChangeScene(SCENETAG tag);
-	void ChangeScene(SCENETAG tag, 
-		unordered_map<string, shared_ptr<Mesh>>&& meshs,
-		unordered_map<string, shared_ptr<Texture>>&& textures,
-		unordered_map<string, shared_ptr<Materials>>&& materials,	
-		unordered_map<string, shared_ptr<AnimationSet>>&& animationSets);
 
 	void FrameAdvance();
 	void Update(FLOAT timeElapsed);
