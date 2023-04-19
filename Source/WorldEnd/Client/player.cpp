@@ -4,7 +4,7 @@
 
 Player::Player() : m_velocity{ 0.0f, 0.0f, 0.0f }, m_maxVelocity{ 10.0f }, m_friction{ 0.5f }, 
 	m_hp{ 100.f }, m_maxHp{ 100.f }, m_stamina{ PlayerSetting::MAX_STAMINA }, m_maxStamina{ PlayerSetting::MAX_STAMINA }, 
-	m_id{ -1 }, m_cooltimeList{ false, }, m_dashed{ false }, m_moveSpeed{ PlayerSetting::WALK_SPEED },
+	m_id{ -1 }, m_cooldownList{ false, }, m_dashed{ false }, m_moveSpeed{ PlayerSetting::WALK_SPEED },
 	m_interactable{ false }, m_interactableType{ InteractableType::NONE }, m_bufSize{ 0 }
 {
 }
@@ -20,7 +20,7 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 		return;
 
 	if (GetAsyncKeyState('Q') & 0x8000) {
-		if (!m_cooltimeList[ActionType::ULTIMATE]) {
+		if (!m_cooldownList[ActionType::ULTIMATE]) {
 
 			ChangeAnimation(PlayerAnimation::ULTIMATE);
 
@@ -100,13 +100,13 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 	}
 
 	if (GetAsyncKeyState(VK_SPACE) & 0x8000) {
-		if (!m_cooltimeList[ActionType::ROLL]) {
+		if (!m_cooldownList[ActionType::ROLL]) {
 			if (m_stamina >= PlayerSetting::MINIMUM_ROLL_STAMINA) {
 
 				ChangeAnimation(PlayerAnimation::ROLL);
 				m_moveSpeed = PlayerSetting::ROLL_SPEED;
 
-				CreateCooltimePacket(ActionType::ROLL);
+				CreateCooldownPacket(ActionType::ROLL);
 				CreateChangeStaminaPacket(false);
 
 				SendPacket();
@@ -115,7 +115,7 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 	}
 	
 	if (!m_dashed && GetAsyncKeyState(VK_SHIFT) & 0x8000) {
-		if (!m_cooltimeList[ActionType::DASH]) {
+		if (!m_cooldownList[ActionType::DASH]) {
 
 			if (m_stamina >= PlayerSetting::MINIMUM_DASH_STAMINA) {
 				m_dashed = true;
@@ -123,7 +123,7 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 				m_moveSpeed = PlayerSetting::DASH_SPEED;
 				m_startDash = chrono::system_clock::now();
 
-				CreateCooltimePacket(ActionType::DASH);
+				CreateCooldownPacket(ActionType::DASH);
 				CreateChangeStaminaPacket(false);
 
 				SendPacket();
@@ -137,7 +137,7 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 	}
 	
 	if (GetAsyncKeyState('E') & 0x8000) {
-		if (!m_cooltimeList[ActionType::SKILL]) {
+		if (!m_cooldownList[ActionType::SKILL]) {
 
 			ChangeAnimation(PlayerAnimation::SKILL);
 
@@ -163,21 +163,11 @@ void Player::OnProcessingMouseMessage(UINT message, LPARAM lParam)
 	if (ObjectAnimation::DEATH == m_currentAnimation)
 		return;
 
-	if (m_cooltimeList[ActionType::NORMAL_ATTACK])
+	if (m_cooldownList[ActionType::NORMAL_ATTACK])
 		return;
 
 	ChangeAnimation(ObjectAnimation::ATTACK);
-
-	switch (m_type) {
-	case PlayerType::WARRIOR:
-		CreateAttackPacket(ActionType::NORMAL_ATTACK);
-		break;
-
-	case PlayerType::ARCHER:
-		CreateShootPacket(ActionType::NORMAL_ATTACK);
-		break;
-	}
-	
+	CreateAttackPacket(ActionType::NORMAL_ATTACK);
 	SendPacket();
 }
 
@@ -374,9 +364,9 @@ void Player::SetStamina(FLOAT stamina)
 		m_staminaBar->SetGauge(m_stamina);
 }
 
-void Player::ResetCooltime(char type)
+void Player::ResetCooldown(char type)
 {
-	m_cooltimeList[type] = false;
+	m_cooldownList[type] = false;
 }
 
 bool Player::ChangeAnimation(USHORT animation)
@@ -411,15 +401,15 @@ void Player::CreateMovePacket()
 #endif
 }
 
-void Player::CreateCooltimePacket(ActionType type)
+void Player::CreateCooldownPacket(ActionType type)
 {
 #ifdef USE_NETWORK
-	m_cooltimeList[type] = true;
+	m_cooldownList[type] = true;
 
-	CS_COOLTIME_PACKET packet{};
+	CS_COOLDOWN_PACKET packet{};
 	packet.size = sizeof(packet);
-	packet.type = CS_PACKET_SET_COOLTIME;
-	packet.cooltime_type = type;
+	packet.type = CS_PACKET_SET_COOLDOWN;
+	packet.cooldown_type = type;
 	SetBuffer(&packet, packet.size);
 #endif
 }
@@ -427,25 +417,11 @@ void Player::CreateCooltimePacket(ActionType type)
 void Player::CreateAttackPacket(ActionType attackType)
 {
 #ifdef USE_NETWORK
-	m_cooltimeList[attackType] = true;
+	m_cooldownList[attackType] = true;
 
 	CS_ATTACK_PACKET packet{};
 	packet.size = sizeof(packet);
 	packet.type = CS_PACKET_ATTACK;
-	packet.attack_type = attackType;
-	packet.attack_time = chrono::system_clock::now();
-	SetBuffer(&packet, packet.size);
-#endif
-}
-
-void Player::CreateShootPacket(ActionType attackType)
-{
-#ifdef USE_NETWORK
-	m_cooltimeList[attackType] = true;
-
-	CS_SHOOT_PACKET packet{};
-	packet.size = sizeof(packet);
-	packet.type = CS_PACKET_SHOOT;
 	packet.attack_type = attackType;
 	packet.attack_time = chrono::system_clock::now();
 	SetBuffer(&packet, packet.size);

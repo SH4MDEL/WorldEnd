@@ -1,3 +1,4 @@
+#include <bitset>
 #include "object.h"
 #include "Server.h"
 
@@ -182,7 +183,7 @@ void WarpPortal::SendEvent(const std::span<INT>& ids, void* c)
 
 MovementObject::MovementObject() : m_velocity{ 0.f, 0.f, 0.f },
 	m_state{ State::FREE }, m_name{}, m_hp{}, m_damage{},
-	m_room_num{ static_cast<USHORT>(-1) }
+	m_room_num{ -1 }, m_trigger_flag{ 0 }
 {
 }
 
@@ -198,11 +199,116 @@ void MovementObject::SetName(const char* c)
 	SetName(std::string(c));
 }
 
+void MovementObject::SetTriggerFlag(UCHAR trigger, bool val)
+{
+	if(val)
+		m_trigger_flag |= (1 << static_cast<INT>(trigger));
+	else
+		m_trigger_flag &= ~(1 << static_cast<INT>(trigger));
+}
+
 XMFLOAT3 MovementObject::GetFront() const
 {
 	XMFLOAT3 front{ 0.f, 0.f, 1.f };
 	XMMATRIX rotate{ XMMatrixRotationRollPitchYaw(0.f, XMConvertToRadians(m_yaw), 0.f) };
 	XMStoreFloat3(&front, XMVector3TransformNormal(XMLoadFloat3(&front), rotate));
 	return front;
+}
+
+bool MovementObject::CheckTriggerFlag(UCHAR trigger)
+{
+	if (m_trigger_flag & (1 << static_cast<INT>(trigger)))
+		return false;
+	return true;
+}
+
+Trigger::Trigger()
+{
+	m_state = State::FREE;
+}
+
+void Trigger::SetCooldownEvent(INT id)
+{
+	Server& server = Server::GetInstance();
+
+	// 해당 오브젝트의 트리거 타이머 이벤트 설정
+	TIMER_EVENT ev{ .event_time = std::chrono::system_clock::now() + m_cooldown,
+		.obj_id = m_id, .targat_id = id, .event_type = EventType::TRIGGER_COOLDOWN,
+		.trigger_type = m_type };
+
+	server.SetTimerEvent(ev);
+}
+
+void Trigger::SetRemoveEvent(INT id)
+{
+	Server& server = Server::GetInstance();
+
+	INT room_num = server.m_clients[id]->GetRoomNum();
+
+	TIMER_EVENT ev{ .event_time = std::chrono::system_clock::now() + m_duration,
+		.obj_id = m_id, .targat_id = room_num, .event_type = EventType::TRIGGER_REMOVE };
+
+	server.SetTimerEvent(ev);
+}
+
+void Trigger::Activate(INT id)
+{
+	// 트리거의 공통 처리
+	//  - 트리거 플래그 확인
+	//  - 트리거 플래그 활성화
+	//  - 타이머 이벤트 생성
+	
+	// 트리거 처리, 유효성검사만 트리거 별로 따로 처리되도록 하면 됨
+
+	Server& server = Server::GetInstance();
+
+	if (IsValid(id)) {
+		if (server.m_clients[id]->CheckTriggerFlag(m_type)) {
+			// 플래그 활성화
+			server.m_clients[id]->SetTriggerFlag(m_type, true);
+
+			ProcessTrigger(id);
+
+			// 타이머 이벤트 생성
+			SetCooldownEvent(id);
+		}
+	}
+	
+}
+
+ArrowRain::ArrowRain()
+{
+	INT type = static_cast<INT>(TriggerType::ARROW_RAIN);
+	m_event_bounding_box.Extents = TriggerSetting::EXTENT[type];
+	m_cooldown = TriggerSetting::COOLDOWN[type];
+	m_duration = TriggerSetting::DURATION[type];
+
+	m_damage = 0.f;
+	m_created_id = -1;
+	m_type = TriggerType::ARROW_RAIN;
+}
+
+void ArrowRain::Create(FLOAT damage, INT id)
+{
+	Server& server = Server::GetInstance();
+	m_event_bounding_box.Center = server.m_clients[id]->GetPosition();
+
+	m_damage = damage;
+	m_created_id = id;
+	m_state = State::INGAME;
+	SetRemoveEvent(id);
+}
+
+void ArrowRain::ProcessTrigger(INT id)
+{
+	Server& server = Server::GetInstance();
+	server.m_clients[id]->DecreaseHp(m_damage, m_created_id);
+}
+
+bool ArrowRain::IsValid(INT id)
+{
+	if (MAX_USER <= id && id < MAX_OBJECT)
+		return true;
+	return false;
 }
 

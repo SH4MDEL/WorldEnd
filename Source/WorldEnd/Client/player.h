@@ -38,7 +38,7 @@ public:
 	PlayerType GetType() const { return m_type; }
 	InteractableType GetInteractableType() const { return m_interactableType; }
 
-	void ResetCooltime(char type);
+	void ResetCooldown(char type);
 	virtual bool ChangeAnimation(USHORT animation) override;
 	void ChangeAnimation(USHORT animation, bool other);
 
@@ -47,9 +47,8 @@ public:
 	INT GetId() const { return m_id; }
 
 	void CreateMovePacket();
-	void CreateCooltimePacket(ActionType type);
-	void CreateAttackPacket(ActionType cooltimeType);
-	void CreateShootPacket(ActionType cooltimeType);
+	void CreateCooldownPacket(ActionType type);
+	void CreateAttackPacket(ActionType cooldownType);
 	void CreateInteractPacket();
 	void CreateChangeStaminaPacket(bool value);
 	void SetBuffer(void* mess, size_t size);
@@ -73,7 +72,7 @@ private:
 
 	PlayerType				m_type = PlayerType::WARRIOR;
 
-	array<bool, ActionType::COUNT> m_cooltimeList;	// 쿨타임이면 true, 쿨타임중이 아니면 false
+	array<bool, ActionType::COUNT> m_cooldownList;	// 쿨타임이면 true, 쿨타임중이 아니면 false
 	
 	chrono::system_clock::time_point	m_startDash;
 	bool								m_dashed;

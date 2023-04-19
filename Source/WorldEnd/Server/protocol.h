@@ -27,9 +27,12 @@ constexpr int ARCHER_MONSTER_END = WARRIOR_MONSTER_END + MAX_ARCHER_MONSTER;
 constexpr int WIZARD_MONSTER_START = ARCHER_MONSTER_END;
 constexpr int WIZARD_MONSTER_END = ARCHER_MONSTER_END + MAX_WIZARD_MONSTER;
 
+constexpr int MAX_ARROW_RAIN = 10;
+
+
 constexpr char CS_PACKET_LOGIN = 1;
 constexpr char CS_PACKET_PLAYER_MOVE = 2;
-constexpr char CS_PACKET_SET_COOLTIME = 4;
+constexpr char CS_PACKET_SET_COOLDOWN = 4;
 constexpr char CS_PACKET_ATTACK = 5;
 constexpr char CS_PACKET_SHOOT = 6;
 constexpr char CS_PACKET_CHANGE_ANIMATION = 7;
@@ -45,7 +48,7 @@ constexpr char SC_PACKET_ADD_MONSTER = 6;
 constexpr char SC_PACKET_UPDATE_MONSTER = 7;
 constexpr char SC_PACKET_CHANGE_MONSTER_BEHAVIOR = 8;
 constexpr char SC_PACKET_CHANGE_ANIMATION = 9;
-constexpr char SC_PACKET_RESET_COOLTIME = 10;
+constexpr char SC_PACKET_RESET_COOLDOWN = 10;
 constexpr char SC_PACKET_CLEAR_FLOOR = 11;
 constexpr char SC_PACKET_FAIL_FLOOR = 12;
 constexpr char SC_PACKET_MONSTER_HIT = 13;
@@ -104,6 +107,30 @@ public:
 };
 // ----------------------------------
 
+enum TriggerType : UCHAR {
+	ARROW_RAIN
+};
+
+namespace TriggerSetting
+{
+	using namespace std::literals;
+
+	constexpr std::chrono::milliseconds 
+		COOLDOWN[static_cast<int>(PlayerType::COUNT)]{
+			300ms
+		};
+
+	constexpr std::chrono::milliseconds
+		DURATION[static_cast<int>(PlayerType::COUNT)]{
+			2000ms
+		};
+
+	constexpr DirectX::XMFLOAT3
+		EXTENT[static_cast<int>(PlayerType::COUNT)]{
+			DirectX::XMFLOAT3{ 10.65f, 10.65f, 10.65f }
+		};
+}
+
 namespace PlayerSetting
 {
 	using namespace std::literals;
@@ -122,21 +149,24 @@ namespace PlayerSetting
 	constexpr float DEFAULT_STAMINA_CHANGE_AMOUNT = 10.f;
 	constexpr float ROLL_STAMINA_CHANGE_AMOUNT = 15.f;
 
-	constexpr auto ROLL_COOLTIME = 3s;
-	constexpr auto DASH_COOLTIME = 1200ms;
+	constexpr auto ROLL_COOLDOWN = 3s;
+	constexpr auto DASH_COOLDOWN = 1200ms;
+
+	constexpr float SKILL_RATIO[static_cast<int>(PlayerType::COUNT)]{ 1.3f, 1.9f };
+	constexpr float ULTIMATE_RATIO[static_cast<int>(PlayerType::COUNT)]{ 2.f, 0.3f };
 
 	constexpr std::chrono::milliseconds
 		ATTACK_COLLISION_TIME[static_cast<int>(PlayerType::COUNT)]{ 210ms, 360ms };
 	constexpr std::chrono::milliseconds
 		SKILL_COLLISION_TIME[static_cast<int>(PlayerType::COUNT)]{ 340ms, 560ms };
 	constexpr std::chrono::milliseconds
-		ULTIMATE_COLLISION_TIME[static_cast<int>(PlayerType::COUNT)]{ 930ms, 0ms };
+		ULTIMATE_COLLISION_TIME[static_cast<int>(PlayerType::COUNT)]{ 930ms, 560ms };
 	constexpr std::chrono::milliseconds
-		ATTACK_COOLTIME[static_cast<int>(PlayerType::COUNT)]{ 1000ms, 1000ms };
+		ATTACK_COOLDOWN[static_cast<int>(PlayerType::COUNT)]{ 1000ms, 1000ms };
 	constexpr std::chrono::seconds
-		SKILL_COOLTIME[static_cast<int>(PlayerType::COUNT)]{ 7s, 7s };
+		SKILL_COOLDOWN[static_cast<int>(PlayerType::COUNT)]{ 7s, 2s };
 	constexpr std::chrono::seconds
-		ULTIMATE_COOLTIME[static_cast<int>(PlayerType::COUNT)]{ 20s, 20s };
+		ULTIMATE_COOLDOWN[static_cast<int>(PlayerType::COUNT)]{ 20s, 2s };
 	constexpr DirectX::XMFLOAT3
 		ULTIMATE_EXTENT[static_cast<int>(PlayerType::COUNT)]{
 			DirectX::XMFLOAT3{ 2.f, 2.f, 2.f },
@@ -266,11 +296,11 @@ struct CS_READY_PACKET      // 파티 준비 완료를 알려주는 패킷
 	bool ready_check;
 };
 
-struct CS_COOLTIME_PACKET
+struct CS_COOLDOWN_PACKET
 {
 	UCHAR size;
 	UCHAR type;
-	ActionType cooltime_type;
+	ActionType cooldown_type;
 };
 
 struct CS_ARROW_PACKET       // 공격키를 눌렀을때 투사체를 생성해주는 패킷
@@ -420,11 +450,11 @@ struct SC_CHANGE_ANIMATION_PACKET
 	USHORT animation;
 };
 
-struct SC_RESET_COOLTIME_PACKET
+struct SC_RESET_COOLDOWN_PACKET
 {
 	UCHAR size;
 	UCHAR type;
-	ActionType cooltime_type;
+	ActionType cooldown_type;
 };
 
 struct SC_CLEAR_FLOOR_PACKET

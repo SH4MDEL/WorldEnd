@@ -37,9 +37,6 @@ Client::Client() : m_socket{}, m_ready_check{ false }, m_remain_size{ 0 },
 	SetPlayerType(PlayerType::WARRIOR);
 	m_damage = 90.f;
 
-	m_skill_ratio = 1.3f;
-	m_ultimate_ratio = 2.0f;
-
 	m_max_hp = 100.f;
 	m_hp = 100.f;
 }
@@ -106,18 +103,6 @@ void Client::SetPlayerType(PlayerType type)
 	SetBoundingBox(type);
 }
 
-void Client::SetSkillRatio(ActionType type, FLOAT ratio)
-{
-	switch (type) {
-	case ActionType::SKILL:
-		m_skill_ratio = ratio;
-		break;
-	case ActionType::ULTIMATE:
-		m_ultimate_ratio = ratio;
-		break;
-	}
-}
-
 void Client::SetWeaponCenter(const XMFLOAT3& center)
 {
 	m_weopon_bounding_box.Center = center;
@@ -153,10 +138,10 @@ FLOAT Client::GetSkillRatio(ActionType type) const
 	FLOAT ratio{};
 	switch (type) {
 	case ActionType::SKILL:
-		ratio = m_skill_ratio;
+		ratio = PlayerSetting::SKILL_RATIO[static_cast<int>(m_player_type)];
 		break;
 	case ActionType::ULTIMATE:
-		ratio = m_ultimate_ratio;
+		ratio = PlayerSetting::ULTIMATE_RATIO[static_cast<int>(m_player_type)];
 		break;
 	default:
 		return 1.f;

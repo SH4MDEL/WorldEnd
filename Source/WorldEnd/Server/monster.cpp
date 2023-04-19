@@ -11,7 +11,7 @@ std::uniform_int_distribution<int> random_retarget_time(5, 10);
 
 Monster::Monster() : m_target_id{ -1 }, m_current_animation{ ObjectAnimation::IDLE },
 	m_current_behavior{ MonsterBehavior::COUNT }, m_aggro_level{ 0 },
-	m_last_behavior_id{ 0 }
+	m_last_behavior_id{ 1 }
 {
 }
 
@@ -21,7 +21,9 @@ void Monster::Init()
 	m_current_animation = ObjectAnimation::IDLE;
 	m_current_behavior = MonsterBehavior::COUNT;
 	m_aggro_level = 0;
-	m_last_behavior_id = 0;
+	m_last_behavior_id = 1;	// 0은 유효하지 않은 행동 id
+	m_room_num = -1;	// FREE 되자마자 몬스터 가져갈 시 
+						// 타이머 이벤트가 남아있을 수 있으므로 초기화
 }
 
 void Monster::UpdatePosition(const XMFLOAT3& dir, FLOAT elapsed_time)
@@ -144,6 +146,11 @@ void Monster::SetAggroLevel(BYTE aggro_level)
 		
 		SetDecreaseAggroLevelEvent();
 	}
+}
+
+void Monster::SetBehaviorId(BYTE id)
+{
+	m_last_behavior_id = id;
 }
 
 MONSTER_DATA Monster::GetMonsterData() const
@@ -359,6 +366,7 @@ void Monster::CollisionCheck()
 	
 	server.CollideObject(shared_from_this(), monster_ids, Server::CollideByStatic);
 	server.CollideObject(shared_from_this(), player_ids, Server::CollideByStatic);
+	game_room->CheckTriggerCollision(m_id);
 }
 
 void Monster::InitializePosition()

@@ -26,6 +26,11 @@ Server::Server()
 		m_clients[i] = std::make_shared<WizardMonster>();
 	}
 
+	for (size_t i = 0; i < MAX_ARROW_RAIN; ++i) {
+		m_triggers[i] = std::make_shared<ArrowRain>();
+		m_triggers[i]->SetId(i);
+	}
+
 	m_game_room_manager = std::make_unique<GameRoomManager>();
 
 	// ----------------------- //
@@ -222,12 +227,12 @@ void Server::WorkerThread()
 			break;
 		}
 
-		case OP_COOLTIME_RESET: {
+		case OP_COOLDOWN_RESET: {
 			// 해당 클라이언트의 쿨타임 초기화
-			SC_RESET_COOLTIME_PACKET packet{};
+			SC_RESET_COOLDOWN_PACKET packet{};
 			packet.size = sizeof(packet);
-			packet.type = SC_PACKET_RESET_COOLTIME;
-			packet.cooltime_type = static_cast<ActionType>(exp_over->_send_buf[0]);
+			packet.type = SC_PACKET_RESET_COOLDOWN;
+			packet.cooldown_type = static_cast<ActionType>(exp_over->_send_buf[0]);
 
 			m_clients[static_cast<int>(key)]->DoSend(&packet);
 
@@ -321,7 +326,7 @@ void Server::WorkerThread()
 			delete exp_over;
 			break;
 		}
-		case OP_AGGRO_REDUCE: {
+		case OP_AGRO_REDUCE: {
 			auto monster = dynamic_pointer_cast<Monster>(m_clients[static_cast<int>(key)]);
 			monster->DecreaseAggroLevel();
 
@@ -490,9 +495,10 @@ void Server::WorkerThread()
 			int id = static_cast<int>(key);
 			int room_num = m_clients[id]->GetRoomNum();
 			int* arrow_id = reinterpret_cast<int*>(&exp_over->_send_buf);
-			XMFLOAT3* position = reinterpret_cast<XMFLOAT3*>((exp_over->_send_buf + sizeof(int)));
+			ActionType* action_type = reinterpret_cast<ActionType*>((exp_over->_send_buf + sizeof(int)));
+			XMFLOAT3* position = reinterpret_cast<XMFLOAT3*>((exp_over->_send_buf + sizeof(int) + sizeof(char)));
 			XMFLOAT3* direction = reinterpret_cast<XMFLOAT3*>(
-				(exp_over->_send_buf + sizeof(int) + sizeof(XMFLOAT3)));
+				(exp_over->_send_buf + sizeof(int) + sizeof(char) + sizeof(XMFLOAT3)));
 
 			auto game_room = m_game_room_manager->GetGameRoom(room_num);
 			if (!game_room) {
@@ -501,7 +507,6 @@ void Server::WorkerThread()
 			}
 
 			std::span<int> ids{};
-			float damage = m_clients[id]->GetDamage();
 			if (IsPlayer(id)) {
 				ids = game_room->GetMonsterIds();
 				// 플레이어면 충돌대상은 몬스터이므로 ids는 몬스터
@@ -539,9 +544,12 @@ void Server::WorkerThread()
 				break;
 			}
 
+			float damage = m_clients[id]->GetDamage();
 			if (IsPlayer(id)) {
 				SendRemoveArrow(id, *arrow_id);
-				m_clients[near_id]->DecreaseHp(m_clients[id]->GetDamage(), id);
+
+				damage *= m_clients[id]->GetSkillRatio(*action_type);
+				m_clients[near_id]->DecreaseHp(damage, id);
 				auto& player_ids = game_room->GetPlayerIds();
 				SendMonsterHit(id, player_ids, near_id);
 			}
@@ -560,21 +568,25 @@ void Server::WorkerThread()
 			int arrow_id = game_room->GetArrowId();
 
 			switch (*type) {
-			case ActionType::NORMAL_ATTACK: {
+			case ActionType::NORMAL_ATTACK:
+			case ActionType::SKILL: 
+			{
 				SetRemoveArrowTimerEvent(id, arrow_id);
 
 				int target = GetNearTarget(id, PlayerSetting::AUTO_TARET_RANGE);
 				SendPlayerShoot(id, arrow_id, target);
-				SetHitScanTimerEvent(id, target, arrow_id);
+				SetHitScanTimerEvent(id, target, *type, arrow_id);
 				break;
 			}
-
-			case ActionType::SKILL: {
-
-				break;
-			}
-
 			case ActionType::ULTIMATE: {
+				int trigger_id = GetNewTriggerId(TriggerType::ARROW_RAIN);
+				auto trigger = dynamic_pointer_cast<ArrowRain>(m_triggers[trigger_id]);
+
+				// 위치, 데미지 설정 이후 생성하고, map 에 해당 트리거를 추가 함
+				float damage = m_clients[id]->GetDamage() * 
+					m_clients[id]->GetSkillRatio(ActionType::ULTIMATE);
+				trigger->Create(damage, id);
+				game_room->AddTrigger(trigger_id);
 
 				break;
 			}
@@ -609,6 +621,7 @@ void Server::WorkerThread()
 				m_clients[id]->SetState(State::FREE);
 				id = -1;
 			}
+			game_room->SetMonsterCount(0);
 
 			// 방을 비어 있는 상태로 변경
 			std::lock_guard<std::mutex> lock{ game_room->GetStateMutex() };
@@ -663,28 +676,28 @@ void Server::ProcessPacket(int id, char* p)
 		Move(client, pos);
 		break;
 	}
-	case CS_PACKET_SET_COOLTIME: {
-		CS_COOLTIME_PACKET* packet = reinterpret_cast<CS_COOLTIME_PACKET*>(p);
+	case CS_PACKET_SET_COOLDOWN: {
+		CS_COOLDOWN_PACKET* packet = reinterpret_cast<CS_COOLDOWN_PACKET*>(p);
 
-		SetCooltimeTimerEvent(id, packet->cooltime_type);
+		SetCooldownTimerEvent(id, packet->cooldown_type);
 		break;
 	}
 	case CS_PACKET_ATTACK: {
 		CS_ATTACK_PACKET* packet = reinterpret_cast<CS_ATTACK_PACKET*>(p);
 
 		// 충돌 위치, 시간을 서버에서 결정
-		if (PlayerType::WARRIOR == client->GetPlayerType()) {
+		switch (client->GetPlayerType()) {
+		case PlayerType::WARRIOR:
 			SetAttackTimerEvent(id, packet->attack_type, packet->attack_time);
+			break;
+
+		case PlayerType::ARCHER:
+			SetArrowShootTimerEvent(id, packet->attack_type, packet->attack_time);
+			break;
 		}
 
-		SetCooltimeTimerEvent(id, packet->attack_type);
-		break;
-	}
-	case CS_PACKET_SHOOT: {
-		CS_SHOOT_PACKET* packet = reinterpret_cast<CS_SHOOT_PACKET*>(p);
 
-		SetArrowShootTimerEvent(id, packet->attack_type, packet->attack_time);
-		SetCooltimeTimerEvent(id, packet->attack_type);
+		SetCooldownTimerEvent(id, packet->attack_type);
 		break;
 	}
 	case CS_PACKET_CHANGE_ANIMATION: {
@@ -747,6 +760,7 @@ void Server::Disconnect(int id)
 	cl->SetVelocity(0.f, 0.f, 0.f);
 	cl->SetYaw(0.f);
 	cl->SetStamina(PlayerSetting::MAX_STAMINA);
+	cl->SetTriggerFlag();
 
 	cl->SetRemainSize(0);
 	ExpOver& ex_over = cl->GetExpOver();
@@ -1045,7 +1059,7 @@ void Server::SendRemoveArrow(int client_id, int arrow_id)
 
 bool Server::IsPlayer(int client_id)
 {
-	if (client_id < MAX_USER)
+	if (0 <= client_id && client_id < MAX_USER)
 		return true;
 	return false;
 }
@@ -1113,6 +1127,28 @@ INT Server::GetNewMonsterId(MonsterType type)
 		std::lock_guard<std::mutex> lock{ m_clients[i]->GetStateMutex() };
 		if (State::FREE == m_clients[i]->GetState()) {
 			m_clients[i]->SetState(State::ACCEPT);
+			return i;
+		}
+	}
+
+	return -1;
+}
+
+INT Server::GetNewTriggerId(TriggerType type)
+{
+	INT start_num{}, end_num{};
+	switch (type) {
+	case TriggerType::ARROW_RAIN:
+		start_num = 0;
+		end_num = MAX_ARROW_RAIN;
+		break;
+	}
+
+	// 트리거 생성은 while 을 통해 반드시 보장을 해주어야 하는지?
+	for (size_t i = start_num; i < end_num; ++i) {
+		std::lock_guard<std::mutex> lock{ m_triggers[i]->GetStateMutex() };
+		if (State::FREE == m_triggers[i]->GetState()) {
+			m_triggers[i]->SetState(State::ACCEPT);
 			return i;
 		}
 	}
@@ -1258,9 +1294,9 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 	using namespace std::chrono;
 
 	switch (ev.event_type) {
-	case EventType::COOLTIME_RESET: {
+	case EventType::COOLDOWN_RESET: {
 		ExpOver* over = new ExpOver;
-		over->_comp_type = OP_COOLTIME_RESET;
+		over->_comp_type = OP_COOLDOWN_RESET;
 		memcpy(&over->_send_buf, &ev.action_type, sizeof(ActionType));
 
 		PostQueuedCompletionStatus(m_handle_iocp, 1, ev.obj_id, &over->_wsa_over);
@@ -1306,7 +1342,7 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 			return;
 
 		ExpOver* over = new ExpOver;
-		over->_comp_type = OP_AGGRO_REDUCE;
+		over->_comp_type = OP_AGRO_REDUCE;
 		PostQueuedCompletionStatus(m_handle_iocp, 1, ev.obj_id, &over->_wsa_over);
 		break;
 	}
@@ -1360,8 +1396,9 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 		ExpOver* over = new ExpOver;
 		over->_comp_type = OP_HIT_SCAN;
 		memcpy(over->_send_buf, &ev.targat_id, sizeof(int));
-		memcpy((over->_send_buf + sizeof(int)), &ev.position, sizeof(XMFLOAT3));
-		memcpy((over->_send_buf + sizeof(int) + sizeof(XMFLOAT3)),
+		memcpy(over->_send_buf + sizeof(int), &ev.action_type, sizeof(char));
+		memcpy((over->_send_buf + sizeof(int) + sizeof(char)), &ev.position, sizeof(XMFLOAT3));
+		memcpy((over->_send_buf + sizeof(int) + sizeof(char) + sizeof(XMFLOAT3)),
 			&ev.direction, sizeof(XMFLOAT3));
 		PostQueuedCompletionStatus(m_handle_iocp, 1, ev.obj_id, &over->_wsa_over);
 		break;
@@ -1388,6 +1425,23 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 		PostQueuedCompletionStatus(m_handle_iocp, 1, ev.obj_id, &over->_wsa_over);
 		break;
 	}
+	case EventType::TRIGGER_COOLDOWN: {
+		// 특정 id의 트리거(obj_id)에 대한 발동시킨 오브젝트(target_id)의 플래그 초기화
+		UCHAR trigger = m_triggers[ev.obj_id]->GetType();
+		m_clients[ev.targat_id]->SetTriggerFlag(trigger, false);
+		break;
+	}
+	case EventType::TRIGGER_REMOVE: {
+		// 특정 id의 트리거(obj_id)를 해당 게임룸(target_id)에서 빼고
+		// 해당 트리거를 FREE로 상태 변경
+		m_game_room_manager->RemoveTrigger(ev.obj_id, ev.targat_id);
+		{
+			std::lock_guard<std::mutex> l{ m_triggers[ev.obj_id]->GetStateMutex() };
+			m_triggers[ev.obj_id]->SetState(State::FREE);
+		}
+		break;
+	}
+
 	
 	}
 }
@@ -1428,11 +1482,11 @@ void Server::SetAttackTimerEvent(int id, ActionType attack_type,
 	m_timer_queue.push(ev);
 }
 
-void Server::SetCooltimeTimerEvent(int id, ActionType action_type)
+void Server::SetCooldownTimerEvent(int id, ActionType action_type)
 {
 	int player_type = static_cast<int>(m_clients[id]->GetPlayerType());
 
-	TIMER_EVENT ev{.obj_id = id, .event_type = EventType::COOLTIME_RESET,
+	TIMER_EVENT ev{.obj_id = id, .event_type = EventType::COOLDOWN_RESET,
 		.action_type = action_type };
 
 	ev.event_time = std::chrono::system_clock::now();
@@ -1441,19 +1495,19 @@ void Server::SetCooltimeTimerEvent(int id, ActionType action_type)
 	// 공격 외 쿨타임 처리
 	switch (action_type) {
 	case ActionType::NORMAL_ATTACK:
-		ev.event_time += PlayerSetting::ATTACK_COOLTIME[player_type];
+		ev.event_time += PlayerSetting::ATTACK_COOLDOWN[player_type];
 		break;
 	case ActionType::SKILL:
-		ev.event_time += PlayerSetting::SKILL_COOLTIME[player_type];
+		ev.event_time += PlayerSetting::SKILL_COOLDOWN[player_type];
 		break;
 	case ActionType::ULTIMATE:
-		ev.event_time += PlayerSetting::ULTIMATE_COOLTIME[player_type];
+		ev.event_time += PlayerSetting::ULTIMATE_COOLDOWN[player_type];
 		break;
 	case ActionType::DASH:
-		ev.event_time += PlayerSetting::DASH_COOLTIME;
+		ev.event_time += PlayerSetting::DASH_COOLDOWN;
 		break;
 	case ActionType::ROLL:
-		ev.event_time += PlayerSetting::ROLL_COOLTIME;
+		ev.event_time += PlayerSetting::ROLL_COOLDOWN;
 		break;
 	}
 	m_timer_queue.push(ev);
@@ -1499,7 +1553,8 @@ void Server::SetStaminaTimerEvent(int client_id, bool is_increase)
 	}
 }
 
-void Server::SetHitScanTimerEvent(int id, int target_id, int arrow_id)
+void Server::SetHitScanTimerEvent(int id, int target_id, ActionType action_type,
+	int arrow_id)
 {
 	if (-1 == target_id)
 		return;
@@ -1522,7 +1577,7 @@ void Server::SetHitScanTimerEvent(int id, int target_id, int arrow_id)
 
 	TIMER_EVENT ev{ .event_time = now + ms, .obj_id = id, .targat_id = arrow_id,
 		.position = m_clients[id]->GetPosition(), .direction = Vector3::Normalize(dir), 
-		.event_type = EventType::HIT_SCAN };
+		.event_type = EventType::HIT_SCAN, .action_type = action_type };
 	
 	m_timer_queue.push(ev);
 }

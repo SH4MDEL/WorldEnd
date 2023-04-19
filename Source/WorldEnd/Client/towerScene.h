@@ -76,7 +76,7 @@ public:
 	void RecvAddMonster(char* ptr);
 	void RecvUpdateMonster(char* ptr);
 	void RecvChangeMonsterBehavior(char* ptr);
-	void RecvResetCooltime(char* ptr);
+	void RecvResetCooldown(char* ptr);
 	void RecvClearFloor(char* ptr);
 	void RecvFailFloor(char* ptr);
 	void RecvMonsterHit(char* ptr);

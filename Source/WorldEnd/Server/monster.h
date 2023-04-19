@@ -13,6 +13,7 @@ public:
 
 	void SetTarget(INT player_id);
 	void SetAggroLevel(BYTE aggro_level);
+	void SetBehaviorId(BYTE id);
 
 	virtual MONSTER_DATA GetMonsterData() const override;
 	virtual MonsterType GetMonsterType() const override { return m_monster_type; }

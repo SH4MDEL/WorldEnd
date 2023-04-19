@@ -45,6 +45,9 @@ protected:
 	INT						m_id;
 };
 
+// ----------------- 이벤트 오브젝트 ------------------
+//  - NPC 로 사용하는 이벤트 오브젝트(게시판, 포탈, 전투시작 오브젝트, 강화NPC)
+//  - Trigger 로 사용하는 이벤트 오브젝트
 class EventObject : public GameObject
 {
 public:
@@ -121,6 +124,57 @@ private:
 	bool		m_is_valid;
 };
 
+//-------------------- 트리거 --------------------
+class Trigger : public EventObject
+{
+public:
+	Trigger();
+	virtual ~Trigger() = default;
+
+	void SetState(State state) { m_state = state; }
+
+	std::chrono::milliseconds GetCooldown() const { return m_cooldown; }
+	TriggerType GetType() const { return m_type; }
+	std::mutex& GetStateMutex() { return m_state_lock; }
+	State GetState() const { return m_state; }
+
+	void SetCooldownEvent(INT id);
+	void SetRemoveEvent(INT id);
+	void Activate(INT id);
+
+protected:
+	virtual void ProcessTrigger(INT id) = 0;
+	virtual bool IsValid(INT id) = 0;
+
+protected:
+	std::chrono::milliseconds  m_duration;
+	std::chrono::milliseconds  m_cooldown;	// 트리거 연속 발생 쿨타임
+	TriggerType				   m_type;
+
+	std::mutex	m_state_lock;
+	State		m_state;
+};
+
+// 화살비 트리거
+class ArrowRain : public Trigger
+{
+public:
+	ArrowRain();
+	~ArrowRain() = default;
+
+	void Create(FLOAT damage, INT id);
+
+private:
+	virtual void ProcessTrigger(INT id) override;
+	virtual bool IsValid(INT id) override;
+
+private:
+	FLOAT m_damage;
+	INT	  m_created_id;
+};
+
+
+// ---------------------- 동체 ----------------------
 class MovementObject : public GameObject
 {
 public:
@@ -137,7 +191,9 @@ public:
 	void SetMaxHp(FLOAT hp) { m_max_hp = hp; }
 	void SetHp(FLOAT hp) { m_hp = hp; }
 	void SetDamage(FLOAT damage) { m_damage = damage; }
-	void SetRoomNum(USHORT room_num) { m_room_num = room_num; }
+	void SetRoomNum(SHORT room_num) { m_room_num = room_num; }
+	void SetTriggerFlag() { m_trigger_flag = 0; }
+	void SetTriggerFlag(UCHAR trigger, bool val);
 
 	XMFLOAT3 GetVelocity() const { return m_velocity; }
 	std::mutex& GetStateMutex() { return m_state_lock; }
@@ -146,12 +202,12 @@ public:
 	FLOAT GetMaxHp() const { return m_max_hp; }
 	FLOAT GetHp() const { return m_hp; }
 	FLOAT GetDamage() const { return m_damage; }
-	USHORT GetRoomNum() const { return m_room_num; }
-
+	SHORT GetRoomNum() const { return m_room_num; }
 
 	virtual void Update(FLOAT elapsed_time) {}
 	virtual void DecreaseHp(FLOAT damage, INT it) {}
 	XMFLOAT3 GetFront() const;
+	bool CheckTriggerFlag(UCHAR trigger);
 
 	virtual PLAYER_DATA GetPlayerData() const { return PLAYER_DATA(); }
 	virtual PlayerType GetPlayerType() const { return PlayerType::COUNT; }
@@ -173,6 +229,7 @@ protected:
 	FLOAT		m_hp;
 	FLOAT		m_damage;
 
-	USHORT		m_room_num;
+	SHORT		m_room_num;
+	UCHAR		m_trigger_flag;
 };
 

@@ -673,7 +673,7 @@ INT TowerScene::SetTarget(const shared_ptr<Player>& player)
 
 			sub = Vector3::Sub(pos, elm.second->GetPosition());
 			length = Vector3::Length(sub);
-			if (length < min_length && length < PlayerSetting::AUTO_TARET_RANGE) {
+			if (length < min_length && length < PlayerSetting::AUTO_TARET_RANGE + 2.f) {
 				min_length = length;
 				target = elm.first;
 			}
@@ -802,8 +802,8 @@ void TowerScene::ProcessPacket(char* ptr)
 	case SC_PACKET_CHANGE_ANIMATION:
 		RecvChangeAnimation(ptr);
 		break;
-	case SC_PACKET_RESET_COOLTIME:
-		RecvResetCooltime(ptr);
+	case SC_PACKET_RESET_COOLDOWN:
+		RecvResetCooldown(ptr);
 		break;
 	case SC_PACKET_CLEAR_FLOOR:
 		RecvClearFloor(ptr);
@@ -996,10 +996,10 @@ void TowerScene::RecvChangeMonsterBehavior(char* ptr)
 	//monster->ChangeBehavior(packet->behavior);
 }
 
-void TowerScene::RecvResetCooltime(char* ptr)
+void TowerScene::RecvResetCooldown(char* ptr)
 {
-	SC_RESET_COOLTIME_PACKET* packet = reinterpret_cast<SC_RESET_COOLTIME_PACKET*>(ptr);
-	m_player->ResetCooltime(packet->cooltime_type);
+	SC_RESET_COOLDOWN_PACKET* packet = reinterpret_cast<SC_RESET_COOLDOWN_PACKET*>(ptr);
+	m_player->ResetCooldown(packet->cooldown_type);
 }
 
 void TowerScene::RecvClearFloor(char* ptr)
@@ -1038,7 +1038,8 @@ void TowerScene::RecvChangeAnimation(char* ptr)
 
 	if (packet->id == m_player->GetId()) {
 		if (PlayerType::ARCHER == m_player->GetType() &&
-			packet->animation == ObjectAnimation::ATTACK )
+			(packet->animation == ObjectAnimation::ATTACK ||
+				packet->animation == PlayerAnimation::SKILL))
 		{
 			RotateToTarget(m_player);
 		}
@@ -1048,7 +1049,8 @@ void TowerScene::RecvChangeAnimation(char* ptr)
 		player->ChangeAnimation(packet->animation, false);
 
 		if (PlayerType::ARCHER == player->GetType() &&
-			packet->animation == ObjectAnimation::ATTACK)
+			(packet->animation == ObjectAnimation::ATTACK ||
+			packet->animation == PlayerAnimation::SKILL))
 		{
 			RotateToTarget(player);
 		}
@@ -1122,7 +1124,7 @@ void TowerScene::RecvWarpNextFloor(char* ptr)
 		m_shaders["OBJECT"]->SetObject(m_gate);
 
 		for (size_t i = 0; i < ActionType::COUNT; ++i) {
-			m_player->ResetCooltime(static_cast<char>(i));
+			m_player->ResetCooldown(static_cast<char>(i));
 		}
 
 		m_fadeFilter->FadeIn([&](){});

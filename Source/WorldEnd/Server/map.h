@@ -19,6 +19,7 @@ public:
 	void SetType(EnvironmentType type) { m_type = type; }
 	void SetPlayer(INT player_id);
 	void SetState(GameRoomState state) { m_state = state; }
+	void SetMonsterCount(INT count) { m_monster_count = count; }
 
 	EnvironmentType GetType() const { return m_type; }
 	GameRoomState GetState() const { return m_state; }
@@ -34,9 +35,12 @@ public:
 	void SendMonsterData();
 	void SendAddMonster(INT player_id);
 
+	void AddTrigger(INT trigger_id);
+	void RemoveTrigger(INT trigger_id);
 	void RemovePlayer(INT player_id, INT room_num);
 	void RemoveMonster(INT monster_id);
-	void EventCollisionCheck(INT player_id);
+	void CheckEventCollision(INT player_id);
+	void CheckTriggerCollision(INT id);
 
 	void InitGameRoom(INT room_num);
 	void InitMonsters(INT room_num);
@@ -48,9 +52,12 @@ public:
 private:
 	std::array<INT, MAX_INGAME_USER>			m_player_ids;
 	std::array<INT, MAX_INGAME_MONSTER>			m_monster_ids;
-	std::chrono::system_clock::time_point		m_start_time;
+	//concurrency::concurrent_unordered_set<INT>	m_trigger_list;
+	std::unordered_set<INT>						m_trigger_list;
 	std::mutex									m_player_lock;
 	std::mutex									m_monster_lock;
+	std::mutex									m_trigger_lock;
+	std::chrono::system_clock::time_point		m_start_time;
 
 	std::shared_ptr<WarpPortal>		m_portal;
 	std::shared_ptr<BattleStarter>	m_battle_starter;
@@ -104,6 +111,7 @@ public:
 	bool EnterGameRoom(const std::shared_ptr<Party>& party);
 	void RemovePlayer(INT player_id);
 	void RemoveMonster(INT monster_id);
+	void RemoveTrigger(INT trigger_id, INT room_num);
 	void EventCollisionCheck(INT room_num, INT player_id);
 
 	void SendMonsterData();

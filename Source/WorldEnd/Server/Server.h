@@ -8,9 +8,10 @@
 
 enum class EventType : char 
 {
-	COOLTIME_RESET, BEHAVIOR_CHANGE, AGRO_LEVEL_DECREASE,
+	COOLDOWN_RESET, BEHAVIOR_CHANGE, AGRO_LEVEL_DECREASE,
 	ATTACK_COLLISION, MONSTER_ATTACK_COLLISION, STAMINA_CHANGE,
-	HIT_SCAN, ARROW_SHOOT, ARROW_REMOVE, GAME_ROOM_RESET
+	HIT_SCAN, ARROW_SHOOT, ARROW_REMOVE, GAME_ROOM_RESET,
+	TRIGGER_COOLDOWN, TRIGGER_REMOVE
 };
 
 struct TIMER_EVENT {
@@ -20,6 +21,7 @@ struct TIMER_EVENT {
 	XMFLOAT3 position;
 	XMFLOAT3 direction;
 	EventType event_type;
+	TriggerType trigger_type;
 	ActionType action_type;
 	MonsterBehavior next_behavior_type;
 	BYTE latest_id;
@@ -71,15 +73,16 @@ public:
 	void SetTimerEvent(const TIMER_EVENT& ev);
 	void SetAttackTimerEvent(int id, ActionType attack_type,
 		std::chrono::system_clock::time_point attack_time);
-	void SetCooltimeTimerEvent(int id, ActionType action_type);
+	void SetCooldownTimerEvent(int id, ActionType action_type);
 	void SetStaminaTimerEvent(int client_id, bool is_increase);
-	void SetHitScanTimerEvent(int id, int target_id, int arrow_id);
+	void SetHitScanTimerEvent(int id, int target_id, ActionType action_type, int arrow_id);
 	void SetArrowShootTimerEvent(int id, ActionType attack_type,
 		std::chrono::system_clock::time_point attack_time);
 	void SetRemoveArrowTimerEvent(int client_id, int arrow_id);
 
 	INT GetNewId();
 	INT GetNewMonsterId(MonsterType type);
+	INT GetNewTriggerId(TriggerType type);
 	GameRoomManager* GetGameRoomManager() { return m_game_room_manager.get(); }
 	HANDLE GetIOCPHandle() const { return m_handle_iocp; }
 
@@ -102,6 +105,7 @@ public:
 		const std::shared_ptr<GameObject>& static_object);
 
 	std::array<std::shared_ptr<MovementObject>, MAX_OBJECT> m_clients;
+	std::array<std::shared_ptr<Trigger>, MAX_ARROW_RAIN> m_triggers;
 
 private:
 	std::unique_ptr<GameRoomManager> m_game_room_manager;

@@ -170,6 +170,9 @@ void GameRoom::SendAddMonster(INT player_id)
 
 void GameRoom::RemovePlayer(INT player_id, INT room_num)
 {
+	if (player_id < 0 || player_id >= MAX_USER)
+		return;
+
 	for (INT& id : m_player_ids) {
 		if (id == player_id) {
 			std::lock_guard<std::mutex> lock{ m_player_lock };
@@ -210,62 +213,60 @@ void GameRoom::RemovePlayer(INT player_id, INT room_num)
 
 void GameRoom::RemoveMonster(INT monster_id)
 {
-	Server& server = Server::GetInstance();
-
-	BYTE old_value{}; 
-	std::array<INT, MAX_INGAME_MONSTER> ids{};
-	{
-		std::lock_guard<std::mutex> lock{ m_monster_lock };
-		ids = m_monster_ids;
-		old_value = m_monster_count.load();
-	}
-	auto it = find(ids.begin(), ids.end(), monster_id);
-	if (it == ids.end())
+	if (monster_id < MAX_USER || monster_id >= MAX_OBJECT)
 		return;
 
-	while (!m_monster_count.compare_exchange_weak(old_value, m_monster_count - 1)) {
-		
+	Server& server = Server::GetInstance();
+
+	INT monster_count{ -1 }, index{ -1 };
+	{
+		std::lock_guard<std::mutex> lock{ m_monster_lock };
+		for (size_t i = 0; INT & id : m_monster_ids) {
+			if (id == monster_id) {
+				id = -1;
+				monster_count = --m_monster_count;
+				index = i;
+			}
+			++i;
+		}
 	}
 
-	/*INT monster_count{};
-	for (INT id : m_monster_ids) {
-		if (id == monster_id) {
-			std::lock_guard<std::mutex> lock{ m_player_lock };
-			id = -1;
-		}
-	}*/
+	// 마지막 몬스터가 아니라면 삭제한 위치에 마지막 몬스터 id 끌고오기
+	if (index != monster_count) {
+		m_monster_ids[index] = m_monster_ids[monster_count];
+		m_monster_ids[monster_count] = -1;
+	}
 
-
-	INT end_index = static_cast<int>(m_monster_count);
-	if (0 == end_index) {
+	// 몬스터가 없다면 층 클리어
+	if (0 == monster_count) {
 		INT room_num = server.m_clients[monster_id]->GetRoomNum();
 		ExpOver* over = new ExpOver();
 		over->_comp_type = OP_FLOOR_CLEAR;
 		PostQueuedCompletionStatus(server.GetIOCPHandle(), 1, room_num, &over->_wsa_over);
 	}
 
-	// 마지막 몬스터였다면
-	if (it - ids.begin() == end_index) {
-		*it = -1;
-	}
-	// 마지막 몬스터가 아니라면 마지막 몬스터 끌고오기
-	else {
-		*it = ids[end_index];
-		ids[end_index] = -1;
-	}
-
-	{
-		std::lock_guard<std::mutex> lock{ m_monster_lock };
-		m_monster_ids.swap(ids);
-	}
-
+	// 해당 몬스터 상태 FREE
 	{
 		std::lock_guard<std::mutex> lock{ server.m_clients[monster_id]->GetStateMutex() };
-		server.m_clients[monster_id]->SetState(State::FREE);
+		auto monster = dynamic_pointer_cast<Monster>(server.m_clients[monster_id]);
+		monster->SetState(State::FREE);
+		monster->SetBehaviorId(0);
 	}
 }
 
-void GameRoom::EventCollisionCheck(INT player_id)
+void GameRoom::AddTrigger(INT trigger_id)
+{
+	std::lock_guard<std::mutex> lock{ m_trigger_lock };
+	m_trigger_list.insert(trigger_id);
+}
+
+void GameRoom::RemoveTrigger(INT trigger_id)
+{
+	std::lock_guard<std::mutex> lock{ m_trigger_lock };
+	m_trigger_list.erase(trigger_id);
+}
+
+void GameRoom::CheckEventCollision(INT player_id)
 {
 	// 전투 오브젝트와 충돌검사
 	if (GameRoomState::ACCEPT == m_state) {
@@ -274,6 +275,27 @@ void GameRoom::EventCollisionCheck(INT player_id)
 	// 포탈과 충돌검사
 	else if (GameRoomState::CLEAR == m_state) {
 		CollideWithEventObject(player_id, InteractableType::PORTAL);
+	}
+}
+
+void GameRoom::CheckTriggerCollision(INT id)
+{
+	Server& server = Server::GetInstance();
+
+	std::unordered_set<INT> trigger_list{};
+	{
+		std::lock_guard<std::mutex> l{ m_trigger_lock };
+		trigger_list = m_trigger_list;
+	}
+
+	BoundingOrientedBox obb{};
+	for (INT trigger_id : trigger_list) {
+		obb = server.m_triggers[trigger_id]->GetEventBoundingBox();
+
+		// 충돌했을 때 트리거 플래그가 0이면 Activate
+		if (obb.Intersects(server.m_clients[id]->GetBoundingBox())) {
+			server.m_triggers[trigger_id]->Activate(id);
+		}
 	}
 }
 
@@ -545,9 +567,18 @@ void GameRoomManager::RemoveMonster(INT monster_id)
 	m_game_rooms[room_num]->RemoveMonster(monster_id);
 }
 
+void GameRoomManager::RemoveTrigger(INT trigger_id, INT room_num)
+{
+	Server& server = Server::GetInstance();
+	if (!IsValidRoomNum(room_num)) {
+		return;
+	}
+	m_game_rooms[room_num]->RemoveTrigger(trigger_id);
+}
+
 void GameRoomManager::EventCollisionCheck(INT room_num, INT player_id)
 {
-	m_game_rooms[room_num]->EventCollisionCheck(player_id);
+	m_game_rooms[room_num]->CheckEventCollision(player_id);
 }
 
 void GameRoomManager::Update(float elapsed_time)
