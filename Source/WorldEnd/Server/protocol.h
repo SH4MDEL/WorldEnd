@@ -69,7 +69,10 @@ enum ActionType : char {
 	NORMAL_ATTACK, SKILL, ULTIMATE, DASH, ROLL, COUNT
 };
 enum class MonsterBehavior : char {
-	CHASE, RETARGET, TAUNT, PREPARE_ATTACK, ATTACK, DEATH, COUNT
+	CHASE, RETARGET, TAUNT, PREPARE_ATTACK, ATTACK, DEATH,	// 공용
+	BLOCK, BLOCKIDLE,							// 전사 몬스터
+	AIM, WALK_BACKWARD, FLEE, DELAY,			// 궁수 몬스터
+	COUNT
 };
 enum InteractableType : char {
 	BATTLE_STARTER, PORTAL, ENHANCMENT, RECORD_BOARD, NONE
@@ -102,9 +105,30 @@ public:
 	static constexpr int ANIMATION_START = 200;
 	enum USHORT {
 		LOOK_AROUND = ObjectAnimation::END + ANIMATION_START,
-		TAUNT, BLOCK, BLOCKIDLE
+		TAUNT, END
 	};
 };
+
+class WarriorMonsterAnimation : public MonsterAnimation
+{
+public:
+	static constexpr int ANIMATION_START = 300;
+	enum USHORT {
+		BLOCK = MonsterAnimation::END - MonsterAnimation::ANIMATION_START + ANIMATION_START,
+		BLOCKIDLE
+	};
+};
+
+class ArcherMonsterAnimation : public MonsterAnimation
+{
+public:
+	static constexpr int ANIMATION_START = 400;
+	enum USHORT {
+		DRAW = MonsterAnimation::END - MonsterAnimation::ANIMATION_START + ANIMATION_START,
+		AIM, WALK_BACKWARD, FLEE
+	};
+};
+
 // ----------------------------------
 
 enum TriggerType : UCHAR {
@@ -185,30 +209,34 @@ namespace MonsterSetting
 
 	constexpr auto DECREASE_AGRO_LEVEL_TIME = 10s;
 
-	constexpr USHORT BEHAVIOR_ANIMATION[static_cast<int>(MonsterBehavior::COUNT)]{
-		ObjectAnimation::RUN,
-		MonsterAnimation::LOOK_AROUND,
-		MonsterAnimation::TAUNT,
-		MonsterAnimation::TAUNT,
-		ObjectAnimation::ATTACK,
-		ObjectAnimation::DEATH
-	};
-	constexpr MonsterBehavior NEXT_BEHAVIOR[static_cast<int>(MonsterBehavior::COUNT)][2]{
-		{MonsterBehavior::RETARGET, MonsterBehavior::TAUNT}, 
-		{MonsterBehavior::CHASE, MonsterBehavior::CHASE},
-		{MonsterBehavior::CHASE, MonsterBehavior::CHASE},
-		{MonsterBehavior::ATTACK, MonsterBehavior::ATTACK},
-		{MonsterBehavior::PREPARE_ATTACK, MonsterBehavior::CHASE},
-		{MonsterBehavior::DEATH, MonsterBehavior::DEATH},
-	};
+	//constexpr USHORT WARRIOR_BEHAVIOR_ANIMATION[static_cast<int>(MonsterBehavior::COUNT)]
+	//{
+	//	ObjectAnimation::RUN,		// chase
+	//	MonsterAnimation::LOOK_AROUND,					// retarget
+	//	WarriorMonsterAnimation::TAUNT,					// taunt
+	//	WarriorMonsterAnimation::TAUNT,					// prepare_attack
+	//	ObjectAnimation::ATTACK,						// attack
+	//	ObjectAnimation::DEATH							// death
+	//};
 
-	constexpr std::chrono::milliseconds
-		BEHAVIOR_TIME[static_cast<int>(MonsterBehavior::COUNT)]{
-			7000ms, 3000ms, 2000ms, 1000ms, 625ms, 2000ms
-		};
+	//constexpr MonsterBehavior NEXT_BEHAVIOR[static_cast<int>(MonsterBehavior::COUNT)][2]{
+	//	{MonsterBehavior::RETARGET, MonsterBehavior::TAUNT}, 
+	//	{MonsterBehavior::CHASE, MonsterBehavior::CHASE},
+	//	{MonsterBehavior::CHASE, MonsterBehavior::CHASE},
+	//	{MonsterBehavior::ATTACK, MonsterBehavior::ATTACK},
+	//	{MonsterBehavior::PREPARE_ATTACK, MonsterBehavior::CHASE},
+	//	{MonsterBehavior::DEATH, MonsterBehavior::DEATH},
+	//};
+
+	//constexpr std::chrono::milliseconds
+	//	BEHAVIOR_TIME[static_cast<int>(MonsterBehavior::COUNT)]{
+	//		7000ms, 3000ms, 2000ms, 1000ms, 625ms, 2000ms
+	//	};
+
+
 	constexpr float ATTACK_RANGE[static_cast<int>(MonsterType::COUNT)]{
 		1.f, 7.f };
-	constexpr float BORDER_RANGE[static_cast<int>(MonsterType::COUNT)]{
+	constexpr float BOUNDARY_RANGE[static_cast<int>(MonsterType::COUNT)]{
 		2.f, 5.f };
 	constexpr std::chrono::milliseconds
 		ATK_COLLISION_TIME[static_cast<int>(MonsterType::COUNT)]{ 300ms, 0ms };

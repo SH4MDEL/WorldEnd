@@ -596,13 +596,34 @@ bool AnimationObject::ChangeAnimation(USHORT animation)
 		ChangeAnimationSettings(AnimationBlending::NORMAL, ANIMATION_TYPE_LOOP,
 			ANIMATION_TYPE_LOOP, m_currentAnimation);
 		break;
-	case MonsterAnimation::BLOCK:
-		start_num = MonsterAnimation::ANIMATION_START;
+	case WarriorMonsterAnimation::BLOCK:
+		start_num = WarriorMonsterAnimation::ANIMATION_START;
 		ChangeAnimationSettings(AnimationBlending::NORMAL, ANIMATION_TYPE_ONCE,
 			ANIMATION_TYPE_LOOP, m_currentAnimation);
 		break;
-	case MonsterAnimation::BLOCKIDLE:
-		start_num = MonsterAnimation::ANIMATION_START;
+	case WarriorMonsterAnimation::BLOCKIDLE:
+		start_num = WarriorMonsterAnimation::ANIMATION_START;
+		ChangeAnimationSettings(AnimationBlending::NORMAL, ANIMATION_TYPE_LOOP,
+			ANIMATION_TYPE_LOOP, m_currentAnimation);
+		break;
+
+	case ArcherMonsterAnimation::DRAW:
+		start_num = ArcherMonsterAnimation::ANIMATION_START;
+		ChangeAnimationSettings(AnimationBlending::NORMAL, ANIMATION_TYPE_ONCE,
+			ANIMATION_TYPE_LOOP, m_currentAnimation);
+		break;
+	case ArcherMonsterAnimation::AIM:
+		start_num = ArcherMonsterAnimation::ANIMATION_START;
+		ChangeAnimationSettings(AnimationBlending::NORMAL, ANIMATION_TYPE_LOOP,
+			ANIMATION_TYPE_LOOP, m_currentAnimation);
+		break;
+	case ArcherMonsterAnimation::WALK_BACKWARD:
+		start_num = ArcherMonsterAnimation::ANIMATION_START;
+		ChangeAnimationSettings(AnimationBlending::NORMAL, ANIMATION_TYPE_LOOP,
+			ANIMATION_TYPE_LOOP, m_currentAnimation);
+		break;
+	case ArcherMonsterAnimation::FLEE:
+		start_num = ArcherMonsterAnimation::ANIMATION_START;
 		ChangeAnimationSettings(AnimationBlending::NORMAL, ANIMATION_TYPE_LOOP,
 			ANIMATION_TYPE_LOOP, m_currentAnimation);
 		break;

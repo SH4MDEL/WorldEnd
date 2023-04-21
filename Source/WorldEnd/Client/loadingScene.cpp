@@ -1,6 +1,6 @@
 ﻿#include "loadingScene.h"
 
-constexpr int LOAD_COUNT = 63;
+constexpr int LOAD_COUNT = 66;
 
 LoadingScene::LoadingScene() : m_loadEnd{false}
 {
@@ -151,6 +151,11 @@ void LoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	LoadAnimationMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/Undead_WarriorMesh.bin"));
 	LoadAnimationSetFromFile(TEXT("./Resource/Animation/Undead_WarriorAnimation.bin"), "Undead_WarriorAnimation");
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/Undead_WarriorTexture.bin"));
+
+	LoadAnimationMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/Undead_ArcherMesh.bin"));
+	LoadAnimationSetFromFile(TEXT("./Resource/Animation/Undead_ArcherAnimation.bin"), "Undead_ArcherAnimation");
+	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/Undead_ArcherTexture.bin"));
+
 
 	// 타워 씬 메쉬 로딩
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/AD_ArchDeco_A_01Mesh.bin"));

@@ -13,6 +13,9 @@ Monster::Monster() : m_target_id{ -1 }, m_current_animation{ ObjectAnimation::ID
 	m_current_behavior{ MonsterBehavior::COUNT }, m_aggro_level{ 0 },
 	m_last_behavior_id{ 1 }
 {
+	m_bounding_box.Center = XMFLOAT3(0.028f, 1.27f, 0.f);
+	m_bounding_box.Extents = XMFLOAT3(0.8f, 1.3f, 0.6f);
+	m_bounding_box.Orientation = XMFLOAT4(0.f, 0.f, 0.f, 1.f);
 }
 
 void Monster::Init()
@@ -63,7 +66,7 @@ XMFLOAT3 Monster::GetPlayerDirection(INT player_id)
 	return Vector3::Normalize(sub);
 }
 
-bool Monster::CanAttack()
+bool Monster::IsInRange(FLOAT range)
 {
 	Server& server = Server::GetInstance();
 	if (-1 == m_target_id)
@@ -71,7 +74,7 @@ bool Monster::CanAttack()
 
 	FLOAT dist = Vector3::Distance(server.m_clients[m_target_id]->GetPosition(), m_position);
 
-	if (dist <= m_range)
+	if (dist <= range)
 		return true;
 
 	return false;
@@ -91,43 +94,26 @@ void Monster::SetDecreaseAggroLevelEvent()
 void Monster::SetBehaviorTimerEvent(MonsterBehavior behavior)
 {
 	m_current_behavior = behavior;
-	m_current_animation =
-		MonsterSetting::BEHAVIOR_ANIMATION[static_cast<int>(behavior)];
+	
+	// 몬스터별로 행동에 따라 애니메이션 설정
+	SetBehaviorAnimation(behavior);
 
 	TIMER_EVENT ev{.obj_id = m_id, .event_type = EventType::BEHAVIOR_CHANGE,
 	.aggro_level = m_aggro_level};
+
+	// 몬스터별로 행동에 따라 다음 행동 설정
+	ev.next_behavior_type = SetNextBehavior(behavior);
+	if (MonsterBehavior::COUNT == ev.next_behavior_type) {
+		return;
+	}
 
 	if (std::numeric_limits<BYTE>::max() == m_last_behavior_id)
 		m_last_behavior_id = 0;
 	ev.latest_id = ++m_last_behavior_id;
 
-	ev.event_time = std::chrono::system_clock::now() +
-		MonsterSetting::BEHAVIOR_TIME[static_cast<int>(behavior)];
+	// 몬스터별로 행동에 따라 얼마나 행동을 지속할 지 결정
+	ev.event_time = std::chrono::system_clock::now() + SetBehaviorTime(behavior);
 
-	int behavior_num{ 0 };
-	switch (behavior) {
-		case MonsterBehavior::CHASE: {
-			int percent = random_behavior(dre);
-			if (0 < percent && percent <= 50) {
-				behavior_num = 0;
-			}
-			else {
-				behavior_num = 1;
-			}
-			break;
-		}
-		case MonsterBehavior::ATTACK:
-			if (CanAttack()) {
-				behavior_num = 0;
-			}
-			else {
-				behavior_num = 1;
-			}
-			break;
-	}
-
-	ev.next_behavior_type = 
-		MonsterSetting::NEXT_BEHAVIOR[static_cast<int>(behavior)][behavior_num];
 
 	Server& server = Server::GetInstance();
 	server.SetTimerEvent(ev);
@@ -208,26 +194,35 @@ void Monster::DoBehavior(FLOAT elapsed_time)
 	case MonsterBehavior::ATTACK:
 		Attack();
 		break;
+
+		// 전사 몬스터 전용
+	case MonsterBehavior::BLOCK:
+
+		break;
+	case MonsterBehavior::BLOCKIDLE:
+
+		break;
+
+		// 궁수 몬스터 전용
+	case MonsterBehavior::AIM: {
+		XMFLOAT3 player_dir = GetPlayerDirection(m_target_id);
+		UpdateRotation(player_dir);
+		break;
+	}
+	case MonsterBehavior::WALK_BACKWARD:
+
+		break;
+	case MonsterBehavior::FLEE:
+
+		break;
+	case MonsterBehavior::DELAY:
+
+		break;
+
+
 	default:
 		return;
 	}
-	
-	// 행동 후 PREPARE_ATTACK, ATTACK 이 아니면 공격 가능한지 체크
-	if (!IsDoAttack()){
-		if (CanAttack()) {
-			ChangeBehavior(MonsterBehavior::PREPARE_ATTACK);
-		}
-	}
-}
-
-bool Monster::IsDoAttack()
-{
-	if ((MonsterBehavior::PREPARE_ATTACK == m_current_behavior)||
-		(MonsterBehavior::ATTACK == m_current_behavior))
-	{
-		return true;
-	}
-	return false;
 }
 
 void Monster::DecreaseHp(FLOAT damage, INT id)
@@ -352,7 +347,6 @@ void Monster::Attack()
 		ChangeBehavior(MonsterBehavior::RETARGET);
 	}
 	// 플레이어 공격
-	Server& server = Server::GetInstance();
 
 }
 
@@ -388,11 +382,9 @@ WarriorMonster::WarriorMonster()
 {
 	m_max_hp = 200.f;
 	m_damage = 20;
-	m_range = 1.5f;
+	m_attack_range = 1.5f;
+	m_boundary_range = 3.f;
 	m_monster_type = MonsterType::WARRIOR;
-	m_bounding_box.Center = XMFLOAT3(0.028f, 1.27f, 0.f);
-	m_bounding_box.Extents = XMFLOAT3(0.8f, 1.3f, 0.6f);
-	m_bounding_box.Orientation = XMFLOAT4(0.f, 0.f, 0.f, 1.f);
 }
 
 void WarriorMonster::Init()
@@ -407,24 +399,328 @@ void WarriorMonster::Update(FLOAT elapsed_time)
 	if (State::INGAME != m_state) return;
 
 	DoBehavior(elapsed_time);
+
+	// 공격 범위 내로 들어왔을 때 공격 전환이 가능하면 공격 전환
+	if (IsInRange(m_attack_range)) {
+		if (CanSwapAttackBehavior()) {
+			ChangeBehavior(MonsterBehavior::PREPARE_ATTACK);
+		}
+	}
+}
+
+bool WarriorMonster::CanSwapAttackBehavior()
+{
+	if ((MonsterBehavior::CHASE == m_current_behavior) ||
+		(MonsterBehavior::RETARGET == m_current_behavior))
+	{
+		return true;
+	}
+	return false;
+}
+
+MonsterBehavior WarriorMonster::SetNextBehavior(MonsterBehavior behavior)
+{
+	// 배회 추가 필요
+	// 배회중 일정 시간이 지나면 공격 대기로 진입
+	// 공격 대기는 머리위로 칼을 들어올리고 기모으는 상태
+	// 해당 상태에서 일정시간 지나면 칼을 내려치면서 공격하도록 해야 함
+
+	MonsterBehavior temp{};
+	switch (behavior) {
+	case MonsterBehavior::CHASE: {
+		int percent = random_behavior(dre);
+		if (1 <= percent && percent <= 50) {
+			temp = MonsterBehavior::RETARGET;
+		}
+		else {
+			temp = MonsterBehavior::TAUNT;
+		}
+		break; 
+	}
+	case MonsterBehavior::RETARGET:
+		temp = MonsterBehavior::CHASE;
+		break;
+	case MonsterBehavior::TAUNT:
+		temp = MonsterBehavior::CHASE;
+		break;
+	case MonsterBehavior::PREPARE_ATTACK:
+		temp = MonsterBehavior::ATTACK;
+		break;
+	case MonsterBehavior::ATTACK:
+		if (IsInRange(m_attack_range)) {
+			temp = MonsterBehavior::PREPARE_ATTACK;	// 공격 이후 아직 공격 가능하면 
+													// 배회할 것
+													// 아직은 배회가 없으므로 공격 대기
+		}
+		else {
+			temp = MonsterBehavior::CHASE;
+		}
+		break;
+	default:	// 사망 or 없는 행동이면 COUNT
+		temp = MonsterBehavior::COUNT;
+		break;
+	}
+	return temp;
+}
+
+void WarriorMonster::SetBehaviorAnimation(MonsterBehavior behavior)
+{
+	switch (behavior) {
+	case MonsterBehavior::CHASE:
+		m_current_animation = WarriorMonsterAnimation::RUN;
+		break;
+	case MonsterBehavior::RETARGET:
+		m_current_animation = WarriorMonsterAnimation::LOOK_AROUND;
+		break;
+	case MonsterBehavior::TAUNT:
+		m_current_animation = WarriorMonsterAnimation::TAUNT;
+		break;
+	case MonsterBehavior::PREPARE_ATTACK:
+		m_current_animation = WarriorMonsterAnimation::TAUNT;
+		break;
+	case MonsterBehavior::ATTACK:
+		m_current_animation = WarriorMonsterAnimation::ATTACK;
+		break;
+	case MonsterBehavior::DEATH:
+		m_current_animation = WarriorMonsterAnimation::DEATH;
+		break;
+	case MonsterBehavior::BLOCK:
+		m_current_animation = WarriorMonsterAnimation::BLOCK;
+		break;
+	case MonsterBehavior::BLOCKIDLE:
+		m_current_animation = WarriorMonsterAnimation::BLOCKIDLE;
+		break;
+	}
+}
+
+std::chrono::milliseconds WarriorMonster::SetBehaviorTime(MonsterBehavior behavior)
+{
+	using namespace std::literals;
+
+	std::chrono::milliseconds time{};
+
+	switch (behavior) {
+	case MonsterBehavior::CHASE:
+		time = 7000ms;
+		break;
+	case MonsterBehavior::RETARGET:
+		time = 3000ms;
+		break;
+	case MonsterBehavior::TAUNT:
+		time = 2000ms;
+		break;
+	case MonsterBehavior::PREPARE_ATTACK:
+		time = 1000ms;
+		break;
+	case MonsterBehavior::ATTACK:
+		time = 625ms;
+		break;
+	case MonsterBehavior::DEATH:
+		time = 2000ms;
+		break;
+	case MonsterBehavior::BLOCK:
+		time = 0ms;
+		break;
+	case MonsterBehavior::BLOCKIDLE:
+		time = 0ms;
+		break;
+	}
+
+	return time;
 }
 
 ArcherMonster::ArcherMonster()
 {
+	m_max_hp = 200.f;
+	m_damage = 20;
+	m_attack_range = 12.5f;
+	m_boundary_range = 2.5f;
+	m_monster_type = MonsterType::ARCHER;
 }
 
 void ArcherMonster::Init()
 {
 	Monster::Init();
+	m_hp = 200.f;
 }
 
 void ArcherMonster::Update(FLOAT elapsed_time)
 {
+	if (State::INGAME != m_state) return;
 
+	DoBehavior(elapsed_time);
+
+	// 경계 범위 내로 들어왔을 때 공격중이 아니라면 도망
+	if (IsInRange(m_boundary_range)) {
+		if (!DoesAttack()) {
+			ChangeBehavior(MonsterBehavior::WALK_BACKWARD);
+		}
+	}
+	// 공격 범위 내로 들어왔을 때 공격으로 전환이 가능하면 공격 전환
+	else if (IsInRange(m_attack_range)) {
+		if (CanSwapAttackBehavior()) {
+			ChangeBehavior(MonsterBehavior::PREPARE_ATTACK);
+		}
+	}
+}
+
+bool ArcherMonster::CanSwapAttackBehavior()
+{
+	if ((MonsterBehavior::CHASE == m_current_behavior) ||
+		(MonsterBehavior::RETARGET == m_current_behavior))
+	{
+		return true;
+	}
+	return false;
+}
+
+MonsterBehavior ArcherMonster::SetNextBehavior(MonsterBehavior behavior)
+{
+	MonsterBehavior temp{};
+	switch (behavior) {
+	case MonsterBehavior::CHASE: {
+		int percent = random_behavior(dre);
+		if (1 <= percent && percent <= 50) {
+			temp = MonsterBehavior::RETARGET;
+		}
+		else {
+			temp = MonsterBehavior::TAUNT;
+		}
+		break;
+	}
+	case MonsterBehavior::RETARGET:
+		temp = MonsterBehavior::CHASE;
+		break;
+	case MonsterBehavior::TAUNT:
+		temp = MonsterBehavior::CHASE;
+		break;
+	case MonsterBehavior::PREPARE_ATTACK:
+		temp = MonsterBehavior::AIM;
+		break;
+	case MonsterBehavior::AIM:
+		temp = MonsterBehavior::ATTACK;
+		break;
+	case MonsterBehavior::ATTACK:
+		if (IsInRange(m_attack_range)) {
+			temp = MonsterBehavior::DELAY;	// 공격 후 딜레이
+			// 공격이 빗나가면 일정 확률로 TAUNT(Stomp) 행동 진입 필요
+			// (빗나간것에 대해 화나서 발구르기)
+		}
+		else {
+			temp = MonsterBehavior::CHASE;
+		}
+		break;
+	case MonsterBehavior::WALK_BACKWARD:
+		temp = MonsterBehavior::PREPARE_ATTACK;
+		break;
+	case MonsterBehavior::FLEE:
+		temp = MonsterBehavior::PREPARE_ATTACK;
+		break;
+	case MonsterBehavior::DELAY:
+		temp = MonsterBehavior::RETARGET;
+		break;
+	default:	// 사망 or 없는 행동이면 COUNT
+		temp = MonsterBehavior::COUNT;
+		break;
+	}
+	return temp;
+}
+
+void ArcherMonster::SetBehaviorAnimation(MonsterBehavior behavior)
+{
+	switch (behavior) {
+	case MonsterBehavior::CHASE: {
+		m_current_animation = ObjectAnimation::WALK;
+		break;
+	}
+	case MonsterBehavior::RETARGET:
+		m_current_animation = ArcherMonsterAnimation::LOOK_AROUND;
+		break;
+	case MonsterBehavior::TAUNT:
+		m_current_animation = ArcherMonsterAnimation::TAUNT;
+		break;
+	case MonsterBehavior::PREPARE_ATTACK:
+		m_current_animation = ArcherMonsterAnimation::DRAW;
+		break;
+	case MonsterBehavior::ATTACK:
+		m_current_animation = ArcherMonsterAnimation::ATTACK;
+		break;
+	case MonsterBehavior::DEATH:
+		m_current_animation = ArcherMonsterAnimation::DEATH;
+		break;
+	case MonsterBehavior::AIM:
+		m_current_animation = ArcherMonsterAnimation::AIM;
+		break;
+	case MonsterBehavior::WALK_BACKWARD:
+		m_current_animation = ArcherMonsterAnimation::WALK_BACKWARD;
+		break;
+	case MonsterBehavior::FLEE:
+		m_current_animation = ArcherMonsterAnimation::RUN;
+		break;
+	case MonsterBehavior::DELAY:
+		m_current_animation = ArcherMonsterAnimation::IDLE;
+		break;
+	}
+}
+
+std::chrono::milliseconds ArcherMonster::SetBehaviorTime(MonsterBehavior behavior)
+{
+	using namespace std::literals;
+
+	std::chrono::milliseconds time{};
+
+	switch (behavior) {
+	case MonsterBehavior::CHASE:
+		time = 2000ms;
+		break;
+	case MonsterBehavior::RETARGET:
+		time = 2800ms;
+		break;
+	case MonsterBehavior::TAUNT:
+		time = 1800ms;
+		break;
+	case MonsterBehavior::PREPARE_ATTACK:
+		time = 1000ms;
+		break;
+	case MonsterBehavior::ATTACK:
+		time = 700ms;
+		break;
+	case MonsterBehavior::DEATH:
+		time = 2000ms;
+		break;
+	case MonsterBehavior::AIM:
+		time = 3000ms;
+		break;
+	case MonsterBehavior::WALK_BACKWARD:
+		time = 3000ms;
+		break;
+	case MonsterBehavior::FLEE:
+		time = 5000ms;
+		break;
+	case MonsterBehavior::DELAY:
+		time = 1000ms;
+		break;
+	}
+	return time;
+}
+
+bool ArcherMonster::DoesAttack()
+{
+	if ((MonsterBehavior::PREPARE_ATTACK == m_current_behavior) ||
+		(MonsterBehavior::ATTACK == m_current_behavior) || 
+		(MonsterBehavior::AIM == m_current_behavior))
+	{
+		return true;
+	}
+	return false;
 }
 
 WizardMonster::WizardMonster()
 {
+	m_max_hp = 200.f;
+	m_damage = 20;
+	m_attack_range = 4.5f;
+	m_monster_type = MonsterType::WIZARD;
 }
 
 void WizardMonster::Init()
@@ -435,4 +731,23 @@ void WizardMonster::Init()
 void WizardMonster::Update(FLOAT elapsed_time)
 {
 
+}
+
+bool WizardMonster::CanSwapAttackBehavior()
+{
+	return false;
+}
+
+MonsterBehavior WizardMonster::SetNextBehavior(MonsterBehavior behavior)
+{
+	return MonsterBehavior();
+}
+
+void WizardMonster::SetBehaviorAnimation(MonsterBehavior behavior)
+{
+}
+
+std::chrono::milliseconds WizardMonster::SetBehaviorTime(MonsterBehavior behavior)
+{
+	return std::chrono::milliseconds();
 }

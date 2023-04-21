@@ -971,9 +971,9 @@ void TowerScene::RecvUpdateMonster(char* ptr)
 
 	if (packet->monster_data.id < 0) return;
 
-	auto& monster = m_monsters[packet->monster_data.id];
-	if (!monster)
+	if (!m_monsters.contains(packet->monster_data.id))
 		return;
+	auto& monster = m_monsters[packet->monster_data.id];
 
 	monster->SetPosition(packet->monster_data.pos);
 	monster->SetHp(packet->monster_data.hp);
@@ -988,9 +988,9 @@ void TowerScene::RecvChangeMonsterBehavior(char* ptr)
 	SC_CHANGE_MONSTER_BEHAVIOR_PACKET* packet =
 		reinterpret_cast<SC_CHANGE_MONSTER_BEHAVIOR_PACKET*>(ptr);
 
-	auto& monster = m_monsters[packet->id];
-	if (!monster)
+	if (!m_monsters.contains(packet->id))
 		return;
+	auto& monster = m_monsters[packet->id];
 
 	monster->ChangeAnimation(packet->animation);
 	//monster->ChangeBehavior(packet->behavior);

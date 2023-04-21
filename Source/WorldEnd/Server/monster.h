@@ -26,7 +26,6 @@ public:
 
 	void ChangeBehavior(MonsterBehavior behavior);
 	void DoBehavior(FLOAT elapsed_time);
-	bool IsDoAttack();
 	virtual void DecreaseHp (FLOAT damage, INT id) override;
 	void DecreaseAggroLevel();
 	bool CheckPlayer();
@@ -37,26 +36,34 @@ public:
 	void Taunt();
 	void PrepareAttack();					// 공격 준비
 	void Attack();							// 공격
+	//virtual void WalkBackward();
 	void CollisionCheck();
+	
 
 	// 나중에 던전 매니저로 옮겨야 할 함수
 	void InitializePosition();
 
 protected:
+	void UpdatePosition(const XMFLOAT3& dir, FLOAT elapsed_time);
+	void UpdateRotation(const XMFLOAT3& dir);
+	XMFLOAT3 GetPlayerDirection(INT player_id);
+	bool IsInRange(FLOAT range);
+	void SetDecreaseAggroLevelEvent();
+	void SetBehaviorTimerEvent(MonsterBehavior behavior);
+	virtual bool CanSwapAttackBehavior() = 0;
+	virtual MonsterBehavior SetNextBehavior(MonsterBehavior behavior) = 0;
+	virtual void SetBehaviorAnimation(MonsterBehavior behavior) = 0;
+	virtual std::chrono::milliseconds SetBehaviorTime(MonsterBehavior behavior) = 0;
+
+protected:
 	MonsterType			m_monster_type;
-	FLOAT				m_range;
+	FLOAT				m_attack_range;
+	FLOAT				m_boundary_range;
 	INT					m_target_id;
 	USHORT				m_current_animation;
 	MonsterBehavior		m_current_behavior;
 	BYTE				m_aggro_level;
 	BYTE				m_last_behavior_id;
-
-	void UpdatePosition(const XMFLOAT3& dir, FLOAT elapsed_time);
-	void UpdateRotation(const XMFLOAT3& dir);
-	XMFLOAT3 GetPlayerDirection(INT player_id);
-	bool CanAttack();
-	void SetDecreaseAggroLevelEvent();
-	void SetBehaviorTimerEvent(MonsterBehavior behavior);
 };
 
 class WarriorMonster : public Monster
@@ -67,6 +74,12 @@ public:
 
 	virtual void Init() override;
 	virtual void Update(FLOAT elapsed_time) override;
+
+private:
+	virtual bool CanSwapAttackBehavior() override;
+	virtual MonsterBehavior SetNextBehavior(MonsterBehavior behavior) override;
+	virtual void SetBehaviorAnimation(MonsterBehavior behavior) override;
+	virtual std::chrono::milliseconds SetBehaviorTime(MonsterBehavior behavior) override;
 };
 
 class ArcherMonster : public Monster
@@ -77,6 +90,13 @@ public:
 
 	virtual void Init() override;
 	virtual void Update(FLOAT elapsed_time) override;
+
+private:
+	virtual bool CanSwapAttackBehavior() override;
+	virtual MonsterBehavior SetNextBehavior(MonsterBehavior behavior) override;
+	virtual void SetBehaviorAnimation(MonsterBehavior behavior) override;
+	virtual std::chrono::milliseconds SetBehaviorTime(MonsterBehavior behavior) override;
+	bool DoesAttack();
 };
 
 class WizardMonster : public Monster
@@ -87,5 +107,11 @@ public:
 
 	virtual void Init() override;
 	virtual void Update(FLOAT elapsed_time) override;
+
+private:
+	virtual bool CanSwapAttackBehavior() override;
+	virtual MonsterBehavior SetNextBehavior(MonsterBehavior behavior) override;
+	virtual void SetBehaviorAnimation(MonsterBehavior behavior) override;
+	virtual std::chrono::milliseconds SetBehaviorTime(MonsterBehavior behavior) override;
 };
 

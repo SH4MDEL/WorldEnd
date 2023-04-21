@@ -1321,13 +1321,26 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 			return;
 
 		if (MonsterBehavior::ATTACK == ev.next_behavior_type) {
-			TIMER_EVENT attack_ev{ .event_time = system_clock::now() + MonsterSetting::ATK_COLLISION_TIME[static_cast<int>(monster->GetMonsterType())],
-				.obj_id = ev.obj_id, .targat_id = monster->GetRoomNum(),
-				.position = Vector3::Add(monster->GetPosition(), monster->GetFront()),
-				.event_type = EventType::MONSTER_ATTACK_COLLISION, .action_type = ActionType::NORMAL_ATTACK,
-			};
+			switch (monster->GetMonsterType()) {
+			case MonsterType::WARRIOR: {
+				TIMER_EVENT attack_ev{ .event_time = system_clock::now() + MonsterSetting::ATK_COLLISION_TIME[static_cast<int>(monster->GetMonsterType())],
+					.obj_id = ev.obj_id, .targat_id = monster->GetRoomNum(),
+					.position = Vector3::Add(monster->GetPosition(), monster->GetFront()),
+					.event_type = EventType::MONSTER_ATTACK_COLLISION, .action_type = ActionType::NORMAL_ATTACK,
+				};
 
-			m_timer_queue.push(attack_ev);
+				m_timer_queue.push(attack_ev);
+				break;
+			}
+			case MonsterType::ARCHER: {
+
+				break;
+			}
+			case MonsterType::WIZARD: {
+
+				break;
+			}
+			}
 		}
 
 		ExpOver* over = new ExpOver;
