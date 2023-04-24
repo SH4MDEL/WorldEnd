@@ -24,6 +24,7 @@
     <ProjectGuid>{906a6c38-9254-47e4-8420-3ebff7a77584}</ProjectGuid>
     <RootNamespace>My2020StressW</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>ConcurrentConnectedUserTest</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -140,7 +141,9 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\..\2020_IOCP_SERVER\2020_IOCP_SERVER\protocol.h" />
+    <ClInclude Include="Client.h" />
     <ClInclude Include="NetworkModule.h" />
+    <ClInclude Include="stdafx.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="2020_StressW.rc" />
@@ -150,8 +153,10 @@
     <Image Include="small.ico" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Client.cpp" />
     <ClCompile Include="DrawModule.cpp" />
     <ClCompile Include="NetworkModule.cpp" />
+    <ClCompile Include="stdafx.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

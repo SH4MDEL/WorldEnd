@@ -7,7 +7,7 @@
 *		Visit My Site At nehe.gamedev.net
 */
 
-#include <windows.h>		// Header File For Windows
+#include "NetworkModule.h"
 #include <math.h>			// Header File For Windows Math Library
 #include <stdio.h>			// Header File For Standard Input/Output
 #include <stdarg.h>			// Header File For Variable Argument Routines
@@ -20,7 +20,7 @@
 #pragma comment (lib, "opengl32.lib")
 #pragma comment (lib, "glu32.lib")
 
-#include "NetworkModule.h"
+
 
 HDC			hDC = NULL;		// Private GDI Device Context
 HGLRC		hRC = NULL;		// Permanent Rendering Context
@@ -36,6 +36,8 @@ bool	active = TRUE;		// Window Active Flag Set To TRUE By Default
 bool	fullscreen = TRUE;	// Fullscreen Flag Set To Fullscreen Mode By Default
 
 LRESULT	CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);	// Declaration For WndProc
+
+NetworkModule g_net_module;
 
 GLvoid BuildFont(GLvoid)								// Build Our Bitmap Font
 {
@@ -128,16 +130,16 @@ int DrawGLScene(GLvoid)									// Here's Where We Do All The Drawing
 {
 	int size = 0;
 	float* points = nullptr;
-	GetPointCloud(&size, &points);
+	g_net_module.PointClient(&size, &points);
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);	// Clear Screen And Depth Buffer
 	glLoadIdentity();									// Reset The Current Modelview Matrix
 	glTranslatef(0.14f, -0.4f, -1.0f);						// Move One Unit Into The Screen
 															// Pulsing Colors Based On Text Position
-	glColor3f(1, 1, 0);
+	glColor3f(1, 0.5, 0);
 	// Position The Text On The Screen
 	glRasterPos2f(0.0f, 0.00f);
-	glPrint("STRESS TEST [%d]", (int)active_clients);	// Print GL Text To The Screen
+	glPrint("STRESS TEST [%d]", (int)g_active_clients);	// Print GL Text To The Screen
 	glRasterPos2f(0.0f, 0.05f);
 	glPrint("Delay : %dms", global_delay);
 
@@ -451,7 +453,8 @@ int WINAPI WinMain(HINSTANCE	hInstance,			// Instance
 		return 0;									// Quit If Window Was Not Created
 	}
 
-	InitializeNetwork();
+	
+	g_net_module.InitializeNetwork();
 
 	while (!done)									// Loop That Runs While done=FALSE
 	{

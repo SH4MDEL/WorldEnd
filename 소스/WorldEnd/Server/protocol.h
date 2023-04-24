@@ -6,7 +6,7 @@ constexpr short SERVER_PORT = 9000;
 
 constexpr int BUF_SIZE = 5000;
 constexpr int NAME_SIZE = 20;
-constexpr int MAX_INGAME_USER = 3;
+constexpr int MAX_INGAME_USER = 3000;
 constexpr int MAX_INGAME_MONSTER = 10;
 constexpr int MAX_GAME_ROOM_NUM = 3000;
 constexpr int MAX_PARTY_NUM = 1000;
@@ -307,7 +307,7 @@ struct SC_UPDATE_CLIENT_PACKET
 {
 	UCHAR size;
 	UCHAR type;
-	PLAYER_DATA	data[MAX_INGAME_USER];
+	PLAYER_DATA	data;
 	UINT move_time;
 };
 

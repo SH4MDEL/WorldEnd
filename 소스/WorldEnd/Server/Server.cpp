@@ -335,7 +335,7 @@ void Server::ProcessPacket(int id, char* p)
 		// 원래는 던전 진입 시 던전에 배치해야하지만
 		// 현재 마을이 없이 바로 던전에 진입하므로 던전에 입장시킴
 		m_game_room_manager->SetPlayer(0, id);
-		m_game_room_manager->SendAddMonster(id);
+	    m_game_room_manager->SendAddMonster(id);
 
 		std::cout << cl->GetId() << " is connect" << std::endl;
 		break;
@@ -504,14 +504,15 @@ void Server::SendPlayerDataPacket()
 {
 	using namespace std::chrono;
 
-	SC_UPDATE_CLIENT_PACKET packet{};
-	packet.size = sizeof(packet);
-	packet.type = SC_PACKET_UPDATE_CLIENT;
-	packet.move_time = static_cast<unsigned>(duration_cast<milliseconds>(high_resolution_clock::now().time_since_epoch()).count());
+	SC_UPDATE_CLIENT_PACKET packet[MAX_INGAME_USER];
 	
-	for (int i = 0; i < MAX_INGAME_USER; ++i)
-		packet.data[i] = m_clients[i]->GetPlayerData();
-
+	
+	for (int i = 0; i < MAX_INGAME_USER; ++i) {
+		packet[i].size = sizeof(packet);
+		packet[i].type = SC_PACKET_UPDATE_CLIENT;
+		packet[i].move_time = static_cast<unsigned>(duration_cast<milliseconds>(high_resolution_clock::now().time_since_epoch()).count());
+		packet[i].data = m_clients[i]->GetPlayerData();
+	}
 	for (size_t i = 0; i < MAX_USER; ++i){
 		if (State::ST_INGAME != m_clients[i]->GetState()) continue;
 		

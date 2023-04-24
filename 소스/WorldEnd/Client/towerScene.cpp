@@ -497,7 +497,7 @@ void TowerScene::RecvPacket()
 
 void TowerScene::ProcessPacket(char* ptr)
 {
-	//cout << "[Process Packet] Packet Type: " << (int)ptr[1] << endl;//test
+	cout << "[Process Packet] Packet Type: " << (int)ptr[1] << endl;//test
 
 	switch (ptr[1])
 	{
@@ -623,22 +623,22 @@ void TowerScene::RecvUpdateClient(char* ptr)
 	SC_UPDATE_CLIENT_PACKET* packet = reinterpret_cast<SC_UPDATE_CLIENT_PACKET*>(ptr);
 
 	for (int i = 0; i < MAX_INGAME_USER; ++i) {
-		if (-1 == packet->data[i].id) {
+		if (-1 == packet[i].data.id) {
 			continue;
 		}
 
-		if (packet->data[i].id == m_player->GetID()) {
-			m_player->SetPosition(packet->data[i].pos);
+		if (packet[i].data.id == m_player->GetID()) {
+			m_player->SetPosition(packet->data.pos);
 			continue;
 		}
 		else {
 			// towerScene의 multiPlayer를 업데이트 해도 shader의 multiPlayer도 업데이트 됨.
-			XMFLOAT3 playerPosition = packet->data[i].pos;
-			auto& player = m_multiPlayers[packet->data[i].id];
+			XMFLOAT3 playerPosition = packet[i].data.pos;
+			auto& player = m_multiPlayers[packet[i].data.id];
 			player->SetPosition(playerPosition);
-			player->SetVelocity(packet->data[i].velocity);
-			player->Rotate(0.f, 0.f, packet->data[i].yaw - player->GetYaw());
-			player->SetHp(packet->data[i].hp);
+			player->SetVelocity(packet[i].data.velocity);
+			player->Rotate(0.f, 0.f, packet[i].data.yaw - player->GetYaw());
+			player->SetHp(packet[i].data.hp);
 		}
 	}
 }
