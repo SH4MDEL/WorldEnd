@@ -37,16 +37,18 @@ cbuffer cbLight : register(b5)
 float4 DirectionalLight(int index, float3 normal, float3 toCamera, PhongMaterial material)
 {
 	float3 toLight = -lights[index].m_direction;
-	float diffuseFactor = dot(toLight, normal);
+	//float diffuseFactor = max(dot(toLight, normal), 0.f);
+	float diffuseFactor = 1.f;
 	float specularFactor = 0.0f;
-	if (diffuseFactor > 0.0f) {
-		if (material.m_specular.a != 0.0f) {
-			float3 Half = normalize(toCamera + toLight);
-			specularFactor = pow(max(dot(Half, normal), 0.0f), material.m_specular.a);
-		}
+
+	if (material.m_specular.a != 0.0f) {
+		float3 Half = normalize(toCamera + toLight);
+		specularFactor = pow(max(dot(Half, normal), 0.0f), material.m_specular.a);
 	}
 
-	return((lights[index].m_ambient * material.m_ambient) + (lights[index].m_diffuse * diffuseFactor * material.m_diffuse) + (lights[index].m_specular * specularFactor * material.m_specular));
+	return((lights[index].m_ambient * material.m_ambient) + 
+		(lights[index].m_diffuse * diffuseFactor * material.m_diffuse) + 
+		(lights[index].m_specular * specularFactor * material.m_specular));
 }
 
 float4 PointLight(int index, float3 position, float3 normal, float3 toCamera, PhongMaterial material)

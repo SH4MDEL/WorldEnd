@@ -7,7 +7,7 @@ TowerScene::TowerScene() :
 				0.0f, -0.5f, 0.0f, 0.0f,
 				0.0f, 0.0f, 1.0f, 0.0f,
 				0.5f, 0.5f, 0.0f, 1.0f),
-	m_sceneState{ (INT)State::None }
+	m_sceneState{ (INT)State::InitScene }
 {}
 
 TowerScene::~TowerScene()
@@ -20,14 +20,358 @@ void TowerScene::OnCreate(const ComPtr<ID3D12Device>& device,
 	const ComPtr<ID3D12RootSignature>& rootSignature, 
 	const ComPtr<ID3D12RootSignature>& postRootSignature)
 {
+	m_sceneState = (INT)State::InitScene;
 	BuildObjects(device, commandList, rootSignature, postRootSignature);
 }
 
 void TowerScene::OnDestroy()
 {
+	m_meshs.clear();
+	m_textures.clear();
+	m_materials.clear();
+	m_animationSets.clear();
+
+	for (auto& shader : m_globalShaders) shader.second->Clear();
+
+	DestroyObjects();
 }
 
 void TowerScene::ReleaseUploadBuffer() {}
+
+void TowerScene::CreateShaderVariable(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList)
+{
+	DX::ThrowIfFailed(device->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Buffer(sizeof(SceneInfo)),
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&m_sceneBuffer)));
+
+	m_sceneBuffer->Map(0, nullptr, reinterpret_cast<void**>(&m_sceneBufferPointer));
+}
+
+void TowerScene::UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& commandList)
+{
+	BoundingSphere sceneBounds{ XMFLOAT3{ 0.0f, 0.0f, 10.0f }, 60.f };
+
+	// Only the first "main" light casts a shadow.
+	XMVECTOR lightDir = XMLoadFloat3(&m_lightSystem->m_lights[0].m_direction);
+	XMVECTOR lightPos{ -2.0f * sceneBounds.Radius * lightDir };
+	XMVECTOR targetPos = XMLoadFloat3(&sceneBounds.Center);
+	XMVECTOR lightUp = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+	m_lightView = XMMatrixLookAtLH(lightPos, targetPos, lightUp);
+
+	XMFLOAT3 sphereCenterLS;
+	XMStoreFloat3(&sphereCenterLS, XMVector3TransformCoord(targetPos, m_lightView));
+
+	float l = sphereCenterLS.x - sceneBounds.Radius;
+	float b = sphereCenterLS.y - sceneBounds.Radius;
+	float n = sphereCenterLS.z - sceneBounds.Radius;
+	float r = sphereCenterLS.x + sceneBounds.Radius;
+	float t = sphereCenterLS.y + sceneBounds.Radius;
+	float f = sphereCenterLS.z + sceneBounds.Radius;
+
+	m_lightProj = XMMatrixOrthographicOffCenterLH(l, r, b, t, n, f);
+
+	::memcpy(&m_sceneBufferPointer->lightView, &XMMatrixTranspose(m_lightView), sizeof(XMFLOAT4X4));
+	::memcpy(&m_sceneBufferPointer->lightProj, &XMMatrixTranspose(m_lightProj), sizeof(XMFLOAT4X4));
+	::memcpy(&m_sceneBufferPointer->NDCspace, &XMMatrixTranspose(m_NDCspace), sizeof(XMFLOAT4X4));
+
+	D3D12_GPU_VIRTUAL_ADDRESS virtualAddress = m_sceneBuffer->GetGPUVirtualAddress();
+	commandList->SetGraphicsRootConstantBufferView((INT)ShaderRegister::Scene, virtualAddress);
+
+	//if (m_camera) m_camera->UpdateShaderVariable(commandList);
+	//if (m_lightSystem) m_lightSystem->UpdateShaderVariable(commandList);
+}
+
+void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist,
+	const ComPtr<ID3D12RootSignature>& rootsignature, const ComPtr<ID3D12RootSignature>& postRootSignature)
+{
+	CreateShaderVariable(device, commandlist);
+
+	// 화살 생성
+	for (size_t i = 0; i < RoomSetting::MAX_ARROWS; ++i) {
+		auto arrow = make_shared<Arrow>();
+		LoadObjectFromFile(TEXT("./Resource/Model/Archer_WeaponArrow.bin"), arrow);
+		m_arrows.insert({ i, arrow });
+	}
+
+	// 플레이어 생성
+	m_player = make_shared<Player>();
+	m_player->SetType(PlayerType::ARCHER);
+	LoadPlayerFromFile(m_player);
+
+	m_player->SetPosition(XMFLOAT3{ 0.f, 0.f, -50.f });
+	m_globalShaders["ANIMATION"]->SetPlayer(m_player);
+
+	// 체력 바 생성
+	SetHpBar(m_player);
+
+	// 스테미나 바 생성
+	auto staminaBar = make_shared<GaugeBar>(0.015f);
+	staminaBar->SetMesh("STAMINABAR");
+	staminaBar->SetTexture("STAMINABAR");
+	staminaBar->SetMaxGauge(m_player->GetMaxStamina());
+	staminaBar->SetGauge(m_player->GetStamina());
+	staminaBar->SetPosition(XMFLOAT3(FAR_POSITION, FAR_POSITION, FAR_POSITION));
+	m_globalShaders["VERTGAUGE"]->SetObject(staminaBar);
+	m_player->SetStaminaBar(staminaBar);
+
+	// 카메라 생성
+	m_camera = make_shared<ThirdPersonCamera>();
+	m_camera->CreateShaderVariable(device, commandlist);
+	m_camera->SetPlayer(m_player);
+	m_player->SetCamera(m_camera);
+
+	XMFLOAT4X4 projMatrix;
+	XMStoreFloat4x4(&projMatrix, XMMatrixPerspectiveFovLH(0.25f * XM_PI, g_GameFramework.GetAspectRatio(), 0.1f, 100.0f));
+	m_camera->SetProjMatrix(projMatrix);
+
+	m_shadow = make_shared<Shadow>(device, 4096 << 1, 4096 << 1);
+
+	// 씬 로드
+	LoadSceneFromFile(TEXT("./Resource/Scene/TowerScene.bin"), TEXT("TowerScene"));
+
+	// 게이트 로드
+	m_gate = make_shared<WarpGate>();
+	LoadObjectFromFile(TEXT("./Resource/Model/TowerScene/AD_Gate.bin"), m_gate);
+	m_gate->SetPosition(RoomSetting::BATTLE_STARTER_POSITION);
+	m_gate->SetScale(0.5f, 0.5f, 0.5f);
+	m_globalShaders["OBJECT"]->SetObject(m_gate);
+
+	// 스카이 박스 생성
+	auto skybox{ make_shared<GameObject>() };
+	skybox->SetMesh("SKYBOX");
+	skybox->SetTexture("SKYBOX");
+	m_globalShaders["SKYBOX"]->SetObject(skybox);
+
+	// 파티클 시스템 생성
+	g_particleSystem = make_unique<ParticleSystem>(device, commandlist,
+		static_pointer_cast<ParticleShader>(m_globalShaders["EMITTERPARTICLE"]),
+		static_pointer_cast<ParticleShader>(m_globalShaders["PUMPERPARTICLE"]));
+
+	BuildUI(device, commandlist);
+
+	// 필터 생성
+	auto windowWidth = g_GameFramework.GetWindowWidth();
+	auto windowHeight = g_GameFramework.GetWindowHeight();
+	m_blurFilter = make_unique<BlurFilter>(device, windowWidth, windowHeight);
+	m_fadeFilter = make_unique<FadeFilter>(device, windowWidth, windowHeight);
+	m_sobelFilter = make_unique<SobelFilter>(device, windowWidth, windowHeight, postRootSignature);
+
+	// 조명 생성
+	BuildLight(device, commandlist);
+
+	InitServer();
+}
+
+void TowerScene::DestroyObjects()
+{
+	m_player.reset();
+	m_camera.reset();
+
+	m_gate.reset();
+	m_lightSystem.reset();
+	m_shadow.reset();
+	m_blurFilter.reset();
+	m_fadeFilter.reset();
+	m_sobelFilter.reset();
+
+	g_particleSystem.reset();
+
+	for (auto& hpUI : m_hpUI) {
+		hpUI.reset();
+	}
+	m_idSet.clear();
+	m_exitUI.reset();
+	m_resultUI.reset();
+	m_resultTextUI.reset();
+
+	m_multiPlayers.clear();
+	m_monsters.clear();
+}
+
+void TowerScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist)
+{
+	for (int i = 0; i < m_hpUI.size(); ++i) {
+		m_hpUI[i] = make_shared<HorzGaugeUI>(XMFLOAT2{ -0.75f, 0.75f - i * 0.3f }, XMFLOAT2{ 0.4f, 0.08f }, 0.f);
+		m_hpUI[i]->SetTexture("HPBAR");
+		m_hpUI[i]->SetMaxGauge(100.f);
+		m_hpUI[i]->SetDisable();
+		m_globalShaders["UI"]->SetUI(m_hpUI[i]);
+	}
+
+	auto skillUI = make_shared<VertGaugeUI>(XMFLOAT2{ -0.60f, -0.80f }, XMFLOAT2{ 0.15f, 0.15f }, 0.f);
+	skillUI->SetTexture("WARRIORSKILL");
+	m_globalShaders["UI"]->SetUI(skillUI);
+	m_player->SetSkillGauge(skillUI);
+	auto ultimateUI = make_shared<VertGaugeUI>(XMFLOAT2{ -0.85f, -0.80f }, XMFLOAT2{ 0.15f, 0.15f }, 0.f);
+	ultimateUI->SetTexture("WARRIORULTIMATE");
+	m_globalShaders["UI"]->SetUI(ultimateUI);
+	m_player->SetUltimateGauge(ultimateUI);
+
+	m_exitUI = make_shared<BackgroundUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 1.f, 1.f });
+	auto exitUI{ make_shared<StandardUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.4f, 0.5f}) };
+	exitUI->SetTexture("FRAMEUI");
+	auto exitTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.0f}, XMFLOAT2{120.f, 20.f}) };
+	exitTextUI->SetText(L"던전에서 나가시겠습니까?");
+	exitTextUI->SetColorBrush("WHITE");
+	exitTextUI->SetTextFormat("KOPUB18");
+	exitUI->SetChild(exitTextUI);
+	auto exitButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.f, -0.7f}, XMFLOAT2{0.15f, 0.075f}) };
+	exitButtonUI->SetTexture("BUTTONUI");
+	exitButtonUI->SetClickEvent([&]() {
+		SetState(State::Fading);
+		m_fadeFilter->FadeOut([&]() {
+			g_GameFramework.ChangeScene(SCENETAG::VillageLoadingScene);
+		});
+	});
+	auto exitButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{10.f, 10.f}) };
+	exitButtonTextUI->SetText(L"예");
+	exitButtonTextUI->SetColorBrush("WHITE");
+	exitButtonTextUI->SetTextFormat("KOPUB18");
+	exitButtonUI->SetChild(exitButtonTextUI);
+	exitUI->SetChild(exitButtonUI);
+
+	m_exitUI->SetChild(exitUI);
+	m_exitUI->SetDisable();
+	m_globalShaders["POSTUI"]->SetUI(m_exitUI);
+
+	m_resultUI = make_shared<BackgroundUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 1.f, 1.f });
+	auto resultUI{ make_shared<StandardUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.4f, 0.5f}) };
+	resultUI->SetTexture("FRAMEUI");
+	m_resultTextUI = make_shared<TextUI>(XMFLOAT2{ 0.f, 0.0f }, XMFLOAT2{ 100.f, 20.f });
+	m_resultTextUI->SetText(L"클리어!");
+	m_resultTextUI->SetColorBrush("WHITE");
+	m_resultTextUI->SetTextFormat("KOPUB18");
+	resultUI->SetChild(m_resultTextUI);
+	auto resultButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.f, -0.7f}, XMFLOAT2{0.15f, 0.075f}) };
+	resultButtonUI->SetTexture("BUTTONUI");
+	resultButtonUI->SetClickEvent([&]() {
+		m_resultUI->SetDisable();
+		ResetState(State::OutputResult);
+		});
+	auto ResultButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{20.f, 10.f}) };
+	ResultButtonTextUI->SetText(L"닫기");
+	ResultButtonTextUI->SetColorBrush("WHITE");
+	ResultButtonTextUI->SetTextFormat("KOPUB18");
+	resultButtonUI->SetChild(ResultButtonTextUI);
+	resultUI->SetChild(resultButtonUI);
+
+	m_resultUI->SetChild(resultUI);
+	m_resultUI->SetDisable();
+	m_globalShaders["POSTUI"]->SetUI(m_resultUI);
+}
+
+void TowerScene::BuildLight(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist)
+{
+	m_lightSystem = make_shared<LightSystem>();
+	m_lightSystem->m_globalAmbient = XMFLOAT4{ 0.1f, 0.1f, 0.1f, 1.f };
+	m_lightSystem->m_numLight = 8;
+
+	m_lightSystem->m_lights[0].m_type = DIRECTIONAL_LIGHT;
+	m_lightSystem->m_lights[0].m_ambient = XMFLOAT4{ 0.2f, 0.2f, 0.2f, 1.f };
+	m_directionalDiffuse = XMFLOAT4{ 0.4f, 0.4f, 0.4f, 1.f };
+	m_lightSystem->m_lights[0].m_diffuse = m_directionalDiffuse;
+	m_lightSystem->m_lights[0].m_specular = XMFLOAT4{ 0.2f, 0.2f, 0.2f, 0.f };
+	m_directionalDirection = XMFLOAT3{ -1.f, -1.f, -1.f };
+	m_lightSystem->m_lights[0].m_direction = m_directionalDirection;
+	m_lightSystem->m_lights[0].m_enable = true;
+
+	m_lightSystem->m_lights[1].m_type = SPOT_LIGHT;
+	m_lightSystem->m_lights[1].m_range = 5.f;
+	m_lightSystem->m_lights[1].m_ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
+	m_lightSystem->m_lights[1].m_diffuse = XMFLOAT4(0.64f, 0.64f, 0.44f, 1.0f);
+	m_lightSystem->m_lights[1].m_specular = XMFLOAT4(0.1f, 0.1f, 0.1f, 0.0f);
+	m_lightSystem->m_lights[1].m_position = XMFLOAT3(-2.943f, -2.468f, -45.335f);
+	m_lightSystem->m_lights[1].m_direction = XMFLOAT3(0.0f, -1.0f, 0.0f);
+	m_lightSystem->m_lights[1].m_attenuation = XMFLOAT3(1.0f, 0.25f, 0.05f);
+	m_lightSystem->m_lights[1].m_falloff = 3.f;
+	m_lightSystem->m_lights[1].m_phi = (float)cos(XMConvertToRadians(120.f));
+	m_lightSystem->m_lights[1].m_theta = (float)cos(XMConvertToRadians(60.f));
+	m_lightSystem->m_lights[1].m_enable = false;
+
+	m_lightSystem->m_lights[2].m_type = SPOT_LIGHT;
+	m_lightSystem->m_lights[2].m_range = 5.f;
+	m_lightSystem->m_lights[2].m_ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
+	m_lightSystem->m_lights[2].m_diffuse = XMFLOAT4(0.64f, 0.64f, 0.44f, 1.0f);
+	m_lightSystem->m_lights[2].m_specular = XMFLOAT4(0.1f, 0.1f, 0.1f, 0.0f);
+	m_lightSystem->m_lights[2].m_position = XMFLOAT3(-2.963f, -2.468f, -33.575f);
+	m_lightSystem->m_lights[2].m_direction = XMFLOAT3(0.0f, -1.0f, 0.0f);
+	m_lightSystem->m_lights[2].m_attenuation = XMFLOAT3(1.0f, 0.25f, 0.05f);
+	m_lightSystem->m_lights[2].m_falloff = 3.f;
+	m_lightSystem->m_lights[2].m_phi = (float)cos(XMConvertToRadians(120.f));
+	m_lightSystem->m_lights[2].m_theta = (float)cos(XMConvertToRadians(60.f));
+	m_lightSystem->m_lights[2].m_enable = false;
+
+	m_lightSystem->m_lights[3].m_type = SPOT_LIGHT;
+	m_lightSystem->m_lights[3].m_range = 5.f;
+	m_lightSystem->m_lights[3].m_ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
+	m_lightSystem->m_lights[3].m_diffuse = XMFLOAT4(0.64f, 0.64f, 0.44f, 1.0f);
+	m_lightSystem->m_lights[3].m_specular = XMFLOAT4(0.1f, 0.1f, 0.1f, 0.0f);
+	m_lightSystem->m_lights[3].m_position = XMFLOAT3(-2.755f, -2.468f, -21.307f);
+	m_lightSystem->m_lights[3].m_direction = XMFLOAT3(0.0f, -1.0f, 0.0f);
+	m_lightSystem->m_lights[3].m_attenuation = XMFLOAT3(1.0f, 0.25f, 0.05f);
+	m_lightSystem->m_lights[3].m_falloff = 3.f;
+	m_lightSystem->m_lights[3].m_phi = (float)cos(XMConvertToRadians(120.f));
+	m_lightSystem->m_lights[3].m_theta = (float)cos(XMConvertToRadians(60.f));
+	m_lightSystem->m_lights[3].m_enable = false;
+
+	m_lightSystem->m_lights[4].m_type = SPOT_LIGHT;
+	m_lightSystem->m_lights[4].m_range = 5.f;
+	m_lightSystem->m_lights[4].m_ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
+	m_lightSystem->m_lights[4].m_diffuse = XMFLOAT4(0.64f, 0.64f, 0.44f, 1.0f);
+	m_lightSystem->m_lights[4].m_specular = XMFLOAT4(0.1f, 0.1f, 0.1f, 0.0f);
+	m_lightSystem->m_lights[4].m_position = XMFLOAT3(-4.833f, 1.952f, 8.224f);
+	m_lightSystem->m_lights[4].m_direction = XMFLOAT3(0.0f, -1.0f, 0.0f);
+	m_lightSystem->m_lights[4].m_attenuation = XMFLOAT3(1.0f, 0.25f, 0.05f);
+	m_lightSystem->m_lights[4].m_falloff = 3.f;
+	m_lightSystem->m_lights[4].m_phi = (float)cos(XMConvertToRadians(120.f));
+	m_lightSystem->m_lights[4].m_theta = (float)cos(XMConvertToRadians(60.f));
+	m_lightSystem->m_lights[4].m_enable = false;
+
+	m_lightSystem->m_lights[5].m_type = SPOT_LIGHT;
+	m_lightSystem->m_lights[5].m_range = 5.f;
+	m_lightSystem->m_lights[5].m_ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
+	m_lightSystem->m_lights[5].m_diffuse = XMFLOAT4(0.64f, 0.64f, 0.44f, 1.0f);
+	m_lightSystem->m_lights[5].m_specular = XMFLOAT4(0.1f, 0.1f, 0.1f, 0.0f);
+	m_lightSystem->m_lights[5].m_position = XMFLOAT3(4.796f, 1.952f, 8.044f);
+	m_lightSystem->m_lights[5].m_direction = XMFLOAT3(0.0f, -1.0f, 0.0f);
+	m_lightSystem->m_lights[5].m_attenuation = XMFLOAT3(1.0f, 0.25f, 0.05f);
+	m_lightSystem->m_lights[5].m_falloff = 3.f;
+	m_lightSystem->m_lights[5].m_phi = (float)cos(XMConvertToRadians(120.f));
+	m_lightSystem->m_lights[5].m_theta = (float)cos(XMConvertToRadians(60.f));
+	m_lightSystem->m_lights[5].m_enable = false;
+
+	m_lightSystem->m_lights[6].m_type = SPOT_LIGHT;
+	m_lightSystem->m_lights[6].m_range = 5.f;
+	m_lightSystem->m_lights[6].m_ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
+	m_lightSystem->m_lights[6].m_diffuse = XMFLOAT4(0.64f, 0.64f, 0.44f, 1.0f);
+	m_lightSystem->m_lights[6].m_specular = XMFLOAT4(0.1f, 0.1f, 0.1f, 0.0f);
+	m_lightSystem->m_lights[6].m_position = XMFLOAT3(-4.433f, 1.952f, 39.324f);
+	m_lightSystem->m_lights[6].m_direction = XMFLOAT3(0.0f, -1.0f, 0.0f);
+	m_lightSystem->m_lights[6].m_attenuation = XMFLOAT3(1.0f, 0.25f, 0.05f);
+	m_lightSystem->m_lights[6].m_falloff = 3.f;
+	m_lightSystem->m_lights[6].m_phi = (float)cos(XMConvertToRadians(120.f));
+	m_lightSystem->m_lights[6].m_theta = (float)cos(XMConvertToRadians(60.f));
+	m_lightSystem->m_lights[6].m_enable = false;
+
+	m_lightSystem->m_lights[7].m_type = SPOT_LIGHT;
+	m_lightSystem->m_lights[7].m_range = 5.f;
+	m_lightSystem->m_lights[7].m_ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
+	m_lightSystem->m_lights[7].m_diffuse = XMFLOAT4(0.64f, 0.64f, 0.44f, 1.0f);
+	m_lightSystem->m_lights[7].m_specular = XMFLOAT4(0.1f, 0.1f, 0.1f, 0.0f);
+	m_lightSystem->m_lights[7].m_position = XMFLOAT3(3.116f, 1.952f, 39.184f);
+	m_lightSystem->m_lights[7].m_direction = XMFLOAT3(0.0f, -1.0f, 0.0f);
+	m_lightSystem->m_lights[7].m_attenuation = XMFLOAT3(1.0f, 0.25f, 0.05f);
+	m_lightSystem->m_lights[7].m_falloff = 3.f;
+	m_lightSystem->m_lights[7].m_phi = (float)cos(XMConvertToRadians(120.f));
+	m_lightSystem->m_lights[7].m_theta = (float)cos(XMConvertToRadians(60.f));
+	m_lightSystem->m_lights[7].m_enable = false;
+
+	m_lightSystem->CreateShaderVariable(device, commandlist);
+}
 
 void TowerScene::OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime)
 {
@@ -88,291 +432,71 @@ void TowerScene::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 	}
 }
 
-void TowerScene::CreateShaderVariable(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList)
-{
-	DX::ThrowIfFailed(device->CreateCommittedResource(
-		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
-		D3D12_HEAP_FLAG_NONE,
-		&CD3DX12_RESOURCE_DESC::Buffer(sizeof(SceneInfo)),
-		D3D12_RESOURCE_STATE_GENERIC_READ,
-		nullptr,
-		IID_PPV_ARGS(&m_sceneBuffer)));
-
-	m_sceneBuffer->Map(0, nullptr, reinterpret_cast<void**>(&m_sceneBufferPointer));
-}
-
-void TowerScene::UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& commandList)
-{
-	BoundingSphere sceneBounds{ XMFLOAT3{ 0.0f, 0.0f, 10.0f }, 60.f };
-
-	// Only the first "main" light casts a shadow.
-	XMVECTOR lightDir = XMLoadFloat3(&m_lightSystem->m_lights[0].m_direction);
-	XMVECTOR lightPos{ -2.0f * sceneBounds.Radius * lightDir };
-	XMVECTOR targetPos = XMLoadFloat3(&sceneBounds.Center);
-	XMVECTOR lightUp = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-	m_lightView = XMMatrixLookAtLH(lightPos, targetPos, lightUp);
-
-	XMFLOAT3 sphereCenterLS;
-	XMStoreFloat3(&sphereCenterLS, XMVector3TransformCoord(targetPos, m_lightView));
-
-	float l = sphereCenterLS.x - sceneBounds.Radius;
-	float b = sphereCenterLS.y - sceneBounds.Radius;
-	float n = sphereCenterLS.z - sceneBounds.Radius;
-	float r = sphereCenterLS.x + sceneBounds.Radius;
-	float t = sphereCenterLS.y + sceneBounds.Radius;
-	float f = sphereCenterLS.z + sceneBounds.Radius;
-
-	m_lightProj = XMMatrixOrthographicOffCenterLH(l, r, b, t, n, f);
-
-	::memcpy(&m_sceneBufferPointer->lightView, &XMMatrixTranspose(m_lightView), sizeof(XMFLOAT4X4));
-	::memcpy(&m_sceneBufferPointer->lightProj, &XMMatrixTranspose(m_lightProj), sizeof(XMFLOAT4X4));
-	::memcpy(&m_sceneBufferPointer->NDCspace, &XMMatrixTranspose(m_NDCspace), sizeof(XMFLOAT4X4));
-
-	D3D12_GPU_VIRTUAL_ADDRESS virtualAddress = m_sceneBuffer->GetGPUVirtualAddress();
-	commandList->SetGraphicsRootConstantBufferView((INT)ShaderRegister::Scene, virtualAddress);
-
-	//if (m_camera) m_camera->UpdateShaderVariable(commandList);
-	//if (m_lightSystem) m_lightSystem->UpdateShaderVariable(commandList);
-}
-
-void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, 
-	const ComPtr<ID3D12RootSignature>& rootsignature, const ComPtr<ID3D12RootSignature>& postRootSignature)
-{
-	CreateShaderVariable(device, commandlist);
-
-	// 화살 생성
-	for (size_t i = 0; i < RoomSetting::MAX_ARROWS; ++i) {
-		auto arrow = make_shared<Arrow>();
-		LoadObjectFromFile(TEXT("./Resource/Model/Archer_WeaponArrow.bin"), arrow);
-		m_arrows.insert({ i, arrow });
-	}
-
-	// 플레이어 생성
-	m_player = make_shared<Player>();
-	m_player->SetType(PlayerType::ARCHER);
-	LoadPlayerFromFile(m_player);
-
-	m_player->SetPosition(XMFLOAT3{ 0.f, 0.f, 0.f });
-	m_shaders["ANIMATION"]->SetPlayer(m_player);
-
-	// 체력 바 생성
-	SetHpBar(m_player);
-
-	// 스테미나 바 생성
-	auto staminaBar = make_shared<GaugeBar>(0.015f);
-	staminaBar->SetMesh(m_meshs["STAMINABAR"]);
-	staminaBar->SetTexture(m_textures["STAMINABAR"]);
-	staminaBar->SetMaxGauge(m_player->GetMaxStamina());
-	staminaBar->SetGauge(m_player->GetStamina());
-	staminaBar->SetPosition(XMFLOAT3(FAR_POSITION, FAR_POSITION, FAR_POSITION));
-	m_shaders["VERTGAUGE"]->SetObject(staminaBar);
-	m_player->SetStaminaBar(staminaBar);
-
-	// 카메라 생성
-	m_camera = make_shared<ThirdPersonCamera>();
-	m_camera->CreateShaderVariable(device, commandlist);
-	m_camera->SetPlayer(m_player);
-	m_player->SetCamera(m_camera);
-
-	XMFLOAT4X4 projMatrix;
-	XMStoreFloat4x4(&projMatrix, XMMatrixPerspectiveFovLH(0.25f * XM_PI, g_GameFramework.GetAspectRatio(), 0.1f, 100.0f));
-	m_camera->SetProjMatrix(projMatrix);
-
-	m_shadow = make_shared<Shadow>(device, 4096 << 1, 4096 << 1);
-
-	// 씬 로드
-	LoadSceneFromFile(TEXT("./Resource/Scene/TowerScene.bin"), TEXT("TowerScene"));
-
-	// 게이트 로드
-	m_gate = make_shared<GameObject>();
-	LoadObjectFromFile(TEXT("./Resource/Model/TowerScene/AD_Gate.bin"), m_gate);
-	m_gate->SetPosition(RoomSetting::BATTLE_STARTER_POSITION);
-	m_gate->SetScale(0.5f, 0.5f, 0.5f);
-	m_shaders["OBJECT"]->SetObject(m_gate);
-
-	// 스카이 박스 생성
-	auto skybox{ make_shared<GameObject>() };
-	skybox->SetMesh(m_meshs["SKYBOX"]);
-	skybox->SetTexture(m_textures["SKYBOX"]);
-	m_shaders["SKYBOX"]->SetObject(skybox);
-
-	// 파티클 시스템 생성
-	g_particleSystem = make_unique<ParticleSystem>(device, commandlist, 
-		static_pointer_cast<ParticleShader>(m_shaders["EMITTERPARTICLE"]), 
-		static_pointer_cast<ParticleShader>(m_shaders["PUMPERPARTICLE"]));
-
-	g_particleSystem->CreateParticle(ParticleSystem::Type::PUMPER, XMFLOAT3{0.f, 0.f, 0.f});
-
-	// UI 생성
-	m_exitUI = make_shared<BackgroundUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{1.f, 1.f});
-	auto exitUI{ make_shared<StandardUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.4f, 0.5f}) };
-	exitUI->SetTexture(m_textures["FRAMEUI"]);
-	auto exitTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.0f}, XMFLOAT2{100.f, 20.f}) };
-	exitTextUI->SetText(L"던전에서 나가시겠습니까?");
-	exitUI->SetChild(exitTextUI);
-	auto exitButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.f, -0.7f}, XMFLOAT2{0.15f, 0.075f}) };
-	exitButtonUI->SetTexture(m_textures["BUTTONUI"]);
-	exitButtonUI->SetClickEvent([]() {
-		cout << "종료" << endl;
-		});
-	auto exitButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{10.f, 10.f}) };
-	exitButtonTextUI->SetText(L"예");
-	exitButtonUI->SetChild(exitButtonTextUI);
-	exitUI->SetChild(exitButtonUI);
-
-	m_exitUI->SetChild(exitUI);
-	m_shaders["POSTUI"]->SetUI(m_exitUI);
-
-	m_resultUI = make_shared<BackgroundUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 1.f, 1.f });
-	auto resultUI{ make_shared<StandardUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.4f, 0.5f}) };
-	resultUI->SetTexture(m_textures["FRAMEUI"]);
-	m_resultTextUI = make_shared<TextUI>(XMFLOAT2{0.f, 0.0f}, XMFLOAT2{100.f, 20.f});
-	m_resultTextUI->SetText(L"클리어!");
-	resultUI->SetChild(m_resultTextUI);
-	auto resultButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.f, -0.7f}, XMFLOAT2{0.15f, 0.075f}) };
-	resultButtonUI->SetTexture(m_textures["BUTTONUI"]);
-	resultButtonUI->SetClickEvent([&]() {
-		m_resultUI->SetDisable();
-		ResetState(State::OutputResult);
-		});
-	auto ResultButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{20.f, 10.f}) };
-	ResultButtonTextUI->SetText(L"닫기");
-	resultButtonUI->SetChild(ResultButtonTextUI);
-	resultUI->SetChild(resultButtonUI);
-
-	m_resultUI->SetChild(resultUI);
-	m_resultUI->SetDisable();
-	m_shaders["POSTUI"]->SetUI(m_resultUI);
-
-	// 필터 생성
-	m_blurFilter = make_unique<BlurFilter>(device, g_GameFramework.GetWindowWidth(), g_GameFramework.GetWindowHeight());
-	m_fadeFilter = make_unique<FadeFilter>(device, g_GameFramework.GetWindowWidth(), g_GameFramework.GetWindowHeight());
-	m_sobelFilter = make_unique<SobelFilter>(device, g_GameFramework.GetWindowWidth(), g_GameFramework.GetWindowHeight(), postRootSignature);
-
-	// 오브젝트 설정	
-	m_object.push_back(skybox);
-
-	// 조명 생성
-	CreateLight(device, commandlist);
-
-	InitServer();
-}
-
-void TowerScene::CreateLight(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist)
-{
-	m_lightSystem = make_shared<LightSystem>();
-	m_lightSystem->m_globalAmbient = XMFLOAT4{ 0.1f, 0.1f, 0.1f, 1.f };
-	m_lightSystem->m_numLight = 8;
-
-	m_lightSystem->m_lights[0].m_type = DIRECTIONAL_LIGHT;
-	m_lightSystem->m_lights[0].m_ambient = XMFLOAT4{ 0.3f, 0.3f, 0.3f, 1.f };
-	m_lightSystem->m_lights[0].m_diffuse = XMFLOAT4{ 0.7f, 0.7f, 0.7f, 1.f };
-	m_lightSystem->m_lights[0].m_specular = XMFLOAT4{ 0.4f, 0.4f, 0.4f, 0.f };
-	m_lightSystem->m_lights[0].m_direction = XMFLOAT3{ 1.f, -1.f, 1.f };
-	m_lightSystem->m_lights[0].m_enable = true;
-
-	m_lightSystem->m_lights[1].m_type = SPOT_LIGHT;
-	m_lightSystem->m_lights[1].m_range = 5.f;
-	m_lightSystem->m_lights[1].m_ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
-	m_lightSystem->m_lights[1].m_diffuse = XMFLOAT4(0.64f, 0.64f, 0.44f, 1.0f);
-	m_lightSystem->m_lights[1].m_specular = XMFLOAT4(0.1f, 0.1f, 0.1f, 0.0f);
-	m_lightSystem->m_lights[1].m_position = XMFLOAT3(-2.943f, -2.468f, -45.335f);
-	m_lightSystem->m_lights[1].m_direction = XMFLOAT3(0.0f, -1.0f, 0.0f);
-	m_lightSystem->m_lights[1].m_attenuation = XMFLOAT3(1.0f, 0.25f, 0.05f);
-	m_lightSystem->m_lights[1].m_falloff = 3.f;
-	m_lightSystem->m_lights[1].m_phi = (float)cos(XMConvertToRadians(120.f));
-	m_lightSystem->m_lights[1].m_theta = (float)cos(XMConvertToRadians(60.f));
-	m_lightSystem->m_lights[1].m_enable = true;
-
-	m_lightSystem->m_lights[2].m_type = SPOT_LIGHT;
-	m_lightSystem->m_lights[2].m_range = 5.f;
-	m_lightSystem->m_lights[2].m_ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
-	m_lightSystem->m_lights[2].m_diffuse = XMFLOAT4(0.64f, 0.64f, 0.44f, 1.0f);
-	m_lightSystem->m_lights[2].m_specular = XMFLOAT4(0.1f, 0.1f, 0.1f, 0.0f);
-	m_lightSystem->m_lights[2].m_position = XMFLOAT3(-2.963f, -2.468f, -33.575f);
-	m_lightSystem->m_lights[2].m_direction = XMFLOAT3(0.0f, -1.0f, 0.0f);
-	m_lightSystem->m_lights[2].m_attenuation = XMFLOAT3(1.0f, 0.25f, 0.05f);
-	m_lightSystem->m_lights[2].m_falloff = 3.f;
-	m_lightSystem->m_lights[2].m_phi = (float)cos(XMConvertToRadians(120.f));
-	m_lightSystem->m_lights[2].m_theta = (float)cos(XMConvertToRadians(60.f));
-	m_lightSystem->m_lights[2].m_enable = true;
-
-	m_lightSystem->m_lights[3].m_type = SPOT_LIGHT;
-	m_lightSystem->m_lights[3].m_range = 5.f;
-	m_lightSystem->m_lights[3].m_ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
-	m_lightSystem->m_lights[3].m_diffuse = XMFLOAT4(0.64f, 0.64f, 0.44f, 1.0f);
-	m_lightSystem->m_lights[3].m_specular = XMFLOAT4(0.1f, 0.1f, 0.1f, 0.0f);
-	m_lightSystem->m_lights[3].m_position = XMFLOAT3(-2.755f, -2.468f, -21.307f);
-	m_lightSystem->m_lights[3].m_direction = XMFLOAT3(0.0f, -1.0f, 0.0f);
-	m_lightSystem->m_lights[3].m_attenuation = XMFLOAT3(1.0f, 0.25f, 0.05f);
-	m_lightSystem->m_lights[3].m_falloff = 3.f;
-	m_lightSystem->m_lights[3].m_phi = (float)cos(XMConvertToRadians(120.f));
-	m_lightSystem->m_lights[3].m_theta = (float)cos(XMConvertToRadians(60.f));
-	m_lightSystem->m_lights[3].m_enable = true;
-
-	m_lightSystem->m_lights[4].m_type = SPOT_LIGHT;
-	m_lightSystem->m_lights[4].m_range = 5.f;
-	m_lightSystem->m_lights[4].m_ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
-	m_lightSystem->m_lights[4].m_diffuse = XMFLOAT4(0.64f, 0.64f, 0.44f, 1.0f);
-	m_lightSystem->m_lights[4].m_specular = XMFLOAT4(0.1f, 0.1f, 0.1f, 0.0f);
-	m_lightSystem->m_lights[4].m_position = XMFLOAT3(-4.833f, 1.952f, 8.224f);
-	m_lightSystem->m_lights[4].m_direction = XMFLOAT3(0.0f, -1.0f, 0.0f);
-	m_lightSystem->m_lights[4].m_attenuation = XMFLOAT3(1.0f, 0.25f, 0.05f);
-	m_lightSystem->m_lights[4].m_falloff = 3.f;
-	m_lightSystem->m_lights[4].m_phi = (float)cos(XMConvertToRadians(120.f));
-	m_lightSystem->m_lights[4].m_theta = (float)cos(XMConvertToRadians(60.f));
-	m_lightSystem->m_lights[4].m_enable = true;
-
-	m_lightSystem->m_lights[5].m_type = SPOT_LIGHT;
-	m_lightSystem->m_lights[5].m_range = 5.f;
-	m_lightSystem->m_lights[5].m_ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
-	m_lightSystem->m_lights[5].m_diffuse = XMFLOAT4(0.64f, 0.64f, 0.44f, 1.0f);
-	m_lightSystem->m_lights[5].m_specular = XMFLOAT4(0.1f, 0.1f, 0.1f, 0.0f);
-	m_lightSystem->m_lights[5].m_position = XMFLOAT3(4.796f, 1.952f, 8.044f);
-	m_lightSystem->m_lights[5].m_direction = XMFLOAT3(0.0f, -1.0f, 0.0f);
-	m_lightSystem->m_lights[5].m_attenuation = XMFLOAT3(1.0f, 0.25f, 0.05f);
-	m_lightSystem->m_lights[5].m_falloff = 3.f;
-	m_lightSystem->m_lights[5].m_phi = (float)cos(XMConvertToRadians(120.f));
-	m_lightSystem->m_lights[5].m_theta = (float)cos(XMConvertToRadians(60.f));
-	m_lightSystem->m_lights[5].m_enable = true;
-
-	m_lightSystem->m_lights[6].m_type = SPOT_LIGHT;
-	m_lightSystem->m_lights[6].m_range = 5.f;
-	m_lightSystem->m_lights[6].m_ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
-	m_lightSystem->m_lights[6].m_diffuse = XMFLOAT4(0.64f, 0.64f, 0.44f, 1.0f);
-	m_lightSystem->m_lights[6].m_specular = XMFLOAT4(0.1f, 0.1f, 0.1f, 0.0f);
-	m_lightSystem->m_lights[6].m_position = XMFLOAT3(-4.433f, 1.952f, 39.324f);
-	m_lightSystem->m_lights[6].m_direction = XMFLOAT3(0.0f, -1.0f, 0.0f);
-	m_lightSystem->m_lights[6].m_attenuation = XMFLOAT3(1.0f, 0.25f, 0.05f);
-	m_lightSystem->m_lights[6].m_falloff = 3.f;
-	m_lightSystem->m_lights[6].m_phi = (float)cos(XMConvertToRadians(120.f));
-	m_lightSystem->m_lights[6].m_theta = (float)cos(XMConvertToRadians(60.f));
-	m_lightSystem->m_lights[6].m_enable = true;
-
-	m_lightSystem->m_lights[7].m_type = SPOT_LIGHT;
-	m_lightSystem->m_lights[7].m_range = 5.f;
-	m_lightSystem->m_lights[7].m_ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
-	m_lightSystem->m_lights[7].m_diffuse = XMFLOAT4(0.64f, 0.64f, 0.44f, 1.0f);
-	m_lightSystem->m_lights[7].m_specular = XMFLOAT4(0.1f, 0.1f, 0.1f, 0.0f);
-	m_lightSystem->m_lights[7].m_position = XMFLOAT3(3.116f, 1.952f, 39.184f);
-	m_lightSystem->m_lights[7].m_direction = XMFLOAT3(0.0f, -1.0f, 0.0f);
-	m_lightSystem->m_lights[7].m_attenuation = XMFLOAT3(1.0f, 0.25f, 0.05f);
-	m_lightSystem->m_lights[7].m_falloff = 3.f;
-	m_lightSystem->m_lights[7].m_phi = (float)cos(XMConvertToRadians(120.f));
-	m_lightSystem->m_lights[7].m_theta = (float)cos(XMConvertToRadians(60.f));
-	m_lightSystem->m_lights[7].m_enable = true;
-
-	m_lightSystem->CreateShaderVariable(device, commandlist);
-}
-
 void TowerScene::Update(FLOAT timeElapsed)
 {
 	m_camera->Update(timeElapsed);
-	if (m_shaders["SKYBOX"]) for (auto& skybox : m_shaders["SKYBOX"]->GetObjects()) skybox->SetPosition(m_camera->GetEye());
-	for (const auto& shader : m_shaders)
+	if (m_globalShaders["SKYBOX"]) for (auto& skybox : m_globalShaders["SKYBOX"]->GetObjects()) skybox->SetPosition(m_camera->GetEye());
+	for (const auto& shader : m_globalShaders)
 		shader.second->Update(timeElapsed);
 	g_particleSystem->Update(timeElapsed);
 	m_fadeFilter->Update(timeElapsed);
+
+	UpdateLightSystem(timeElapsed);
+
+	if (CheckState(State::WarpGate)) {
+		m_age += timeElapsed;
+		if (m_age >= m_lifeTime) {
+			m_age = 0.f;
+
+			ResetState(State::WarpGate);
+		}
+		else {
+			FLOAT diffuse = -0.3f;
+			diffuse *= m_age / m_lifeTime;
+			m_lightSystem->m_lights[0].m_diffuse.x = m_directionalDiffuse.x + diffuse;
+			m_lightSystem->m_lights[0].m_diffuse.y = m_directionalDiffuse.y + diffuse;
+			m_lightSystem->m_lights[0].m_diffuse.z = m_directionalDiffuse.z + diffuse;
+
+			FLOAT direction = 2.f;
+			direction *= m_age / m_lifeTime;
+			m_lightSystem->m_lights[0].m_direction.x = m_directionalDirection.x + direction;
+			m_lightSystem->m_lights[0].m_direction.z = m_directionalDirection.z + direction;
+		}
+	}
+
+	if (CheckState(State::InitScene)) {
+		ResetState(State::InitScene);
+		SetState(State::EnterScene);
+		m_fadeFilter->FadeIn([&]() {
+			ResetState(State::EnterScene);
+		});
+	}
+}
+
+void TowerScene::UpdateLightSystem(FLOAT timeElapsed)
+{
+	const array<FLOAT, 3> corridorLight{ -45.335f, -33.575f, -21.307f };
+	const array<INT, 3> corridorLightIndex{ 1, 2, 3 };
+
+	for (const auto& index : corridorLightIndex) {
+		[&]() {
+			if (m_lightSystem) {
+				if (!m_lightSystem->m_lights[index].m_enable) {
+					if (m_player->GetPosition().z >= corridorLight[index - corridorLightIndex[0]]) {
+						m_lightSystem->m_lights[index].m_enable = true;
+						return;
+					}
+
+					for (const auto& player : m_multiPlayers) {
+						if (player.second->GetPosition().z >= corridorLight[index - corridorLightIndex[0]]) {
+							m_lightSystem->m_lights[index].m_enable = true;
+							return;
+						}
+					}
+				}
+			}
+		}();
+	}
 }
 
 void TowerScene::PreProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex)
@@ -381,12 +505,12 @@ void TowerScene::PreProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList
 	{
 	case 0:
 	{
-		m_shaders["ANIMATION"]->Render(commandList, m_shaders["ANIMATIONSHADOW"]);
+		m_globalShaders["ANIMATION"]->Render(commandList, m_globalShaders["ANIMATIONSHADOW"]);
 		break;
 	}
 	case 1:
 	{
-		m_shaders["OBJECT"]->Render(commandList, m_shaders["SHADOW"]);
+		m_globalShaders["OBJECT"]->Render(commandList, m_globalShaders["SHADOW"]);
 		break;
 	}
 	case 2:
@@ -405,21 +529,22 @@ void TowerScene::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UI
 	{
 	case 0:
 	{
-		m_shaders.at("ANIMATION")->Render(commandList);
+		m_globalShaders.at("OBJECT")->Render(commandList);
+
 		break;
 	}
 	case 1:
 	{
-		m_shaders.at("OBJECT")->Render(commandList);
+		m_globalShaders.at("ANIMATION")->Render(commandList);
 		break;
 	}
 	case 2:
 	{
-		m_shaders.at("SKYBOX")->Render(commandList);
+		m_globalShaders.at("SKYBOX")->Render(commandList);
 		g_particleSystem->Render(commandList);
-		m_shaders.at("HORZGAUGE")->Render(commandList);
-		m_shaders.at("VERTGAUGE")->Render(commandList);
-		m_shaders.at("UI")->Render(commandList);
+		m_globalShaders.at("HORZGAUGE")->Render(commandList);
+		m_globalShaders.at("VERTGAUGE")->Render(commandList);
+		m_globalShaders.at("UI")->Render(commandList);
 		break;
 	}
 	}
@@ -432,14 +557,14 @@ void TowerScene::PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandLis
 	case 0:
 	{
 		if (CheckState(State::BlurLevel5)) {
-			m_blurFilter->Execute(commandList, renderTarget, 1);
+			m_blurFilter->Execute(commandList, renderTarget, 5);
 			commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_COPY_DEST));
 			commandList->CopyResource(renderTarget.Get(), m_blurFilter->GetBlurMap().Get());
 			commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_COPY_SOURCE));
 			m_blurFilter->ResetResourceBarrier(commandList);
 		}
 		else if (CheckState(State::BlurLevel4)) {
-			m_blurFilter->Execute(commandList, renderTarget, 2);
+			m_blurFilter->Execute(commandList, renderTarget, 4);
 			commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_COPY_DEST));
 			commandList->CopyResource(renderTarget.Get(), m_blurFilter->GetBlurMap().Get());
 			commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_COPY_SOURCE));
@@ -453,14 +578,14 @@ void TowerScene::PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandLis
 			m_blurFilter->ResetResourceBarrier(commandList);
 		}
 		else if (CheckState(State::BlurLevel2)) {
-			m_blurFilter->Execute(commandList, renderTarget, 4);
+			m_blurFilter->Execute(commandList, renderTarget, 2);
 			commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_COPY_DEST));
 			commandList->CopyResource(renderTarget.Get(), m_blurFilter->GetBlurMap().Get());
 			commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_COPY_SOURCE));
 			m_blurFilter->ResetResourceBarrier(commandList);
 		}
 		else if (CheckState(State::BlurLevel1)) {
-			m_blurFilter->Execute(commandList, renderTarget, 5);
+			m_blurFilter->Execute(commandList, renderTarget, 1);
 			commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_COPY_DEST));
 			commandList->CopyResource(renderTarget.Get(), m_blurFilter->GetBlurMap().Get());
 			commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_COPY_SOURCE));
@@ -469,15 +594,14 @@ void TowerScene::PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandLis
 
 		//m_sobelFilter->Execute(commandList, renderTarget);
 		//commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET));
-		//m_shaders["COMPOSITE"]->Render(commandList);
+		//m_globalShaders["COMPOSITE"]->Render(commandList);
 		//commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE));
-
 		break;
 	}
 	case 1:
 	{
 		commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET));
-		m_shaders.at("POSTUI")->Render(commandList);
+		m_globalShaders.at("POSTUI")->Render(commandList);
 		commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE));
 		break;
 	}
@@ -528,8 +652,7 @@ void TowerScene::LoadSceneFromFile(wstring fileName, wstring sceneName)
 		in.read((CHAR*)(&worldMatrix), sizeof(XMFLOAT4X4));
 		object->SetWorldMatrix(worldMatrix);
 
-		m_object.push_back(object);
-		m_shaders["OBJECT"]->SetObject(object);
+		m_globalShaders["OBJECT"]->SetObject(object);
 	}
 }
 
@@ -573,7 +696,7 @@ void TowerScene::LoadPlayerFromFile(const shared_ptr<Player>& player)
 
 	LoadObjectFromFile(filePath, player);
 
-	player->SetAnimationSet(m_animationSets[animationSet]);
+	player->SetAnimationSet(m_globalAnimationSets[animationSet], animationSet);
 	player->SetAnimationOnTrack(0, ObjectAnimation::IDLE);
 	player->GetAnimationController()->SetTrackEnable(1, false);
 	player->GetAnimationController()->SetTrackEnable(2, false);
@@ -603,7 +726,7 @@ void TowerScene::LoadMonsterFromFile(const shared_ptr<Monster>& monster)
 
 	LoadObjectFromFile(filePath, monster);
 
-	monster->SetAnimationSet(m_animationSets[animationSet]);
+	monster->SetAnimationSet(m_animationSets[animationSet], animationSet);
 	monster->SetAnimationOnTrack(0, ObjectAnimation::IDLE);
 	monster->GetAnimationController()->SetTrackEnable(1, false);
 	monster->GetAnimationController()->SetTrackEnable(2, false);
@@ -612,12 +735,12 @@ void TowerScene::LoadMonsterFromFile(const shared_ptr<Monster>& monster)
 void TowerScene::SetHpBar(const shared_ptr<AnimationObject>& object)
 {
 	auto hpBar = make_shared<GaugeBar>();
-	hpBar->SetMesh(m_meshs["HPBAR"]);
-	hpBar->SetTexture(m_textures["HPBAR"]);
+	hpBar->SetMesh("HPBAR");
+	hpBar->SetTexture("HPBAR");
 	hpBar->SetMaxGauge(object->GetMaxHp());
 	hpBar->SetGauge(object->GetHp());
 	hpBar->SetPosition(XMFLOAT3{ FAR_POSITION, FAR_POSITION, FAR_POSITION });
-	m_shaders["HORZGAUGE"]->SetObject(hpBar);
+	m_globalShaders["HORZGAUGE"]->SetObject(hpBar);
 	object->SetHpBar(hpBar);
 }
 
@@ -690,12 +813,12 @@ bool TowerScene::CheckState(State sceneState)
 
 void TowerScene::SetState(State sceneState)
 {
-	m_sceneState |= (1 << ((INT)sceneState - 1));
+	m_sceneState |= (INT)sceneState;
 }
 
 void TowerScene::ResetState(State sceneState)
 {
-	m_sceneState &= ~(1 << ((INT)sceneState - 1));
+	m_sceneState &= ~(INT)sceneState;
 }
 
 
@@ -897,7 +1020,10 @@ void TowerScene::RecvAddObject(char* ptr)
 
 	SetHpBar(multiPlayer);
 
-	m_shaders["ANIMATION"]->SetMultiPlayer(player_data.id, multiPlayer);
+	m_idSet.insert({ player_data.id, (INT)m_idSet.size() });
+	m_hpUI[m_idSet[player_data.id]]->SetEnable();
+
+	m_globalShaders["ANIMATION"]->SetMultiPlayer(player_data.id, multiPlayer);
 	cout << "add player" << static_cast<int>(player_data.id) << endl;
 
 }
@@ -938,6 +1064,7 @@ void TowerScene::RecvUpdateClient(char* ptr)
 		player->SetVelocity(packet->data.velocity);
 		player->Rotate(0.f, 0.f, packet->data.yaw - player->GetYaw());
 		player->SetHp(packet->data.hp);
+		m_hpUI[m_idSet[packet->data.id]]->SetGauge(packet->data.hp);
 	}
 }
 
@@ -1078,6 +1205,7 @@ void TowerScene::RecvMonsterAttackCollision(char* ptr)
 		else {
 			//m_multiPlayers[id]->ChangeAnimation(ObjectAnimation::HIT, true);
 			m_multiPlayers[id]->SetHp(packet->hps[i]);
+			m_hpUI[m_idSet[id]]->SetGauge(packet->hps[i]);
 		}
 		++i;
 	}
@@ -1101,18 +1229,27 @@ void TowerScene::RecvStartBattle(char* ptr)
 	m_player->SetInteractable(false);
 	m_player->SetInteractableType(InteractableType::NONE);
 
-	if(m_shaders["OBJECT"]->FindObject(m_gate))
-		m_shaders["OBJECT"]->RemoveObject(m_gate);
+	SetState(State::WarpGate);
 
-	for (auto& monster : m_monsters) {
-		m_shaders["ANIMATION"]->SetMonster(monster.first, monster.second);
-	}
+	m_gate->SetInterect([&]() {
+		m_globalShaders["OBJECT"]->RemoveObject(m_gate);
+		m_lightSystem->m_lights[4].m_enable = true;
+		m_lightSystem->m_lights[5].m_enable = true;
+		m_lightSystem->m_lights[6].m_enable = true;
+		m_lightSystem->m_lights[7].m_enable = true;
+
+		for (auto& monster : m_monsters) {
+			m_shaders["ANIMATION"]->SetMonster(monster.first, monster.second);
+		}
+	});
+
 }
 
 void TowerScene::RecvWarpNextFloor(char* ptr)
 {
 	SC_WARP_NEXT_FLOOR_PACKET* packet = reinterpret_cast<SC_WARP_NEXT_FLOOR_PACKET*>(ptr);
 	
+	SetState(State::Fading);
 	m_fadeFilter->FadeOut([&]() {
 		XMFLOAT3 startPosition{ 0.f, 0.f, 0.f };
 		m_player->SetPosition(startPosition);
@@ -1121,13 +1258,17 @@ void TowerScene::RecvWarpNextFloor(char* ptr)
 			elm.second->SetPosition(startPosition);
 		}
 
-		m_shaders["OBJECT"]->SetObject(m_gate);
+		m_globalShaders["OBJECT"]->SetObject(m_gate);
 
-		for (size_t i = 0; i < ActionType::COUNT; ++i) {
-			m_player->ResetCooldown(static_cast<char>(i));
-		}
+		for (int i = 1; i < 8; ++i) {
+			m_lightSystem->m_lights[i].m_enable = false;
 
-		m_fadeFilter->FadeIn([&](){});
+		m_lightSystem->m_lights[0].m_diffuse = m_directionalDiffuse;
+		m_lightSystem->m_lights[0].m_direction = m_directionalDirection;
+
+		m_player->ResetAllCooltime();
+
+		m_fadeFilter->FadeIn([&](){ ResetState(State::Fading); });
 	});
 }
 

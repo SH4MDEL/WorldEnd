@@ -4,6 +4,7 @@
 
 Player::Player() : m_velocity{ 0.0f, 0.0f, 0.0f }, m_maxVelocity{ 10.0f }, m_friction{ 0.5f }, 
 	m_hp{ 100.f }, m_maxHp{ 100.f }, m_stamina{ PlayerSetting::MAX_STAMINA }, m_maxStamina{ PlayerSetting::MAX_STAMINA }, 
+	m_skillCool{ static_cast<FLOAT>(PlayerSetting ::WARRIOR_SKILL_COOLTIME.count())}, m_ultimateCool{ static_cast<FLOAT>(PlayerSetting::WARRIOR_ULTIMATE_COOLTIME.count()) },
 	m_id{ -1 }, m_cooldownList{ false, }, m_dashed{ false }, m_moveSpeed{ PlayerSetting::WALK_SPEED },
 	m_interactable{ false }, m_interactableType{ InteractableType::NONE }, m_bufSize{ 0 }
 {
@@ -21,7 +22,7 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 
 	if (GetAsyncKeyState('Q') & 0x8000) {
 		if (!m_cooldownList[ActionType::ULTIMATE]) {
-
+			m_ultimateCool = 0.f;
 			ChangeAnimation(PlayerAnimation::ULTIMATE);
 
 			XMFLOAT3 pos = Vector3::Add(Vector3::Mul(m_front, 0.8f), GetPosition());
@@ -114,33 +115,10 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 		}
 	}
 	
-	if (!m_dashed && GetAsyncKeyState(VK_SHIFT) & 0x8000) {
-		if (!m_cooldownList[ActionType::DASH]) {
-
-			if (m_stamina >= PlayerSetting::MINIMUM_DASH_STAMINA) {
-				m_dashed = true;
-				ChangeAnimation(PlayerAnimation::DASH);
-				m_moveSpeed = PlayerSetting::DASH_SPEED;
-				m_startDash = chrono::system_clock::now();
-
-				CreateCooldownPacket(ActionType::DASH);
-				CreateChangeStaminaPacket(false);
-
-				SendPacket();
-			}
-		}
-	}
-	if (m_dashed && GetAsyncKeyState(VK_SHIFT) == 0x0000) {
-		m_dashed = false;
-		CreateChangeStaminaPacket(true);
-		SendPacket();
-	}
-	
 	if (GetAsyncKeyState('E') & 0x8000) {
 		if (!m_cooldownList[ActionType::SKILL]) {
-
+			m_skillCool = 0.f;
 			ChangeAnimation(PlayerAnimation::SKILL);
-
 
 			XMFLOAT3 pos = Vector3::Add(Vector3::Mul(m_front, 0.8f), GetPosition());
 			CreateAttackPacket(ActionType::SKILL);
@@ -160,19 +138,52 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 
 void Player::OnProcessingMouseMessage(UINT message, LPARAM lParam)
 {
-	if (ObjectAnimation::DEATH == m_currentAnimation)
-		return;
 
-	if (m_cooldownList[ActionType::NORMAL_ATTACK])
-		return;
+	switch (message)
+	{
+	case WM_LBUTTONDOWN:
+		if (ObjectAnimation::DEATH == m_currentAnimation)
+			return;
 
-	ChangeAnimation(ObjectAnimation::ATTACK);
-	CreateAttackPacket(ActionType::NORMAL_ATTACK);
+		if (m_cooldownList[ActionType::NORMAL_ATTACK])
+			return;
+
+
+
+		ChangeAnimation(ObjectAnimation::ATTACK);
+		CreateAttackPacket(ActionType::NORMAL_ATTACK);
+		break;
+	case WM_RBUTTONDOWN:
+		if (!m_dashed) {
+			if (!m_cooltimeList[CooltimeType::DASH]) {
+
+				if (m_stamina >= PlayerSetting::MINIMUM_DASH_STAMINA) {
+					m_dashed = true;
+					ChangeAnimation(PlayerAnimation::DASH);
+					m_moveSpeed = PlayerSetting::PLAYER_DASH_SPEED;
+					m_startDash = chrono::system_clock::now();
+
+					CreateCooltimePacket(CooltimeType::DASH);
+					CreateChangeStaminaPacket(false);
+				}
+			}
+		}
+		break;
+	case WM_RBUTTONUP:
+		if (m_dashed) {
+			m_dashed = false;
+			CreateChangeStaminaPacket(true);
+		}
+		break;
+	default:
+		break;
+	}
 	SendPacket();
 }
 
 void Player::Update(FLOAT timeElapsed)
 {
+
 	AnimationObject::Update(timeElapsed);
 
 	// 애니메이션 상태 머신에 들어갈 내용
@@ -301,7 +312,24 @@ void Player::Update(FLOAT timeElapsed)
 		staminaBarPosition.z += cameraRight.z;
 		staminaBarPosition.y += 1.f;
 		m_staminaBar->SetPosition(staminaBarPosition);
+
+		if (m_stamina < m_maxStamina) {
+			m_stamina += PlayerSetting::DEFAULT_STAMINA_CHANGE_AMOUNT * timeElapsed;
+			SetStamina(m_stamina);
+		}
 	}
+	if (m_skillGauge) {
+		if (PlayerSetting::WARRIOR_SKILL_COOLTIME.count() > m_skillCool) m_skillCool += timeElapsed;
+		m_skillGauge->SetMaxGauge(static_cast<FLOAT>(PlayerSetting::WARRIOR_SKILL_COOLTIME.count()));
+		m_skillGauge->SetGauge(m_skillCool);
+	}
+	if (m_ultimateGauge) {
+		if (PlayerSetting::WARRIOR_ULTIMATE_COOLTIME.count() > m_ultimateCool) m_ultimateCool += timeElapsed;
+		m_ultimateGauge->SetMaxGauge(static_cast<FLOAT>(PlayerSetting::WARRIOR_ULTIMATE_COOLTIME.count()));
+		m_ultimateGauge->SetGauge(m_ultimateCool);
+	}
+
+
 #ifndef USE_NETWORK
 	Move(m_velocity);
 #endif // !USE_NETWORK
@@ -367,6 +395,23 @@ void Player::SetStamina(FLOAT stamina)
 void Player::ResetCooldown(char type)
 {
 	m_cooldownList[type] = false;
+}
+
+void Player::ResetAllCooltime()
+{
+	if (m_skillGauge) {
+		m_skillCool = static_cast<FLOAT>(PlayerSetting::WARRIOR_SKILL_COOLTIME.count());
+		m_skillGauge->SetMaxGauge(static_cast<FLOAT>(PlayerSetting::WARRIOR_SKILL_COOLTIME.count()));
+		m_skillGauge->SetGauge(static_cast<FLOAT>(PlayerSetting::WARRIOR_SKILL_COOLTIME.count()));
+	}
+	if (m_ultimateGauge) {
+		m_ultimateCool = static_cast<FLOAT>(PlayerSetting::WARRIOR_ULTIMATE_COOLTIME.count());
+		m_ultimateGauge->SetMaxGauge(static_cast<FLOAT>(PlayerSetting::WARRIOR_ULTIMATE_COOLTIME.count()));
+		m_ultimateGauge->SetGauge(static_cast<FLOAT>(PlayerSetting::WARRIOR_ULTIMATE_COOLTIME.count()));
+	}
+	for (size_t i = 0; i < CooltimeType::COUNT; ++i) {
+		m_cooltimeList[i] = false;
+	}
 }
 
 bool Player::ChangeAnimation(USHORT animation)

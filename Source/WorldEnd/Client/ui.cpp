@@ -7,17 +7,29 @@ UI::UI(XMFLOAT2 position, XMFLOAT2 size) :
 
 }
 
+void UI::OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime)
+{
+	if (!m_enable) return;
+
+	for (auto& child : m_children) {
+		// 자식 UI에도 전파한다.
+		child->OnProcessingMouseMessage(hWnd, width, height, deltaTime);
+	}
+}
+
 void UI::OnProcessingMouseMessage(UINT message, LPARAM lParam)
 {
 	// 사용할 수 없다면 자식 UI까지 갈 것도 없이 return한다.
 	if (!m_enable) return;
 
 	// 충돌했다면 설정된 버튼의 함수를 stack에 넣는다.
-	if (m_uiMatrix._11 - m_uiMatrix._21 + 1 <= (FLOAT)g_mousePosition.x / (FLOAT)g_GameFramework.GetWindowWidth() * 2 &&
-		m_uiMatrix._11 + m_uiMatrix._21 + 1 >= (FLOAT)g_mousePosition.x / (FLOAT)g_GameFramework.GetWindowWidth() * 2 &&
-		1 - m_uiMatrix._12 - m_uiMatrix._22 <= (FLOAT)g_mousePosition.y / (FLOAT)g_GameFramework.GetWindowHeight() * 2 &&
-		1 - m_uiMatrix._12 + m_uiMatrix._22 >= (FLOAT)g_mousePosition.y / (FLOAT)g_GameFramework.GetWindowHeight() * 2) {
-		g_clickEventStack.push(m_clickEvent);
+	if (message == WM_LBUTTONDOWN) {
+		if (m_uiMatrix._11 - m_uiMatrix._21 + 1 <= (FLOAT)g_mousePosition.x / (FLOAT)g_GameFramework.GetWindowWidth() * 2 &&
+			m_uiMatrix._11 + m_uiMatrix._21 + 1 >= (FLOAT)g_mousePosition.x / (FLOAT)g_GameFramework.GetWindowWidth() * 2 &&
+			1 - m_uiMatrix._12 - m_uiMatrix._22 <= (FLOAT)g_mousePosition.y / (FLOAT)g_GameFramework.GetWindowHeight() * 2 &&
+			1 - m_uiMatrix._12 + m_uiMatrix._22 >= (FLOAT)g_mousePosition.y / (FLOAT)g_GameFramework.GetWindowHeight() * 2) {
+			g_clickEventStack.push(m_clickEvent);
+		}
 	}
 
 	for (auto& child : m_children) {
@@ -78,8 +90,11 @@ void UI::RenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext)
 	}
 }
 
-void UI::SetTexture(const shared_ptr<Texture>& texture) { m_texture = texture; }
-void UI::SetText(const wstring& text) { if (m_text) m_text->SetText(text); }
+void UI::SetTexture(const string& name) 
+{ 
+	if (Scene::m_globalTextures[name]) m_texture = Scene::m_globalTextures[name];
+	else m_texture = Scene::m_textures[name];
+}
 void UI::SetChild(const shared_ptr<UI>& ui) { m_children.push_back(ui); }
 void UI::SetClickEvent(function<void()> chickEvent) { m_clickEvent = chickEvent; }
 XMFLOAT4X4 UI::GetUIMatrix() { return m_uiMatrix; }
@@ -104,25 +119,6 @@ TextUI::TextUI(XMFLOAT2 position, XMFLOAT2 size) : UI(position, size)
 	m_size.x /= g_GameFramework.GetAspectRatio();
 
 	m_text = make_shared<Text>(position, size.x, size.y);
-
-	auto textBrush = ComPtr<ID2D1SolidColorBrush>();
-	DX::ThrowIfFailed(g_GameFramework.GetD2DDeviceContext()->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::White, 1.f), &textBrush));
-	m_text->SetTextBrush(textBrush);
-
-	auto textFormat = ComPtr<IDWriteTextFormat>();
-	DX::ThrowIfFailed(g_GameFramework.GetWriteFactory()->CreateTextFormat(
-		TEXT("돋움체"), nullptr,
-		DWRITE_FONT_WEIGHT_NORMAL,
-		DWRITE_FONT_STYLE_NORMAL,
-		DWRITE_FONT_STRETCH_NORMAL,
-		16.f,
-		TEXT("ko-kr"),
-		&textFormat
-	));
-
-	textFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
-	textFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-	m_text->SetTextFormat(textFormat);
 }
 
 void TextUI::OnProcessingMouseMessage(UINT message, LPARAM lParam)
@@ -170,9 +166,100 @@ void TextUI::RenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext)
 	}
 }
 
+void TextUI::SetText(const wstring& text) { if (m_text) m_text->SetText(text); }
+void TextUI::SetColorBrush(const string& colorBrush) { if (m_text) m_text->SetColorBrush(colorBrush); }
+void TextUI::SetTextFormat(const string& textFormat) { if (m_text) m_text->SetTextFormat(textFormat); }
+
+
 ButtonUI::ButtonUI(XMFLOAT2 position, XMFLOAT2 size) : UI(position, size)
 {
-	m_type = Type::BUTTON;
+	m_type = Type::BUTTON_NOACTIVE;
 	XMStoreFloat4x4(&m_uiMatrix, XMMatrixIdentity());
 	m_size.x /= g_GameFramework.GetAspectRatio();
+}
+
+void ButtonUI::OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime)
+{
+	// 사용할 수 없다면 자식 UI까지 갈 것도 없이 return한다.
+	if (!m_enable) return;
+
+	if (m_uiMatrix._11 - m_uiMatrix._21 + 1 <= (FLOAT)g_mousePosition.x / (FLOAT)g_GameFramework.GetWindowWidth() * 2 &&
+		m_uiMatrix._11 + m_uiMatrix._21 + 1 >= (FLOAT)g_mousePosition.x / (FLOAT)g_GameFramework.GetWindowWidth() * 2 &&
+		1 - m_uiMatrix._12 - m_uiMatrix._22 <= (FLOAT)g_mousePosition.y / (FLOAT)g_GameFramework.GetWindowHeight() * 2 &&
+		1 - m_uiMatrix._12 + m_uiMatrix._22 >= (FLOAT)g_mousePosition.y / (FLOAT)g_GameFramework.GetWindowHeight() * 2) {
+		if (m_type != Type::BUTTON_ACTIVE) {
+			m_type = Type::BUTTON_MOUSEON;
+		}
+	}
+	else {
+		m_type = Type::BUTTON_NOACTIVE;
+	}
+
+	for (auto& child : m_children) {
+		// 자식 UI에도 전파한다.
+		child->OnProcessingMouseMessage(hWnd, width, height, deltaTime);
+	}
+}
+
+void ButtonUI::OnProcessingMouseMessage(UINT message, LPARAM lParam)
+{
+	// 사용할 수 없다면 자식 UI까지 갈 것도 없이 return한다.
+	if (!m_enable) return;
+
+	// 충돌했다면 설정된 버튼의 함수를 stack에 넣는다.
+	if (message == WM_LBUTTONDOWN) {
+		if (m_uiMatrix._11 - m_uiMatrix._21 + 1 <= (FLOAT)g_mousePosition.x / (FLOAT)g_GameFramework.GetWindowWidth() * 2 &&
+			m_uiMatrix._11 + m_uiMatrix._21 + 1 >= (FLOAT)g_mousePosition.x / (FLOAT)g_GameFramework.GetWindowWidth() * 2 &&
+			1 - m_uiMatrix._12 - m_uiMatrix._22 <= (FLOAT)g_mousePosition.y / (FLOAT)g_GameFramework.GetWindowHeight() * 2 &&
+			1 - m_uiMatrix._12 + m_uiMatrix._22 >= (FLOAT)g_mousePosition.y / (FLOAT)g_GameFramework.GetWindowHeight() * 2) {
+			g_clickEventStack.push(m_clickEvent);
+			m_type = Type::BUTTON_ACTIVE;
+		}
+	}
+	if (message == WM_LBUTTONUP) {
+		m_type = Type::BUTTON_NOACTIVE;
+	}
+
+	for (auto& child : m_children) {
+		// 자식 UI에도 전파한다.
+		child->OnProcessingMouseMessage(message, lParam);
+	}
+}
+
+HorzGaugeUI::HorzGaugeUI(XMFLOAT2 position, XMFLOAT2 size, FLOAT border) : 
+	UI(position, size), m_border{ border }
+{
+	m_type = Type::HORZGAUGE;
+	XMStoreFloat4x4(&m_uiMatrix, XMMatrixIdentity());
+	m_size.x /= g_GameFramework.GetAspectRatio();
+}
+
+void HorzGaugeUI::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, const shared_ptr<UI>& parent)
+{
+	if (!m_enable) return;
+
+	commandList->SetGraphicsRoot32BitConstants((INT)ShaderRegister::GameObject, 1, &(m_gauge), 16);
+	commandList->SetGraphicsRoot32BitConstants((INT)ShaderRegister::GameObject, 1, &(m_maxGauge), 17);
+	commandList->SetGraphicsRoot32BitConstants((INT)ShaderRegister::GameObject, 1, &(m_border), 18);
+
+	UI::Render(commandList, parent);
+}
+
+VertGaugeUI::VertGaugeUI(XMFLOAT2 position, XMFLOAT2 size, FLOAT border) : 
+	UI(position, size), m_border{ border }
+{
+	m_type = Type::VERTGAUGE;
+	XMStoreFloat4x4(&m_uiMatrix, XMMatrixIdentity());
+	m_size.x /= g_GameFramework.GetAspectRatio();
+}
+
+void VertGaugeUI::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, const shared_ptr<UI>& parent)
+{
+	if (!m_enable) return;
+
+	commandList->SetGraphicsRoot32BitConstants((INT)ShaderRegister::GameObject, 1, &(m_gauge), 16);
+	commandList->SetGraphicsRoot32BitConstants((INT)ShaderRegister::GameObject, 1, &(m_maxGauge), 17);
+	commandList->SetGraphicsRoot32BitConstants((INT)ShaderRegister::GameObject, 1, &(m_border), 18);
+
+	UI::Render(commandList, parent);
 }

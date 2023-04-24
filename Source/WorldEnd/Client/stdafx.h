@@ -11,7 +11,7 @@
 #define WIN32_LEAN_AND_MEAN             // 거의 사용되지 않는 내용을 Windows 헤더에서 제외합니다.
 #define NOMINMAX
 
-#define USE_NETWORK
+//#define USE_NETWORK
 
 // Windows 헤더 파일
 #include <Windows.h>
@@ -50,6 +50,7 @@
 #include <d3dcompiler.h>
 #include <DirectXMath.h>
 #include <DirectXCollision.h>
+#include <dxgidebug.h>
 #include "d3dx12.h"
 using namespace DirectX;
 using Microsoft::WRL::ComPtr;

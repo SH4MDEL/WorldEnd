@@ -20,6 +20,8 @@ public:
 	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const;
 	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, const shared_ptr<Shader>& shader) const;
 
+	virtual void Clear();
+
 	shared_ptr<Player> GetPlayer() const { return m_player; }
 	shared_ptr<Camera> GetCamera() const { return m_camera; }
 	const vector<shared_ptr<GameObject>>& GetObjects() const { return m_gameObjects; }
@@ -68,6 +70,8 @@ public:
 
 	virtual void Update(FLOAT timeElapsed);
 	virtual void Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList) const;
+
+	virtual void Clear() override;
 
 	virtual void CreateShaderVariable(const ComPtr<ID3D12Device>& device);
 	virtual void UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& commandList) const override;
@@ -208,6 +212,8 @@ public:
 	~UIShader() = default;
 
 	void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const override;
+
+	void Clear() override;
 
 	void SetUI(const shared_ptr<UI>& ui) override { m_ui.push_back(ui); }
 

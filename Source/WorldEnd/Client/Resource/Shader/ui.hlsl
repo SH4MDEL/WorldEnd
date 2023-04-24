@@ -7,7 +7,11 @@
 #define TYPE_STANDARD 0
 #define TYPE_BACKGROUND 1
 #define TYPE_TEXT 2
-#define TYPE_BUTTON 3
+#define TYPE_BUTTON_NOACTIVE 3
+#define TYPE_BUTTON_MOUSEON 4
+#define TYPE_BUTTON_ACTIVE 5
+#define TYPE_HORZGAUGE 6
+#define TYPE_VERTGAUGE 7
 
 
 struct VS_UI_OUTPUT
@@ -57,6 +61,25 @@ void GS_UI_MAIN(point VS_UI_OUTPUT input[1], inout TriangleStream<GS_UI_OUTPUT> 
 
 float4 PS_UI_MAIN(GS_UI_OUTPUT input) : SV_TARGET
 {
-	if (g_type == TYPE_BACKGROUND) return float4(0.f, 0.f, 0.f, 0.f);
+	//if (g_type == TYPE_BACKGROUND) 
+	//	return float4(0.f, 0.f, 0.f, 0.f);
+	if (g_type == TYPE_HORZGAUGE) {
+		if (input.uv.x <= g_age + (1 - g_age) * (g_gauge / g_maxGauge)) {
+			return g_baseTexture.Sample(g_samplerWrap, input.uv);
+		}
+		return g_subTexture.Sample(g_samplerWrap, input.uv);
+	}
+	if (g_type == TYPE_VERTGAUGE) {
+		if (1 - input.uv.y <= g_age + (1 - g_age) * (g_gauge / g_maxGauge)) {
+			return g_baseTexture.Sample(g_samplerWrap, input.uv);
+		}
+		return g_subTexture.Sample(g_samplerWrap, input.uv);
+	}
+	if (g_type == TYPE_BUTTON_MOUSEON) {
+		return g_baseTexture.Sample(g_samplerWrap, input.uv) * float4(0.8f, 0.8f, 0.8f, 1.f);
+	}
+	if (g_type == TYPE_BUTTON_ACTIVE) {
+		return g_baseTexture.Sample(g_samplerWrap, input.uv) * float4(0.6f, 0.6f, 0.6f, 1.f);
+	}
 	return g_baseTexture.Sample(g_samplerWrap, input.uv);
 }

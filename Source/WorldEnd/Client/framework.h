@@ -4,7 +4,10 @@
 #include "camera.h"
 #include "object.h"
 #include "scene.h"
-#include "loadingScene.h"
+#include "globalLoadingScene.h"
+#include "villageLoadingScene.h"
+#include "loginScene.h"
+#include "towerLoadingScene.h"
 #include "towerScene.h"
 
 struct FrameworkInfo
@@ -24,7 +27,7 @@ public:
 	void OnProcessingMouseMessage() const;
 	void OnProcessingMouseMessage(UINT message, LPARAM lParam) const;
 	void OnProcessingKeyboardMessage() const;
-	void StartPipeline();
+	void CreatePipeline();
 	
 	// 1. 디바이스 생성
 	void CreateDevice();
@@ -162,10 +165,7 @@ private:
 	UINT64														m_fenceValue;
 	HANDLE														m_fenceEvent;
 
-	Timer														m_timer;
-
 	vector<unique_ptr<Scene>>									m_scenes;
 	INT															m_sceneIndex;
-	BOOL														m_shadowPass;
 };
 

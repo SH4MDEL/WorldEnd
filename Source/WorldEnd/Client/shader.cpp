@@ -95,6 +95,15 @@ void Shader::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, const 
 		if (elm.second) elm.second->Render(commandList);
 }
 
+void Shader::Clear()
+{
+	m_gameObjects.clear();
+	m_player.reset();
+	m_camera.reset();
+	m_multiPlayers.clear();
+	m_monsters.clear();
+}
+
 void Shader::UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& commandList) const
 {
 	commandList->SetPipelineState(m_pipelineState.Get());
@@ -233,6 +242,12 @@ void InstancingShader::Render(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	}
 
 	m_mesh->Render(commandList, m_instancingBufferView);
+}
+
+void InstancingShader::Clear()
+{
+	Shader::Clear();
+	m_mesh.reset();
 }
 
 void InstancingShader::CreateShaderVariable(const ComPtr<ID3D12Device>& device)
@@ -986,4 +1001,10 @@ void UIShader::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) cons
 	for (const auto& ui : m_ui) {
 		ui->Render(commandList, nullptr);
 	}
+}
+
+void UIShader::Clear()
+{
+	Shader::Clear();
+	m_ui.clear();
 }

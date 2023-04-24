@@ -26,8 +26,6 @@ void FadeFilter::Execute(const ComPtr<ID3D12GraphicsCommandList>& commandList, c
 		commandList->SetComputeRoot32BitConstants((INT)PostShaderRegister::Fade, 1, &m_age, 0);
 		commandList->SetComputeRoot32BitConstants((INT)PostShaderRegister::Fade, 1, &m_fadeLifetime, 1);
 
-		commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(),
-			D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE));
 		commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderMap.Get(),
 			D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_COPY_DEST));
 
@@ -40,7 +38,7 @@ void FadeFilter::Execute(const ComPtr<ID3D12GraphicsCommandList>& commandList, c
 			D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
 
 		// 파이프라인 상태 설정
-		commandList->SetPipelineState(Scene::m_shaders["FADE"]->GetPipelineState().Get());
+		commandList->SetPipelineState(Scene::m_globalShaders["FADE"]->GetPipelineState().Get());
 
 		commandList->SetComputeRootDescriptorTable((INT)PostShaderRegister::BaseTexture, m_renderGpuSrv);
 		commandList->SetComputeRootDescriptorTable((INT)PostShaderRegister::OutputTexture, m_fadeGpuUav);
@@ -59,7 +57,7 @@ void FadeFilter::Execute(const ComPtr<ID3D12GraphicsCommandList>& commandList, c
 		commandList->CopyResource(renderTarget.Get(), m_fadeMap.Get());
 
 		commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(),
-			D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_RENDER_TARGET));
+			D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_COPY_SOURCE));
 		commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_fadeMap.Get(),
 			D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_GENERIC_READ));
 	}

@@ -6,15 +6,19 @@ class TowerScene : public Scene
 {
 public:
 	enum class State {
-		None				= 0x00,
-		OutputExitUI		= 0x01,
-		OutputResult		= 0x02,
-		BlurLevel1			= -1,
-		BlurLevel2			= -1,
+		Unused				= 0x00,
+		InitScene			= 0x01,
+		EnterScene			= 0x02,
+		WarpGate			= 0x04,
+		OutputExitUI		= 0x08,
+		OutputResult		= 0x10,
+		Fading				= 0x20,
+		BlurLevel1			= Unused,
+		BlurLevel2			= Unused,
 		BlurLevel3			= OutputExitUI,
-		BlurLevel4			= -1,
+		BlurLevel4			= Unused,
 		BlurLevel5			= OutputResult,
-		CantPlayerControl	= OutputExitUI | OutputResult
+		CantPlayerControl	= EnterScene | OutputExitUI | OutputResult | Fading
 	};
 
 	TowerScene();
@@ -33,7 +37,7 @@ public:
 
 	void BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, 
 		const ComPtr<ID3D12RootSignature>& rootsignature, const ComPtr<ID3D12RootSignature>& postRootSignature) override;
-	void CreateLight(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist);
+	void DestroyObjects() override;
 	
 	void OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime) override;
 	void OnProcessingMouseMessage(UINT message, LPARAM lParam) override;
@@ -89,36 +93,48 @@ public:
 	void RecvPlayerShoot(char* ptr);
 	void RecvRemoveArrow(char* ptr);
 
+private:
+	void BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist);
+	void BuildLight(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist);
+
+	void UpdateLightSystem(FLOAT timeElapsed);
+
 protected:
-	ComPtr<ID3D12Resource>					m_sceneBuffer;
-	SceneInfo*								m_sceneBufferPointer;
+	ComPtr<ID3D12Resource>								m_sceneBuffer;
+	SceneInfo*											m_sceneBufferPointer;
 
-	INT										m_sceneState;
+	INT													m_sceneState;
 
-	XMMATRIX								m_lightView;
-	XMMATRIX								m_lightProj;
-	XMMATRIX								m_NDCspace;
+	XMMATRIX											m_lightView;
+	XMMATRIX											m_lightProj;
+	XMMATRIX											m_NDCspace;
 
-	vector<shared_ptr<GameObject>>			m_object;
+	shared_ptr<Player>									m_player;
+	shared_ptr<Camera>									m_camera;
 
-	shared_ptr<Player>						m_player;
-	shared_ptr<Camera>						m_camera;
+	shared_ptr<WarpGate>								m_gate;
 
-	shared_ptr<GameObject>					m_gate;
+	shared_ptr<LightSystem>								m_lightSystem;
+	shared_ptr<Shadow>									m_shadow;
+	unique_ptr<BlurFilter>								m_blurFilter;
+	unique_ptr<FadeFilter>								m_fadeFilter;
+	unique_ptr<SobelFilter>								m_sobelFilter;
 
-	shared_ptr<LightSystem>					m_lightSystem;
-	shared_ptr<Shadow>						m_shadow;
-	unique_ptr<BlurFilter>					m_blurFilter;
-	unique_ptr<FadeFilter>					m_fadeFilter;
-	unique_ptr<SobelFilter>					m_sobelFilter;
-
-	shared_ptr<UI>							m_exitUI;
-	shared_ptr<UI>							m_resultUI;
-	shared_ptr<UI>							m_resultTextUI;
+	// UI 관련
+	array<shared_ptr<HorzGaugeUI>, MAX_INGAME_USER - 1>	m_hpUI;
+	unordered_map<INT, INT>								m_idSet;
+	shared_ptr<UI>										m_exitUI;
+	shared_ptr<UI>										m_resultUI;
+	shared_ptr<TextUI>									m_resultTextUI;
 
 	// 서버 추가 코드
 	unordered_map<INT, shared_ptr<Player>>	            m_multiPlayers;
 	unordered_map<INT, shared_ptr<Monster>>             m_monsters;
+
+	XMFLOAT4											m_directionalDiffuse;
+	XMFLOAT3											m_directionalDirection;
+	const FLOAT			m_lifeTime = 3.f;
+	FLOAT				m_age;
 
 	unordered_map<INT, shared_ptr<Arrow>>	m_arrows;
 };

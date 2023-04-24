@@ -10,11 +10,16 @@ public:
 		STANDARD,
 		BACKGROUND,
 		TEXT,
-		BUTTON
+		BUTTON_NOACTIVE,
+		BUTTON_MOUSEON,
+		BUTTON_ACTIVE,
+		HORZGAUGE,
+		VERTGAUGE
 	};
 	UI(XMFLOAT2 position, XMFLOAT2 size);
 	~UI() = default;
 
+	virtual void OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime);
 	virtual void OnProcessingMouseMessage(UINT message, LPARAM lParam);
 
 	virtual void Update(FLOAT timeElapsed);
@@ -24,8 +29,7 @@ public:
 	void SetEnable() { m_enable = true; }
 	void SetDisable() { m_enable = false; }
 
-	void SetTexture(const shared_ptr<Texture>& texture);
-	void SetText(const wstring& text);
+	void SetTexture(const string& name);
 	void SetChild(const shared_ptr<UI>& ui);
 	void SetClickEvent(function<void()> chickEvent);
 
@@ -41,7 +45,6 @@ protected:
 	XMFLOAT2 m_size;
 
 	shared_ptr<Texture> m_texture;
-	shared_ptr<Text> m_text;
 
 	vector<shared_ptr<UI>> m_children;
 
@@ -75,8 +78,14 @@ public:
 	void OnProcessingMouseMessage(UINT message, LPARAM lParam) override;
 
 	void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, const shared_ptr<UI>& parent) override;
-	void RenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext);
+	void RenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext) override;
+
+	void SetText(const wstring& text);
+	void SetColorBrush(const string& colorBrush);
+	void SetTextFormat(const string& textFormat);
+
 private:
+	shared_ptr<Text> m_text;
 };
 
 class ButtonUI : public UI
@@ -85,7 +94,43 @@ public:
 	ButtonUI(XMFLOAT2 position, XMFLOAT2 size);
 	~ButtonUI() = default;
 
+	virtual void OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime) override;
+	virtual void OnProcessingMouseMessage(UINT message, LPARAM lParam) override;
 private:
+};
+
+class HorzGaugeUI : public UI
+{
+public:
+	HorzGaugeUI(XMFLOAT2 position, XMFLOAT2 size, FLOAT border);
+	~HorzGaugeUI() = default;
+	
+	void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, const shared_ptr<UI>& parent) override;
+
+	void SetGauge(FLOAT gauge) { m_gauge = gauge; }
+	void SetMaxGauge(FLOAT maxGauge) { m_maxGauge = maxGauge; }
+private:
+	FLOAT m_gauge;
+	FLOAT m_maxGauge;
+
+	FLOAT m_border;
+};
+
+class VertGaugeUI : public UI
+{
+public:
+	VertGaugeUI(XMFLOAT2 position, XMFLOAT2 size, FLOAT border);
+	~VertGaugeUI() = default;
+
+	void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, const shared_ptr<UI>& parent) override;
+
+	void SetGauge(FLOAT gauge) { m_gauge = gauge; }
+	void SetMaxGauge(FLOAT maxGauge) { m_maxGauge = maxGauge; }
+private:
+	FLOAT m_gauge;
+	FLOAT m_maxGauge;
+
+	FLOAT m_border;
 };
 
 // UI

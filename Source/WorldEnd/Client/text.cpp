@@ -1,6 +1,9 @@
 #include "text.h"
 #include "framework.h"
 
+unordered_map<string, ComPtr<ID2D1SolidColorBrush>>		Text::m_colorBrushes;
+unordered_map<string, ComPtr<IDWriteTextFormat>>		Text::m_textFormats;
+
 Text::Text() : m_position{ 0.f, 0.f }, m_width{ 1280.f }, m_height{ 720.f },
 m_layoutRect{ 0.f, 360.f, m_width , m_height }, m_enable(true)
 {
@@ -16,7 +19,7 @@ void Text::Render(const ComPtr<ID2D1DeviceContext2>& device)
 {
 	if (m_enable) {
 		device->SetTransform(D2D1::Matrix3x2F::Identity());
-		device->DrawText(m_text.c_str(), m_text.size(), m_textFormat.Get(), &m_layoutRect, m_textBrush.Get());
+		device->DrawText(m_text.c_str(), m_text.size(), m_textFormats[m_textFormat].Get(), &m_layoutRect, m_colorBrushes[m_colorBrush].Get());
 	}
 }
 

@@ -81,21 +81,25 @@ void GameObject::Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw)
 	UpdateTransform(nullptr);
 }
 
-void GameObject::SetMesh(const shared_ptr<Mesh>& mesh)
+void GameObject::SetMesh(const string& name)
 {
 	if (m_mesh) m_mesh.reset();
-	m_mesh = mesh;
+	if (Scene::m_globalMeshs[name]) m_mesh = Scene::m_globalMeshs[name];
+	else m_mesh = Scene::m_meshs[name];
 }
 
-void GameObject::SetTexture(const shared_ptr<Texture>& texture)
+void GameObject::SetTexture(const string& name)
 {
 	if (m_texture) m_texture.reset();
-	m_texture = texture;
+	if (Scene::m_globalTextures[name]) m_texture = Scene::m_globalTextures[name];
+	else m_texture = Scene::m_textures[name];
 }
 
-void GameObject::SetMaterials(const shared_ptr<Materials>& materials)
+void GameObject::SetMaterials(const string& name)
 {
-	m_materials = materials;
+	if (m_materials) m_materials.reset();
+	if (Scene::m_globalMaterials[name]) m_materials = Scene::m_globalMaterials[name];
+	else m_materials = Scene::m_materials[name];
 }
 
 XMFLOAT3 GameObject::GetPosition() const
@@ -214,7 +218,7 @@ void GameObject::LoadObject(ifstream& in)
 			string meshName(strLength, '\0');
 			in.read(&meshName[0], sizeof(CHAR) * strLength);
 
-			SetMesh(Scene::m_meshs[meshName]);
+			SetMesh(meshName);
 			SetBoundingBox(m_mesh->GetBoundingBox());
 		}
 		else if (strToken == "<SkinningInfo>:") {		// 스킨메쉬 정보
@@ -224,7 +228,7 @@ void GameObject::LoadObject(ifstream& in)
 
 			// 스킨메쉬는 메쉬정보까지 담고 있으므로
 			// 메쉬까지 읽기만 하고 넘기도록 함
-			SetMesh(Scene::m_meshs[meshName]);
+			SetMesh(meshName);
 			SetBoundingBox(m_mesh->GetBoundingBox());
 
 			// </SkinningInfo>		읽고 넘김
@@ -242,7 +246,7 @@ void GameObject::LoadObject(ifstream& in)
 			in.read((char*)(&strLength), sizeof(BYTE));
 			string materialName(strLength, '\0');
 			in.read(&materialName[0], sizeof(CHAR) * strLength);
-			SetMaterials(Scene::m_materials[materialName]);
+			SetMaterials(materialName);
 		}
 		else if (strToken == "<Children>:") {
 			INT childNum = 0;
@@ -300,9 +304,10 @@ void GameObject::LoadObject(ifstream& in, const shared_ptr<GameObject>& rootObje
 			string meshName(strLength, '\0');
 			in.read(&meshName[0], sizeof(CHAR) * strLength);
 
-			Scene::m_meshs[meshName]->CreateShaderVariables(rootObject.get());
+			if (Scene::m_meshs[meshName]) Scene::m_meshs[meshName]->CreateShaderVariables(rootObject.get());
+			else Scene::m_globalMeshs[meshName]->CreateShaderVariables(rootObject.get());
 
-			SetMesh(Scene::m_meshs[meshName]);
+			SetMesh(meshName);
 			SetBoundingBox(m_mesh->GetBoundingBox());
 		}
 		else if (strToken == "<SkinningInfo>:") {		// 스킨메쉬 정보
@@ -310,11 +315,12 @@ void GameObject::LoadObject(ifstream& in, const shared_ptr<GameObject>& rootObje
 			string meshName(strLength, '\0');
 			in.read(&meshName[0], sizeof(CHAR) * strLength);
 
-			Scene::m_meshs[meshName]->CreateShaderVariables(rootObject.get());
+			if (Scene::m_meshs[meshName]) Scene::m_meshs[meshName]->CreateShaderVariables(rootObject.get());
+			else Scene::m_globalMeshs[meshName]->CreateShaderVariables(rootObject.get());
 
 			// 스킨메쉬는 메쉬정보까지 담고 있으므로
 			// 메쉬까지 읽기만 하고 넘기도록 함
-			SetMesh(Scene::m_meshs[meshName]);
+			SetMesh(meshName);
 			SetBoundingBox(m_mesh->GetBoundingBox());
 
 			// </SkinningInfo>		읽고 넘김
@@ -332,7 +338,7 @@ void GameObject::LoadObject(ifstream& in, const shared_ptr<GameObject>& rootObje
 			in.read((char*)(&strLength), sizeof(BYTE));
 			string materialName(strLength, '\0');
 			in.read(&materialName[0], sizeof(CHAR) * strLength);
-			SetMaterials(Scene::m_materials[materialName]);
+			SetMaterials(materialName);
 		}
 		else if (strToken == "<Children>:") {
 			INT childNum = 0;
@@ -359,148 +365,6 @@ void GameObject::UpdateBoundingBox()
 void GameObject::SetBoundingBox(const BoundingOrientedBox& boundingBox)
 {
 	m_boundingBox = boundingBox;
-}
-
-Field::Field(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList,
-	INT width, INT length, INT height, INT blockWidth, INT blockLength, INT blockHeight, XMFLOAT3 scale)
-	: m_width{ width }, m_length{ length }, m_height{ height }, m_scale{ scale }
-{
-	// 높이맵이미지 로딩
-	m_fieldMapImage = make_unique<FieldMapImage>(m_width, m_length, m_height, m_scale);
-
-	// 가로, 세로 블록의 개수
-	if (height == 0) {
-		int widthBlockCount{ m_width / blockWidth };
-		int lengthBlockCount{ m_length / blockLength };
-
-		// 블록 생성
-		for (int z = 0; z < lengthBlockCount; ++z) {
-			for (int x = 0; x < widthBlockCount; ++x)
-			{
-				int xStart{ x * (blockWidth - 1) };
-				int zStart{ z * (blockLength - 1) };
-				unique_ptr<GameObject> block{ make_unique<GameObject>() };
-				auto mesh = make_shared<FieldMapGridMesh>(device, commandList, xStart, zStart, blockWidth, blockLength, m_scale, m_fieldMapImage.get());
-				block->SetMesh(mesh);
-				m_blocks.push_back(move(block));
-			}
-		}
-	}
-	else if (width == 0) {
-		int lengthBlockCount{ m_length / blockLength };
-		int heightBlockCount{ m_height / blockHeight };
-	}
-}
-
-void Field::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList)
-{
-	if (m_texture) m_texture->UpdateShaderVariable(commandList);
-	for (const auto& block : m_blocks)
-		block->Render(commandList);
-}
-
-void Field::Move(const XMFLOAT3& shift)
-{
-	for (auto& block : m_blocks)
-		block->Move(shift);
-}
-
-void Field::Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw)
-{
-	for (auto& block : m_blocks)
-		block->Rotate(roll, pitch, yaw);
-}
-
-void Field::SetPosition(const XMFLOAT3& position)
-{
-	// 지형의 위치 설정은 모든 블록들의 위치를 조정한다는 것임
-	for (auto& block : m_blocks)
-		block->SetPosition(position);
-}
-
-void Field::ReleaseUploadBuffer() const
-{
-	if (m_texture) m_texture->ReleaseUploadBuffer();
-	for (auto& block : m_blocks) {
-		block->ReleaseUploadBuffer();
-	}
-}
-
-Fence::Fence(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList,
-	INT width, INT length, INT blockWidth, INT blockLength)
-	: m_width{ width }, m_length{ length }
-{
-	// 가로, 세로 블록의 개수
-	int widthBlockCount{ m_width / blockWidth };
-	int lengthBlockCount{ m_length / blockLength };	
-
-	// 블록 생성
-	for (int x = 0; x < widthBlockCount; ++x)
-	{
-		int xStart{ x * blockWidth - m_width / 2 + blockWidth / 2 };
-		auto block{ make_unique<GameObject>() };
-		auto mesh = make_shared<TextureRectMesh>(device, commandList, XMFLOAT3{ (float)xStart, 0.f, (float)m_length / 2 }, (float)blockWidth, (float)blockWidth, 0.f);
-		block->SetMesh(mesh);
-		m_blocks.push_back(move(block));
-	}
-	for (int x = 0; x < widthBlockCount; ++x)
-	{
-		int xStart{ x * blockWidth - m_width / 2 + blockWidth / 2 };
-		auto block{ make_unique<GameObject>() };
-		auto mesh = make_shared<TextureRectMesh>(device, commandList, XMFLOAT3{ (float)xStart, 0.f, (float)-m_length / 2 }, (float)blockWidth, (float)blockWidth, 0.f);
-		block->SetMesh(mesh);
-		m_blocks.push_back(move(block));
-	}
-	for (int z = 0; z < lengthBlockCount; ++z)
-	{
-		int zStart{ z * blockLength - m_length / 2 + blockLength / 2 };
-		auto block{ make_unique<GameObject>() };
-		auto mesh = make_shared<TextureRectMesh>(device, commandList, XMFLOAT3{ (float)m_width / 2, 0.f, (float)zStart }, 0.f, (float)blockLength, (float)blockLength);
-		block->SetMesh(mesh);
-		m_blocks.push_back(move(block));
-	}
-	for (int z = 0; z < lengthBlockCount; ++z)
-	{
-		int zStart{ z * blockLength - m_length / 2 + blockLength / 2 };
-		auto block{ make_unique<GameObject>() };
-		auto mesh = make_shared<TextureRectMesh>(device, commandList, XMFLOAT3{ (float)-m_width / 2, 0.f, (float)zStart }, 0.f, (float)blockLength, (float)blockLength);
-		block->SetMesh(mesh);
-		m_blocks.push_back(move(block));
-	}
-}
-
-void Fence::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList)
-{
-	if (m_texture) m_texture->UpdateShaderVariable(commandList);
-	for (const auto& block : m_blocks)
-		block->Render(commandList);
-}
-
-void Fence::Move(const XMFLOAT3& shift)
-{
-	for (auto& block : m_blocks)
-		block->Move(shift);
-}
-
-void Fence::Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw)
-{
-	for (auto& block : m_blocks)
-		block->Rotate(roll, pitch, yaw);
-}
-
-void Fence::SetPosition(const XMFLOAT3& position)
-{
-	// 지형의 위치 설정은 모든 블록들의 위치를 조정한다는 것임
-	for (auto& block : m_blocks)
-		block->SetPosition(position);
-}
-
-void Fence::ReleaseUploadBuffer() const
-{
-	if (m_texture) m_texture->ReleaseUploadBuffer();
-	for (auto& block : m_blocks) {
-		block->ReleaseUploadBuffer();
-	}
 }
 
 Skybox::Skybox(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList,
@@ -665,10 +529,10 @@ void AnimationObject::UpdateAnimation(FLOAT timeElapsed)
 	m_animationController->Update(timeElapsed, shared_from_this());
 }
 
-void AnimationObject::SetAnimationSet(const shared_ptr<AnimationSet>& animationSet)
+void AnimationObject::SetAnimationSet(const shared_ptr<AnimationSet>& animationSet, const string& name)
 {
 	if (m_animationController)
-		m_animationController->SetAnimationSet(animationSet);
+		m_animationController->SetAnimationSet(animationSet, name);
 }
 
 void AnimationObject::SetAnimationOnTrack(int animationTrackNumber, int animation)
@@ -893,9 +757,11 @@ AnimationController::~AnimationController()
 
 }
 
-void AnimationController::SetAnimationSet(const shared_ptr<AnimationSet>& animationSet)
+void AnimationController::SetAnimationSet(const shared_ptr<AnimationSet>& animationSet, const string& name)
 {
-	m_animationSet = animationSet;
+	if (m_animationSet) m_animationSet.reset();
+	if (animationSet) m_animationSet = animationSet;
+	else m_animationSet = Scene::m_globalAnimationSets[name];
 }
 
 void AnimationController::SetTrackAnimation(int animationTrack, int animation)
@@ -1013,4 +879,35 @@ void AnimationController::InsertObject(string boneName, UINT boneNumber, const s
 	XMFLOAT4X4 transform;
 	XMStoreFloat4x4(&transform, XMMatrixIdentity());
 	m_animationTransforms.insert({ boneName, make_pair(boneNumber, object) });
+}
+
+WarpGate::WarpGate() : m_age{0.f}, m_interect{false}
+{
+}
+
+void WarpGate::Update(FLOAT timeElapsed)
+{
+	if (!m_interect) return;
+
+	m_age += timeElapsed;
+	if (m_age >= m_lifeTime) {
+		m_age = 0;
+		m_interect = false;
+
+		auto position = GetPosition();
+		position.y = m_originHeight;
+		SetPosition(position);
+
+		m_event();
+	}
+	auto position = GetPosition();
+	position.y = m_originHeight + m_maxHeight * (m_age / m_lifeTime);
+	SetPosition(position);
+}
+
+void WarpGate::SetInterect(function<void()> event)
+{
+	m_event = event;
+	m_interect = true;
+	m_originHeight = GetPosition().y;
 }

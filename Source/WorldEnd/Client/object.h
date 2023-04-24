@@ -28,9 +28,9 @@ public:
 	virtual void UpdateTransform(XMFLOAT4X4* parentMatrix = nullptr);
 	virtual void UpdateAnimationTransform(XMFLOAT4X4* parentMatrix = nullptr);
 
-	void SetMesh(const shared_ptr<Mesh>& mesh);
-	void SetTexture(const shared_ptr<Texture>& texture);
-	void SetMaterials(const shared_ptr<Materials>& materials);
+	void SetMesh(const string& name);
+	void SetTexture(const string& name);
+	void SetMaterials(const string& name);
 
 	virtual void SetPosition(const XMFLOAT3& position);
 	void SetScale(FLOAT x, FLOAT y, FLOAT z);
@@ -94,61 +94,6 @@ protected:
 	BoundingOrientedBox			m_boundingBox;	
 };
 
-
-class Field : public GameObject
-{
-public:
-	Field(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList,
-		INT width, INT length, INT height, INT blockWidth, INT blockLength, INT blockHeight, XMFLOAT3 scale);
-	~Field() = default;
-
-	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList);
-	virtual void Move(const XMFLOAT3& shift);
-	virtual void Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw);
-
-	void SetPosition(const XMFLOAT3& position) override;
-
-	XMFLOAT3 GetPosition() const { return m_blocks.front()->GetPosition(); }
-	INT GetWidth() const { return m_width; }
-	INT GetLength() const { return m_length; }
-	XMFLOAT3 GetScale() const { return m_scale; }
-
-	void ReleaseUploadBuffer() const override;
-
-private:
-	unique_ptr<FieldMapImage>		m_fieldMapImage;	// 높이맵 이미지
-	vector<unique_ptr<GameObject>>	m_blocks;			// 블록들
-	INT								m_width;			// 이미지의 가로 길이
-	INT								m_length;			// 이미지의 세로 길이
-	INT								m_height;
-	XMFLOAT3						m_scale;			// 확대 비율
-};
-
-class Fence : public GameObject
-{
-public:
-	Fence(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList,
-		INT width, INT length, INT blockWidth, INT blockLength);
-	~Fence() = default;
-
-	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>&commandList);
-	virtual void Move(const XMFLOAT3 & shift);
-	virtual void Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw);
-
-	void SetPosition(const XMFLOAT3 & position) override;
-
-	XMFLOAT3 GetPosition() const { return m_blocks.front()->GetPosition(); }
-	INT GetWidth() const { return m_width; }
-	INT GetLength() const { return m_length; }
-
-	void ReleaseUploadBuffer() const override;
-
-private:
-	vector<unique_ptr<GameObject>>	m_blocks;			// 블록들
-	INT								m_width;			// 이미지의 가로 길이
-	INT								m_length;			// 이미지의 세로 길이
-};
-
 class Skybox : public GameObject
 {
 public:
@@ -197,7 +142,7 @@ public:
 
 	virtual void UpdateAnimation(FLOAT timeElapsed) override;
 
-	void SetAnimationSet(const shared_ptr<AnimationSet>& animations);
+	void SetAnimationSet(const shared_ptr<AnimationSet>& animations, const string& name);
 	void SetAnimationOnTrack(int animationTrackNumber, int animation);
 	void ChangeAnimationSettings(AnimationBlending blendingMode, int trackType, int trackType1, USHORT blendingAnimation);
 
@@ -291,7 +236,7 @@ public:
 	AnimationController(int animationTracks);
 	~AnimationController();
 
-	void SetAnimationSet(const shared_ptr<AnimationSet>& animationSet);
+	void SetAnimationSet(const shared_ptr<AnimationSet>& animationSet, const string& name);
 
 	void SetTrackAnimation(int animationTrack, int animations);
 	void SetTrackEnable(int animationTrack, bool enable);
@@ -323,4 +268,25 @@ private:
 	AnimationBlending						m_blendingMode;
 
 	unordered_map<string, pair<UINT, shared_ptr<GameObject>>>		m_animationTransforms;
+};
+
+class WarpGate : public GameObject
+{
+public:
+	WarpGate();
+	virtual ~WarpGate() = default;
+
+	void Update(FLOAT timeElapsed) override;
+
+	void SetInterect(function<void()> event);
+
+private:
+	const FLOAT			m_lifeTime = 3.f;
+	const FLOAT			m_maxHeight = 4.f;
+
+	FLOAT				m_age;
+	FLOAT				m_originHeight;
+	BOOL				m_interect;
+
+	function<void()>	m_event;
 };

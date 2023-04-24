@@ -93,8 +93,9 @@ void Texture::UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& comm
 
 void Texture::ReleaseUploadBuffer()
 {
-	for (auto& textureUploadBuffer : m_textureUploadHeap)
+	for (int i = 0; auto & textureUploadBuffer : m_textureUploadHeap) {
 		textureUploadBuffer.Reset();
+	}
 }
 
 bool Texture::LoadTextureFileHierarchy(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, ifstream& in, UINT rootParameterIndex)

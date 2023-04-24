@@ -63,7 +63,7 @@ void GS_GAUGE_MAIN(point VS_GAUGE_OUTPUT input[1], inout TriangleStream<GS_GAUGE
 [earlydepthstencil]
 float4 PS_HORZGAUGE_MAIN(GS_GAUGE_OUTPUT input) : SV_TARGET
 {
-	if (input.uv0.x <= g_age + (1 - g_age) * (hp / maxHp)) {
+	if (input.uv0.x <= g_age + (1 - g_age) * (g_gauge / g_maxGauge)) {
 		return g_baseTexture.Sample(g_samplerWrap, input.uv0);
 	}
 	return g_subTexture.Sample(g_samplerWrap, input.uv1);
@@ -72,7 +72,7 @@ float4 PS_HORZGAUGE_MAIN(GS_GAUGE_OUTPUT input) : SV_TARGET
 [earlydepthstencil]
 float4 PS_VERTGAUGE_MAIN(GS_GAUGE_OUTPUT input) : SV_TARGET
 {
-	if (1 - input.uv0.y <= g_age + (1 - g_age) * (hp / maxHp)) {
+	if (1 - input.uv0.y <= g_age + (1 - g_age) * (g_gauge / g_maxGauge)) {
 		return g_baseTexture.Sample(g_samplerWrap, input.uv0);
 	}
 	return g_subTexture.Sample(g_samplerWrap, input.uv1);
