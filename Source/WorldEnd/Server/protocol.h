@@ -261,7 +261,9 @@ namespace RoomSetting
 	constexpr float TOPSIDE_STAIRS_FRONT = 53.f;
 	constexpr float TOPSIDE_STAIRS_BACK = 43.f;
 
+	constexpr auto BATTLE_DELAY_TIME = 3s;
 	constexpr float EVENT_RADIUS = 1.f;
+	constexpr DirectX::XMFLOAT3 START_POSITION { 0.f, -DOWNSIDE_STAIRS_HEIGHT, -45.f };
 	constexpr DirectX::XMFLOAT3 BATTLE_STARTER_POSITION { 0.f, 0.f, 24.f };
 	constexpr DirectX::XMFLOAT3 WARP_PORTAL_POSITION { -1.f, TOPSIDE_STAIRS_HEIGHT, 60.f };
 }

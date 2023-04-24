@@ -11,7 +11,7 @@ enum class EventType : char
 	COOLDOWN_RESET, BEHAVIOR_CHANGE, AGRO_LEVEL_DECREASE,
 	ATTACK_COLLISION, MONSTER_ATTACK_COLLISION, STAMINA_CHANGE,
 	HIT_SCAN, ARROW_SHOOT, ARROW_REMOVE, GAME_ROOM_RESET,
-	TRIGGER_COOLDOWN, TRIGGER_REMOVE
+	TRIGGER_COOLDOWN, TRIGGER_REMOVE, BATTLE_START
 };
 
 struct TIMER_EVENT {
@@ -80,6 +80,7 @@ public:
 	void SetArrowShootTimerEvent(int id, ActionType attack_type,
 		std::chrono::system_clock::time_point attack_time);
 	void SetRemoveArrowTimerEvent(int client_id, int arrow_id);
+	void SetBattleStartTimerEvent(int client_id);
 
 	INT GetNewId();
 	INT GetNewMonsterId(MonsterType type);

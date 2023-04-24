@@ -65,6 +65,7 @@ void GameRoom::WarpNextFloor(INT room_num)
 	for (INT id : m_player_ids) {
 		if (-1 == id) continue;
 
+		server.m_clients[id]->SetPosition(RoomSetting::START_POSITION);
 		SendAddMonster(id);
 	}
 }
@@ -397,6 +398,7 @@ void GameRoomManager::SetPlayer(INT room_num, INT player_id)
 
 	Server& server = Server::GetInstance();
 	server.m_clients[player_id]->SetRoomNum(room_num);
+	server.m_clients[player_id]->SetPosition(RoomSetting::START_POSITION);
 	
 	m_game_rooms[room_num]->SetPlayer(player_id);
 }

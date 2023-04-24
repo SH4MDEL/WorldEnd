@@ -8,6 +8,7 @@ enum CompType
 	OP_FLOOR_CLEAR, OP_FLOOR_FAIL, OP_BEHAVIOR_CHANGE, OP_AGRO_REDUCE,
 	OP_ATTACK_COLLISION, OP_MONSTER_ATTACK_COLLISION, OP_STAMINA_CHANGE,
 	OP_HIT_SCAN, OP_ARROW_SHOOT, OP_ARROW_REMOVE, OP_GAME_ROOM_RESET,
+	OP_BATTLE_START
 };
 
 class ExpOver {
@@ -38,7 +39,6 @@ public:
 	void SetRemainSize(INT size) { m_remain_size = size; }
 	void SetReadyCheck(bool ready_check) { m_ready_check = ready_check; }
 	void SetPlayerType(PlayerType type);
-	void SetSkillRatio(ActionType type, FLOAT ratio);
 	void SetWeaponCenter(const XMFLOAT3& center);
 	void SetWeaponOrientation(const XMFLOAT4& orientation);
 	void SetStamina(FLOAT stamina);

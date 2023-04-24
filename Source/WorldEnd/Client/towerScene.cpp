@@ -998,6 +998,7 @@ void TowerScene::RecvLoginOk(char* ptr)
 {
 	SC_LOGIN_OK_PACKET* packet = reinterpret_cast<SC_LOGIN_OK_PACKET*>(ptr);
 	m_player->SetId(packet->player_data.id);
+	m_player->SetPosition(RoomSetting::START_POSITION);
 }
 
 void TowerScene::RecvAddObject(char* ptr)
@@ -1251,11 +1252,10 @@ void TowerScene::RecvWarpNextFloor(char* ptr)
 	
 	SetState(State::Fading);
 	m_fadeFilter->FadeOut([&]() {
-		XMFLOAT3 startPosition{ 0.f, 0.f, 0.f };
-		m_player->SetPosition(startPosition);
+		m_player->SetPosition(RoomSetting::START_POSITION);
 
 		for (auto& elm : m_multiPlayers) {
-			elm.second->SetPosition(startPosition);
+			elm.second->SetPosition(RoomSetting::START_POSITION);
 		}
 
 		m_globalShaders["OBJECT"]->SetObject(m_gate);

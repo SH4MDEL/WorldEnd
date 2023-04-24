@@ -630,6 +630,13 @@ void Server::WorkerThread()
 			delete exp_over;
 			break;
 		}
+		case OP_BATTLE_START: {
+			int id = static_cast<int>(key);
+			m_game_room_manager->StartBattle(m_clients[id]->GetRoomNum());
+
+			delete exp_over;
+			break;
+		}
 
 		}
 	}
@@ -1070,8 +1077,8 @@ void Server::SendMonsterShoot(int client_id)
 	packet.size = sizeof(packet);
 	packet.type = SC_PACKET_PLAYER_SHOOT;
 	packet.id = client_id;
-	packet.arrow_id = arrow_id;
-	packet.target_id = target_id;
+	//packet.arrow_id = arrow_id;
+	//packet.target_id = target_id;
 
 	if (m_game_room_manager->IsValidRoomNum(room_num)) {
 		auto& ids = game_room->GetPlayerIds();
@@ -1481,6 +1488,12 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 		}
 		break;
 	}
+	case EventType::BATTLE_START: {
+		ExpOver* over = new ExpOver;
+		over->_comp_type = OP_BATTLE_START;
+		PostQueuedCompletionStatus(m_handle_iocp, 1, ev.obj_id, &over->_wsa_over);
+		break;
+	}
 
 	
 	}
@@ -1650,6 +1663,14 @@ void Server::SetRemoveArrowTimerEvent(int client_id, int arrow_id)
 	TIMER_EVENT ev{ .event_time = std::chrono::system_clock::now() + RoomSetting::ARROW_REMOVE_TIME,
 		.obj_id = client_id, .targat_id = arrow_id,
 		.event_type = EventType::ARROW_REMOVE };
+
+	m_timer_queue.push(ev);
+}
+
+void Server::SetBattleStartTimerEvent(int client_id)
+{
+	TIMER_EVENT ev{ .event_time = std::chrono::system_clock::now() + RoomSetting::BATTLE_DELAY_TIME,
+		.event_type = EventType::BATTLE_START };
 
 	m_timer_queue.push(ev);
 }
