@@ -10,13 +10,16 @@ public:
 		STANDARD,
 		BACKGROUND,
 		TEXT,
-		BUTTON,
+		BUTTON_NOACTIVE,
+		BUTTON_MOUSEON,
+		BUTTON_ACTIVE,
 		HORZGAUGE,
 		VERTGAUGE
 	};
 	UI(XMFLOAT2 position, XMFLOAT2 size);
 	~UI() = default;
 
+	virtual void OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime);
 	virtual void OnProcessingMouseMessage(UINT message, LPARAM lParam);
 
 	virtual void Update(FLOAT timeElapsed);
@@ -27,7 +30,6 @@ public:
 	void SetDisable() { m_enable = false; }
 
 	void SetTexture(const string& name);
-	void SetText(const wstring& text);
 	void SetChild(const shared_ptr<UI>& ui);
 	void SetClickEvent(function<void()> chickEvent);
 
@@ -43,7 +45,6 @@ protected:
 	XMFLOAT2 m_size;
 
 	shared_ptr<Texture> m_texture;
-	shared_ptr<Text> m_text;
 
 	vector<shared_ptr<UI>> m_children;
 
@@ -78,7 +79,13 @@ public:
 
 	void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, const shared_ptr<UI>& parent) override;
 	void RenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext) override;
+
+	void SetText(const wstring& text);
+	void SetColorBrush(const string& colorBrush);
+	void SetTextFormat(const string& textFormat);
+
 private:
+	shared_ptr<Text> m_text;
 };
 
 class ButtonUI : public UI
@@ -87,6 +94,8 @@ public:
 	ButtonUI(XMFLOAT2 position, XMFLOAT2 size);
 	~ButtonUI() = default;
 
+	virtual void OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime) override;
+	virtual void OnProcessingMouseMessage(UINT message, LPARAM lParam) override;
 private:
 };
 

@@ -7,7 +7,7 @@ TowerScene::TowerScene() :
 				0.0f, -0.5f, 0.0f, 0.0f,
 				0.0f, 0.0f, 1.0f, 0.0f,
 				0.5f, 0.5f, 0.0f, 1.0f),
-	m_sceneState{ (INT)State::Unused }
+	m_sceneState{ (INT)State::InitScene }
 {}
 
 TowerScene::~TowerScene()
@@ -20,6 +20,7 @@ void TowerScene::OnCreate(const ComPtr<ID3D12Device>& device,
 	const ComPtr<ID3D12RootSignature>& rootSignature, 
 	const ComPtr<ID3D12RootSignature>& postRootSignature)
 {
+	m_sceneState = (INT)State::InitScene;
 	BuildObjects(device, commandList, rootSignature, postRootSignature);
 }
 
@@ -91,10 +92,10 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 
 	// 플레이어 생성
 	m_player = make_shared<Player>();
-	m_player->SetType(PlayerType::WARRIOR);
+	m_player->SetType(PlayerType::ARCHER);
 	LoadPlayerFromFile(m_player);
 
-	m_player->SetPosition(XMFLOAT3{ 0.f, 0.f, 0.f });
+	m_player->SetPosition(XMFLOAT3{ 0.f, 0.f, -50.f });
 	m_globalShaders["ANIMATION"]->SetPlayer(m_player);
 
 	// 체력 바 생성
@@ -126,7 +127,7 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	LoadSceneFromFile(TEXT("./Resource/Scene/TowerScene.bin"), TEXT("TowerScene"));
 
 	// 게이트 로드
-	m_gate = make_shared<GameObject>();
+	m_gate = make_shared<WarpGate>();
 	LoadObjectFromFile(TEXT("./Resource/Model/TowerScene/AD_Gate.bin"), m_gate);
 	m_gate->SetPosition(RoomSetting::BATTLE_STARTER_POSITION);
 	m_gate->SetScale(0.5f, 0.5f, 0.5f);
@@ -208,20 +209,26 @@ void TowerScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 	exitUI->SetTexture("FRAMEUI");
 	auto exitTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.0f}, XMFLOAT2{120.f, 20.f}) };
 	exitTextUI->SetText(L"던전에서 나가시겠습니까?");
+	exitTextUI->SetColorBrush("WHITE");
+	exitTextUI->SetTextFormat("KOPUB18");
 	exitUI->SetChild(exitTextUI);
 	auto exitButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.f, -0.7f}, XMFLOAT2{0.15f, 0.075f}) };
 	exitButtonUI->SetTexture("BUTTONUI");
 	exitButtonUI->SetClickEvent([&]() {
-			m_fadeFilter->FadeOut([&]() {
-				g_GameFramework.ChangeScene(SCENETAG::VillageLoadingScene);
-			});
+		SetState(State::Fading);
+		m_fadeFilter->FadeOut([&]() {
+			g_GameFramework.ChangeScene(SCENETAG::VillageLoadingScene);
 		});
+	});
 	auto exitButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{10.f, 10.f}) };
 	exitButtonTextUI->SetText(L"예");
+	exitButtonTextUI->SetColorBrush("WHITE");
+	exitButtonTextUI->SetTextFormat("KOPUB18");
 	exitButtonUI->SetChild(exitButtonTextUI);
 	exitUI->SetChild(exitButtonUI);
 
 	m_exitUI->SetChild(exitUI);
+	m_exitUI->SetDisable();
 	m_globalShaders["POSTUI"]->SetUI(m_exitUI);
 
 	m_resultUI = make_shared<BackgroundUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 1.f, 1.f });
@@ -229,6 +236,8 @@ void TowerScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 	resultUI->SetTexture("FRAMEUI");
 	m_resultTextUI = make_shared<TextUI>(XMFLOAT2{ 0.f, 0.0f }, XMFLOAT2{ 100.f, 20.f });
 	m_resultTextUI->SetText(L"클리어!");
+	m_resultTextUI->SetColorBrush("WHITE");
+	m_resultTextUI->SetTextFormat("KOPUB18");
 	resultUI->SetChild(m_resultTextUI);
 	auto resultButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.f, -0.7f}, XMFLOAT2{0.15f, 0.075f}) };
 	resultButtonUI->SetTexture("BUTTONUI");
@@ -238,6 +247,8 @@ void TowerScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 		});
 	auto ResultButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{20.f, 10.f}) };
 	ResultButtonTextUI->SetText(L"닫기");
+	ResultButtonTextUI->SetColorBrush("WHITE");
+	ResultButtonTextUI->SetTextFormat("KOPUB18");
 	resultButtonUI->SetChild(ResultButtonTextUI);
 	resultUI->SetChild(resultButtonUI);
 
@@ -253,10 +264,12 @@ void TowerScene::BuildLight(const ComPtr<ID3D12Device>& device, const ComPtr<ID3
 	m_lightSystem->m_numLight = 8;
 
 	m_lightSystem->m_lights[0].m_type = DIRECTIONAL_LIGHT;
-	m_lightSystem->m_lights[0].m_ambient = XMFLOAT4{ 0.3f, 0.3f, 0.3f, 1.f };
-	m_lightSystem->m_lights[0].m_diffuse = XMFLOAT4{ 0.7f, 0.7f, 0.7f, 1.f };
-	m_lightSystem->m_lights[0].m_specular = XMFLOAT4{ 0.4f, 0.4f, 0.4f, 0.f };
-	m_lightSystem->m_lights[0].m_direction = XMFLOAT3{ 1.f, -1.f, 1.f };
+	m_lightSystem->m_lights[0].m_ambient = XMFLOAT4{ 0.2f, 0.2f, 0.2f, 1.f };
+	m_directionalDiffuse = XMFLOAT4{ 0.4f, 0.4f, 0.4f, 1.f };
+	m_lightSystem->m_lights[0].m_diffuse = m_directionalDiffuse;
+	m_lightSystem->m_lights[0].m_specular = XMFLOAT4{ 0.2f, 0.2f, 0.2f, 0.f };
+	m_directionalDirection = XMFLOAT3{ -1.f, -1.f, -1.f };
+	m_lightSystem->m_lights[0].m_direction = m_directionalDirection;
 	m_lightSystem->m_lights[0].m_enable = true;
 
 	m_lightSystem->m_lights[1].m_type = SPOT_LIGHT;
@@ -267,13 +280,13 @@ void TowerScene::BuildLight(const ComPtr<ID3D12Device>& device, const ComPtr<ID3
 	m_lightSystem->m_lights[1].m_position = XMFLOAT3(-2.943f, -2.468f, -45.335f);
 	m_lightSystem->m_lights[1].m_direction = XMFLOAT3(0.0f, -1.0f, 0.0f);
 	m_lightSystem->m_lights[1].m_attenuation = XMFLOAT3(1.0f, 0.25f, 0.05f);
-	m_lightSystem->m_lights[1].m_falloff = 2.f;
+	m_lightSystem->m_lights[1].m_falloff = 3.f;
 	m_lightSystem->m_lights[1].m_phi = (float)cos(XMConvertToRadians(120.f));
 	m_lightSystem->m_lights[1].m_theta = (float)cos(XMConvertToRadians(60.f));
-	m_lightSystem->m_lights[1].m_enable = true;
+	m_lightSystem->m_lights[1].m_enable = false;
 
 	m_lightSystem->m_lights[2].m_type = SPOT_LIGHT;
-	m_lightSystem->m_lights[2].m_range = 7.f;
+	m_lightSystem->m_lights[2].m_range = 5.f;
 	m_lightSystem->m_lights[2].m_ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
 	m_lightSystem->m_lights[2].m_diffuse = XMFLOAT4(0.64f, 0.64f, 0.44f, 1.0f);
 	m_lightSystem->m_lights[2].m_specular = XMFLOAT4(0.1f, 0.1f, 0.1f, 0.0f);
@@ -283,10 +296,10 @@ void TowerScene::BuildLight(const ComPtr<ID3D12Device>& device, const ComPtr<ID3
 	m_lightSystem->m_lights[2].m_falloff = 3.f;
 	m_lightSystem->m_lights[2].m_phi = (float)cos(XMConvertToRadians(120.f));
 	m_lightSystem->m_lights[2].m_theta = (float)cos(XMConvertToRadians(60.f));
-	m_lightSystem->m_lights[2].m_enable = true;
+	m_lightSystem->m_lights[2].m_enable = false;
 
 	m_lightSystem->m_lights[3].m_type = SPOT_LIGHT;
-	m_lightSystem->m_lights[3].m_range = 7.f;
+	m_lightSystem->m_lights[3].m_range = 5.f;
 	m_lightSystem->m_lights[3].m_ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
 	m_lightSystem->m_lights[3].m_diffuse = XMFLOAT4(0.64f, 0.64f, 0.44f, 1.0f);
 	m_lightSystem->m_lights[3].m_specular = XMFLOAT4(0.1f, 0.1f, 0.1f, 0.0f);
@@ -296,10 +309,10 @@ void TowerScene::BuildLight(const ComPtr<ID3D12Device>& device, const ComPtr<ID3
 	m_lightSystem->m_lights[3].m_falloff = 3.f;
 	m_lightSystem->m_lights[3].m_phi = (float)cos(XMConvertToRadians(120.f));
 	m_lightSystem->m_lights[3].m_theta = (float)cos(XMConvertToRadians(60.f));
-	m_lightSystem->m_lights[3].m_enable = true;
+	m_lightSystem->m_lights[3].m_enable = false;
 
 	m_lightSystem->m_lights[4].m_type = SPOT_LIGHT;
-	m_lightSystem->m_lights[4].m_range = 7.f;
+	m_lightSystem->m_lights[4].m_range = 5.f;
 	m_lightSystem->m_lights[4].m_ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
 	m_lightSystem->m_lights[4].m_diffuse = XMFLOAT4(0.64f, 0.64f, 0.44f, 1.0f);
 	m_lightSystem->m_lights[4].m_specular = XMFLOAT4(0.1f, 0.1f, 0.1f, 0.0f);
@@ -309,10 +322,10 @@ void TowerScene::BuildLight(const ComPtr<ID3D12Device>& device, const ComPtr<ID3
 	m_lightSystem->m_lights[4].m_falloff = 3.f;
 	m_lightSystem->m_lights[4].m_phi = (float)cos(XMConvertToRadians(120.f));
 	m_lightSystem->m_lights[4].m_theta = (float)cos(XMConvertToRadians(60.f));
-	m_lightSystem->m_lights[4].m_enable = true;
+	m_lightSystem->m_lights[4].m_enable = false;
 
 	m_lightSystem->m_lights[5].m_type = SPOT_LIGHT;
-	m_lightSystem->m_lights[5].m_range = 7.f;
+	m_lightSystem->m_lights[5].m_range = 5.f;
 	m_lightSystem->m_lights[5].m_ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
 	m_lightSystem->m_lights[5].m_diffuse = XMFLOAT4(0.64f, 0.64f, 0.44f, 1.0f);
 	m_lightSystem->m_lights[5].m_specular = XMFLOAT4(0.1f, 0.1f, 0.1f, 0.0f);
@@ -322,10 +335,10 @@ void TowerScene::BuildLight(const ComPtr<ID3D12Device>& device, const ComPtr<ID3
 	m_lightSystem->m_lights[5].m_falloff = 3.f;
 	m_lightSystem->m_lights[5].m_phi = (float)cos(XMConvertToRadians(120.f));
 	m_lightSystem->m_lights[5].m_theta = (float)cos(XMConvertToRadians(60.f));
-	m_lightSystem->m_lights[5].m_enable = true;
+	m_lightSystem->m_lights[5].m_enable = false;
 
 	m_lightSystem->m_lights[6].m_type = SPOT_LIGHT;
-	m_lightSystem->m_lights[6].m_range = 7.f;
+	m_lightSystem->m_lights[6].m_range = 5.f;
 	m_lightSystem->m_lights[6].m_ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
 	m_lightSystem->m_lights[6].m_diffuse = XMFLOAT4(0.64f, 0.64f, 0.44f, 1.0f);
 	m_lightSystem->m_lights[6].m_specular = XMFLOAT4(0.1f, 0.1f, 0.1f, 0.0f);
@@ -335,10 +348,10 @@ void TowerScene::BuildLight(const ComPtr<ID3D12Device>& device, const ComPtr<ID3
 	m_lightSystem->m_lights[6].m_falloff = 3.f;
 	m_lightSystem->m_lights[6].m_phi = (float)cos(XMConvertToRadians(120.f));
 	m_lightSystem->m_lights[6].m_theta = (float)cos(XMConvertToRadians(60.f));
-	m_lightSystem->m_lights[6].m_enable = true;
+	m_lightSystem->m_lights[6].m_enable = false;
 
 	m_lightSystem->m_lights[7].m_type = SPOT_LIGHT;
-	m_lightSystem->m_lights[7].m_range = 7.f;
+	m_lightSystem->m_lights[7].m_range = 5.f;
 	m_lightSystem->m_lights[7].m_ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
 	m_lightSystem->m_lights[7].m_diffuse = XMFLOAT4(0.64f, 0.64f, 0.44f, 1.0f);
 	m_lightSystem->m_lights[7].m_specular = XMFLOAT4(0.1f, 0.1f, 0.1f, 0.0f);
@@ -348,7 +361,7 @@ void TowerScene::BuildLight(const ComPtr<ID3D12Device>& device, const ComPtr<ID3
 	m_lightSystem->m_lights[7].m_falloff = 3.f;
 	m_lightSystem->m_lights[7].m_phi = (float)cos(XMConvertToRadians(120.f));
 	m_lightSystem->m_lights[7].m_theta = (float)cos(XMConvertToRadians(60.f));
-	m_lightSystem->m_lights[7].m_enable = true;
+	m_lightSystem->m_lights[7].m_enable = false;
 
 	m_lightSystem->CreateShaderVariable(device, commandlist);
 }
@@ -420,6 +433,63 @@ void TowerScene::Update(FLOAT timeElapsed)
 		shader.second->Update(timeElapsed);
 	g_particleSystem->Update(timeElapsed);
 	m_fadeFilter->Update(timeElapsed);
+
+	UpdateLightSystem(timeElapsed);
+
+	if (CheckState(State::WarpGate)) {
+		m_age += timeElapsed;
+		if (m_age >= m_lifeTime) {
+			m_age = 0.f;
+
+			ResetState(State::WarpGate);
+		}
+		else {
+			FLOAT diffuse = -0.3f;
+			diffuse *= m_age / m_lifeTime;
+			m_lightSystem->m_lights[0].m_diffuse.x = m_directionalDiffuse.x + diffuse;
+			m_lightSystem->m_lights[0].m_diffuse.y = m_directionalDiffuse.y + diffuse;
+			m_lightSystem->m_lights[0].m_diffuse.z = m_directionalDiffuse.z + diffuse;
+
+			FLOAT direction = 2.f;
+			direction *= m_age / m_lifeTime;
+			m_lightSystem->m_lights[0].m_direction.x = m_directionalDirection.x + direction;
+			m_lightSystem->m_lights[0].m_direction.z = m_directionalDirection.z + direction;
+		}
+	}
+
+	if (CheckState(State::InitScene)) {
+		ResetState(State::InitScene);
+		SetState(State::EnterScene);
+		m_fadeFilter->FadeIn([&]() {
+			ResetState(State::EnterScene);
+		});
+	}
+}
+
+void TowerScene::UpdateLightSystem(FLOAT timeElapsed)
+{
+	const array<FLOAT, 3> corridorLight{ -45.335f, -33.575f, -21.307f };
+	const array<INT, 3> corridorLightIndex{ 1, 2, 3 };
+
+	for (const auto& index : corridorLightIndex) {
+		[&]() {
+			if (m_lightSystem) {
+				if (!m_lightSystem->m_lights[index].m_enable) {
+					if (m_player->GetPosition().z >= corridorLight[index - corridorLightIndex[0]]) {
+						m_lightSystem->m_lights[index].m_enable = true;
+						return;
+					}
+
+					for (const auto& player : m_multiPlayers) {
+						if (player.second->GetPosition().z >= corridorLight[index - corridorLightIndex[0]]) {
+							m_lightSystem->m_lights[index].m_enable = true;
+							return;
+						}
+					}
+				}
+			}
+		}();
+	}
 }
 
 void TowerScene::PreProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex)
@@ -452,12 +522,13 @@ void TowerScene::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UI
 	{
 	case 0:
 	{
-		m_globalShaders.at("ANIMATION")->Render(commandList);
+		m_globalShaders.at("OBJECT")->Render(commandList);
+
 		break;
 	}
 	case 1:
 	{
-		m_globalShaders.at("OBJECT")->Render(commandList);
+		m_globalShaders.at("ANIMATION")->Render(commandList);
 		break;
 	}
 	case 2:
@@ -516,9 +587,8 @@ void TowerScene::PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandLis
 
 		//m_sobelFilter->Execute(commandList, renderTarget);
 		//commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET));
-		//m_shaders["COMPOSITE"]->Render(commandList);
+		//m_globalShaders["COMPOSITE"]->Render(commandList);
 		//commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE));
-
 		break;
 	}
 	case 1:
@@ -1056,7 +1126,15 @@ void TowerScene::RecvStartBattle(char* ptr)
 	m_player->SetInteractable(false);
 	m_player->SetInteractableType(InteractableType::NONE);
 
-	m_globalShaders["OBJECT"]->RemoveObject(m_gate);
+	SetState(State::WarpGate);
+
+	m_gate->SetInterect([&]() {
+		m_globalShaders["OBJECT"]->RemoveObject(m_gate);
+		m_lightSystem->m_lights[4].m_enable = true;
+		m_lightSystem->m_lights[5].m_enable = true;
+		m_lightSystem->m_lights[6].m_enable = true;
+		m_lightSystem->m_lights[7].m_enable = true;
+	});
 }
 
 void TowerScene::RecvWarpNextFloor(char* ptr)
@@ -1073,6 +1151,12 @@ void TowerScene::RecvWarpNextFloor(char* ptr)
 		}
 
 		m_globalShaders["OBJECT"]->SetObject(m_gate);
+
+		for (int i = 1; i < 8; ++i) {
+			m_lightSystem->m_lights[i].m_enable = false;
+		}
+		m_lightSystem->m_lights[0].m_diffuse = m_directionalDiffuse;
+		m_lightSystem->m_lights[0].m_direction = m_directionalDirection;
 
 		m_player->ResetAllCooltime();
 

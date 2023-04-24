@@ -43,7 +43,7 @@ void LoginScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 
 	m_titleUI = make_shared<BackgroundUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 1.f, 1.f });
 	m_titleUI->SetTexture("TITLE");
-	auto gameStartButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.f, -0.7f}, XMFLOAT2{0.15f, 0.075f}) };
+	auto gameStartButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.f, -0.45f}, XMFLOAT2{0.2f, 0.08f}) };
 	gameStartButtonUI->SetTexture("BUTTONUI");
 	gameStartButtonUI->SetClickEvent([&]() {
 		m_fadeFilter->FadeOut([&]() {
@@ -52,8 +52,25 @@ void LoginScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 		});
 	auto gameStartButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{40.f, 10.f}) };
 	gameStartButtonTextUI->SetText(L"게임 시작");
+	gameStartButtonTextUI->SetColorBrush("WHITE");
+	gameStartButtonTextUI->SetTextFormat("KOPUB18");
 	gameStartButtonUI->SetChild(gameStartButtonTextUI);
 	m_titleUI->SetChild(gameStartButtonUI);
+	m_globalShaders["UI"]->SetUI(m_titleUI);
+
+	auto gameExitButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.f, -0.7f}, XMFLOAT2{0.2f, 0.08f}) };
+	gameExitButtonUI->SetTexture("BUTTONUI");
+	gameExitButtonUI->SetClickEvent([&]() {
+		m_fadeFilter->FadeOut([&]() {
+			PostMessage(NULL, WM_QUIT, 0, 0);
+			});
+		});
+	auto gameExitButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{40.f, 10.f}) };
+	gameExitButtonTextUI->SetText(L"게임 종료");
+	gameExitButtonTextUI->SetColorBrush("WHITE");
+	gameExitButtonTextUI->SetTextFormat("KOPUB18");
+	gameExitButtonUI->SetChild(gameExitButtonTextUI);
+	m_titleUI->SetChild(gameExitButtonUI);
 	m_globalShaders["UI"]->SetUI(m_titleUI);
 }
 
@@ -65,7 +82,10 @@ void LoginScene::DestroyObjects()
 	m_titleUI.reset();
 }
 
-void LoginScene::OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime) {}
+void LoginScene::OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime) 
+{
+	if (m_titleUI) m_titleUI->OnProcessingMouseMessage(hWnd, width, height, deltaTime);
+}
 
 void LoginScene::OnProcessingMouseMessage(UINT message, LPARAM lParam)
 {

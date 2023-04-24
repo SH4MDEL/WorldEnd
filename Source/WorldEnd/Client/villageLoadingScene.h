@@ -22,6 +22,7 @@ public:
 
 	void Update(FLOAT timeElapsed) override;
 
+	void PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList, const ComPtr<ID3D12Resource>& renderTarget, UINT threadIndex) override;
 	void RenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext) override;
 
 	void LoadMeshFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, wstring fileName);

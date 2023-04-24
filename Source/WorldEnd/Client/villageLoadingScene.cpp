@@ -17,24 +17,8 @@ void VillageLoadingScene::OnCreate(const ComPtr<ID3D12Device>& device,
 {
 	m_loadingText = make_shared<LoadingText>(61);
 
-	auto textBrush = ComPtr<ID2D1SolidColorBrush>();
-	DX::ThrowIfFailed(g_GameFramework.GetD2DDeviceContext()->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::SkyBlue, 1.f), &textBrush));
-	m_loadingText->SetTextBrush(textBrush);
-
-	auto textFormat = ComPtr<IDWriteTextFormat>();
-	DX::ThrowIfFailed(g_GameFramework.GetWriteFactory()->CreateTextFormat(
-		TEXT("./Resource/Font/KoPub Dotum Bold.ttf"), nullptr,
-		DWRITE_FONT_WEIGHT_NORMAL,
-		DWRITE_FONT_STYLE_NORMAL,
-		DWRITE_FONT_STRETCH_NORMAL,
-		24.f,
-		TEXT("ko-kr"),
-		&textFormat
-	));
-
-	textFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
-	textFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
-	m_loadingText->SetTextFormat(textFormat);
+	m_loadingText->SetColorBrush("SKYBLUE");
+	m_loadingText->SetTextFormat("KOPUB24");
 
 	DX::ThrowIfFailed(device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_threadCommandAllocator)));
 	DX::ThrowIfFailed(device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_threadCommandAllocator.Get(), nullptr, IID_PPV_ARGS(&m_threadCommandList)));
@@ -86,6 +70,26 @@ void VillageLoadingScene::Update(FLOAT timeElapsed)
 	if (m_loadEnd) {
 		ReleaseUploadBuffer();
 		g_GameFramework.ChangeScene(SCENETAG::LoginScene);
+	}
+}
+
+void VillageLoadingScene::PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList, const ComPtr<ID3D12Resource>& renderTarget, UINT threadIndex)
+{
+	switch (threadIndex)
+	{
+	case 0:
+	{
+		break;
+	}
+	case 1:
+	{
+		break;
+	}
+	case 2:
+	{
+		//m_fadeFilter->Execute(commandList, renderTarget);
+		break;
+	}
 	}
 }
 

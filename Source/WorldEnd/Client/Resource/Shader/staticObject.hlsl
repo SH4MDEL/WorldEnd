@@ -54,19 +54,19 @@ float4 PS_STATICOBJECT_MAIN(VS_STATICOBJECT_OUTPUT input) : SV_TARGET
 
 	if (textureMask & MATERIAL_ALBEDO_MAP) material.m_diffuse = g_albedoTexture.Sample(g_samplerWrap, input.uv);
 	if (textureMask & MATERIAL_SPECULAR_MAP) material.m_specular = g_specularTexture.Sample(g_samplerWrap, input.uv);
-	if (textureMask & MATERIAL_NORMAL_MAP) normalColor = -g_normalTexture.Sample(g_samplerWrap, input.uv);
+	if (textureMask & MATERIAL_NORMAL_MAP) normalColor = g_normalTexture.Sample(g_samplerWrap, input.uv);
 	else normalColor = float4(input.normal, 1.f);
 	if (textureMask & MATERIAL_METALLIC_MAP) metallicColor = g_metallicTexture.Sample(g_samplerWrap, input.uv);
 	if (textureMask & MATERIAL_EMISSION_MAP) emissionColor = g_emissionTexture.Sample(g_samplerWrap, input.uv);
 
 	float3 normal = normalColor.rgb;
 	float4 color = material.m_diffuse + material.m_specular + emissionColor;
-	//float3x3 TBN = float3x3(normalize(input.tangent), normalize(input.biTangent), normalize(normal));
-	//float3 vNormal = normalize(normal * 2.0f - 1.0f); //[0, 1] ¡æ [-1, 1]
-	//normal = normalize(mul(vNormal, TBN));
+	float3x3 TBN = float3x3(normalize(input.tangent), normalize(input.biTangent), normalize(normal));
+	float3 vNormal = normalize(normal * 2.0f - 1.0f); //[0, 1] ¡æ [-1, 1]
+	normal = normalize(mul(vNormal, TBN));
 	float shadowFactor = CalcShadowFactor(input.shadowPosition);
 	//shadowFactor = 1.0f;
 	float4 light = Lighting(input.positionW, normal, material, shadowFactor);
-	color = lerp(color, light, 0.8);
+	color = lerp(color, light, 0.5);
 	return color;
 }

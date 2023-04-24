@@ -17,24 +17,22 @@ void GlobalLoadingScene::OnCreate(const ComPtr<ID3D12Device>& device,
 {
 	m_loadingText = make_shared<LoadingText>(61);
 
-	auto textBrush = ComPtr<ID2D1SolidColorBrush>();
-	DX::ThrowIfFailed(g_GameFramework.GetD2DDeviceContext()->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::SkyBlue, 1.f), &textBrush));
-	m_loadingText->SetTextBrush(textBrush);
+	auto skyblueBrush = ComPtr<ID2D1SolidColorBrush>();
+	DX::ThrowIfFailed(g_GameFramework.GetD2DDeviceContext()->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::SkyBlue, 1.f), &skyblueBrush));
+	Text::m_colorBrushes.insert({ "SKYBLUE", skyblueBrush });
+	m_loadingText->SetColorBrush("SKYBLUE");
 
-	auto textFormat = ComPtr<IDWriteTextFormat>();
+	auto koPub24 = ComPtr<IDWriteTextFormat>();
 	DX::ThrowIfFailed(g_GameFramework.GetWriteFactory()->CreateTextFormat(
 		TEXT("./Resource/Font/KoPub Dotum Bold.ttf"), nullptr,
-		DWRITE_FONT_WEIGHT_NORMAL,
-		DWRITE_FONT_STYLE_NORMAL,
-		DWRITE_FONT_STRETCH_NORMAL,
-		24.f,
-		TEXT("ko-kr"),
-		&textFormat
+		DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, 24.f,
+		TEXT("ko-kr"), &koPub24
 	));
+	koPub24->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
+	koPub24->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
 
-	textFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
-	textFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
-	m_loadingText->SetTextFormat(textFormat);
+	Text::m_textFormats.insert({ "KOPUB24", koPub24 });
+	m_loadingText->SetTextFormat("KOPUB24");
 
 	DX::ThrowIfFailed(device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_threadCommandAllocator)));
 	DX::ThrowIfFailed(device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_threadCommandAllocator.Get(), nullptr, IID_PPV_ARGS(&m_threadCommandList)));
@@ -74,9 +72,9 @@ void GlobalLoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const 
 	auto pumperParticleShader{ make_shared<PumperParticleShader>(device, rootsignature) };
 	auto horzBlurShader{ make_shared<HorzBlurShader>(device, postRootSignature) };
 	auto vertBlurShader{ make_shared<VertBlurShader>(device, postRootSignature) };
-	auto fadeShader{ make_shared<FadeShader>(device, postRootSignature) };
 	auto sobelShader{ make_shared<SobelShader>(device, postRootSignature) };
 	auto compositeShader{ make_shared<CompositeShader>(device, postRootSignature) };
+	auto fadeShader{ make_shared<FadeShader>(device, postRootSignature) };
 
 	m_globalShaders.insert({ "ANIMATION", animationShader });
 	m_globalShaders.insert({ "OBJECT", objectShader });
@@ -91,10 +89,9 @@ void GlobalLoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const 
 	m_globalShaders.insert({ "POSTUI", postUiShader });
 	m_globalShaders.insert({ "HORZBLUR", horzBlurShader });
 	m_globalShaders.insert({ "VERTBLUR", vertBlurShader });
-	m_globalShaders.insert({ "FADE", fadeShader });
 	m_globalShaders.insert({ "SOBEL", sobelShader });
 	m_globalShaders.insert({ "COMPOSITE", compositeShader });
-
+	m_globalShaders.insert({ "FADE", fadeShader });
 
 	// 메쉬 로딩
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/WarriorMesh.bin"));
@@ -144,15 +141,34 @@ void GlobalLoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const 
 
 
 	// 메테리얼 로딩
-
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/WarriorTexture.bin"));
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/ArcherTexture.bin"));
 
 
 	// 애니메이션 로딩
-
 	LoadAnimationSetFromFile(TEXT("./Resource/Animation/WarriorAnimation.bin"), "WarriorAnimation");
 	LoadAnimationSetFromFile(TEXT("./Resource/Animation/ArcherAnimation.bin"), "ArcherAnimation");
+
+	// 텍스트 로딩
+	auto whiteBrush = ComPtr<ID2D1SolidColorBrush>();
+	DX::ThrowIfFailed(g_GameFramework.GetD2DDeviceContext()->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::White, 1.f), &whiteBrush));
+	Text::m_colorBrushes.insert({ "WHITE", whiteBrush });
+	
+	const array<INT, 4> fontSize{ 12, 15, 18, 21 };
+	for (const auto size : fontSize) {
+		auto koPub = ComPtr<IDWriteTextFormat>();
+		DX::ThrowIfFailed(g_GameFramework.GetWriteFactory()->CreateTextFormat(
+			TEXT("./Resource/Font/KoPub Dotum Bold.ttf"), nullptr,
+			DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, (FLOAT)size,
+			TEXT("ko-kr"), &koPub
+		));
+		koPub->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
+		koPub->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
+
+		string name{ "KOPUB" };
+		name += to_string(size);
+		Text::m_textFormats.insert({ name, koPub });
+	}
 
 	commandlist->Close();
 	ID3D12CommandList* ppCommandList[]{ commandlist.Get() };
@@ -173,6 +189,25 @@ void GlobalLoadingScene::Update(FLOAT timeElapsed)
 	if (m_loadEnd) {
 		ReleaseUploadBuffer();
 		g_GameFramework.ChangeScene(SCENETAG::VillageLoadingScene);
+	}
+}
+
+void GlobalLoadingScene::PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList, const ComPtr<ID3D12Resource>& renderTarget, UINT threadIndex)
+{
+	switch (threadIndex)
+	{
+	case 0:
+	{
+		break;
+	}
+	case 1:
+	{
+		break;
+	}
+	case 2:
+	{
+		break;
+	}
 	}
 }
 

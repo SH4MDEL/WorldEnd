@@ -7,9 +7,11 @@
 #define TYPE_STANDARD 0
 #define TYPE_BACKGROUND 1
 #define TYPE_TEXT 2
-#define TYPE_BUTTON 3
-#define TYPE_HORZGAUGE 4
-#define TYPE_VERTGAUGE 5
+#define TYPE_BUTTON_NOACTIVE 3
+#define TYPE_BUTTON_MOUSEON 4
+#define TYPE_BUTTON_ACTIVE 5
+#define TYPE_HORZGAUGE 6
+#define TYPE_VERTGAUGE 7
 
 
 struct VS_UI_OUTPUT
@@ -72,6 +74,12 @@ float4 PS_UI_MAIN(GS_UI_OUTPUT input) : SV_TARGET
 			return g_baseTexture.Sample(g_samplerWrap, input.uv);
 		}
 		return g_subTexture.Sample(g_samplerWrap, input.uv);
+	}
+	if (g_type == TYPE_BUTTON_MOUSEON) {
+		return g_baseTexture.Sample(g_samplerWrap, input.uv) * float4(0.8f, 0.8f, 0.8f, 1.f);
+	}
+	if (g_type == TYPE_BUTTON_ACTIVE) {
+		return g_baseTexture.Sample(g_samplerWrap, input.uv) * float4(0.6f, 0.6f, 0.6f, 1.f);
 	}
 	return g_baseTexture.Sample(g_samplerWrap, input.uv);
 }

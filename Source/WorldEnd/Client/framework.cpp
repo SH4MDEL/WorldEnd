@@ -526,8 +526,8 @@ void GameFramework::CreateD2DRenderTarget()
 
 		DX::ThrowIfFailed(m_11On12Device->CreateWrappedResource(m_renderTargets[i].Get(),
 			&d3d11Flags, 
-			D3D12_RESOURCE_STATE_COPY_SOURCE,
-			D3D12_RESOURCE_STATE_COPY_SOURCE,
+			D3D12_RESOURCE_STATE_PRESENT,
+			D3D12_RESOURCE_STATE_PRESENT,
 			IID_PPV_ARGS(&m_d3d11WrappedRenderTarget[i])));
 		ComPtr<IDXGISurface> dxgiSurface;
 		DX::ThrowIfFailed(m_d3d11WrappedRenderTarget[i]->QueryInterface(__uuidof(IDXGISurface), (void**)&dxgiSurface));

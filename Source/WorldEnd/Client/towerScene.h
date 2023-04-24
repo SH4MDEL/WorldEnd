@@ -7,15 +7,18 @@ class TowerScene : public Scene
 public:
 	enum class State {
 		Unused				= 0x00,
-		OutputExitUI		= 0x01,
-		OutputResult		= 0x02,
-		Fading				= 0x04,
+		InitScene			= 0x01,
+		EnterScene			= 0x02,
+		WarpGate			= 0x04,
+		OutputExitUI		= 0x08,
+		OutputResult		= 0x10,
+		Fading				= 0x20,
 		BlurLevel1			= Unused,
 		BlurLevel2			= Unused,
 		BlurLevel3			= OutputExitUI,
 		BlurLevel4			= Unused,
 		BlurLevel5			= OutputResult,
-		CantPlayerControl	= OutputExitUI | OutputResult | Fading
+		CantPlayerControl	= EnterScene | OutputExitUI | OutputResult | Fading
 	};
 
 	TowerScene();
@@ -87,6 +90,8 @@ private:
 	void BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist);
 	void BuildLight(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist);
 
+	void UpdateLightSystem(FLOAT timeElapsed);
+
 protected:
 	ComPtr<ID3D12Resource>								m_sceneBuffer;
 	SceneInfo*											m_sceneBufferPointer;
@@ -100,7 +105,7 @@ protected:
 	shared_ptr<Player>									m_player;
 	shared_ptr<Camera>									m_camera;
 
-	shared_ptr<GameObject>								m_gate;
+	shared_ptr<WarpGate>								m_gate;
 
 	shared_ptr<LightSystem>								m_lightSystem;
 	shared_ptr<Shadow>									m_shadow;
@@ -113,10 +118,15 @@ protected:
 	unordered_map<INT, INT>								m_idSet;
 	shared_ptr<UI>										m_exitUI;
 	shared_ptr<UI>										m_resultUI;
-	shared_ptr<UI>										m_resultTextUI;
+	shared_ptr<TextUI>									m_resultTextUI;
 
 	// 서버 추가 코드
 	unordered_map<INT, shared_ptr<Player>>	            m_multiPlayers;
 	unordered_map<INT, shared_ptr<Monster>>             m_monsters;
+
+	XMFLOAT4											m_directionalDiffuse;
+	XMFLOAT3											m_directionalDirection;
+	const FLOAT			m_lifeTime = 3.f;
+	FLOAT				m_age;
 };
 

@@ -823,3 +823,34 @@ void AnimationController::InsertObject(string boneName, UINT boneNumber, const s
 	XMStoreFloat4x4(&transform, XMMatrixIdentity());
 	m_animationTransforms.insert({ boneName, make_pair(boneNumber, object) });
 }
+
+WarpGate::WarpGate() : m_age{0.f}, m_interect{false}
+{
+}
+
+void WarpGate::Update(FLOAT timeElapsed)
+{
+	if (!m_interect) return;
+
+	m_age += timeElapsed;
+	if (m_age >= m_lifeTime) {
+		m_age = 0;
+		m_interect = false;
+
+		auto position = GetPosition();
+		position.y = m_originHeight;
+		SetPosition(position);
+
+		m_event();
+	}
+	auto position = GetPosition();
+	position.y = m_originHeight + m_maxHeight * (m_age / m_lifeTime);
+	SetPosition(position);
+}
+
+void WarpGate::SetInterect(function<void()> event)
+{
+	m_event = event;
+	m_interect = true;
+	m_originHeight = GetPosition().y;
+}

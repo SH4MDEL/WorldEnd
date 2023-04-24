@@ -12,11 +12,14 @@ public:
 	virtual void Update(FLOAT timeElapsed);
 
 	void SetText(const wstring& text) { m_text = text; }
-	void SetTextBrush(const ComPtr<ID2D1SolidColorBrush>& textBrush) { m_textBrush = textBrush; }
-	void SetTextFormat(const ComPtr<IDWriteTextFormat>& textFormat) { m_textFormat = textFormat; }
+	void SetColorBrush(const string& colorBrush) { m_colorBrush = colorBrush; }
+	void SetTextFormat(const string& textFormat) { m_textFormat = textFormat; }
 
 	void SetPosition(XMFLOAT2 position);
 	void UpdateTransform();
+
+	static unordered_map<string, ComPtr<ID2D1SolidColorBrush>>	m_colorBrushes;
+	static unordered_map<string, ComPtr<IDWriteTextFormat>>		m_textFormats;
 
 protected:
 	wstring								m_text;
@@ -27,8 +30,8 @@ protected:
 	XMFLOAT2							m_position;
 	D2D1_RECT_F							m_layoutRect;
 
-	ComPtr<ID2D1SolidColorBrush>	m_textBrush;
-	ComPtr<IDWriteTextFormat>		m_textFormat;
+	string	m_colorBrush;
+	string	m_textFormat;
 };
 
 class LoadingText : public Text

@@ -267,3 +267,24 @@ private:
 
 	unordered_map<string, pair<UINT, shared_ptr<GameObject>>>		m_animationTransforms;
 };
+
+class WarpGate : public GameObject
+{
+public:
+	WarpGate();
+	virtual ~WarpGate() = default;
+
+	void Update(FLOAT timeElapsed) override;
+
+	void SetInterect(function<void()> event);
+
+private:
+	const FLOAT			m_lifeTime = 3.f;
+	const FLOAT			m_maxHeight = 4.f;
+
+	FLOAT				m_age;
+	FLOAT				m_originHeight;
+	BOOL				m_interect;
+
+	function<void()>	m_event;
+};
