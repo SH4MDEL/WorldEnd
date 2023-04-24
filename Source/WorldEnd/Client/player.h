@@ -42,7 +42,7 @@ public:
 	InteractableType GetInteractableType() const { return m_interactableType; }	
 
 	void ResetCooldown(char type);
-	void ResetAllCooltime();
+	void ResetAllCooldown();
 	virtual bool ChangeAnimation(USHORT animation) override;
 	void ChangeAnimation(USHORT animation, bool other);
 

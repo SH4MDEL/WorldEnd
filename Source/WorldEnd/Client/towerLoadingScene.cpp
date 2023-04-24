@@ -15,7 +15,7 @@ void TowerLoadingScene::OnCreate(const ComPtr<ID3D12Device>& device,
 	const ComPtr<ID3D12RootSignature>& rootSignature, 
 	const ComPtr<ID3D12RootSignature>& postRootSignature)
 {
-	m_loadingText = make_shared<LoadingText>(LOAD_COUNT);
+	m_loadingText = make_shared<LoadingText>(51);
 
 	m_loadingText->SetColorBrush("SKYBLUE");
 	m_loadingText->SetTextFormat("KOPUB24");
@@ -45,7 +45,7 @@ void TowerLoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const C
 	const ComPtr<ID3D12RootSignature>& rootsignature, const ComPtr<ID3D12RootSignature>& postRootSignature)
 {
 	// 메쉬 로딩
-	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/Undead_WarriorMesh.bin"));
+	LoadAnimationMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/Undead_WarriorMesh.bin"));
 
 	LoadAnimationMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/Undead_ArcherMesh.bin"));
 	LoadAnimationSetFromFile(TEXT("./Resource/Animation/Undead_ArcherAnimation.bin"), "Undead_ArcherAnimation");
@@ -199,7 +199,7 @@ void TowerLoadingScene::LoadMeshFromFile(const ComPtr<ID3D12Device>& device, con
 	m_loadingText->LoadingFile();
 }
 
-void LoadingScene::LoadAnimationMeshFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, wstring fileName)
+void TowerLoadingScene::LoadAnimationMeshFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, wstring fileName)
 {
 	ifstream in{ fileName, std::ios::binary };
 	if (!in) return;

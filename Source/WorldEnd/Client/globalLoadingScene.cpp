@@ -94,8 +94,8 @@ void GlobalLoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const 
 	m_globalShaders.insert({ "FADE", fadeShader });
 
 	// 메쉬 로딩
-	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/WarriorMesh.bin"));
-	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/ArcherMesh.bin"));
+	LoadAnimationMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/WarriorMesh.bin"));
+	LoadAnimationMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/ArcherMesh.bin"));
 
 	auto staminaBarMesh{ make_shared<BillboardMesh>(device, commandlist, XMFLOAT3{ 0.f, 0.f, 0.f }, XMFLOAT2{ 0.1f, 0.89f }) };
 	m_globalMeshs.insert({ "STAMINABAR", staminaBarMesh });
@@ -217,6 +217,36 @@ void GlobalLoadingScene::RenderText(const ComPtr<ID2D1DeviceContext2>& deviceCon
 }
 
 void GlobalLoadingScene::LoadMeshFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, wstring fileName)
+{
+	ifstream in{ fileName, std::ios::binary };
+	if (!in) return;
+
+	m_loadingText->SetFileName(fileName);
+
+	BYTE strLength;
+	string backup;
+	while (1) {
+		in.read((char*)(&strLength), sizeof(BYTE));
+		string strToken(strLength, '\0');
+		in.read(&strToken[0], sizeof(char) * strLength);
+
+		if (strToken == "<Hierarchy>:") {}
+		else if (strToken == "<Mesh>:") {
+			auto mesh = make_shared<AnimationMesh>();
+			mesh->LoadAnimationMesh(device, commandList, in);
+			mesh->SetType(AnimationSetting::STANDARD_MESH);
+
+			m_globalMeshs.insert({ mesh->GetAnimationMeshName(), mesh });
+		}
+		else if (strToken == "</Hierarchy>") {
+			break;
+		}
+	}
+
+	m_loadingText->LoadingFile();
+}
+
+void GlobalLoadingScene::LoadAnimationMeshFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, wstring fileName)
 {
 	ifstream in{ fileName, std::ios::binary };
 	if (!in) return;

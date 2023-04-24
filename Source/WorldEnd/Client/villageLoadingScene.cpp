@@ -113,19 +113,48 @@ void VillageLoadingScene::LoadMeshFromFile(const ComPtr<ID3D12Device>& device, c
 		in.read(&strToken[0], sizeof(char) * strLength);
 
 		if (strToken == "<Hierarchy>:") {}
+		else if (strToken == "<Mesh>:") {
+			auto mesh = make_shared<MeshFromFile>();
+			mesh->LoadMesh(device, commandList, in);
+
+			m_meshs.insert({ mesh->GetMeshName(), mesh });
+		}
+		else if (strToken == "</Hierarchy>") {
+			break;
+		}
+	}
+
+	m_loadingText->LoadingFile();
+}
+
+void VillageLoadingScene::LoadAnimationMeshFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, wstring fileName)
+{
+	ifstream in{ fileName, std::ios::binary };
+	if (!in) return;
+
+	m_loadingText->SetFileName(fileName);
+
+	BYTE strLength;
+	string backup;
+	while (1) {
+		in.read((char*)(&strLength), sizeof(BYTE));
+		string strToken(strLength, '\0');
+		in.read(&strToken[0], sizeof(char) * strLength);
+
+		if (strToken == "<Hierarchy>:") {}
 		else if (strToken == "<SkinningInfo>:") {
 			auto animationMesh = make_shared<AnimationMesh>();
 			animationMesh->LoadAnimationMesh(device, commandList, in);
 			animationMesh->SetType(AnimationSetting::ANIMATION_MESH);
 
-			m_globalMeshs.insert({ animationMesh->GetAnimationMeshName(), animationMesh });
+			m_meshs.insert({ animationMesh->GetAnimationMeshName(), animationMesh });
 		}
 		else if (strToken == "<Mesh>:") {
 			auto mesh = make_shared<AnimationMesh>();
 			mesh->LoadAnimationMesh(device, commandList, in);
 			mesh->SetType(AnimationSetting::STANDARD_MESH);
 
-			m_globalMeshs.insert({ mesh->GetAnimationMeshName(), mesh });
+			m_meshs.insert({ mesh->GetAnimationMeshName(), mesh });
 		}
 		else if (strToken == "</Hierarchy>") {
 			break;

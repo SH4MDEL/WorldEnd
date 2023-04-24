@@ -752,7 +752,7 @@ void TowerScene::SetArrow(const shared_ptr<GameObject>& object, INT arrowId)
 	arrow->SetVelocity({ Vector3::Mul(Vector3::Normalize(object->GetFront()), PlayerSetting::ARROW_SPEED) });
 	arrow->Rotate(0.f, 0.f, object->GetYaw());
 
-	m_shaders["OBJECT"]->SetArrow(arrowId, arrow);
+	m_globalShaders["OBJECT"]->SetArrow(arrowId, arrow);
 }
 
 void TowerScene::RotateToTarget(const shared_ptr<Player>& player, INT targetId)
@@ -1041,7 +1041,7 @@ void TowerScene::RecvRemoveMonster(char* ptr)
 	m_monsters[packet->id]->SetPosition(XMFLOAT3(FAR_POSITION, FAR_POSITION, FAR_POSITION));
 
 	// 임시 삭제
-	m_shaders["ANIMATION"]->RemoveMonster(packet->id);
+	m_globalShaders["ANIMATION"]->RemoveMonster(packet->id);
 	m_monsters.erase(packet->id);
 }
 
@@ -1239,7 +1239,7 @@ void TowerScene::RecvStartBattle(char* ptr)
 		m_lightSystem->m_lights[7].m_enable = true;
 
 		for (auto& monster : m_monsters) {
-			m_shaders["ANIMATION"]->SetMonster(monster.first, monster.second);
+			m_globalShaders["ANIMATION"]->SetMonster(monster.first, monster.second);
 		}
 	});
 
@@ -1262,11 +1262,11 @@ void TowerScene::RecvWarpNextFloor(char* ptr)
 
 		for (int i = 1; i < 8; ++i) {
 			m_lightSystem->m_lights[i].m_enable = false;
-
+		}
 		m_lightSystem->m_lights[0].m_diffuse = m_directionalDiffuse;
 		m_lightSystem->m_lights[0].m_direction = m_directionalDirection;
 
-		m_player->ResetAllCooltime();
+		m_player->ResetAllCooldown();
 
 		m_fadeFilter->FadeIn([&](){ ResetState(State::Fading); });
 	});
@@ -1303,10 +1303,10 @@ void TowerScene::RecvRemoveArrow(char* ptr)
 {
 	SC_REMOVE_ARROW_PACKET* packet = reinterpret_cast<SC_REMOVE_ARROW_PACKET*>(ptr);
 
-	auto arrow = m_shaders["OBJECT"]->FindArrow(packet->arrow_id);
+	auto arrow = m_globalShaders["OBJECT"]->FindArrow(packet->arrow_id);
 	if (!arrow)
 		return;
 
 	arrow->Reset();
-	m_shaders["OBJECT"]->RemoveArrow(packet->arrow_id);
+	m_globalShaders["OBJECT"]->RemoveArrow(packet->arrow_id);
 }

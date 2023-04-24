@@ -4,7 +4,7 @@
 
 Player::Player() : m_velocity{ 0.0f, 0.0f, 0.0f }, m_maxVelocity{ 10.0f }, m_friction{ 0.5f }, 
 	m_hp{ 100.f }, m_maxHp{ 100.f }, m_stamina{ PlayerSetting::MAX_STAMINA }, m_maxStamina{ PlayerSetting::MAX_STAMINA }, 
-	m_skillCool{ static_cast<FLOAT>(PlayerSetting ::WARRIOR_SKILL_COOLTIME.count())}, m_ultimateCool{ static_cast<FLOAT>(PlayerSetting::WARRIOR_ULTIMATE_COOLTIME.count()) },
+	m_skillCool{ static_cast<FLOAT>(PlayerSetting::SKILL_COOLDOWN[(INT)m_type].count())}, m_ultimateCool{ static_cast<FLOAT>(PlayerSetting::ULTIMATE_COOLDOWN[(INT)m_type].count()) },
 	m_id{ -1 }, m_cooldownList{ false, }, m_dashed{ false }, m_moveSpeed{ PlayerSetting::WALK_SPEED },
 	m_interactable{ false }, m_interactableType{ InteractableType::NONE }, m_bufSize{ 0 }
 {
@@ -155,15 +155,15 @@ void Player::OnProcessingMouseMessage(UINT message, LPARAM lParam)
 		break;
 	case WM_RBUTTONDOWN:
 		if (!m_dashed) {
-			if (!m_cooltimeList[CooltimeType::DASH]) {
+			if (!m_cooldownList[ActionType::DASH]) {
 
 				if (m_stamina >= PlayerSetting::MINIMUM_DASH_STAMINA) {
 					m_dashed = true;
 					ChangeAnimation(PlayerAnimation::DASH);
-					m_moveSpeed = PlayerSetting::PLAYER_DASH_SPEED;
+					m_moveSpeed = PlayerSetting::DASH_SPEED;
 					m_startDash = chrono::system_clock::now();
 
-					CreateCooltimePacket(CooltimeType::DASH);
+					CreateCooldownPacket(ActionType::DASH);
 					CreateChangeStaminaPacket(false);
 				}
 			}
@@ -319,13 +319,13 @@ void Player::Update(FLOAT timeElapsed)
 		}
 	}
 	if (m_skillGauge) {
-		if (PlayerSetting::WARRIOR_SKILL_COOLTIME.count() > m_skillCool) m_skillCool += timeElapsed;
-		m_skillGauge->SetMaxGauge(static_cast<FLOAT>(PlayerSetting::WARRIOR_SKILL_COOLTIME.count()));
+		if (PlayerSetting::SKILL_COOLDOWN[(INT)m_type].count() > m_skillCool) m_skillCool += timeElapsed;
+		m_skillGauge->SetMaxGauge(static_cast<FLOAT>(PlayerSetting::SKILL_COOLDOWN[(INT)m_type].count()));
 		m_skillGauge->SetGauge(m_skillCool);
 	}
 	if (m_ultimateGauge) {
-		if (PlayerSetting::WARRIOR_ULTIMATE_COOLTIME.count() > m_ultimateCool) m_ultimateCool += timeElapsed;
-		m_ultimateGauge->SetMaxGauge(static_cast<FLOAT>(PlayerSetting::WARRIOR_ULTIMATE_COOLTIME.count()));
+		if (PlayerSetting::ULTIMATE_COOLDOWN[(INT)m_type].count() > m_ultimateCool) m_ultimateCool += timeElapsed;
+		m_ultimateGauge->SetMaxGauge(static_cast<FLOAT>(PlayerSetting::ULTIMATE_COOLDOWN[(INT)m_type].count()));
 		m_ultimateGauge->SetGauge(m_ultimateCool);
 	}
 
@@ -397,20 +397,20 @@ void Player::ResetCooldown(char type)
 	m_cooldownList[type] = false;
 }
 
-void Player::ResetAllCooltime()
+void Player::ResetAllCooldown()
 {
 	if (m_skillGauge) {
-		m_skillCool = static_cast<FLOAT>(PlayerSetting::WARRIOR_SKILL_COOLTIME.count());
-		m_skillGauge->SetMaxGauge(static_cast<FLOAT>(PlayerSetting::WARRIOR_SKILL_COOLTIME.count()));
-		m_skillGauge->SetGauge(static_cast<FLOAT>(PlayerSetting::WARRIOR_SKILL_COOLTIME.count()));
+		m_skillCool = static_cast<FLOAT>(PlayerSetting::SKILL_COOLDOWN[(INT)m_type].count());
+		m_skillGauge->SetMaxGauge(static_cast<FLOAT>(PlayerSetting::SKILL_COOLDOWN[(INT)m_type].count()));
+		m_skillGauge->SetGauge(static_cast<FLOAT>(PlayerSetting::SKILL_COOLDOWN[(INT)m_type].count()));
 	}
 	if (m_ultimateGauge) {
-		m_ultimateCool = static_cast<FLOAT>(PlayerSetting::WARRIOR_ULTIMATE_COOLTIME.count());
-		m_ultimateGauge->SetMaxGauge(static_cast<FLOAT>(PlayerSetting::WARRIOR_ULTIMATE_COOLTIME.count()));
-		m_ultimateGauge->SetGauge(static_cast<FLOAT>(PlayerSetting::WARRIOR_ULTIMATE_COOLTIME.count()));
+		m_ultimateCool = static_cast<FLOAT>(PlayerSetting::ULTIMATE_COOLDOWN[(INT)m_type].count());
+		m_ultimateGauge->SetMaxGauge(static_cast<FLOAT>(PlayerSetting::ULTIMATE_COOLDOWN[(INT)m_type].count()));
+		m_ultimateGauge->SetGauge(static_cast<FLOAT>(PlayerSetting::ULTIMATE_COOLDOWN[(INT)m_type].count()));
 	}
-	for (size_t i = 0; i < CooltimeType::COUNT; ++i) {
-		m_cooltimeList[i] = false;
+	for (size_t i = 0; i < ActionType::COUNT; ++i) {
+		m_cooldownList[i] = false;
 	}
 }
 
