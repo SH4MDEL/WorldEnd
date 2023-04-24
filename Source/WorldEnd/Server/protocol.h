@@ -315,6 +315,7 @@ struct CS_PLAYER_MOVE_PACKET
 	DirectX::XMFLOAT3 pos;
 	DirectX::XMFLOAT3 velocity;
 	FLOAT yaw;
+	UINT move_time;
 };
 
 struct CS_READY_PACKET      // 파티 준비 완료를 알려주는 패킷
@@ -444,6 +445,7 @@ struct SC_UPDATE_CLIENT_PACKET
 	UCHAR size;
 	UCHAR type;
 	PLAYER_DATA	data;
+	UINT move_time;
 };
 
 struct SC_ADD_MONSTER_PACKET

@@ -771,7 +771,7 @@ void TowerScene::RecvPacket()
 
 void TowerScene::ProcessPacket(char* ptr)
 {
-	//cout << "[Process Packet] Packet Type: " << (int)ptr[1] << endl;//test
+	cout << "[Process Packet] Packet Type: " << (int)ptr[1] << endl;//test
 
 	switch (ptr[1])
 	{
