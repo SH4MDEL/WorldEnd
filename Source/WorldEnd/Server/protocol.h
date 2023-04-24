@@ -60,6 +60,7 @@ constexpr char SC_PACKET_WARP_NEXT_FLOOR = 18;
 constexpr char SC_PACKET_PLAYER_DEATH = 19;
 constexpr char SC_PACKET_PLAYER_SHOOT = 20;
 constexpr char SC_PACKET_REMOVE_ARROW = 21;
+constexpr char SC_PACKET_MONSTER_SHOOT = 22;
 
 enum class PlayerType : char { WARRIOR, ARCHER, COUNT };
 enum class MonsterType : char { WARRIOR, ARCHER, WIZARD, COUNT };
@@ -69,7 +70,7 @@ enum ActionType : char {
 	NORMAL_ATTACK, SKILL, ULTIMATE, DASH, ROLL, COUNT
 };
 enum class MonsterBehavior : char {
-	CHASE, RETARGET, TAUNT, PREPARE_ATTACK, ATTACK, DEATH,	// 공용
+	CHASE, RETARGET, TAUNT, PREPARE_ATTACK, ATTACK, DEATH, REMOVE,	// 공용
 	BLOCK, BLOCKIDLE,							// 전사 몬스터
 	AIM, WALK_BACKWARD, FLEE, DELAY,			// 궁수 몬스터
 	COUNT
@@ -566,6 +567,15 @@ struct SC_REMOVE_ARROW_PACKET
 	UCHAR size;
 	UCHAR type;
 	INT arrow_id;
+};
+
+struct SC_MONSTER_SHOOT_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+	INT id;
+	INT arrow_id;
+	INT target_id;
 };
 
 #pragma pack (pop)

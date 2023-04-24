@@ -317,7 +317,7 @@ void GameRoom::InitMonsters(INT room_num)
 	// Init 은 플레이어 진입 시 불려야함
 	INT new_id{};
 	for (size_t i = 0; i < 2; ++i) {
-		new_id = server.GetNewMonsterId(MonsterType::ARCHER);
+		new_id = server.GetNewMonsterId(MonsterType::WARRIOR);
 		
 		m_monster_ids[i] = new_id;
 		

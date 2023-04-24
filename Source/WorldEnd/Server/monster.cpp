@@ -456,7 +456,10 @@ MonsterBehavior WarriorMonster::SetNextBehavior(MonsterBehavior behavior)
 			temp = MonsterBehavior::CHASE;
 		}
 		break;
-	default:	// 사망 or 없는 행동이면 COUNT
+	case MonsterBehavior::DEATH:
+		temp = MonsterBehavior::REMOVE;
+		break;
+	default:	// 없는 행동이면 COUNT
 		temp = MonsterBehavior::COUNT;
 		break;
 	}
@@ -619,7 +622,10 @@ MonsterBehavior ArcherMonster::SetNextBehavior(MonsterBehavior behavior)
 	case MonsterBehavior::DELAY:
 		temp = MonsterBehavior::RETARGET;
 		break;
-	default:	// 사망 or 없는 행동이면 COUNT
+	case MonsterBehavior::DEATH:
+		temp = MonsterBehavior::REMOVE;
+		break;
+	default:	// 없는 행동이면 COUNT
 		temp = MonsterBehavior::COUNT;
 		break;
 	}

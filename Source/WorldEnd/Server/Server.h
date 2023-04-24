@@ -62,6 +62,7 @@ public:
 	void SendMonsterAttack(int monster_id, int player_id);
 	void SendPlayerShoot(int client_id, int arrow_id, int target_id);
 	void SendRemoveArrow(int client_id, int arrow_id);
+	void SendMonsterShoot(int client_id);
 
 	bool IsPlayer(int client_id);
 	void GameRoomPlayerCollisionCheck(const std::shared_ptr<Client>& player,

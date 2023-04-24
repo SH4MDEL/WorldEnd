@@ -52,7 +52,7 @@ public:
 	void LoadMonsterFromFile(const shared_ptr<Monster>& monster);
 
 	void SetHpBar(const shared_ptr<AnimationObject>& object);
-	void SetArrow(const shared_ptr<Player>& player, INT arrowId);
+	void SetArrow(const shared_ptr<GameObject>& object, INT arrowId);
 	void RotateToTarget(const shared_ptr<Player>& player, INT targetId);
 	void RotateToTarget(const shared_ptr<Player>& player);
 	INT SetTarget(const shared_ptr<Player>& player);

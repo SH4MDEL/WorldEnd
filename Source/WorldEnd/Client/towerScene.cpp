@@ -621,13 +621,13 @@ void TowerScene::SetHpBar(const shared_ptr<AnimationObject>& object)
 	object->SetHpBar(hpBar);
 }
 
-void TowerScene::SetArrow(const shared_ptr<Player>& player, INT arrowId)
+void TowerScene::SetArrow(const shared_ptr<GameObject>& object, INT arrowId)
 {
 	auto& arrow = m_arrows[arrowId];
-	arrow->SetPosition(Vector3::Add(player->GetPosition(), XMFLOAT3{ 0.f, 0.9f, 0.f }));
+	arrow->SetPosition(Vector3::Add(object->GetPosition(), XMFLOAT3{ 0.f, 0.9f, 0.f }));
 	
-	arrow->SetVelocity({ Vector3::Mul(Vector3::Normalize(player->GetFront()), PlayerSetting::ARROW_SPEED) });
-	arrow->Rotate(0.f, 0.f, player->GetYaw());
+	arrow->SetVelocity({ Vector3::Mul(Vector3::Normalize(object->GetFront()), PlayerSetting::ARROW_SPEED) });
+	arrow->Rotate(0.f, 0.f, object->GetYaw());
 
 	m_shaders["OBJECT"]->SetArrow(arrowId, arrow);
 }
@@ -771,7 +771,7 @@ void TowerScene::RecvPacket()
 
 void TowerScene::ProcessPacket(char* ptr)
 {
-	cout << "[Process Packet] Packet Type: " << (int)ptr[1] << endl;//test
+	//cout << "[Process Packet] Packet Type: " << (int)ptr[1] << endl;//test
 
 	switch (ptr[1])
 	{

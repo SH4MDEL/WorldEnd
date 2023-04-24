@@ -1059,6 +1059,31 @@ void Server::SendRemoveArrow(int client_id, int arrow_id)
 	}
 }
 
+void Server::SendMonsterShoot(int client_id)
+{
+	int room_num = m_clients[client_id]->GetRoomNum();
+	auto game_room = m_game_room_manager->GetGameRoom(room_num);
+	if (!game_room)
+		return;
+
+	SC_PLAYER_SHOOT_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = SC_PACKET_PLAYER_SHOOT;
+	packet.id = client_id;
+	packet.arrow_id = arrow_id;
+	packet.target_id = target_id;
+
+	if (m_game_room_manager->IsValidRoomNum(room_num)) {
+		auto& ids = game_room->GetPlayerIds();
+
+		for (int id : ids) {
+			if (-1 == id) continue;
+
+			m_clients[id]->DoSend(&packet);
+		}
+	}
+}
+
 bool Server::IsPlayer(int client_id)
 {
 	if (0 <= client_id && client_id < MAX_USER)
@@ -1306,7 +1331,7 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 	}
 	case EventType::BEHAVIOR_CHANGE: {
 		auto monster = dynamic_pointer_cast<Monster>(m_clients[ev.obj_id]);
-		if (MonsterBehavior::DEATH == ev.next_behavior_type) {
+		if (MonsterBehavior::REMOVE == ev.next_behavior_type) {
 			ExpOver* over = new ExpOver;
 			over->_comp_type = OP_MONSTER_REMOVE;
 
@@ -1335,7 +1360,7 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 				break;
 			}
 			case MonsterType::ARCHER: {
-
+				
 				break;
 			}
 			case MonsterType::WIZARD: {
