@@ -56,10 +56,10 @@ public:
 	void LoadMonsterFromFile(const shared_ptr<Monster>& monster);
 
 	void SetHpBar(const shared_ptr<AnimationObject>& object);
-	void SetArrow(const shared_ptr<GameObject>& object, INT arrowId);
-	void RotateToTarget(const shared_ptr<Player>& player, INT targetId);
-	void RotateToTarget(const shared_ptr<Player>& player);
-	INT SetTarget(const shared_ptr<Player>& player);
+	void SetArrow(INT id, INT arrowId);
+	void RotateToTarget(const shared_ptr<GameObject>& object, INT targetId);
+	void RotateToTarget(const shared_ptr<GameObject>& object);
+	INT SetTarget(const shared_ptr<GameObject>& object);
 
 	bool CheckState(State sceneState);
 	void SetState(State sceneState);
@@ -87,11 +87,11 @@ public:
 	void RecvChangeStamina(char* ptr);
 	void RecvMonsterAttackCollision(char* ptr);
 	void RecvSetInteractable(char* ptr);
-	void RecvStartBattle(char* ptr);
 	void RecvWarpNextFloor(char* ptr);
 	void RecvPlayerDeath(char* ptr);
-	void RecvPlayerShoot(char* ptr);
+	void RecvArrowShoot(char* ptr);
 	void RecvRemoveArrow(char* ptr);
+	void RecvInteractObject(char* ptr);
 
 private:
 	void BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist);

@@ -744,18 +744,35 @@ void TowerScene::SetHpBar(const shared_ptr<AnimationObject>& object)
 	object->SetHpBar(hpBar);
 }
 
-void TowerScene::SetArrow(const shared_ptr<GameObject>& object, INT arrowId)
+void TowerScene::SetArrow(INT id, INT arrowId)
 {
 	auto& arrow = m_arrows[arrowId];
+	shared_ptr<GameObject> object{};
+	FLOAT speed{};
+	if (0 <= id && id < MAX_USER) {
+		speed = PlayerSetting::ARROW_SPEED;
+		if (id == m_player->GetId()) {
+			object = m_player;
+		}
+		else {
+			object = m_multiPlayers[id];
+		}
+		RotateToTarget(object);
+	}
+	else {
+		speed = MonsterSetting::ARROW_SPEED;
+		object = m_monsters[id];
+	}
+
 	arrow->SetPosition(Vector3::Add(object->GetPosition(), XMFLOAT3{ 0.f, 0.9f, 0.f }));
 	
-	arrow->SetVelocity({ Vector3::Mul(Vector3::Normalize(object->GetFront()), PlayerSetting::ARROW_SPEED) });
+	arrow->SetVelocity({ Vector3::Mul(Vector3::Normalize(object->GetFront()), speed) });
 	arrow->Rotate(0.f, 0.f, object->GetYaw());
 
 	m_globalShaders["OBJECT"]->SetArrow(arrowId, arrow);
 }
 
-void TowerScene::RotateToTarget(const shared_ptr<Player>& player, INT targetId)
+void TowerScene::RotateToTarget(const shared_ptr<GameObject>& object, INT targetId)
 {
 	if (-1 == targetId) {
 		return;
@@ -766,29 +783,30 @@ void TowerScene::RotateToTarget(const shared_ptr<Player>& player, INT targetId)
 		return;
 
 	XMFLOAT3 dir = Vector3::Normalize(
-		Vector3::Sub(monster->GetPosition(), player->GetPosition()));
-	XMFLOAT3 front{ player->GetFront() };
+		Vector3::Sub(monster->GetPosition(), object->GetPosition()));
+	XMFLOAT3 front{ object->GetFront() };
 
 	XMVECTOR radian{ XMVector3AngleBetweenNormals(XMLoadFloat3(&front), XMLoadFloat3(&dir))};
 	FLOAT angle{ XMConvertToDegrees(XMVectorGetX(radian)) };
 	XMFLOAT3 clockwise{ Vector3::Cross(front, dir) };
 	angle = clockwise.y < 0 ? -angle : angle;
 
-	player->Rotate(0.f, 0.f, angle);
+	object->Rotate(0.f, 0.f, angle);
 }
 
-void TowerScene::RotateToTarget(const shared_ptr<Player>& player)
+void TowerScene::RotateToTarget(const shared_ptr<GameObject>& object)
 {
-	INT target = SetTarget(player);
-	RotateToTarget(player, target);
+	INT target = SetTarget(object);
+	RotateToTarget(object, target);
 }
 
-INT TowerScene::SetTarget(const shared_ptr<Player>& player)
+INT TowerScene::SetTarget(const shared_ptr<GameObject>& object)
 {
 	XMFLOAT3 sub{};
 	float length{}, min_length{ std::numeric_limits<float>::max() };
-	XMFLOAT3 pos{ player->GetPosition() };
+	XMFLOAT3 pos{ object->GetPosition() };
 	int target{ -1 };
+
 	for (const auto& elm : m_monsters) {
 		if (elm.second) {
 			if (elm.second->GetHp() <= std::numeric_limits<float>::epsilon()) continue;
@@ -946,20 +964,20 @@ void TowerScene::ProcessPacket(char* ptr)
 	case SC_PACKET_SET_INTERACTABLE:
 		RecvSetInteractable(ptr);
 		break;
-	case SC_PACKET_START_BATTLE:
-		RecvStartBattle(ptr);
-		break;
 	case SC_PACKET_WARP_NEXT_FLOOR:
 		RecvWarpNextFloor(ptr);
 		break;
 	case SC_PACKET_PLAYER_DEATH:
 		RecvPlayerDeath(ptr);
 		break;
-	case SC_PACKET_PLAYER_SHOOT:
-		RecvPlayerShoot(ptr);
+	case SC_PACKET_ARROW_SHOOT:
+		RecvArrowShoot(ptr);
 		break;
 	case SC_PACKET_REMOVE_ARROW:
 		RecvRemoveArrow(ptr);
+		break;
+	case SC_PACKET_INTERACT_OBJECT:
+		RecvInteractObject(ptr);
 		break;
 	}
 }
@@ -1222,30 +1240,6 @@ void TowerScene::RecvSetInteractable(char* ptr)
 	cout << "충돌 상태 : " << packet->interactable << endl;
 }
 
-void TowerScene::RecvStartBattle(char* ptr)
-{
-	SC_START_BATTLE_PACKET* packet = reinterpret_cast<SC_START_BATTLE_PACKET*>(ptr);
-
-	// 오브젝트와 상호작용했다면 해당 오브젝트는 다시 상호작용 X
-	m_player->SetInteractable(false);
-	m_player->SetInteractableType(InteractableType::NONE);
-
-	SetState(State::WarpGate);
-
-	m_gate->SetInterect([&]() {
-		m_globalShaders["OBJECT"]->RemoveObject(m_gate);
-		m_lightSystem->m_lights[4].m_enable = true;
-		m_lightSystem->m_lights[5].m_enable = true;
-		m_lightSystem->m_lights[6].m_enable = true;
-		m_lightSystem->m_lights[7].m_enable = true;
-
-		for (auto& monster : m_monsters) {
-			m_globalShaders["ANIMATION"]->SetMonster(monster.first, monster.second);
-		}
-	});
-
-}
-
 void TowerScene::RecvWarpNextFloor(char* ptr)
 {
 	SC_WARP_NEXT_FLOOR_PACKET* packet = reinterpret_cast<SC_WARP_NEXT_FLOOR_PACKET*>(ptr);
@@ -1284,19 +1278,11 @@ void TowerScene::RecvPlayerDeath(char* ptr)
 	}
 }
 
-void TowerScene::RecvPlayerShoot(char* ptr)
+void TowerScene::RecvArrowShoot(char* ptr)
 {
-	SC_PLAYER_SHOOT_PACKET* packet = reinterpret_cast<SC_PLAYER_SHOOT_PACKET*>(ptr);
+	SC_ARROW_SHOOT_PACKET* packet = reinterpret_cast<SC_ARROW_SHOOT_PACKET*>(ptr);
 
-	if (packet->id == m_player->GetId()) {
-		//RotateToTarget(m_player, packet->target_id);
-		SetArrow(m_player, packet->arrow_id);
-	}
-	else {
-		auto& player = m_multiPlayers[packet->id];
-		//RotateToTarget(player, packet->target_id);
-		SetArrow(player, packet->arrow_id);
-	}
+	SetArrow(packet->id, packet->arrow_id);
 }
 
 void TowerScene::RecvRemoveArrow(char* ptr)
@@ -1309,4 +1295,31 @@ void TowerScene::RecvRemoveArrow(char* ptr)
 
 	arrow->Reset();
 	m_globalShaders["OBJECT"]->RemoveArrow(packet->arrow_id);
+}
+
+void TowerScene::RecvInteractObject(char* ptr)
+{
+	SC_INTERACT_OBJECT_PACKET* packet = reinterpret_cast<SC_INTERACT_OBJECT_PACKET*>(ptr);
+	m_player->SetInteractable(false);
+	m_player->SetInteractableType(InteractionType::NONE);
+
+	switch (packet->interaction_type) {
+	case InteractionType::BATTLE_STARTER:
+		SetState(State::WarpGate);
+
+		m_gate->SetInterect([&]() {
+			m_globalShaders["OBJECT"]->RemoveObject(m_gate);
+		m_lightSystem->m_lights[4].m_enable = true;
+		m_lightSystem->m_lights[5].m_enable = true;
+		m_lightSystem->m_lights[6].m_enable = true;
+		m_lightSystem->m_lights[7].m_enable = true;
+
+		for (auto& monster : m_monsters) {
+			m_globalShaders["ANIMATION"]->SetMonster(monster.first, monster.second);
+		}
+
+			});
+
+		break;
+	}
 }

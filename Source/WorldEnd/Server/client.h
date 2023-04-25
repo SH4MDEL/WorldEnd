@@ -30,6 +30,8 @@ public:
 	Client();
 	~Client();
 
+	void Init();
+
 	void DoRecv();
 	virtual void DoSend(void* p) override;
 	virtual void DoSend(void* p, INT packet_count) override;

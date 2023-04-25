@@ -31,7 +31,7 @@ public:
 	void SetUltimateGauge(const shared_ptr<VertGaugeUI>& ultimateGauge) { m_ultimateGauge = ultimateGauge; }
 	void SetType(PlayerType type) { m_type = type; }
 	void SetInteractable(bool value) { m_interactable = value; }
-	void SetInteractableType(InteractableType type) { m_interactableType = type; }
+	void SetInteractableType(InteractionType type) { m_interactableType = type; }
 
 	XMFLOAT3 GetVelocity() const { return m_velocity; }
 	FLOAT GetHp() const { return m_hp; }
@@ -39,7 +39,7 @@ public:
 	FLOAT GetStamina() const { return m_stamina; }
 	FLOAT GetMaxStamina() const { return m_maxStamina; }
 	PlayerType GetType() const { return m_type; }
-	InteractableType GetInteractableType() const { return m_interactableType; }	
+	InteractionType GetInteractableType() const { return m_interactableType; }	
 
 	void ResetCooldown(char type);
 	void ResetAllCooldown();
@@ -89,7 +89,7 @@ private:
 	FLOAT								m_moveSpeed;
 
 	bool				m_interactable;
-	InteractableType	m_interactableType;
+	InteractionType	m_interactableType;
 
 	CHAR				m_sendBuffer[BUFSIZ];
 	int					m_bufSize;
@@ -109,5 +109,5 @@ public:
 	void SetVelocity(XMFLOAT3 velocity) { m_velocity = velocity; }
 
 private:
-	XMFLOAT3	m_velocity;
+	XMFLOAT3			m_velocity;
 };

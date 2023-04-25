@@ -6,7 +6,7 @@ Player::Player() : m_velocity{ 0.0f, 0.0f, 0.0f }, m_maxVelocity{ 10.0f }, m_fri
 	m_hp{ 100.f }, m_maxHp{ 100.f }, m_stamina{ PlayerSetting::MAX_STAMINA }, m_maxStamina{ PlayerSetting::MAX_STAMINA }, 
 	m_skillCool{ static_cast<FLOAT>(PlayerSetting::SKILL_COOLDOWN[(INT)m_type].count())}, m_ultimateCool{ static_cast<FLOAT>(PlayerSetting::ULTIMATE_COOLDOWN[(INT)m_type].count()) },
 	m_id{ -1 }, m_cooldownList{ false, }, m_dashed{ false }, m_moveSpeed{ PlayerSetting::WALK_SPEED },
-	m_interactable{ false }, m_interactableType{ InteractableType::NONE }, m_bufSize{ 0 }
+	m_interactable{ false }, m_interactableType{ InteractionType::NONE }, m_bufSize{ 0 }
 {
 }
 
@@ -183,7 +183,6 @@ void Player::OnProcessingMouseMessage(UINT message, LPARAM lParam)
 
 void Player::Update(FLOAT timeElapsed)
 {
-
 	AnimationObject::Update(timeElapsed);
 
 	// 애니메이션 상태 머신에 들어갈 내용
@@ -479,7 +478,7 @@ void Player::CreateInteractPacket()
 	CS_INTERACT_OBJECT_PACKET packet{};
 	packet.size = sizeof(packet);
 	packet.type = CS_PACKET_INTERACT_OBJECT;
-	packet.interactable_type = m_interactableType;
+	packet.interaction_type = m_interactableType;
 	SetBuffer(&packet, packet.size);
 #endif
 }
@@ -519,7 +518,7 @@ Arrow::Arrow() : m_velocity{ 0.f, 0.f, 0.f }
 
 void Arrow::Update(FLOAT timeElapsed)
 {
-	GameObject::Update(timeElapsed);
+	//GameObject::Update(timeElapsed);
 
 	Move(Vector3::Mul(m_velocity, timeElapsed));
 }

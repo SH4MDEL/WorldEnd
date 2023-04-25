@@ -58,9 +58,10 @@ constexpr char SC_PACKET_SET_INTERACTABLE = 16;
 constexpr char SC_PACKET_START_BATTLE = 17;
 constexpr char SC_PACKET_WARP_NEXT_FLOOR = 18;
 constexpr char SC_PACKET_PLAYER_DEATH = 19;
-constexpr char SC_PACKET_PLAYER_SHOOT = 20;
+constexpr char SC_PACKET_ARROW_SHOOT = 20;
 constexpr char SC_PACKET_REMOVE_ARROW = 21;
 constexpr char SC_PACKET_MONSTER_SHOOT = 22;
+constexpr char SC_PACKET_INTERACT_OBJECT = 23;
 
 enum class PlayerType : char { WARRIOR, ARCHER, COUNT };
 enum class MonsterType : char { WARRIOR, ARCHER, WIZARD, COUNT };
@@ -72,10 +73,10 @@ enum ActionType : char {
 enum class MonsterBehavior : char {
 	CHASE, RETARGET, TAUNT, PREPARE_ATTACK, ATTACK, DEATH, REMOVE,	// 공용
 	BLOCK, BLOCKIDLE,							// 전사 몬스터
-	AIM, WALK_BACKWARD, FLEE, DELAY,			// 궁수 몬스터
+	AIM, STEP_BACK, FLEE, DELAY,			// 궁수 몬스터
 	COUNT
 };
-enum InteractableType : char {
+enum InteractionType : char {
 	BATTLE_STARTER, PORTAL, ENHANCMENT, RECORD_BOARD, NONE
 };
 
@@ -205,35 +206,12 @@ namespace MonsterSetting
 	using namespace std::literals;
 
 	constexpr float WALK_SPEED = 3.f;
+	constexpr float STEP_BACK_SPEED = 1.5f;
+	constexpr float FLEE_SPEED = 4.5f;
 	constexpr float ARROW_SPEED = 15.f;
 	constexpr float RECOGNIZE_RANGE = 20.f;
 
 	constexpr auto DECREASE_AGRO_LEVEL_TIME = 10s;
-
-	//constexpr USHORT WARRIOR_BEHAVIOR_ANIMATION[static_cast<int>(MonsterBehavior::COUNT)]
-	//{
-	//	ObjectAnimation::RUN,		// chase
-	//	MonsterAnimation::LOOK_AROUND,					// retarget
-	//	WarriorMonsterAnimation::TAUNT,					// taunt
-	//	WarriorMonsterAnimation::TAUNT,					// prepare_attack
-	//	ObjectAnimation::ATTACK,						// attack
-	//	ObjectAnimation::DEATH							// death
-	//};
-
-	//constexpr MonsterBehavior NEXT_BEHAVIOR[static_cast<int>(MonsterBehavior::COUNT)][2]{
-	//	{MonsterBehavior::RETARGET, MonsterBehavior::TAUNT}, 
-	//	{MonsterBehavior::CHASE, MonsterBehavior::CHASE},
-	//	{MonsterBehavior::CHASE, MonsterBehavior::CHASE},
-	//	{MonsterBehavior::ATTACK, MonsterBehavior::ATTACK},
-	//	{MonsterBehavior::PREPARE_ATTACK, MonsterBehavior::CHASE},
-	//	{MonsterBehavior::DEATH, MonsterBehavior::DEATH},
-	//};
-
-	//constexpr std::chrono::milliseconds
-	//	BEHAVIOR_TIME[static_cast<int>(MonsterBehavior::COUNT)]{
-	//		7000ms, 3000ms, 2000ms, 1000ms, 625ms, 2000ms
-	//	};
-
 
 	constexpr float ATTACK_RANGE[static_cast<int>(MonsterType::COUNT)]{
 		1.f, 7.f };
@@ -253,7 +231,7 @@ namespace RoomSetting
 	constexpr int MAX_ARROWS = 30;
 	constexpr auto ARROW_REMOVE_TIME = 3s;
 
-	constexpr float DOWNSIDE_STAIRS_HEIGHT = 4.4f;
+	constexpr float DOWNSIDE_STAIRS_HEIGHT = 4.6f;
 	constexpr float DOWNSIDE_STAIRS_FRONT = -7.f;
 	constexpr float DOWNSIDE_STAIRS_BACK = -17.f;
 
@@ -263,7 +241,7 @@ namespace RoomSetting
 
 	constexpr auto BATTLE_DELAY_TIME = 3s;
 	constexpr float EVENT_RADIUS = 1.f;
-	constexpr DirectX::XMFLOAT3 START_POSITION { 0.f, -DOWNSIDE_STAIRS_HEIGHT, -45.f };
+	constexpr DirectX::XMFLOAT3 START_POSITION { 0.f, -4.4f, -45.f };
 	constexpr DirectX::XMFLOAT3 BATTLE_STARTER_POSITION { 0.f, 0.f, 24.f };
 	constexpr DirectX::XMFLOAT3 WARP_PORTAL_POSITION { -1.f, TOPSIDE_STAIRS_HEIGHT, 60.f };
 }
@@ -376,7 +354,7 @@ struct CS_INTERACT_OBJECT_PACKET
 {
 	UCHAR size;
 	UCHAR type;
-	InteractableType interactable_type;
+	InteractionType interaction_type;
 };
 
 ///////////////////////////////////////////////////////////////////////
@@ -531,7 +509,7 @@ struct SC_SET_INTERACTABLE_PACKET
 	UCHAR size;
 	UCHAR type;
 	bool interactable;
-	InteractableType interactable_type;
+	InteractionType interactable_type;
 };
 
 struct SC_START_BATTLE_PACKET
@@ -555,13 +533,12 @@ struct SC_PLAYER_DEATH_PACKET
 	INT id;
 };
 
-struct SC_PLAYER_SHOOT_PACKET
+struct SC_ARROW_SHOOT_PACKET
 {
 	UCHAR size;
 	UCHAR type;
 	INT id;
 	INT arrow_id;
-	INT target_id;
 };
 
 struct SC_REMOVE_ARROW_PACKET
@@ -571,13 +548,11 @@ struct SC_REMOVE_ARROW_PACKET
 	INT arrow_id;
 };
 
-struct SC_MONSTER_SHOOT_PACKET
+struct SC_INTERACT_OBJECT_PACKET
 {
 	UCHAR size;
 	UCHAR type;
-	INT id;
-	INT arrow_id;
-	INT target_id;
+	InteractionType interaction_type;
 };
 
 #pragma pack (pop)

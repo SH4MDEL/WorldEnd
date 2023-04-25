@@ -30,19 +30,32 @@ ExpOver::ExpOver(char* packet, INT packet_count)
 }
 
 Client::Client() : m_socket{}, m_ready_check{ false }, m_remain_size{ 0 },
-	m_recv_over{}, m_stamina{ PlayerSetting::MAX_STAMINA },
-	m_interactable{ false }, m_latest_id{ 0 }
+	m_recv_over{}
 {
-	m_name = "Player";
-	SetPlayerType(PlayerType::WARRIOR);
-	m_damage = 90.f;
-
-	m_max_hp = 100.f;
-	m_hp = 100.f;
+	Init();
 }
 
 Client::~Client()
 {
+}
+
+void Client::Init()
+{
+	m_id = -1;
+	m_room_num = -1;
+	m_position = XMFLOAT3(0.f, 0.f, 0.f);
+	m_velocity = XMFLOAT3(0.f, 0.f, 0.f);
+	m_yaw = 0.f;
+	m_stamina = PlayerSetting::MAX_STAMINA;
+	m_interactable = false;
+	m_latest_id = 0;
+	this->SetTriggerFlag();
+
+	// 나중에 DB에서 처리될 것들
+	SetPlayerType(PlayerType::WARRIOR);
+	m_name = "Player";
+	m_damage = 90.f;
+	m_hp = m_max_hp = 100.f;
 }
 
 void Client::DoRecv()
@@ -57,7 +70,7 @@ void Client::DoRecv()
 		if (ERROR_IO_PENDING != error_num){
 			//g_server.Disconnect(data.id);
 			if (error_num == WSAECONNRESET)
-				std::cout << "[" << m_id << " Client] Disconnect(do_recv)" << std::endl;
+				printf("%d Client Disconnect\n", m_id);
 			else ErrorDisplay("do_recv");
 		}
 	}

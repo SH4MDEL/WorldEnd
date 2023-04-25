@@ -93,23 +93,22 @@ void Enhancment::SendEvent(INT player_id, void* c)
 	// 해당 플레이어에게 강화 정보 보내는 이벤트
 }
 
-BattleStarter::BattleStarter() : m_is_valid{ true }
+BattleStarter::BattleStarter()
 {
 	m_event_bounding_box.Center = RoomSetting::BATTLE_STARTER_POSITION;
 	m_event_bounding_box.Extents =
 		XMFLOAT3(RoomSetting::EVENT_RADIUS, RoomSetting::EVENT_RADIUS, RoomSetting::EVENT_RADIUS);
-}
-
-void BattleStarter::SetIsValid(bool is_valid)
-{
-	m_is_valid = is_valid;
+	m_valid = true;
 }
 
 void BattleStarter::SendEvent(INT player_id, void* c)
 {
-	SC_START_BATTLE_PACKET packet{};
+	InteractionType* type = reinterpret_cast<InteractionType*>(c);
+
+	SC_INTERACT_OBJECT_PACKET packet{};
 	packet.size = sizeof(packet);
-	packet.type = SC_PACKET_START_BATTLE;
+	packet.type = SC_PACKET_INTERACT_OBJECT;
+	packet.interaction_type = *type;
 
 	Server& server = Server::GetInstance();
 	server.m_clients[player_id]->DoSend(&packet);
@@ -118,13 +117,16 @@ void BattleStarter::SendEvent(INT player_id, void* c)
 void BattleStarter::SendEvent(const std::span<INT>& ids, void* c)
 {
 	std::unique_lock<std::mutex> l{ m_valid_lock };
-	if (m_is_valid) {
-		m_is_valid = false;
+	if (m_valid) {
+		m_valid = false;
 		l.unlock();
 
-		SC_START_BATTLE_PACKET packet{};
+		InteractionType* type = reinterpret_cast<InteractionType*>(c);
+
+		SC_INTERACT_OBJECT_PACKET packet{};
 		packet.size = sizeof(packet);
-		packet.type = SC_PACKET_START_BATTLE;
+		packet.type = SC_PACKET_INTERACT_OBJECT;
+		packet.interaction_type = *type;
 
 		Server& server = Server::GetInstance();
 		for (INT id : ids) {
@@ -139,11 +141,12 @@ void BattleStarter::SendEvent(const std::span<INT>& ids, void* c)
 	}
 }
 
-WarpPortal::WarpPortal() : m_is_valid{ false }
+WarpPortal::WarpPortal()
 {
 	m_event_bounding_box.Center = RoomSetting::WARP_PORTAL_POSITION;
 	m_event_bounding_box.Extents =
 		XMFLOAT3(RoomSetting::EVENT_RADIUS, RoomSetting::EVENT_RADIUS, RoomSetting::EVENT_RADIUS);
+	m_valid = false;
 }
 
 void WarpPortal::SendEvent(INT player_id, void* c)
@@ -163,6 +166,8 @@ void WarpPortal::SendEvent(const std::span<INT>& ids, void* c)
 {
 	BYTE* floor = reinterpret_cast<BYTE*>(c);
 
+	m_valid = false;
+
 	SC_WARP_NEXT_FLOOR_PACKET packet{};
 	packet.size = sizeof(packet);
 	packet.type = SC_PACKET_WARP_NEXT_FLOOR;
@@ -176,7 +181,7 @@ void WarpPortal::SendEvent(const std::span<INT>& ids, void* c)
 			if (State::INGAME != server.m_clients[id]->GetState()) continue;
 		}
 
-		server.MoveObject(server.m_clients[id], XMFLOAT3(0.f, 0.f, 0.f));
+		server.MoveObject(server.m_clients[id], RoomSetting::START_POSITION);
 		server.m_clients[id]->DoSend(&packet);
 	}
 }

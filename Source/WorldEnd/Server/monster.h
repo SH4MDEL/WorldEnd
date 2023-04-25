@@ -9,7 +9,7 @@ public:
 	virtual ~Monster() = default;
 
 	virtual void Init();
-	virtual void Update(FLOAT elapsed_time) override {};
+	virtual void Update(FLOAT elapsed_time) override;
 
 	void SetTarget(INT player_id);
 	void SetAggroLevel(BYTE aggro_level);
@@ -36,7 +36,8 @@ public:
 	void Taunt();
 	void PrepareAttack();					// 공격 준비
 	void Attack();							// 공격
-	//virtual void WalkBackward();
+	virtual void StepBack(FLOAT elapsed_time) {}
+	virtual void Flee(FLOAT elapsed_time) {}
 	void CollisionCheck();
 	
 
@@ -44,9 +45,9 @@ public:
 	void InitializePosition();
 
 protected:
-	void UpdatePosition(const XMFLOAT3& dir, FLOAT elapsed_time);
+	void UpdatePosition(const XMFLOAT3& dir, FLOAT elapsed_time, FLOAT speed);
 	void UpdateRotation(const XMFLOAT3& dir);
-	XMFLOAT3 GetPlayerDirection(INT player_id);
+	XMFLOAT3 GetDirection(INT id);
 	bool IsInRange(FLOAT range);
 	void SetDecreaseAggroLevelEvent();
 	void SetBehaviorTimerEvent(MonsterBehavior behavior);
@@ -90,6 +91,9 @@ public:
 
 	virtual void Init() override;
 	virtual void Update(FLOAT elapsed_time) override;
+	
+	virtual void StepBack(FLOAT elapsed_time) override;
+	virtual void Flee(FLOAT elapsed_time) override;
 
 private:
 	virtual bool CanSwapAttackBehavior() override;
@@ -97,6 +101,14 @@ private:
 	virtual void SetBehaviorAnimation(MonsterBehavior behavior) override;
 	virtual std::chrono::milliseconds SetBehaviorTime(MonsterBehavior behavior) override;
 	bool DoesAttack();
+	void SetFleeDirection();
+
+private:
+	FLOAT	m_max_step_back_time;
+	FLOAT	m_step_back_time;
+	FLOAT	m_recover_attack_range;
+
+	XMFLOAT3 m_flee_direction;
 };
 
 class WizardMonster : public Monster

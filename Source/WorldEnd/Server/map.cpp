@@ -33,11 +33,21 @@ void GameRoom::Update(FLOAT elapsed_time)
 	}
 }
 
+void GameRoom::InteractObject(InteractionType type)
+{
+	switch (type) {
+	case InteractionType::BATTLE_STARTER:
+		m_battle_starter->SendEvent(m_player_ids, &type);
+		break;
+	case InteractionType::PORTAL:
+		//
+		break;
+	}
+}
+
 void GameRoom::StartBattle()
 {
 	Server& server = Server::GetInstance();
-
-	m_battle_starter->SendEvent(m_player_ids, &m_monster_ids);
 
 	for (INT id : m_monster_ids) {
 		if (-1 == id) continue;
@@ -46,6 +56,7 @@ void GameRoom::StartBattle()
 
 		monster->SetState(State::INGAME);
 		monster->ChangeBehavior(MonsterBehavior::CHASE);
+		monster->UpdateTarget();
 	}
 }
 
@@ -54,6 +65,7 @@ void GameRoom::WarpNextFloor(INT room_num)
 	Server& server = Server::GetInstance();
 
 	m_portal->SendEvent(m_player_ids, &m_floor);
+	m_battle_starter->SetValid(true);
 
 	++m_floor;
 	if (RoomSetting::BOSS_FLOOR == m_floor) {
@@ -65,7 +77,6 @@ void GameRoom::WarpNextFloor(INT room_num)
 	for (INT id : m_player_ids) {
 		if (-1 == id) continue;
 
-		server.m_clients[id]->SetPosition(RoomSetting::START_POSITION);
 		SendAddMonster(id);
 	}
 }
@@ -88,6 +99,11 @@ void GameRoom::SetPlayer(INT player_id)
 std::shared_ptr<BattleStarter> GameRoom::GetBattleStarter() const
 {
 	return m_battle_starter;
+}
+
+std::shared_ptr<WarpPortal> GameRoom::GetWarpPortal() const
+{
+	return m_portal;
 }
 
 INT GameRoom::GetArrowId()
@@ -271,11 +287,11 @@ void GameRoom::CheckEventCollision(INT player_id)
 {
 	// 전투 오브젝트와 충돌검사
 	if (GameRoomState::ACCEPT == m_state) {
-		CollideWithEventObject(player_id, InteractableType::BATTLE_STARTER);
+		CollideWithEventObject(player_id, InteractionType::BATTLE_STARTER);
 	}
 	// 포탈과 충돌검사
 	else if (GameRoomState::CLEAR == m_state) {
-		CollideWithEventObject(player_id, InteractableType::PORTAL);
+		CollideWithEventObject(player_id, InteractionType::PORTAL);
 	}
 }
 
@@ -304,7 +320,7 @@ void GameRoom::InitGameRoom(INT room_num)
 {
 	InitMonsters(room_num);
 	InitEnvironment();
-	m_battle_starter->SetIsValid(true);
+	m_battle_starter->SetValid(true);
 
 	// 게임 시작 시 시작 시간 기록
 	m_start_time = std::chrono::system_clock::now();
@@ -318,7 +334,7 @@ void GameRoom::InitMonsters(INT room_num)
 	// Init 은 플레이어 진입 시 불려야함
 	INT new_id{};
 	for (size_t i = 0; i < 2; ++i) {
-		new_id = server.GetNewMonsterId(MonsterType::WARRIOR);
+		new_id = server.GetNewMonsterId(MonsterType::ARCHER);
 		
 		m_monster_ids[i] = new_id;
 		
@@ -339,20 +355,25 @@ void GameRoom::InitEnvironment()
 	// 랜덤하게 환경을 설정함
 }
 
-void GameRoom::CollideWithEventObject(INT player_id, InteractableType type)
+void GameRoom::CollideWithEventObject(INT player_id, InteractionType type)
 {
 	std::shared_ptr<EventObject> object{};
 	switch(type) {
-	case InteractableType::BATTLE_STARTER:
+	case InteractionType::BATTLE_STARTER:
 		object = m_battle_starter;
 		break;
-	case InteractableType::PORTAL:
+	case InteractionType::PORTAL:
 		object = m_portal;
 		break;
 	}
 
 	Server& server = Server::GetInstance();
 	auto client = dynamic_pointer_cast<Client>(server.m_clients[player_id]);
+
+	if (!object->GetValid()) {
+		client->SetInteractable(false);
+		return;
+	}
 
 	SC_SET_INTERACTABLE_PACKET packet{};
 	packet.size = sizeof(packet);
@@ -502,8 +523,19 @@ void GameRoomManager::LoadMap()
 	}
 }
 
+void GameRoomManager::InteractObject(INT room_num, InteractionType type)
+{
+	if (!IsValidRoomNum(room_num))
+		return;
+
+	m_game_rooms[room_num]->InteractObject(type);
+}
+
 void GameRoomManager::StartBattle(INT room_num)
 {
+	if (!IsValidRoomNum(room_num))
+		return;
+
 	auto& room = m_game_rooms[room_num];
 
 	std::unique_lock<std::mutex> l{ room->GetStateMutex() };
@@ -517,6 +549,9 @@ void GameRoomManager::StartBattle(INT room_num)
 
 void GameRoomManager::WarpNextFloor(INT room_num)
 {
+	if (!IsValidRoomNum(room_num))
+		return;
+
 	auto& room = m_game_rooms[room_num];
 
 	std::unique_lock<std::mutex> l{ room->GetStateMutex() };

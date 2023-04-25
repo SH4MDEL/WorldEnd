@@ -60,12 +60,12 @@ public:
 	void SendMonsterAttack(int client_id, const std::span<int>& clients,
 		const BoundingOrientedBox& obb);
 	void SendMonsterAttack(int monster_id, int player_id);
-	void SendPlayerShoot(int client_id, int arrow_id, int target_id);
+	void SendArrowShoot(int client_id, int arrow_id);
 	void SendRemoveArrow(int client_id, int arrow_id);
 	void SendMonsterShoot(int client_id);
 
 	bool IsPlayer(int client_id);
-	void GameRoomPlayerCollisionCheck(const std::shared_ptr<Client>& player,
+	void GameRoomObjectCollisionCheck(const std::shared_ptr<MovementObject>& object,
 			int room_num);
 
 	void Timer();

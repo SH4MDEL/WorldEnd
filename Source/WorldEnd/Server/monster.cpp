@@ -6,8 +6,53 @@
 
 std::random_device rd;
 std::default_random_engine dre(rd());
-std::uniform_int_distribution<int> random_behavior(1, 100);
-std::uniform_int_distribution<int> random_retarget_time(5, 10);
+std::uniform_int_distribution<INT> random_percent(1, 100);
+std::uniform_int_distribution<INT> random_retarget_time(5, 10);
+std::uniform_real_distribution<FLOAT> random_step_back_time(5.f, 7.f);
+std::uniform_int_distribution<INT> random_flee_angle(20, 45);
+
+
+// ------------------------- 디버그 용 ---------------------------------
+std::string DebugBehavior(MonsterBehavior b)
+{
+	switch (b) {
+	case MonsterBehavior::CHASE:
+		return std::string("chase");
+		break;
+	case MonsterBehavior::RETARGET:
+		return std::string("retarget");
+		break;
+	case MonsterBehavior::TAUNT:
+		return std::string("taunt");
+		break;
+	case MonsterBehavior::PREPARE_ATTACK:
+		return std::string("prepare_attack");
+		break;
+	case MonsterBehavior::AIM:
+		return std::string("aim");
+		break;
+	case MonsterBehavior::ATTACK:
+		return std::string("attack");
+		break;
+	case MonsterBehavior::STEP_BACK:
+		return std::string("stepBack");
+		break;
+	case MonsterBehavior::FLEE:
+		return std::string("flee");
+		break;
+	case MonsterBehavior::DELAY:
+		return std::string("delay");
+		break;
+	case MonsterBehavior::DEATH:
+		return std::string("death");
+		break;
+	default:	// 없는 행동이면 COUNT
+		return std::string("x");
+		break;
+	}
+}
+// ------------------------- 디버그 용 ---------------------------------
+
 
 Monster::Monster() : m_target_id{ -1 }, m_current_animation{ ObjectAnimation::IDLE },
 	m_current_behavior{ MonsterBehavior::COUNT }, m_aggro_level{ 0 },
@@ -29,9 +74,20 @@ void Monster::Init()
 						// 타이머 이벤트가 남아있을 수 있으므로 초기화
 }
 
-void Monster::UpdatePosition(const XMFLOAT3& dir, FLOAT elapsed_time)
+void Monster::Update(FLOAT elapsed_time)
 {
-	m_velocity = Vector3::Mul(dir, MonsterSetting::WALK_SPEED);
+	if (State::INGAME != m_state) return;
+
+	DoBehavior(elapsed_time);
+
+	Server& server = Server::GetInstance();
+	auto game_room = server.GetGameRoomManager()->GetGameRoom(m_room_num);
+	game_room->CheckTriggerCollision(m_id);
+}
+
+void Monster::UpdatePosition(const XMFLOAT3& dir, FLOAT elapsed_time, FLOAT speed)
+{
+	m_velocity = Vector3::Mul(dir, speed);
 
 	// 몬스터 이동
 	m_position = Vector3::Add(m_position, Vector3::Mul(m_velocity, elapsed_time));
@@ -55,14 +111,15 @@ void Monster::UpdateRotation(const XMFLOAT3& dir)
 }
 
 
-XMFLOAT3 Monster::GetPlayerDirection(INT player_id)
+XMFLOAT3 Monster::GetDirection(INT id)
 {
-	if (-1 == player_id)
+	if (-1 == id)
 		return XMFLOAT3(0.f, 0.f, 0.f);
 
 	Server& server = Server::GetInstance();
 
-	XMFLOAT3 sub = Vector3::Sub(server.m_clients[player_id]->GetPosition(), m_position);
+	XMFLOAT3 sub = Vector3::Sub(server.m_clients[id]->GetPosition(), m_position);
+	sub.y = 0.f;
 	return Vector3::Normalize(sub);
 }
 
@@ -101,15 +158,15 @@ void Monster::SetBehaviorTimerEvent(MonsterBehavior behavior)
 	TIMER_EVENT ev{.obj_id = m_id, .event_type = EventType::BEHAVIOR_CHANGE,
 	.aggro_level = m_aggro_level};
 
+	if (std::numeric_limits<BYTE>::max() == m_last_behavior_id)
+		m_last_behavior_id = 0;
+	ev.latest_id = ++m_last_behavior_id;
+
 	// 몬스터별로 행동에 따라 다음 행동 설정
 	ev.next_behavior_type = SetNextBehavior(behavior);
 	if (MonsterBehavior::COUNT == ev.next_behavior_type) {
 		return;
 	}
-
-	if (std::numeric_limits<BYTE>::max() == m_last_behavior_id)
-		m_last_behavior_id = 0;
-	ev.latest_id = ++m_last_behavior_id;
 
 	// 몬스터별로 행동에 따라 얼마나 행동을 지속할 지 결정
 	ev.event_time = std::chrono::system_clock::now() + SetBehaviorTime(behavior);
@@ -205,18 +262,18 @@ void Monster::DoBehavior(FLOAT elapsed_time)
 
 		// 궁수 몬스터 전용
 	case MonsterBehavior::AIM: {
-		XMFLOAT3 player_dir = GetPlayerDirection(m_target_id);
+		XMFLOAT3 player_dir = GetDirection(m_target_id);
 		UpdateRotation(player_dir);
 		break;
 	}
-	case MonsterBehavior::WALK_BACKWARD:
-
+	case MonsterBehavior::STEP_BACK:
+		StepBack(elapsed_time);
 		break;
 	case MonsterBehavior::FLEE:
-
+		Flee(elapsed_time);
 		break;
 	case MonsterBehavior::DELAY:
-
+		// 딜레이 중에는 아무 행동 X
 		break;
 
 
@@ -266,6 +323,7 @@ void Monster::DecreaseAggroLevel()
 
 bool Monster::CheckPlayer()
 {
+	// 타겟이 없거나, 타겟이 room 에 없거나, INGAME 이 아니면 false
 	if (-1 == m_target_id)
 		return false;
 
@@ -302,12 +360,12 @@ void Monster::ChasePlayer(FLOAT elapsed_time)
 	}
 
 	// 타게팅한 플레이어 추격
-	XMFLOAT3 player_dir = GetPlayerDirection(m_target_id);
+	XMFLOAT3 player_dir = GetDirection(m_target_id);
 
 	if (Vector3::Equal(player_dir, XMFLOAT3(0.f, 0.f, 0.f)))
 		return;
 
-	UpdatePosition(player_dir, elapsed_time);
+	UpdatePosition(player_dir, elapsed_time, MonsterSetting::WALK_SPEED);
 	UpdateRotation(player_dir);
 	CollisionCheck();
 }
@@ -325,7 +383,7 @@ void Monster::Taunt()
 		UpdateTarget();
 	}
 
-	XMFLOAT3 player_dir = GetPlayerDirection(m_target_id);
+	XMFLOAT3 player_dir = GetDirection(m_target_id);
 	UpdateRotation(player_dir);
 }
 
@@ -337,7 +395,7 @@ void Monster::PrepareAttack()
 
 	// 공격 전 공격함을 알리기 위한 행동
 
-	XMFLOAT3 player_dir = GetPlayerDirection(m_target_id);
+	XMFLOAT3 player_dir = GetDirection(m_target_id);
 	UpdateRotation(player_dir);
 }
 
@@ -353,14 +411,8 @@ void Monster::Attack()
 void Monster::CollisionCheck()
 {
 	Server& server = Server::GetInstance(); 
-	auto game_room = server.GetGameRoomManager()->GetGameRoom(m_room_num);
-	auto& monster_ids = game_room->GetMonsterIds();
-	auto& player_ids = game_room->GetPlayerIds();
-
 	
-	server.CollideObject(shared_from_this(), monster_ids, Server::CollideByStatic);
-	server.CollideObject(shared_from_this(), player_ids, Server::CollideByStatic);
-	game_room->CheckTriggerCollision(m_id);
+	server.GameRoomObjectCollisionCheck(shared_from_this(), m_room_num);
 }
 
 void Monster::InitializePosition()
@@ -396,9 +448,7 @@ void WarriorMonster::Init()
 
 void WarriorMonster::Update(FLOAT elapsed_time)
 {
-	if (State::INGAME != m_state) return;
-
-	DoBehavior(elapsed_time);
+	Monster::Update(elapsed_time);
 
 	// 공격 범위 내로 들어왔을 때 공격 전환이 가능하면 공격 전환
 	if (IsInRange(m_attack_range)) {
@@ -428,7 +478,7 @@ MonsterBehavior WarriorMonster::SetNextBehavior(MonsterBehavior behavior)
 	MonsterBehavior temp{};
 	switch (behavior) {
 	case MonsterBehavior::CHASE: {
-		int percent = random_behavior(dre);
+		int percent = random_percent(dre);
 		if (1 <= percent && percent <= 50) {
 			temp = MonsterBehavior::RETARGET;
 		}
@@ -537,8 +587,10 @@ ArcherMonster::ArcherMonster()
 	m_max_hp = 200.f;
 	m_damage = 20;
 	m_attack_range = 12.5f;
-	m_boundary_range = 2.5f;
+	m_recover_attack_range = 8.f;
+	m_boundary_range = 3.f;
 	m_monster_type = MonsterType::ARCHER;
+	m_flee_direction = XMFLOAT3(0.f, 0.f, 0.f);
 }
 
 void ArcherMonster::Init()
@@ -549,14 +601,17 @@ void ArcherMonster::Init()
 
 void ArcherMonster::Update(FLOAT elapsed_time)
 {
-	if (State::INGAME != m_state) return;
-
-	DoBehavior(elapsed_time);
+	Monster::Update(elapsed_time);
 
 	// 경계 범위 내로 들어왔을 때 공격중이 아니라면 도망
+
 	if (IsInRange(m_boundary_range)) {
 		if (!DoesAttack()) {
-			ChangeBehavior(MonsterBehavior::WALK_BACKWARD);
+			if (MonsterBehavior::STEP_BACK != m_current_behavior) {
+				ChangeBehavior(MonsterBehavior::STEP_BACK);
+				m_step_back_time = 0.f;
+				m_max_step_back_time = random_step_back_time(dre);
+			}
 		}
 	}
 	// 공격 범위 내로 들어왔을 때 공격으로 전환이 가능하면 공격 전환
@@ -564,7 +619,52 @@ void ArcherMonster::Update(FLOAT elapsed_time)
 		if (CanSwapAttackBehavior()) {
 			ChangeBehavior(MonsterBehavior::PREPARE_ATTACK);
 		}
+		// 뒷걸음질 치던 도중 일정 거리 벌어지면 대기로 전환
+		else if (MonsterBehavior::STEP_BACK == m_current_behavior) {
+			if (!IsInRange(m_recover_attack_range)) {
+				ChangeBehavior(MonsterBehavior::DELAY);
+			}
+		}
 	}
+
+	// 뒷걸음질 치던 도중 일정시간이 지나면 도망
+	if (MonsterBehavior::STEP_BACK == m_current_behavior) {
+		m_step_back_time += elapsed_time;
+		if (m_step_back_time >= m_max_step_back_time) {
+			SetFleeDirection();
+			ChangeBehavior(MonsterBehavior::FLEE);
+		}
+	}
+}
+
+void ArcherMonster::StepBack(FLOAT elapsed_time)
+{
+	if (!CheckPlayer()) {
+		UpdateTarget();
+	}
+
+	// 타게팅한 플레이어 추격
+	XMFLOAT3 player_dir = GetDirection(m_target_id);
+	XMFLOAT3 back_dir = Vector3::Sub(XMFLOAT3(0.f, 0.f, 0.f), player_dir);
+
+	if (Vector3::Equal(player_dir, XMFLOAT3(0.f, 0.f, 0.f)))
+		return;
+
+	UpdatePosition(back_dir, elapsed_time, MonsterSetting::STEP_BACK_SPEED);
+	UpdateRotation(player_dir);
+	CollisionCheck();
+}
+
+void ArcherMonster::Flee(FLOAT elapsed_time)
+{
+	Server& server = Server::GetInstance();
+	
+	// 전사 몬스터가 있다면 전사 몬스터 쪽으로 회피
+	auto game_room = server.GetGameRoomManager()->GetGameRoom(m_room_num);
+
+	UpdatePosition(m_flee_direction, elapsed_time, MonsterSetting::FLEE_SPEED);
+	UpdateRotation(m_flee_direction);
+	CollisionCheck();
 }
 
 bool ArcherMonster::CanSwapAttackBehavior()
@@ -582,7 +682,7 @@ MonsterBehavior ArcherMonster::SetNextBehavior(MonsterBehavior behavior)
 	MonsterBehavior temp{};
 	switch (behavior) {
 	case MonsterBehavior::CHASE: {
-		int percent = random_behavior(dre);
+		int percent = random_percent(dre);
 		if (1 <= percent && percent <= 50) {
 			temp = MonsterBehavior::RETARGET;
 		}
@@ -613,8 +713,8 @@ MonsterBehavior ArcherMonster::SetNextBehavior(MonsterBehavior behavior)
 			temp = MonsterBehavior::CHASE;
 		}
 		break;
-	case MonsterBehavior::WALK_BACKWARD:
-		temp = MonsterBehavior::PREPARE_ATTACK;
+	case MonsterBehavior::STEP_BACK:
+		temp = MonsterBehavior::COUNT;
 		break;
 	case MonsterBehavior::FLEE:
 		temp = MonsterBehavior::PREPARE_ATTACK;
@@ -657,7 +757,7 @@ void ArcherMonster::SetBehaviorAnimation(MonsterBehavior behavior)
 	case MonsterBehavior::AIM:
 		m_current_animation = ArcherMonsterAnimation::AIM;
 		break;
-	case MonsterBehavior::WALK_BACKWARD:
+	case MonsterBehavior::STEP_BACK:
 		m_current_animation = ArcherMonsterAnimation::WALK_BACKWARD;
 		break;
 	case MonsterBehavior::FLEE:
@@ -697,7 +797,7 @@ std::chrono::milliseconds ArcherMonster::SetBehaviorTime(MonsterBehavior behavio
 	case MonsterBehavior::AIM:
 		time = 3000ms;
 		break;
-	case MonsterBehavior::WALK_BACKWARD:
+	case MonsterBehavior::STEP_BACK:
 		time = 3000ms;
 		break;
 	case MonsterBehavior::FLEE:
@@ -714,11 +814,49 @@ bool ArcherMonster::DoesAttack()
 {
 	if ((MonsterBehavior::PREPARE_ATTACK == m_current_behavior) ||
 		(MonsterBehavior::ATTACK == m_current_behavior) || 
-		(MonsterBehavior::AIM == m_current_behavior))
+		(MonsterBehavior::AIM == m_current_behavior) ||
+		(MonsterBehavior::FLEE == m_current_behavior))
 	{
 		return true;
 	}
 	return false;
+}
+
+void ArcherMonster::SetFleeDirection()
+{
+	Server& server = Server::GetInstance();
+	auto game_room = server.GetGameRoomManager()->GetGameRoom(m_room_num);
+
+	XMFLOAT3 sub{};
+	FLOAT length{}, min_length{ std::numeric_limits<FLOAT>::max() };
+	INT target{ -1 };
+	for (int id : game_room->GetMonsterIds()) {
+		if (-1 == id) continue;
+		if (State::INGAME != server.m_clients[id]->GetState()) continue;
+		if (MonsterType::WARRIOR != server.m_clients[id]->GetMonsterType()) continue;
+
+		sub = Vector3::Sub(m_position, server.m_clients[id]->GetPosition());
+		length = Vector3::Length(sub);
+		if (length < min_length) {
+			min_length = length;
+			target = id;
+		}
+	}
+
+	if (-1 != target) {
+		m_flee_direction = GetDirection(target);
+	}
+	else {
+		INT angle = random_flee_angle(dre);
+		INT percent = random_percent(dre);
+		if (percent > 50)
+			angle *= -1;
+
+		FLOAT radian = XMConvertToRadians(static_cast<FLOAT>(angle));
+		XMVECTOR q = XMQuaternionRotationRollPitchYaw(0.f, radian, 0.f);
+		XMFLOAT3 front = GetFront();
+		XMStoreFloat3(&m_flee_direction, XMVector3Rotate(XMLoadFloat3(&front), q));
+	}
 }
 
 WizardMonster::WizardMonster()
@@ -736,7 +874,7 @@ void WizardMonster::Init()
 
 void WizardMonster::Update(FLOAT elapsed_time)
 {
-
+	Monster::Update(elapsed_time);
 }
 
 bool WizardMonster::CanSwapAttackBehavior()

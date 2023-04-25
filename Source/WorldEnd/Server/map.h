@@ -13,6 +13,7 @@ public:
 	~GameRoom() = default;
 
 	void Update(FLOAT elapsed_time);
+	void InteractObject(InteractionType type);
 	void StartBattle();
 	void WarpNextFloor(INT room_num);
 
@@ -30,6 +31,7 @@ public:
 	BYTE GetMonsterCount() const { return m_monster_count; }
 	std::chrono::system_clock::time_point GetStartTime() const { return m_start_time; }
 	std::shared_ptr<BattleStarter> GetBattleStarter() const;
+	std::shared_ptr<WarpPortal> GetWarpPortal() const;
 	INT GetArrowId();
 
 	void SendMonsterData();
@@ -52,7 +54,6 @@ public:
 private:
 	std::array<INT, MAX_INGAME_USER>			m_player_ids;
 	std::array<INT, MAX_INGAME_MONSTER>			m_monster_ids;
-	//concurrency::concurrent_unordered_set<INT>	m_trigger_list;
 	std::unordered_set<INT>						m_trigger_list;
 	std::mutex									m_player_lock;
 	std::mutex									m_monster_lock;
@@ -70,7 +71,7 @@ private:
 	INT						m_arrow_id;
 	std::mutex				m_arrow_lock;
 
-	void CollideWithEventObject(INT player_id, InteractableType type);
+	void CollideWithEventObject(INT player_id, InteractionType type);
 };
 
 class Town
@@ -105,6 +106,7 @@ public:
 
 	void InitGameRoom(INT room_num);
 	void LoadMap();
+	void InteractObject(INT room_num, InteractionType type);
 	void StartBattle(INT room_num);
 	void WarpNextFloor(INT room_num);
 

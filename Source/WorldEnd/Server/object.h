@@ -55,14 +55,18 @@ public:
 	virtual ~EventObject() = default;
 
 	void SetEventBoundingBox(const BoundingOrientedBox& obb) { m_event_bounding_box = obb; }
+	void SetValid(bool valid) { m_valid = valid; }
 
 	BoundingOrientedBox GetEventBoundingBox() const { return m_event_bounding_box; }
+	bool GetValid() const { return m_valid; }
 
 	virtual void SendEvent(INT id, void* c) override {}
 	virtual void SendEvent(const std::span<INT>& ids, void* c) override {}
 
+
 protected:
-	BoundingOrientedBox m_event_bounding_box;
+	BoundingOrientedBox		m_event_bounding_box;
+	bool					m_valid;
 };
 
 class RecordBoard : public EventObject
@@ -98,13 +102,10 @@ public:
 	BattleStarter();
 	virtual ~BattleStarter() = default;
 
-	void SetIsValid(bool is_valid);
-
 	virtual void SendEvent(INT player_id, void* c) override;
 	virtual void SendEvent(const std::span<INT>& ids, void* c) override;
 
 private:
-	bool		m_is_valid;
 	std::mutex	m_valid_lock;
 };
 
@@ -116,12 +117,6 @@ public:
 
 	virtual void SendEvent(INT player_id, void* c) override;
 	virtual void SendEvent(const std::span<INT>& ids, void* c) override;
-
-	bool GetIsValid() const { return m_is_valid; }
-	void SetIsValid(bool is_valid) { m_is_valid = is_valid; }
-
-private:
-	bool		m_is_valid;
 };
 
 //-------------------- Æ®¸®°Å --------------------
