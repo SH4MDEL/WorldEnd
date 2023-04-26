@@ -92,6 +92,7 @@ public:
 	void RecvArrowShoot(char* ptr);
 	void RecvRemoveArrow(char* ptr);
 	void RecvInteractObject(char* ptr);
+	void RecvChangeHp(char* ptr);
 
 private:
 	void BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist);

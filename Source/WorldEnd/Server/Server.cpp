@@ -26,10 +26,16 @@ Server::Server()
 		m_clients[i] = std::make_shared<WizardMonster>();
 	}
 
-	for (size_t i = 0; i < MAX_ARROW_RAIN; ++i) {
+	for (size_t i = ARROW_RAIN_START; i < ARROW_RAIN_END; ++i) {
 		m_triggers[i] = std::make_shared<ArrowRain>();
 		m_triggers[i]->SetId(i);
 	}
+
+	for (size_t i = UNDEAD_GRASP_START; i < UNDEAD_GRASP_END; ++i) {
+		m_triggers[i] = std::make_shared<UndeadGrasp>();
+		m_triggers[i]->SetId(i);
+	}
+
 
 	m_game_room_manager = std::make_unique<GameRoomManager>();
 
@@ -406,7 +412,7 @@ void Server::WorkerThread()
 			break;
 		}
 		case OP_MONSTER_ATTACK_COLLISION: {
-			auto monster = dynamic_pointer_cast<WarriorMonster>(m_clients[static_cast<int>(key)]);
+			auto monster = dynamic_pointer_cast<Monster>(m_clients[static_cast<int>(key)]);
 			ActionType attack_type = static_cast<ActionType>(exp_over->_send_buf[0]);
 			XMFLOAT3* pos = reinterpret_cast<XMFLOAT3*>(&exp_over->_send_buf[1]);		// 공격 충돌 위치
 
@@ -421,11 +427,22 @@ void Server::WorkerThread()
 
 			BoundingOrientedBox obb{};
 			float damage{ 0.f };	// 스킬이 있다면 계수 더하는 용도
+			damage = monster->GetDamage();
+
+			// 공격 충돌 검사시 행동이 공격 중이 아니면
+			if (monster->GetBehavior() != MonsterBehavior::ATTACK) {
+				delete exp_over;
+				break;
+			}
 
 			if (MonsterType::WARRIOR == monster->GetMonsterType()) {
 				obb.Center = *pos;
 				obb.Extents = XMFLOAT3{ 0.2f, 0.2f, 0.2f };
-				damage = monster->GetDamage();
+			}
+			else if (MonsterType::WIZARD == monster->GetMonsterType()) {
+				XMFLOAT3 temp = Vector3::Normalize(Vector3::Sub(*pos, monster->GetPosition()));
+				obb.Center = Vector3::Add(*pos, Vector3::Mul(temp, 0.5f));
+				obb.Extents = XMFLOAT3{ 0.2f, 0.2f, 0.2f };
 			}
 
 			SendMonsterAttack(static_cast<int>(key), player_ids, obb);
@@ -466,7 +483,7 @@ void Server::WorkerThread()
 					delete exp_over;
 					break;
 				}
-				ev.targat_id = PlayerSetting::DEFAULT_STAMINA_CHANGE_AMOUNT;
+				ev.target_id = PlayerSetting::DEFAULT_STAMINA_CHANGE_AMOUNT;
 				ev.is_stamina_increase = true;
 			}
 			else {
@@ -481,7 +498,7 @@ void Server::WorkerThread()
 					delete exp_over;
 					break;
 				}
-				ev.targat_id = -PlayerSetting::DEFAULT_STAMINA_CHANGE_AMOUNT;
+				ev.target_id = -PlayerSetting::DEFAULT_STAMINA_CHANGE_AMOUNT;
 				ev.is_stamina_increase = false;
 			}
 			m_timer_queue.push(ev);
@@ -565,13 +582,17 @@ void Server::WorkerThread()
 			int id = static_cast<int>(key);
 			ActionType* type = reinterpret_cast<ActionType*>(exp_over->_send_buf);
 			
-			auto game_room = m_game_room_manager->GetGameRoom(m_clients[id]->GetRoomNum());
-			int arrow_id = game_room->GetArrowId();
-
 			switch (*type) {
 			case ActionType::NORMAL_ATTACK:
 			case ActionType::SKILL: 
 			{
+				auto game_room = m_game_room_manager->GetGameRoom(m_clients[id]->GetRoomNum());
+				if (!game_room) {
+					break;
+				}
+
+				int arrow_id = game_room->GetArrowId();
+
 				SetRemoveArrowTimerEvent(id, arrow_id);
 
 				int target = GetNearTarget(id, PlayerSetting::AUTO_TARET_RANGE);
@@ -579,18 +600,9 @@ void Server::WorkerThread()
 				SetHitScanTimerEvent(id, target, *type, arrow_id);
 				break;
 			}
-			case ActionType::ULTIMATE: {
-				int trigger_id = GetNewTriggerId(TriggerType::ARROW_RAIN);
-				auto trigger = dynamic_pointer_cast<ArrowRain>(m_triggers[trigger_id]);
-
-				// 위치, 데미지 설정 이후 생성하고, map 에 해당 트리거를 추가 함
-				float damage = m_clients[id]->GetDamage() * 
-					m_clients[id]->GetSkillRatio(ActionType::ULTIMATE);
-				trigger->Create(damage, id);
-				game_room->AddTrigger(trigger_id);
-
+			case ActionType::ULTIMATE:
+				SetTrigger(id, TriggerType::ARROW_RAIN);
 				break;
-			}
 			}
 
 			delete exp_over;
@@ -1080,6 +1092,28 @@ void Server::SendMonsterShoot(int client_id)
 	}
 }
 
+void Server::SendChangeHp(int client_id, FLOAT hp)
+{
+	int room_num = m_clients[client_id]->GetRoomNum();
+	auto game_room = m_game_room_manager->GetGameRoom(room_num);
+	if (!game_room)
+		return;
+
+	SC_CHANGE_HP_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = SC_PACKET_CHANGE_HP;
+	packet.id = client_id;
+	packet.hp = hp;
+
+	auto& ids = game_room->GetPlayerIds();
+
+	for (int id : ids) {
+		if (-1 == id) continue;
+
+		m_clients[id]->DoSend(&packet);
+	}
+}
+
 bool Server::IsPlayer(int client_id)
 {
 	if (0 <= client_id && client_id < MAX_USER)
@@ -1164,9 +1198,12 @@ INT Server::GetNewTriggerId(TriggerType type)
 	INT start_num{}, end_num{};
 	switch (type) {
 	case TriggerType::ARROW_RAIN:
-		start_num = 0;
-		end_num = MAX_ARROW_RAIN;
+		start_num = ARROW_RAIN_START;
+		end_num = ARROW_RAIN_END;
 		break;
+	case TriggerType::UNDEAD_GRASP:
+		start_num = UNDEAD_GRASP_START;
+		end_num = UNDEAD_GRASP_END;
 	}
 
 	// 트리거 생성은 while 을 통해 반드시 보장을 해주어야 하는지?
@@ -1191,6 +1228,7 @@ void Server::Move(const std::shared_ptr<Client>& client, XMFLOAT3 position)
 		RotateBoundingBox(client);
 
 		GameRoomObjectCollisionCheck(client, room_num);
+		m_game_room_manager->GetGameRoom(room_num)->CheckTriggerCollision(client->GetId());
 
 		SendMoveInGameRoom(client->GetId(), room_num);
 	}
@@ -1272,6 +1310,14 @@ void Server::SetPositionOnStairs(const std::shared_ptr<GameObject>& object)
 		pos.y = RoomSetting::DEFAULT_HEIGHT +
 			RoomSetting::TOPSIDE_STAIRS_HEIGHT * ratio / 10.f;
 	}
+	else if(pos.z >= RoomSetting::DOWNSIDE_STAIRS_FRONT &&
+		pos.z <= RoomSetting::TOPSIDE_STAIRS_BACK)
+	{
+		if (std::fabs(pos.y - RoomSetting::DEFAULT_HEIGHT) <= std::numeric_limits<float>::epsilon()) {
+			return;
+		}
+		pos.y = RoomSetting::DEFAULT_HEIGHT;
+	}
 	MoveObject(object, pos);
 }
 
@@ -1347,9 +1393,11 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 
 		if (MonsterBehavior::ATTACK == ev.next_behavior_type) {
 			switch (monster->GetMonsterType()) {
-			case MonsterType::WARRIOR: {
+			case MonsterType::WARRIOR: 
+			case MonsterType::WIZARD:
+			{
 				TIMER_EVENT attack_ev{ .event_time = system_clock::now() + MonsterSetting::ATK_COLLISION_TIME[static_cast<int>(monster->GetMonsterType())],
-					.obj_id = ev.obj_id, .targat_id = monster->GetRoomNum(),
+					.obj_id = ev.obj_id, .target_id = monster->GetRoomNum(),
 					.position = Vector3::Add(monster->GetPosition(), monster->GetFront()),
 					.event_type = EventType::MONSTER_ATTACK_COLLISION, .action_type = ActionType::NORMAL_ATTACK,
 				};
@@ -1364,11 +1412,14 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 				m_timer_queue.push(attack_ev);
 				break;
 			}
-			case MonsterType::WIZARD: {
+			}
+		}
+		else if (MonsterBehavior::CAST == ev.next_behavior_type) {
+			TIMER_EVENT cast_ev{ .event_time = system_clock::now() + MonsterSetting::CAST_COLLISION_TIME,
+				.obj_id = ev.obj_id, .target_id = monster->GetTargetId(), .event_type = EventType::TRIGGER_SET ,
+				.trigger_type = TriggerType::UNDEAD_GRASP, .latest_id = 1, .aggro_level = 3 };
 
-				break;
-			}
-			}
+			m_timer_queue.push(cast_ev);
 		}
 
 		ExpOver* over = new ExpOver;
@@ -1429,14 +1480,14 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 		over->_comp_type = OP_STAMINA_CHANGE;
 		memcpy(&over->_send_buf[0], &ev.is_stamina_increase, sizeof(bool));
 		memcpy(&over->_send_buf[1], &ev.latest_id, sizeof(BYTE));
-		memcpy(&over->_send_buf[2], &ev.targat_id, sizeof(int));
+		memcpy(&over->_send_buf[2], &ev.target_id, sizeof(int));
 		PostQueuedCompletionStatus(m_handle_iocp, 1, ev.obj_id, &over->_wsa_over);
 		break;
 	}
 	case EventType::HIT_SCAN: {
 		ExpOver* over = new ExpOver;
 		over->_comp_type = OP_HIT_SCAN;
-		memcpy(over->_send_buf, &ev.targat_id, sizeof(int));
+		memcpy(over->_send_buf, &ev.target_id, sizeof(int));
 		memcpy(over->_send_buf + sizeof(int), &ev.action_type, sizeof(char));
 		memcpy((over->_send_buf + sizeof(int) + sizeof(char)), &ev.position, sizeof(XMFLOAT3));
 		memcpy((over->_send_buf + sizeof(int) + sizeof(char) + sizeof(XMFLOAT3)),
@@ -1454,7 +1505,7 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 	case EventType::ARROW_REMOVE: {
 		ExpOver* over = new ExpOver;
 		over->_comp_type = OP_ARROW_REMOVE;
-		memcpy(over->_send_buf, &ev.targat_id, sizeof(int));
+		memcpy(over->_send_buf, &ev.target_id, sizeof(int));
 		PostQueuedCompletionStatus(m_handle_iocp, 1, ev.obj_id, &over->_wsa_over);
 		break;
 	}
@@ -1468,18 +1519,33 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 	}
 	case EventType::TRIGGER_COOLDOWN: {
 		// 특정 id의 트리거(obj_id)에 대한 발동시킨 오브젝트(target_id)의 플래그 초기화
-		UCHAR trigger = m_triggers[ev.obj_id]->GetType();
-		m_clients[ev.targat_id]->SetTriggerFlag(trigger, false);
+		UCHAR trigger = static_cast<UCHAR>(m_triggers[ev.obj_id]->GetType());
+		m_clients[ev.target_id]->SetTriggerFlag(trigger, false);
 		break;
 	}
 	case EventType::TRIGGER_REMOVE: {
 		// 특정 id의 트리거(obj_id)를 해당 게임룸(target_id)에서 빼고
 		// 해당 트리거를 FREE로 상태 변경
-		m_game_room_manager->RemoveTrigger(ev.obj_id, ev.targat_id);
+		m_game_room_manager->RemoveTrigger(ev.obj_id, ev.target_id);
 		{
 			std::lock_guard<std::mutex> l{ m_triggers[ev.obj_id]->GetStateMutex() };
 			m_triggers[ev.obj_id]->SetState(State::FREE);
 		}
+		break;
+	}
+	case EventType::TRIGGER_SET: {
+		// 트리거 생성 반복
+		// latest_id 를 현재 생성횟수, aggro_level 을 최대 생성 횟수로 체크
+		if (ev.latest_id < ev.aggro_level) {
+			TIMER_EVENT trigger_ev{ .event_time = system_clock::now()
+				+ TriggerSetting::GENTIME[static_cast<int>(ev.trigger_type)],
+				.obj_id = ev.obj_id, .target_id = ev.target_id, .event_type = EventType::TRIGGER_SET,
+				.trigger_type = ev.trigger_type, .latest_id = static_cast<BYTE>((ev.latest_id + 1)),
+				.aggro_level = ev.aggro_level };
+			m_timer_queue.push(trigger_ev);
+		}
+		SetTrigger(ev.obj_id, ev.target_id, ev.trigger_type);
+
 		break;
 	}
 	case EventType::BATTLE_START: {
@@ -1571,10 +1637,10 @@ void Server::SetStaminaTimerEvent(int client_id, bool is_increase)
 		ev.is_stamina_increase = false;
 
 		if (PlayerAnimation::ROLL == client->GetCurrentAnimation()) {
-			ev.targat_id = -PlayerSetting::ROLL_STAMINA_CHANGE_AMOUNT;
+			ev.target_id = -PlayerSetting::ROLL_STAMINA_CHANGE_AMOUNT;
 		}
 		else {
-			ev.targat_id = -PlayerSetting::DEFAULT_STAMINA_CHANGE_AMOUNT;
+			ev.target_id = -PlayerSetting::DEFAULT_STAMINA_CHANGE_AMOUNT;
 		}
 
 		BYTE latest_id{ client->GetLatestId() };
@@ -1588,7 +1654,7 @@ void Server::SetStaminaTimerEvent(int client_id, bool is_increase)
 	else {
 		ev.event_time = std::chrono::system_clock::now() + std::chrono::seconds(2);
 		ev.is_stamina_increase = true;
-		ev.targat_id = PlayerSetting::DEFAULT_STAMINA_CHANGE_AMOUNT;
+		ev.target_id = PlayerSetting::DEFAULT_STAMINA_CHANGE_AMOUNT;
 
 		BYTE latest_id{ client->GetLatestId() };
 		if (std::numeric_limits<BYTE>::max() == latest_id)
@@ -1622,7 +1688,7 @@ void Server::SetHitScanTimerEvent(int id, int target_id, ActionType action_type,
 	float time = length * 1'000 / speed;		// ms
 	std::chrono::milliseconds ms{static_cast<long long>(time)};
 
-	TIMER_EVENT ev{ .event_time = now + ms, .obj_id = id, .targat_id = arrow_id,
+	TIMER_EVENT ev{ .event_time = now + ms, .obj_id = id, .target_id = arrow_id,
 		.position = m_clients[id]->GetPosition(), .direction = Vector3::Normalize(dir), 
 		.event_type = EventType::HIT_SCAN, .action_type = action_type };
 	
@@ -1655,7 +1721,7 @@ void Server::SetArrowShootTimerEvent(int id, ActionType attack_type,
 void Server::SetRemoveArrowTimerEvent(int client_id, int arrow_id)
 {
 	TIMER_EVENT ev{ .event_time = std::chrono::system_clock::now() + RoomSetting::ARROW_REMOVE_TIME,
-		.obj_id = client_id, .targat_id = arrow_id,
+		.obj_id = client_id, .target_id = arrow_id,
 		.event_type = EventType::ARROW_REMOVE };
 
 	m_timer_queue.push(ev);
@@ -1667,6 +1733,60 @@ void Server::SetBattleStartTimerEvent(int client_id)
 		 .obj_id = client_id, .event_type = EventType::BATTLE_START };
 
 	m_timer_queue.push(ev);
+}
+
+void Server::SetTrigger(int client_id, TriggerType type)
+{
+	auto game_room = m_game_room_manager->GetGameRoom(m_clients[client_id]->GetRoomNum());
+	if (!game_room)
+		return;
+
+	int trigger_id = GetNewTriggerId(type);
+	float damage{};
+
+	switch (type) {
+	case TriggerType::ARROW_RAIN:
+		damage = m_clients[client_id]->GetDamage() *
+			m_clients[client_id]->GetSkillRatio(ActionType::ULTIMATE);
+		m_triggers[trigger_id]->Create(damage, client_id);
+		break;
+
+	case TriggerType::UNDEAD_GRASP:
+		auto monster = dynamic_pointer_cast<Monster>(m_clients[client_id]);
+		damage = m_clients[client_id]->GetDamage();
+		XMFLOAT3 target_position = m_clients[monster->GetTargetId()]->GetPosition();
+		m_triggers[trigger_id]->Create(damage, client_id, target_position);
+		break;
+	}
+
+	game_room->AddTrigger(trigger_id);
+}
+
+void Server::SetTrigger(int client_id, int target_id, TriggerType type)
+{
+	auto game_room = m_game_room_manager->GetGameRoom(m_clients[client_id]->GetRoomNum());
+	if (!game_room)
+		return;
+
+	int trigger_id = GetNewTriggerId(type);
+	float damage{};
+
+	switch (type) {
+	case TriggerType::ARROW_RAIN:
+		damage = m_clients[client_id]->GetDamage() *
+			m_clients[client_id]->GetSkillRatio(ActionType::ULTIMATE);
+		m_triggers[trigger_id]->Create(damage, client_id);
+		break;
+
+	case TriggerType::UNDEAD_GRASP:
+		auto monster = dynamic_pointer_cast<Monster>(m_clients[client_id]);
+		damage = m_clients[client_id]->GetDamage();
+		XMFLOAT3 target_position = m_clients[target_id]->GetPosition();
+		m_triggers[trigger_id]->Create(damage, client_id, target_position);
+		break;
+	}
+
+	game_room->AddTrigger(trigger_id);
 }
 
 void Server::CollideObject(const std::shared_ptr<GameObject>& object, const std::span<INT>& ids,

@@ -27,7 +27,16 @@ constexpr int ARCHER_MONSTER_END = WARRIOR_MONSTER_END + MAX_ARCHER_MONSTER;
 constexpr int WIZARD_MONSTER_START = ARCHER_MONSTER_END;
 constexpr int WIZARD_MONSTER_END = ARCHER_MONSTER_END + MAX_WIZARD_MONSTER;
 
-constexpr int MAX_ARROW_RAIN = 10;
+constexpr int MAX_ARROW_RAIN = 100;
+constexpr int MAX_UNDEAD_GRASP = 100;
+
+constexpr int ARROW_RAIN_START = 0;
+constexpr int ARROW_RAIN_END = MAX_ARROW_RAIN;
+
+constexpr int UNDEAD_GRASP_START = ARROW_RAIN_END;
+constexpr int UNDEAD_GRASP_END = ARROW_RAIN_END + MAX_UNDEAD_GRASP;
+
+constexpr int MAX_TRIGGER = MAX_ARROW_RAIN + MAX_UNDEAD_GRASP;
 
 
 constexpr char CS_PACKET_LOGIN = 1;
@@ -62,6 +71,7 @@ constexpr char SC_PACKET_ARROW_SHOOT = 20;
 constexpr char SC_PACKET_REMOVE_ARROW = 21;
 constexpr char SC_PACKET_MONSTER_SHOOT = 22;
 constexpr char SC_PACKET_INTERACT_OBJECT = 23;
+constexpr char SC_PACKET_CHANGE_HP = 24;
 
 enum class PlayerType : char { WARRIOR, ARCHER, COUNT };
 enum class MonsterType : char { WARRIOR, ARCHER, WIZARD, COUNT };
@@ -72,8 +82,9 @@ enum ActionType : char {
 };
 enum class MonsterBehavior : char {
 	CHASE, RETARGET, TAUNT, PREPARE_ATTACK, ATTACK, DEATH, REMOVE,	// 공용
-	BLOCK, BLOCKIDLE,							// 전사 몬스터
-	AIM, STEP_BACK, FLEE, DELAY,			// 궁수 몬스터
+	BLOCK, BLOCKIDLE,				// 전사 몬스터
+	AIM, STEP_BACK, FLEE, DELAY,	// 궁수 몬스터
+	PREPARE_CAST, CAST,	LAUGHING,	// 마법사 몬스터
 	COUNT
 };
 enum InteractionType : char {
@@ -131,29 +142,45 @@ public:
 	};
 };
 
+class WizardMonsterAnimation : public MonsterAnimation
+{
+public:
+	static constexpr int ANIMATION_START = 500;
+	enum USHORT {
+		PREPARE_CAST = MonsterAnimation::END - MonsterAnimation::ANIMATION_START + ANIMATION_START,
+		CAST, LAUGHING, 
+	};
+};
+
 // ----------------------------------
 
-enum TriggerType : UCHAR {
-	ARROW_RAIN
+enum class TriggerType : UCHAR {
+	ARROW_RAIN, UNDEAD_GRASP, COUNT
 };
 
 namespace TriggerSetting
 {
 	using namespace std::literals;
 
+	constexpr std::chrono::milliseconds
+		GENTIME[static_cast<int>(TriggerType::COUNT)]{
+			0ms, 1000ms
+		};
+
 	constexpr std::chrono::milliseconds 
-		COOLDOWN[static_cast<int>(PlayerType::COUNT)]{
-			300ms
+		COOLDOWN[static_cast<int>(TriggerType::COUNT)]{
+			300ms, 0ms
 		};
 
 	constexpr std::chrono::milliseconds
-		DURATION[static_cast<int>(PlayerType::COUNT)]{
-			2000ms
+		DURATION[static_cast<int>(TriggerType::COUNT)]{
+			2000ms, 300ms
 		};
 
 	constexpr DirectX::XMFLOAT3
-		EXTENT[static_cast<int>(PlayerType::COUNT)]{
-			DirectX::XMFLOAT3{ 10.65f, 10.65f, 10.65f }
+		EXTENT[static_cast<int>(TriggerType::COUNT)]{
+			DirectX::XMFLOAT3{ 10.65f, 10.65f, 10.65f },
+			DirectX::XMFLOAT3{ 10.f, 10.f, 10.f }
 		};
 }
 
@@ -214,11 +241,12 @@ namespace MonsterSetting
 	constexpr auto DECREASE_AGRO_LEVEL_TIME = 10s;
 
 	constexpr float ATTACK_RANGE[static_cast<int>(MonsterType::COUNT)]{
-		1.f, 7.f };
+		1.5f, 12.f, 8.f };
 	constexpr float BOUNDARY_RANGE[static_cast<int>(MonsterType::COUNT)]{
-		2.f, 5.f };
+		2.f, 6.f, 2.f };
 	constexpr std::chrono::milliseconds
-		ATK_COLLISION_TIME[static_cast<int>(MonsterType::COUNT)]{ 300ms, 0ms };
+		ATK_COLLISION_TIME[static_cast<int>(MonsterType::COUNT)]{ 300ms, 0ms, 1100ms };
+	std::chrono::milliseconds CAST_COLLISION_TIME = 430ms;
 }
 
 namespace RoomSetting
@@ -231,7 +259,7 @@ namespace RoomSetting
 	constexpr int MAX_ARROWS = 30;
 	constexpr auto ARROW_REMOVE_TIME = 3s;
 
-	constexpr float DOWNSIDE_STAIRS_HEIGHT = 4.6f;
+	constexpr float DOWNSIDE_STAIRS_HEIGHT = 4.42f;
 	constexpr float DOWNSIDE_STAIRS_FRONT = -7.f;
 	constexpr float DOWNSIDE_STAIRS_BACK = -17.f;
 
@@ -241,7 +269,8 @@ namespace RoomSetting
 
 	constexpr auto BATTLE_DELAY_TIME = 3s;
 	constexpr float EVENT_RADIUS = 1.f;
-	constexpr DirectX::XMFLOAT3 START_POSITION { 0.f, -4.4f, -45.f };
+	//constexpr DirectX::XMFLOAT3 START_POSITION { 0.f, -DOWNSIDE_STAIRS_HEIGHT, -45.f };
+	constexpr DirectX::XMFLOAT3 START_POSITION{ 0.f, 0.f, 0.f };
 	constexpr DirectX::XMFLOAT3 BATTLE_STARTER_POSITION { 0.f, 0.f, 24.f };
 	constexpr DirectX::XMFLOAT3 WARP_PORTAL_POSITION { -1.f, TOPSIDE_STAIRS_HEIGHT, 60.f };
 }
@@ -553,6 +582,14 @@ struct SC_INTERACT_OBJECT_PACKET
 	UCHAR size;
 	UCHAR type;
 	InteractionType interaction_type;
+};
+
+struct SC_CHANGE_HP_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+	INT id;
+	FLOAT hp;
 };
 
 #pragma pack (pop)

@@ -136,6 +136,8 @@ public:
 	void SetCooldownEvent(INT id);
 	void SetRemoveEvent(INT id);
 	void Activate(INT id);
+	void Create(FLOAT damage, INT id);
+	void Create(FLOAT damage, INT id, const XMFLOAT3& position);
 
 protected:
 	virtual void ProcessTrigger(INT id) = 0;
@@ -145,6 +147,8 @@ protected:
 	std::chrono::milliseconds  m_duration;
 	std::chrono::milliseconds  m_cooldown;	// 트리거 연속 발생 쿨타임
 	TriggerType				   m_type;
+	FLOAT					   m_damage;
+	INT						   m_created_id;
 
 	std::mutex	m_state_lock;
 	State		m_state;
@@ -155,17 +159,22 @@ class ArrowRain : public Trigger
 {
 public:
 	ArrowRain();
-	~ArrowRain() = default;
-
-	void Create(FLOAT damage, INT id);
+	virtual ~ArrowRain() = default;
 
 private:
 	virtual void ProcessTrigger(INT id) override;
 	virtual bool IsValid(INT id) override;
+};
+
+class UndeadGrasp : public Trigger
+{
+public:
+	UndeadGrasp();
+	virtual ~UndeadGrasp() = default;
 
 private:
-	FLOAT m_damage;
-	INT	  m_created_id;
+	virtual void ProcessTrigger(INT id) override;
+	virtual bool IsValid(INT id) override;
 };
 
 
@@ -198,9 +207,10 @@ public:
 	FLOAT GetHp() const { return m_hp; }
 	FLOAT GetDamage() const { return m_damage; }
 	SHORT GetRoomNum() const { return m_room_num; }
+	UCHAR GetTriggerFlag() const { return m_trigger_flag; }
 
 	virtual void Update(FLOAT elapsed_time) {}
-	virtual void DecreaseHp(FLOAT damage, INT it) {}
+	virtual void DecreaseHp(FLOAT damage, INT id) {}
 	XMFLOAT3 GetFront() const;
 	bool CheckTriggerFlag(UCHAR trigger);
 

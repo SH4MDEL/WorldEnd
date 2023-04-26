@@ -11,13 +11,14 @@ enum class EventType : char
 	COOLDOWN_RESET, BEHAVIOR_CHANGE, AGRO_LEVEL_DECREASE,
 	ATTACK_COLLISION, MONSTER_ATTACK_COLLISION, STAMINA_CHANGE,
 	HIT_SCAN, ARROW_SHOOT, ARROW_REMOVE, GAME_ROOM_RESET,
-	TRIGGER_COOLDOWN, TRIGGER_REMOVE, BATTLE_START
+	TRIGGER_COOLDOWN, TRIGGER_REMOVE, TRIGGER_SET, BATTLE_START,
+	
 };
 
 struct TIMER_EVENT {
 	std::chrono::system_clock::time_point event_time;
 	INT obj_id;
-	INT targat_id;
+	INT target_id;
 	XMFLOAT3 position;
 	XMFLOAT3 direction;
 	EventType event_type;
@@ -63,6 +64,7 @@ public:
 	void SendArrowShoot(int client_id, int arrow_id);
 	void SendRemoveArrow(int client_id, int arrow_id);
 	void SendMonsterShoot(int client_id);
+	void SendChangeHp(int client_id, FLOAT hp);
 
 	bool IsPlayer(int client_id);
 	void GameRoomObjectCollisionCheck(const std::shared_ptr<MovementObject>& object,
@@ -81,6 +83,8 @@ public:
 		std::chrono::system_clock::time_point attack_time);
 	void SetRemoveArrowTimerEvent(int client_id, int arrow_id);
 	void SetBattleStartTimerEvent(int client_id);
+	void SetTrigger(int client_id, TriggerType type);
+	void SetTrigger(int client_id, int target_id, TriggerType type);
 
 	INT GetNewId();
 	INT GetNewMonsterId(MonsterType type);
@@ -107,7 +111,7 @@ public:
 		const std::shared_ptr<GameObject>& static_object);
 
 	std::array<std::shared_ptr<MovementObject>, MAX_OBJECT> m_clients;
-	std::array<std::shared_ptr<Trigger>, MAX_ARROW_RAIN> m_triggers;
+	std::array<std::shared_ptr<Trigger>, MAX_TRIGGER> m_triggers;
 
 private:
 	std::unique_ptr<GameRoomManager> m_game_room_manager;

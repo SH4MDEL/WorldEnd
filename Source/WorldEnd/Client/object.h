@@ -260,7 +260,6 @@ public:
 	void InsertObject(string boneName, UINT boneNumber, const shared_ptr<GameObject>& object);
 
 private:
-	float									m_time;
 	vector<AnimationTrack>					m_animationTracks;
 
 	shared_ptr<AnimationSet>				m_animationSet;		// 등록된 애니메이션 조합

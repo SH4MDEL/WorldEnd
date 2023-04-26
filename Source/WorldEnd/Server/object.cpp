@@ -238,7 +238,7 @@ void Trigger::SetCooldownEvent(INT id)
 
 	// 해당 오브젝트의 트리거 타이머 이벤트 설정
 	TIMER_EVENT ev{ .event_time = std::chrono::system_clock::now() + m_cooldown,
-		.obj_id = m_id, .targat_id = id, .event_type = EventType::TRIGGER_COOLDOWN,
+		.obj_id = m_id, .target_id = id, .event_type = EventType::TRIGGER_COOLDOWN,
 		.trigger_type = m_type };
 
 	server.SetTimerEvent(ev);
@@ -251,7 +251,7 @@ void Trigger::SetRemoveEvent(INT id)
 	INT room_num = server.m_clients[id]->GetRoomNum();
 
 	TIMER_EVENT ev{ .event_time = std::chrono::system_clock::now() + m_duration,
-		.obj_id = m_id, .targat_id = room_num, .event_type = EventType::TRIGGER_REMOVE };
+		.obj_id = m_id, .target_id = room_num, .event_type = EventType::TRIGGER_REMOVE };
 
 	server.SetTimerEvent(ev);
 }
@@ -265,20 +265,48 @@ void Trigger::Activate(INT id)
 	
 	// 트리거 처리, 유효성검사만 트리거 별로 따로 처리되도록 하면 됨
 
-	Server& server = Server::GetInstance();
+	/*std::string s = (m_type == ARROW_RAIN) ? "ARROW RAIN" : "UNDEAD GRASP";
+	printf("트리거 활성화, id : %d, %s\n", id, s.c_str());*/
 
+	Server& server = Server::GetInstance();
+	UCHAR trigger_type = static_cast<UCHAR>(m_type);
 	if (IsValid(id)) {
-		if (server.m_clients[id]->CheckTriggerFlag(m_type)) {
+		if (server.m_clients[id]->CheckTriggerFlag(trigger_type)) {
 			// 플래그 활성화
-			server.m_clients[id]->SetTriggerFlag(m_type, true);
+
+			server.m_clients[id]->SetTriggerFlag(trigger_type, true);
 
 			ProcessTrigger(id);
 
-			// 타이머 이벤트 생성
-			SetCooldownEvent(id);
+			// 타이머 이벤트 생성, 연속발생 쿨타임이 0이면 이벤트 생성 X
+			if (m_cooldown != std::chrono::milliseconds(0)) {
+				SetCooldownEvent(id);
+			}
 		}
 	}
 	
+}
+
+void Trigger::Create(FLOAT damage, INT id)
+{
+	Server& server = Server::GetInstance();
+	m_event_bounding_box.Center = server.m_clients[id]->GetPosition();
+
+	m_damage = damage;
+	m_created_id = id;
+	m_state = State::INGAME;
+	SetRemoveEvent(id);
+}
+
+void Trigger::Create(FLOAT damage, INT id, const XMFLOAT3& position)
+{
+	Server& server = Server::GetInstance();
+	m_event_bounding_box.Center = position;
+
+	m_damage = damage;
+	m_created_id = id;
+	m_state = State::INGAME;
+	SetRemoveEvent(id);
 }
 
 ArrowRain::ArrowRain()
@@ -293,21 +321,10 @@ ArrowRain::ArrowRain()
 	m_type = TriggerType::ARROW_RAIN;
 }
 
-void ArrowRain::Create(FLOAT damage, INT id)
-{
-	Server& server = Server::GetInstance();
-	m_event_bounding_box.Center = server.m_clients[id]->GetPosition();
-
-	m_damage = damage;
-	m_created_id = id;
-	m_state = State::INGAME;
-	SetRemoveEvent(id);
-}
-
 void ArrowRain::ProcessTrigger(INT id)
 {
 	Server& server = Server::GetInstance();
-	server.m_clients[id]->DecreaseHp(m_damage, m_created_id);
+	server.m_clients[id]->DecreaseHp(m_damage, -1);
 }
 
 bool ArrowRain::IsValid(INT id)
@@ -317,3 +334,31 @@ bool ArrowRain::IsValid(INT id)
 	return false;
 }
 
+UndeadGrasp::UndeadGrasp()
+{
+	INT type = static_cast<INT>(TriggerType::UNDEAD_GRASP);
+	m_event_bounding_box.Extents = TriggerSetting::EXTENT[type];
+	m_cooldown = TriggerSetting::COOLDOWN[type];
+	m_duration = TriggerSetting::DURATION[type];
+
+	m_damage = 0.f;
+	m_created_id = -1;
+	m_type = TriggerType::UNDEAD_GRASP;
+}
+
+void UndeadGrasp::ProcessTrigger(INT id)
+{
+	Server& server = Server::GetInstance();
+	server.m_clients[id]->DecreaseHp(m_damage, m_created_id);
+
+	if (State::DEATH != server.m_clients[id]->GetState()) {
+		server.SendChangeHp(id, server.m_clients[id]->GetHp());
+	}
+}
+
+bool UndeadGrasp::IsValid(INT id)
+{
+	if (0 <= id && id < MAX_USER)
+		return true;
+	return false;
+}

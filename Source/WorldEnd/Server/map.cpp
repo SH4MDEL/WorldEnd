@@ -279,8 +279,20 @@ void GameRoom::AddTrigger(INT trigger_id)
 
 void GameRoom::RemoveTrigger(INT trigger_id)
 {
-	std::lock_guard<std::mutex> lock{ m_trigger_lock };
-	m_trigger_list.erase(trigger_id);
+	{
+		std::lock_guard<std::mutex> lock{ m_trigger_lock };
+		m_trigger_list.erase(trigger_id);
+	}
+	
+	Server& server = Server::GetInstance();
+
+	UCHAR trigger = static_cast<UCHAR>(server.m_triggers[trigger_id]->GetType());
+	for (INT id : m_player_ids) {
+		if (-1 == id) continue;
+		if (State::INGAME != server.m_clients[id]->GetState()) continue;
+
+		server.m_clients[id]->SetTriggerFlag(trigger, false);
+	}
 }
 
 void GameRoom::CheckEventCollision(INT player_id)
@@ -334,7 +346,7 @@ void GameRoom::InitMonsters(INT room_num)
 	// Init 은 플레이어 진입 시 불려야함
 	INT new_id{};
 	for (size_t i = 0; i < 2; ++i) {
-		new_id = server.GetNewMonsterId(MonsterType::ARCHER);
+		new_id = server.GetNewMonsterId(MonsterType::WIZARD);
 		
 		m_monster_ids[i] = new_id;
 		

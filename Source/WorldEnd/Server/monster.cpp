@@ -273,9 +273,24 @@ void Monster::DoBehavior(FLOAT elapsed_time)
 		Flee(elapsed_time);
 		break;
 	case MonsterBehavior::DELAY:
-		// 딜레이 중에는 아무 행동 X
+		XMFLOAT3 player_dir = GetDirection(m_target_id);
+		UpdateRotation(player_dir);
 		break;
 
+		// 마법사 몬스터
+	case MonsterBehavior::PREPARE_CAST: {
+		XMFLOAT3 player_dir = GetDirection(m_target_id);
+		UpdateRotation(player_dir);
+		break;
+	}
+	case MonsterBehavior::CAST: {
+		XMFLOAT3 player_dir = GetDirection(m_target_id);
+		UpdateRotation(player_dir);
+		break;
+	}
+	case MonsterBehavior::LAUGHING:
+		// 행동 X
+		break;
 
 	default:
 		return;
@@ -443,7 +458,7 @@ void WarriorMonster::Init()
 {
 	Monster::Init();
 
-	m_hp = 200.f;
+	m_hp = m_max_hp;
 }
 
 void WarriorMonster::Update(FLOAT elapsed_time)
@@ -596,7 +611,7 @@ ArcherMonster::ArcherMonster()
 void ArcherMonster::Init()
 {
 	Monster::Init();
-	m_hp = 200.f;
+	m_hp = m_max_hp;
 }
 
 void ArcherMonster::Update(FLOAT elapsed_time)
@@ -735,10 +750,9 @@ MonsterBehavior ArcherMonster::SetNextBehavior(MonsterBehavior behavior)
 void ArcherMonster::SetBehaviorAnimation(MonsterBehavior behavior)
 {
 	switch (behavior) {
-	case MonsterBehavior::CHASE: {
-		m_current_animation = ObjectAnimation::WALK;
+	case MonsterBehavior::CHASE:
+		m_current_animation = ArcherMonsterAnimation::WALK;
 		break;
-	}
 	case MonsterBehavior::RETARGET:
 		m_current_animation = ArcherMonsterAnimation::LOOK_AROUND;
 		break;
@@ -777,7 +791,7 @@ std::chrono::milliseconds ArcherMonster::SetBehaviorTime(MonsterBehavior behavio
 
 	switch (behavior) {
 	case MonsterBehavior::CHASE:
-		time = 2000ms;
+		time = 3000ms;
 		break;
 	case MonsterBehavior::RETARGET:
 		time = 2800ms;
@@ -862,36 +876,166 @@ void ArcherMonster::SetFleeDirection()
 WizardMonster::WizardMonster()
 {
 	m_max_hp = 200.f;
-	m_damage = 20;
-	m_attack_range = 4.5f;
+	m_damage = 10.f;
+	m_attack_range = 8.f;
+	m_boundary_range = 2.5f;
 	m_monster_type = MonsterType::WIZARD;
 }
 
 void WizardMonster::Init()
 {
 	Monster::Init();
+	
+	m_hp = m_max_hp;
 }
 
 void WizardMonster::Update(FLOAT elapsed_time)
 {
 	Monster::Update(elapsed_time);
+
+	// 경계범위 내에 들어오면 근접공격
+	// 공격범위 내에 들어오면 마법 공격
+	if (CanSwapAttackBehavior()) {
+		if (IsInRange(m_boundary_range)) {
+			ChangeBehavior(MonsterBehavior::PREPARE_ATTACK);
+		}
+		else if (IsInRange(m_attack_range)) {
+			ChangeBehavior(MonsterBehavior::PREPARE_CAST);
+		}
+	}
 }
 
 bool WizardMonster::CanSwapAttackBehavior()
 {
+	if ((MonsterBehavior::CHASE == m_current_behavior) ||
+		(MonsterBehavior::RETARGET == m_current_behavior))
+	{
+		return true;
+	}
 	return false;
 }
 
 MonsterBehavior WizardMonster::SetNextBehavior(MonsterBehavior behavior)
 {
-	return MonsterBehavior();
+	MonsterBehavior temp{};
+	switch (behavior) {
+	case MonsterBehavior::CHASE: {
+		int percent = random_percent(dre);
+		if (1 <= percent && percent <= 50) {
+			temp = MonsterBehavior::RETARGET;
+		}
+		else {
+			temp = MonsterBehavior::TAUNT;
+		}
+		break;
+	}
+	case MonsterBehavior::RETARGET:
+		temp = MonsterBehavior::CHASE;
+		break;
+	case MonsterBehavior::TAUNT:
+		temp = MonsterBehavior::CHASE;
+		break;
+	case MonsterBehavior::PREPARE_ATTACK:
+		temp = MonsterBehavior::ATTACK;
+		break;
+	case MonsterBehavior::ATTACK:
+		temp = MonsterBehavior::DELAY;
+		break;
+	case MonsterBehavior::PREPARE_CAST:
+		temp = MonsterBehavior::CAST;
+		break;
+	case MonsterBehavior::CAST:
+		temp = MonsterBehavior::LAUGHING;
+		break;
+	case MonsterBehavior::LAUGHING:
+		temp = MonsterBehavior::DELAY;
+		break;
+	case MonsterBehavior::DELAY:
+		temp = MonsterBehavior::RETARGET;
+		break;
+	case MonsterBehavior::DEATH:
+		temp = MonsterBehavior::REMOVE;
+		break;
+	default:	// 없는 행동이면 COUNT
+		temp = MonsterBehavior::COUNT;
+		break;
+	}
+	return temp;
 }
 
 void WizardMonster::SetBehaviorAnimation(MonsterBehavior behavior)
 {
+	switch (behavior) {
+	case MonsterBehavior::CHASE:
+		m_current_animation = WizardMonsterAnimation::WALK;
+		break;
+	case MonsterBehavior::RETARGET:
+		m_current_animation = WizardMonsterAnimation::LOOK_AROUND;
+		break;
+	case MonsterBehavior::TAUNT:
+		m_current_animation = WizardMonsterAnimation::TAUNT;
+		break;
+	case MonsterBehavior::PREPARE_ATTACK:
+		m_current_animation = WizardMonsterAnimation::TAUNT;
+		break;
+	case MonsterBehavior::ATTACK:
+		m_current_animation = WizardMonsterAnimation::ATTACK;
+		break;
+	case MonsterBehavior::DEATH:
+		m_current_animation = WizardMonsterAnimation::DEATH;
+		break;
+	case MonsterBehavior::PREPARE_CAST:
+		m_current_animation = WizardMonsterAnimation::PREPARE_CAST;
+		break;
+	case MonsterBehavior::CAST:
+		m_current_animation = WizardMonsterAnimation::CAST;
+		break;
+	case MonsterBehavior::LAUGHING:
+		m_current_animation = WizardMonsterAnimation::LAUGHING;
+		break;
+	case MonsterBehavior::DELAY:
+		m_current_animation = WizardMonsterAnimation::IDLE;
+		break;
+	}
 }
 
 std::chrono::milliseconds WizardMonster::SetBehaviorTime(MonsterBehavior behavior)
 {
-	return std::chrono::milliseconds();
+	using namespace std::literals;
+
+	std::chrono::milliseconds time{};
+
+	switch (behavior) {
+	case MonsterBehavior::CHASE:
+		time = 3000ms;
+		break;
+	case MonsterBehavior::RETARGET:
+		time = 3000ms;
+		break;
+	case MonsterBehavior::TAUNT:
+		time = 1500ms;
+		break;
+	case MonsterBehavior::PREPARE_ATTACK:
+		time = 1500ms;
+		break;
+	case MonsterBehavior::ATTACK:
+		time = 1700ms;
+		break;
+	case MonsterBehavior::DEATH:
+		time = 2000ms;
+		break;
+	case MonsterBehavior::PREPARE_CAST:
+		time = 3000ms;
+		break;
+	case MonsterBehavior::CAST:
+		time = 2000ms;
+		break;
+	case MonsterBehavior::LAUGHING:
+		time = 4000ms;
+		break;
+	case MonsterBehavior::DELAY:
+		time = 3000ms;
+		break;
+	}
+	return time;
 }

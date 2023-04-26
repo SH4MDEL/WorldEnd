@@ -403,6 +403,7 @@ bool AnimationObject::ChangeAnimation(USHORT animation)
 		return false;
 
 	int start_num{};
+	m_animationController->SetTrackSpeed(0, 1.f);
 	switch (animation) {
 	case ObjectAnimation::IDLE:
 		ChangeAnimationSettings(AnimationBlending::BLENDING, ANIMATION_TYPE_LOOP,
@@ -412,6 +413,7 @@ bool AnimationObject::ChangeAnimation(USHORT animation)
 	case ObjectAnimation::WALK:
 		ChangeAnimationSettings(AnimationBlending::BLENDING, ANIMATION_TYPE_LOOP,
 			ANIMATION_TYPE_LOOP, m_currentAnimation);
+		m_animationController->SetTrackSpeed(0, 1.2f);
 		break;
 
 	case ObjectAnimation::RUN:
@@ -489,6 +491,22 @@ bool AnimationObject::ChangeAnimation(USHORT animation)
 	case ArcherMonsterAnimation::FLEE:
 		start_num = ArcherMonsterAnimation::ANIMATION_START;
 		ChangeAnimationSettings(AnimationBlending::NORMAL, ANIMATION_TYPE_LOOP,
+			ANIMATION_TYPE_LOOP, m_currentAnimation);
+		break;
+
+	case WizardMonsterAnimation::PREPARE_CAST:
+		start_num = WizardMonsterAnimation::ANIMATION_START;
+		ChangeAnimationSettings(AnimationBlending::NORMAL, ANIMATION_TYPE_LOOP,
+			ANIMATION_TYPE_LOOP, m_currentAnimation);
+		break;
+	case WizardMonsterAnimation::CAST:
+		start_num = WizardMonsterAnimation::ANIMATION_START;
+		ChangeAnimationSettings(AnimationBlending::NORMAL, ANIMATION_TYPE_ONCE,
+			ANIMATION_TYPE_LOOP, m_currentAnimation);
+		break;
+	case WizardMonsterAnimation::LAUGHING:
+		start_num = WizardMonsterAnimation::ANIMATION_START;
+		ChangeAnimationSettings(AnimationBlending::BLENDING, ANIMATION_TYPE_ONCE,
 			ANIMATION_TYPE_LOOP, m_currentAnimation);
 		break;
 	}
@@ -802,7 +820,6 @@ void AnimationController::SetTrackType(int animationTrack, int type)
 
 void AnimationController::Update(float timeElapsed, const shared_ptr<GameObject>& rootObject)
 {
-	m_time += timeElapsed;
 	if (!m_animationTracks.empty()) {
 
 		// 하나의 애니메이션 행렬을 그대로 저장

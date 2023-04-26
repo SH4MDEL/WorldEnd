@@ -47,6 +47,7 @@ void TowerLoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const C
 	// 메쉬 로딩
 	LoadAnimationMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/Undead_WarriorMesh.bin"));
 	LoadAnimationMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/Undead_ArcherMesh.bin"));
+	LoadAnimationMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/Undead_WizardMesh.bin"));
 
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/MeshArrowMesh.bin"));
 
@@ -106,6 +107,7 @@ void TowerLoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const C
 	// 메테리얼 로딩
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/Undead_WarriorTexture.bin"));
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/Undead_ArcherTexture.bin"));
+	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/Undead_WizardTexture.bin"));
 
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/Archer_WeaponArrowTexture.bin"));
 
@@ -140,6 +142,7 @@ void TowerLoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const C
 	// 애니메이션 로딩
 	LoadAnimationSetFromFile(TEXT("./Resource/Animation/Undead_WarriorAnimation.bin"), "Undead_WarriorAnimation");
 	LoadAnimationSetFromFile(TEXT("./Resource/Animation/Undead_ArcherAnimation.bin"), "Undead_ArcherAnimation");
+	LoadAnimationSetFromFile(TEXT("./Resource/Animation/Undead_WizardAnimation.bin"), "Undead_WizardAnimation");
 
 
 	commandlist->Close();

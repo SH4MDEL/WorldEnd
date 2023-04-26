@@ -979,6 +979,9 @@ void TowerScene::ProcessPacket(char* ptr)
 	case SC_PACKET_INTERACT_OBJECT:
 		RecvInteractObject(ptr);
 		break;
+	case SC_PACKET_CHANGE_HP:
+		RecvChangeHp(ptr);
+		break;
 	}
 }
 
@@ -1321,5 +1324,22 @@ void TowerScene::RecvInteractObject(char* ptr)
 			});
 
 		break;
+	}
+}
+
+void TowerScene::RecvChangeHp(char* ptr)
+{
+	SC_CHANGE_HP_PACKET* packet = reinterpret_cast<SC_CHANGE_HP_PACKET*>(ptr);
+
+	if (0 <= packet->id && 0 < MAX_USER) {
+		if (m_player->GetId() == packet->id) {
+			m_player->SetHp(packet->hp);
+		}
+		else {
+			m_multiPlayers[packet->id]->SetHp(packet->hp);
+		}
+	}
+	else {
+		m_monsters[packet->id]->SetHp(packet->hp);
 	}
 }
