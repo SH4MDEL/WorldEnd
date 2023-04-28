@@ -595,13 +595,14 @@ void Server::WorkerThread()
 
 				SetRemoveArrowTimerEvent(id, arrow_id);
 
-				int target = GetNearTarget(id, PlayerSetting::AUTO_TARET_RANGE);
+				int target = GetNearTarget(id, PlayerSetting::AUTO_TARGET_RANGE);
 				SendArrowShoot(id, arrow_id);
 				SetHitScanTimerEvent(id, target, *type, arrow_id);
 				break;
 			}
 			case ActionType::ULTIMATE:
-				SetTrigger(id, TriggerType::ARROW_RAIN, Vector3::Mul(m_clients[id]->GetFront(), 3.f));
+				SetTrigger(id, TriggerType::ARROW_RAIN, 
+					Vector3::Add(m_clients[id]->GetPosition(), Vector3::Mul(m_clients[id]->GetFront(), 3.f)));
 				break;
 			}
 

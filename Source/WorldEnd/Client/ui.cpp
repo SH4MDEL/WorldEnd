@@ -182,7 +182,7 @@ void ButtonUI::OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOA
 {
 	// 사용할 수 없다면 자식 UI까지 갈 것도 없이 return한다.
 	if (!m_enable) return;
-
+	cout << "1" << endl;
 	if (m_uiMatrix._11 - m_uiMatrix._21 + 1 <= (FLOAT)g_mousePosition.x / (FLOAT)g_GameFramework.GetWindowWidth() * 2 &&
 		m_uiMatrix._11 + m_uiMatrix._21 + 1 >= (FLOAT)g_mousePosition.x / (FLOAT)g_GameFramework.GetWindowWidth() * 2 &&
 		1 - m_uiMatrix._12 - m_uiMatrix._22 <= (FLOAT)g_mousePosition.y / (FLOAT)g_GameFramework.GetWindowHeight() * 2 &&

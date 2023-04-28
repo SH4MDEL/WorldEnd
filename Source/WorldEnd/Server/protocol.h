@@ -194,7 +194,7 @@ namespace PlayerSetting
 	constexpr float	DASH_SPEED = 12.f;
 	constexpr float ROLL_SPEED = 10.f;
 	constexpr float ARROW_SPEED = 20.f;
-	constexpr float AUTO_TARET_RANGE = 12.f;
+	constexpr float AUTO_TARGET_RANGE = 12.f;
 
 	constexpr auto DASH_DURATION = 300ms;
 	constexpr float MAX_STAMINA = 120.f;
@@ -214,7 +214,7 @@ namespace PlayerSetting
 	constexpr std::chrono::milliseconds
 		SKILL_COLLISION_TIME[static_cast<int>(PlayerType::COUNT)]{ 340ms, 560ms };
 	constexpr std::chrono::milliseconds
-		ULTIMATE_COLLISION_TIME[static_cast<int>(PlayerType::COUNT)]{ 930ms, 560ms };
+		ULTIMATE_COLLISION_TIME[static_cast<int>(PlayerType::COUNT)]{ 930ms, 860ms };
 	constexpr std::chrono::milliseconds
 		ATTACK_COOLDOWN[static_cast<int>(PlayerType::COUNT)]{ 1000ms, 1000ms };
 	constexpr std::chrono::seconds
@@ -258,6 +258,7 @@ namespace RoomSetting
 	constexpr float DEFAULT_HEIGHT = 0.f;
 	constexpr unsigned char BOSS_FLOOR = 5;
 	constexpr int MAX_ARROWS = 30;
+	constexpr int MAX_ARROWRAINS = 3;
 	constexpr auto ARROW_REMOVE_TIME = 3s;
 
 	constexpr float DOWNSIDE_STAIRS_HEIGHT = 4.42f;

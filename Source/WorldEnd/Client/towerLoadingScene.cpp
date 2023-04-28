@@ -100,8 +100,14 @@ void TowerLoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const C
 	skyboxTexture->CreateSrvDescriptorHeap(device);
 	skyboxTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURECUBE);
 
+	auto magicCircleTexture{ make_shared<Texture>() };
+	magicCircleTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/MagicCircle.dds"), (INT)ShaderRegister::SkyboxTexture);	// MagicCircle
+	magicCircleTexture->CreateSrvDescriptorHeap(device);
+	magicCircleTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+
 	m_textures.insert({ "SKYBOX", skyboxTexture });
 	m_textures.insert({ "HPBAR", hpBarTexture });
+	m_textures.insert({ "MAGICCIRCLE", magicCircleTexture });
 
 
 	// 메테리얼 로딩

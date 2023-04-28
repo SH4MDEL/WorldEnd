@@ -1,5 +1,4 @@
 #pragma once
-#include "singleton.h"
 #include "particle.h"
 #include "shader.h"
 
@@ -24,4 +23,3 @@ private:
 	shared_ptr<ParticleShader>								m_pumperShader;
 	array<unique_ptr<PumperParticle>, MAX_PARTICLE_COUNT>	m_pumperParticles;
 };
-

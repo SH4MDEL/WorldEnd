@@ -79,6 +79,9 @@
     <Filter Include="헤더 파일\Scene\LoadingScene">
       <UniqueIdentifier>{db1097b1-f2c5-49aa-9269-5a58ba37363a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="셰이더 파일\Instancing">
+      <UniqueIdentifier>{ce74b543-0474-482a-8e5d-d1675d2ca5f3}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Client.h">
@@ -180,6 +183,12 @@
     <ClInclude Include="loginScene.h">
       <Filter>헤더 파일\Scene\GameScene</Filter>
     </ClInclude>
+    <ClInclude Include="objectManager.h">
+      <Filter>헤더 파일\Singleton</Filter>
+    </ClInclude>
+    <ClInclude Include="instancingShader.h">
+      <Filter>헤더 파일\Shader</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Client.cpp">
@@ -272,6 +281,12 @@
     <ClCompile Include="towerScene.cpp">
       <Filter>소스 파일\Scene\GameScene</Filter>
     </ClCompile>
+    <ClCompile Include="objectManager.cpp">
+      <Filter>소스 파일\Singleton</Filter>
+    </ClCompile>
+    <ClCompile Include="instancingShader.cpp">
+      <Filter>소스 파일\Shader</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Client.rc">
@@ -308,9 +323,6 @@
     <FxCompile Include="Resource\Shader\gauge.hlsl">
       <Filter>셰이더 파일\Shader</Filter>
     </FxCompile>
-    <FxCompile Include="Resource\Shader\instance.hlsl">
-      <Filter>셰이더 파일\Shader</Filter>
-    </FxCompile>
     <FxCompile Include="Resource\Shader\sobel.hlsl">
       <Filter>셰이더 파일\Compute</Filter>
     </FxCompile>
@@ -337,6 +349,9 @@
     </FxCompile>
     <FxCompile Include="Resource\Shader\fade.hlsl">
       <Filter>셰이더 파일\Compute</Filter>
+    </FxCompile>
+    <FxCompile Include="Resource\Shader\instance.hlsl">
+      <Filter>셰이더 파일\Instancing</Filter>
     </FxCompile>
   </ItemGroup>
 </Project>

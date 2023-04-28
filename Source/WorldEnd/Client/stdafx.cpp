@@ -2,6 +2,7 @@
 #include "framework.h"
 #include "scene.h"
 #include "particleSystem.h"
+#include "objectManager.h"
 
 GameFramework					g_GameFramework(1280, 720);
 mt19937							g_randomEngine{ random_device{}() };

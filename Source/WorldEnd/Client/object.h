@@ -280,7 +280,7 @@ public:
 	void SetInterect(function<void()> event);
 
 private:
-	const FLOAT			m_lifeTime = RoomSetting::BATTLE_DELAY_TIME.count();
+	const FLOAT			m_lifeTime = (FLOAT)RoomSetting::BATTLE_DELAY_TIME.count();
 	const FLOAT			m_maxHeight = 4.f;
 
 	FLOAT				m_age;

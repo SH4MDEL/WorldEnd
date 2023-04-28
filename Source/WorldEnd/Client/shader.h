@@ -33,15 +33,12 @@ public:
 	void SetObject(const shared_ptr<GameObject>& object);
 	void SetMultiPlayer(INT id, const shared_ptr<Player>& player);
 	void SetMonster(INT id, const shared_ptr<Monster>& monster);
-	void SetArrow(INT id, const shared_ptr<Arrow>& arrow);
 	virtual void SetUI(const shared_ptr<UI>& ui) {};
 
 	bool FindObject(const shared_ptr<GameObject>& object);
-	shared_ptr<Arrow> FindArrow(int id);
 	void RemoveObject(const shared_ptr<GameObject>& object);
 	void RemoveMultiPlayer(INT id);
 	void RemoveMonster(INT id);
-	void RemoveArrow(INT id);
 
 protected:
 	ComPtr<ID3D12PipelineState>				m_pipelineState;
@@ -55,36 +52,6 @@ protected:
 	unordered_map<INT, shared_ptr<Player>>	m_multiPlayers;
 	unordered_map<INT, shared_ptr<Monster>>	m_monsters;
 	unordered_map<INT, shared_ptr<Arrow>>	m_arrows;
-};
-
-struct InstancingData
-{
-	XMFLOAT4X4 worldMatrix;
-};
-
-class InstancingShader : public Shader 
-{
-public:
-	InstancingShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature, const Mesh& mesh, UINT count);
-	~InstancingShader() = default;
-
-	virtual void Update(FLOAT timeElapsed);
-	virtual void Render(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList) const;
-
-	virtual void Clear() override;
-
-	virtual void CreateShaderVariable(const ComPtr<ID3D12Device>& device);
-	virtual void UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& commandList) const override;
-	virtual void ReleaseShaderVariable();
-
-protected:
-	unique_ptr<Mesh>					m_mesh;
-
-	ComPtr<ID3D12Resource>				m_instancingBuffer;
-	InstancingData*						m_instancingBufferPointer;
-	D3D12_VERTEX_BUFFER_VIEW			m_instancingBufferView;
-
-	UINT								m_instancingCount;
 };
 
 class StaticObjectShader : public Shader

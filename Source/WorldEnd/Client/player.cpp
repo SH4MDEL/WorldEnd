@@ -1,6 +1,7 @@
 ﻿#include "player.h"
 #include "camera.h"
 #include "particleSystem.h"
+#include "objectManager.h"
 
 Player::Player() : m_velocity{ 0.0f, 0.0f, 0.0f }, m_maxVelocity{ 10.0f }, m_friction{ 0.5f }, 
 	m_hp{ 100.f }, m_maxHp{ 100.f }, m_stamina{ PlayerSetting::MAX_STAMINA }, m_maxStamina{ PlayerSetting::MAX_STAMINA }, 
@@ -26,6 +27,7 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 			ChangeAnimation(PlayerAnimation::ULTIMATE);
 
 			XMFLOAT3 pos = Vector3::Add(Vector3::Mul(m_front, 0.8f), GetPosition());
+			
 			CreateAttackPacket(ActionType::ULTIMATE);
 
 			SendPacket();
@@ -512,15 +514,21 @@ void Player::SendPacket()
 #endif
 }
 
-Arrow::Arrow() : m_velocity{ 0.f, 0.f, 0.f }
+Arrow::Arrow() : m_enable { false }, m_velocity { 0.f, 0.f, 0.f }
 {
 }
 
 void Arrow::Update(FLOAT timeElapsed)
 {
-	//GameObject::Update(timeElapsed);
+	if (m_enable) {
+		GameObject::Update(timeElapsed);
+		Move(Vector3::Mul(m_velocity, timeElapsed));
+	}
+}
 
-	Move(Vector3::Mul(m_velocity, timeElapsed));
+void Arrow::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList)
+{
+	if (m_enable) GameObject::Render(commandList);
 }
 
 void Arrow::Reset()
@@ -528,4 +536,71 @@ void Arrow::Reset()
 	XMStoreFloat4x4(&m_worldMatrix, XMMatrixIdentity());
 	XMStoreFloat4x4(&m_transformMatrix, XMMatrixIdentity());
 	m_velocity = XMFLOAT3(0.f, 0.f, 0.f);
+}
+
+ArrowRain::ArrowRain() : m_enable{ false }, m_age{ 0.f },
+	m_lifeTime{ chrono::duration_cast<chrono::seconds>(TriggerSetting::DURATION[static_cast<INT>(TriggerType::ARROW_RAIN)]).count()}
+{
+	for (auto& arrow : m_arrows) {
+		arrow.first = make_unique<Arrow>();
+		arrow.first->SetMesh("MeshArrow");
+		arrow.first->SetMaterials("Archer_WeaponArrow");
+		arrow.first->Rotate(0.f, 90.f, 0.f);
+		arrow.first->SetEnable();
+		arrow.second = DX::GetRandomFLOAT(0.f, ARROW_LIFECYCLE);
+	}
+	m_magicCircle = make_unique<GameObject>();
+	m_magicCircle->SetTexture("MAGICCIRCLE");
+}
+
+void ArrowRain::Update(FLOAT timeElapsed)
+{
+	if (m_enable) {
+		m_age += timeElapsed;
+		if (m_age >= m_lifeTime) {
+			m_age = 0.f;
+			m_enable = false;
+			return;
+		}
+		for (auto& arrow : m_arrows) {
+			arrow.second += timeElapsed;
+			if (arrow.second >= ARROW_LIFECYCLE) {
+				arrow.second = 0.f;
+				auto position = arrow.first->GetPosition();
+				arrow.first->SetPosition(Vector3::Add(position, { 0.f, MAX_ARROW_HEIGHT, 0.f }));
+			}
+			auto position = arrow.first->GetPosition();
+			arrow.first->SetPosition(Vector3::Sub(position, { 0.f, MAX_ARROW_HEIGHT * timeElapsed / ARROW_LIFECYCLE, 0.f}));
+		}
+		m_magicCircle->Update(timeElapsed);
+	}
+}
+
+void ArrowRain::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList)
+{
+	if (m_enable) {
+		for (auto& arrow : m_arrows) {
+			arrow.first->Render(commandList);
+		}
+	}
+}
+
+void ArrowRain::RenderMagicCircle(const ComPtr<ID3D12GraphicsCommandList>& commandList)
+{
+	if (m_enable) m_magicCircle->Render(commandList);
+}
+
+void ArrowRain::SetPosition(const XMFLOAT3& position)
+{
+	GameObject::SetPosition(position);
+
+	XMFLOAT3 extent = TriggerSetting::EXTENT[static_cast<INT>(TriggerType::ARROW_RAIN)];
+
+	for (auto& arrow : m_arrows) {
+		arrow.first->SetPosition(Vector3::Add(GetPosition(), { 
+			DX::GetRandomFLOAT(-extent.x / 2.f, extent.x / 2.f),
+			MAX_ARROW_HEIGHT - (MAX_ARROW_HEIGHT * arrow.second / ARROW_LIFECYCLE), 
+			DX::GetRandomFLOAT(-extent.z / 2.f, extent.z / 2.f) }));
+	}
+	m_magicCircle->SetPosition(position);
 }
