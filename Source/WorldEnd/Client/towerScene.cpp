@@ -56,7 +56,7 @@ void TowerScene::UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& c
 	BoundingSphere sceneBounds{ XMFLOAT3{ 0.0f, 0.0f, 10.0f }, 60.f };
 
 	// Only the first "main" light casts a shadow.
-	XMVECTOR lightDir = XMLoadFloat3(&m_lightSystem->m_lights[0].m_direction);
+	XMVECTOR lightDir = XMLoadFloat3(&m_lightSystem->m_lights[(INT)LightTag::Directional].m_direction);
 	XMVECTOR lightPos{ -2.0f * sceneBounds.Radius * lightDir };
 	XMVECTOR targetPos = XMLoadFloat3(&sceneBounds.Center);
 	XMVECTOR lightUp = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
@@ -80,22 +80,12 @@ void TowerScene::UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& c
 
 	D3D12_GPU_VIRTUAL_ADDRESS virtualAddress = m_sceneBuffer->GetGPUVirtualAddress();
 	commandList->SetGraphicsRootConstantBufferView((INT)ShaderRegister::Scene, virtualAddress);
-
-	//if (m_camera) m_camera->UpdateShaderVariable(commandList);
-	//if (m_lightSystem) m_lightSystem->UpdateShaderVariable(commandList);
 }
 
 void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist,
 	const ComPtr<ID3D12RootSignature>& rootsignature, const ComPtr<ID3D12RootSignature>& postRootSignature)
 {
 	CreateShaderVariable(device, commandlist);
-
-	// 화살 생성
-	for (size_t i = 0; i < RoomSetting::MAX_ARROWS; ++i) {
-		auto arrow = make_shared<Arrow>();
-		LoadObjectFromFile(TEXT("./Resource/Model/Archer_WeaponArrow.bin"), arrow);
-		m_arrows.insert({ i, arrow });
-	}
 
 	// 플레이어 생성
 	m_player = make_shared<Player>();
@@ -150,6 +140,10 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	g_particleSystem = make_unique<ParticleSystem>(device, commandlist,
 		static_pointer_cast<ParticleShader>(m_globalShaders["EMITTERPARTICLE"]),
 		static_pointer_cast<ParticleShader>(m_globalShaders["PUMPERPARTICLE"]));
+	g_towerObjectManager = make_unique<TowerObjectManager>(device, commandlist,
+		m_globalShaders["OBJECT"], 
+		m_globalShaders["OBJECT"], 
+		m_globalShaders["OBJECT"]);
 
 	BuildUI(device, commandlist);
 
@@ -211,7 +205,7 @@ void TowerScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 	m_globalShaders["UI"]->SetUI(ultimateUI);
 	m_player->SetUltimateGauge(ultimateUI);
 
-	m_exitUI = make_shared<BackgroundUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 1.f, 1.f });
+	m_exitUI = make_shared<BackgroundUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 1.f, 1.f }); 
 	auto exitUI{ make_shared<StandardUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.4f, 0.5f}) };
 	exitUI->SetTexture("FRAMEUI");
 	auto exitTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.0f}, XMFLOAT2{120.f, 20.f}) };
@@ -268,113 +262,116 @@ void TowerScene::BuildLight(const ComPtr<ID3D12Device>& device, const ComPtr<ID3
 {
 	m_lightSystem = make_shared<LightSystem>();
 	m_lightSystem->m_globalAmbient = XMFLOAT4{ 0.1f, 0.1f, 0.1f, 1.f };
-	m_lightSystem->m_numLight = 8;
+	m_lightSystem->m_numLight = (INT)LightTag::Count;
 
-	m_lightSystem->m_lights[0].m_type = DIRECTIONAL_LIGHT;
-	m_lightSystem->m_lights[0].m_ambient = XMFLOAT4{ 0.2f, 0.2f, 0.2f, 1.f };
+	m_lightSystem->m_lights[(INT)LightTag::Directional].m_type = DIRECTIONAL_LIGHT;
+	m_lightSystem->m_lights[(INT)LightTag::Directional].m_ambient = XMFLOAT4{ 0.2f, 0.2f, 0.2f, 1.f };
 	m_directionalDiffuse = XMFLOAT4{ 0.4f, 0.4f, 0.4f, 1.f };
-	m_lightSystem->m_lights[0].m_diffuse = m_directionalDiffuse;
-	m_lightSystem->m_lights[0].m_specular = XMFLOAT4{ 0.2f, 0.2f, 0.2f, 0.f };
+	m_lightSystem->m_lights[(INT)LightTag::Directional].m_diffuse = m_directionalDiffuse;
+	m_lightSystem->m_lights[(INT)LightTag::Directional].m_specular = XMFLOAT4{ 0.2f, 0.2f, 0.2f, 0.f };
 	m_directionalDirection = XMFLOAT3{ -1.f, -1.f, -1.f };
-	m_lightSystem->m_lights[0].m_direction = m_directionalDirection;
-	m_lightSystem->m_lights[0].m_enable = true;
+	m_lightSystem->m_lights[(INT)LightTag::Directional].m_direction = m_directionalDirection;
+	m_lightSystem->m_lights[(INT)LightTag::Directional].m_enable = true;
 
-	m_lightSystem->m_lights[1].m_type = SPOT_LIGHT;
-	m_lightSystem->m_lights[1].m_range = 5.f;
-	m_lightSystem->m_lights[1].m_ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
-	m_lightSystem->m_lights[1].m_diffuse = XMFLOAT4(0.64f, 0.64f, 0.44f, 1.0f);
-	m_lightSystem->m_lights[1].m_specular = XMFLOAT4(0.1f, 0.1f, 0.1f, 0.0f);
-	m_lightSystem->m_lights[1].m_position = XMFLOAT3(-2.943f, -2.468f, -45.335f);
-	m_lightSystem->m_lights[1].m_direction = XMFLOAT3(0.0f, -1.0f, 0.0f);
-	m_lightSystem->m_lights[1].m_attenuation = XMFLOAT3(1.0f, 0.25f, 0.05f);
-	m_lightSystem->m_lights[1].m_falloff = 3.f;
-	m_lightSystem->m_lights[1].m_phi = (float)cos(XMConvertToRadians(120.f));
-	m_lightSystem->m_lights[1].m_theta = (float)cos(XMConvertToRadians(60.f));
-	m_lightSystem->m_lights[1].m_enable = false;
+	m_lightSystem->m_lights[(INT)LightTag::Corridor1].m_type = SPOT_LIGHT;
+	m_lightSystem->m_lights[(INT)LightTag::Corridor1].m_range = 5.f;
+	m_lightSystem->m_lights[(INT)LightTag::Corridor1].m_ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
+	m_lightSystem->m_lights[(INT)LightTag::Corridor1].m_diffuse = XMFLOAT4(0.64f, 0.64f, 0.44f, 1.0f);
+	m_lightSystem->m_lights[(INT)LightTag::Corridor1].m_specular = XMFLOAT4(0.1f, 0.1f, 0.1f, 0.0f);
+	m_lightSystem->m_lights[(INT)LightTag::Corridor1].m_position = XMFLOAT3(-2.943f, -2.468f, -45.335f);
+	m_lightSystem->m_lights[(INT)LightTag::Corridor1].m_direction = XMFLOAT3(0.0f, -1.0f, 0.0f);
+	m_lightSystem->m_lights[(INT)LightTag::Corridor1].m_attenuation = XMFLOAT3(1.0f, 0.25f, 0.05f);
+	m_lightSystem->m_lights[(INT)LightTag::Corridor1].m_falloff = 3.f;
+	m_lightSystem->m_lights[(INT)LightTag::Corridor1].m_phi = (float)cos(XMConvertToRadians(120.f));
+	m_lightSystem->m_lights[(INT)LightTag::Corridor1].m_theta = (float)cos(XMConvertToRadians(60.f));
+	m_lightSystem->m_lights[(INT)LightTag::Corridor1].m_enable = false;
 
-	m_lightSystem->m_lights[2].m_type = SPOT_LIGHT;
-	m_lightSystem->m_lights[2].m_range = 5.f;
-	m_lightSystem->m_lights[2].m_ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
-	m_lightSystem->m_lights[2].m_diffuse = XMFLOAT4(0.64f, 0.64f, 0.44f, 1.0f);
-	m_lightSystem->m_lights[2].m_specular = XMFLOAT4(0.1f, 0.1f, 0.1f, 0.0f);
-	m_lightSystem->m_lights[2].m_position = XMFLOAT3(-2.963f, -2.468f, -33.575f);
-	m_lightSystem->m_lights[2].m_direction = XMFLOAT3(0.0f, -1.0f, 0.0f);
-	m_lightSystem->m_lights[2].m_attenuation = XMFLOAT3(1.0f, 0.25f, 0.05f);
-	m_lightSystem->m_lights[2].m_falloff = 3.f;
-	m_lightSystem->m_lights[2].m_phi = (float)cos(XMConvertToRadians(120.f));
-	m_lightSystem->m_lights[2].m_theta = (float)cos(XMConvertToRadians(60.f));
-	m_lightSystem->m_lights[2].m_enable = false;
+	m_lightSystem->m_lights[(INT)LightTag::Corridor2].m_type = SPOT_LIGHT;
+	m_lightSystem->m_lights[(INT)LightTag::Corridor2].m_range = 5.f;
+	m_lightSystem->m_lights[(INT)LightTag::Corridor2].m_ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
+	m_lightSystem->m_lights[(INT)LightTag::Corridor2].m_diffuse = XMFLOAT4(0.64f, 0.64f, 0.44f, 1.0f);
+	m_lightSystem->m_lights[(INT)LightTag::Corridor2].m_specular = XMFLOAT4(0.1f, 0.1f, 0.1f, 0.0f);
+	m_lightSystem->m_lights[(INT)LightTag::Corridor2].m_position = XMFLOAT3(-2.963f, -2.468f, -33.575f);
+	m_lightSystem->m_lights[(INT)LightTag::Corridor2].m_direction = XMFLOAT3(0.0f, -1.0f, 0.0f);
+	m_lightSystem->m_lights[(INT)LightTag::Corridor2].m_attenuation = XMFLOAT3(1.0f, 0.25f, 0.05f);
+	m_lightSystem->m_lights[(INT)LightTag::Corridor2].m_falloff = 3.f;
+	m_lightSystem->m_lights[(INT)LightTag::Corridor2].m_phi = (float)cos(XMConvertToRadians(120.f));
+	m_lightSystem->m_lights[(INT)LightTag::Corridor2].m_theta = (float)cos(XMConvertToRadians(60.f));
+	m_lightSystem->m_lights[(INT)LightTag::Corridor2].m_enable = false;
 
-	m_lightSystem->m_lights[3].m_type = SPOT_LIGHT;
-	m_lightSystem->m_lights[3].m_range = 5.f;
-	m_lightSystem->m_lights[3].m_ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
-	m_lightSystem->m_lights[3].m_diffuse = XMFLOAT4(0.64f, 0.64f, 0.44f, 1.0f);
-	m_lightSystem->m_lights[3].m_specular = XMFLOAT4(0.1f, 0.1f, 0.1f, 0.0f);
-	m_lightSystem->m_lights[3].m_position = XMFLOAT3(-2.755f, -2.468f, -21.307f);
-	m_lightSystem->m_lights[3].m_direction = XMFLOAT3(0.0f, -1.0f, 0.0f);
-	m_lightSystem->m_lights[3].m_attenuation = XMFLOAT3(1.0f, 0.25f, 0.05f);
-	m_lightSystem->m_lights[3].m_falloff = 3.f;
-	m_lightSystem->m_lights[3].m_phi = (float)cos(XMConvertToRadians(120.f));
-	m_lightSystem->m_lights[3].m_theta = (float)cos(XMConvertToRadians(60.f));
-	m_lightSystem->m_lights[3].m_enable = false;
+	m_lightSystem->m_lights[(INT)LightTag::Corridor3].m_type = SPOT_LIGHT;
+	m_lightSystem->m_lights[(INT)LightTag::Corridor3].m_range = 5.f;
+	m_lightSystem->m_lights[(INT)LightTag::Corridor3].m_ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
+	m_lightSystem->m_lights[(INT)LightTag::Corridor3].m_diffuse = XMFLOAT4(0.64f, 0.64f, 0.44f, 1.0f);
+	m_lightSystem->m_lights[(INT)LightTag::Corridor3].m_specular = XMFLOAT4(0.1f, 0.1f, 0.1f, 0.0f);
+	m_lightSystem->m_lights[(INT)LightTag::Corridor3].m_position = XMFLOAT3(-2.755f, -2.468f, -21.307f);
+	m_lightSystem->m_lights[(INT)LightTag::Corridor3].m_direction = XMFLOAT3(0.0f, -1.0f, 0.0f);
+	m_lightSystem->m_lights[(INT)LightTag::Corridor3].m_attenuation = XMFLOAT3(1.0f, 0.25f, 0.05f);
+	m_lightSystem->m_lights[(INT)LightTag::Corridor3].m_falloff = 3.f;
+	m_lightSystem->m_lights[(INT)LightTag::Corridor3].m_phi = (float)cos(XMConvertToRadians(120.f));
+	m_lightSystem->m_lights[(INT)LightTag::Corridor3].m_theta = (float)cos(XMConvertToRadians(60.f));
+	m_lightSystem->m_lights[(INT)LightTag::Corridor3].m_enable = false;
 
-	m_lightSystem->m_lights[4].m_type = SPOT_LIGHT;
-	m_lightSystem->m_lights[4].m_range = 5.f;
-	m_lightSystem->m_lights[4].m_ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
-	m_lightSystem->m_lights[4].m_diffuse = XMFLOAT4(0.64f, 0.64f, 0.44f, 1.0f);
-	m_lightSystem->m_lights[4].m_specular = XMFLOAT4(0.1f, 0.1f, 0.1f, 0.0f);
-	m_lightSystem->m_lights[4].m_position = XMFLOAT3(-4.833f, 1.952f, 8.224f);
-	m_lightSystem->m_lights[4].m_direction = XMFLOAT3(0.0f, -1.0f, 0.0f);
-	m_lightSystem->m_lights[4].m_attenuation = XMFLOAT3(1.0f, 0.25f, 0.05f);
-	m_lightSystem->m_lights[4].m_falloff = 3.f;
-	m_lightSystem->m_lights[4].m_phi = (float)cos(XMConvertToRadians(120.f));
-	m_lightSystem->m_lights[4].m_theta = (float)cos(XMConvertToRadians(60.f));
-	m_lightSystem->m_lights[4].m_enable = false;
+	m_lightSystem->m_lights[(INT)LightTag::Room1].m_type = SPOT_LIGHT;
+	m_lightSystem->m_lights[(INT)LightTag::Room1].m_range = 5.f;
+	m_lightSystem->m_lights[(INT)LightTag::Room1].m_ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
+	m_lightSystem->m_lights[(INT)LightTag::Room1].m_diffuse = XMFLOAT4(0.64f, 0.64f, 0.44f, 1.0f);
+	m_lightSystem->m_lights[(INT)LightTag::Room1].m_specular = XMFLOAT4(0.1f, 0.1f, 0.1f, 0.0f);
+	m_lightSystem->m_lights[(INT)LightTag::Room1].m_position = XMFLOAT3(-4.833f, 1.952f, 8.224f);
+	m_lightSystem->m_lights[(INT)LightTag::Room1].m_direction = XMFLOAT3(0.0f, -1.0f, 0.0f);
+	m_lightSystem->m_lights[(INT)LightTag::Room1].m_attenuation = XMFLOAT3(1.0f, 0.25f, 0.05f);
+	m_lightSystem->m_lights[(INT)LightTag::Room1].m_falloff = 3.f;
+	m_lightSystem->m_lights[(INT)LightTag::Room1].m_phi = (float)cos(XMConvertToRadians(120.f));
+	m_lightSystem->m_lights[(INT)LightTag::Room1].m_theta = (float)cos(XMConvertToRadians(60.f));
+	m_lightSystem->m_lights[(INT)LightTag::Room1].m_enable = false;
 
-	m_lightSystem->m_lights[5].m_type = SPOT_LIGHT;
-	m_lightSystem->m_lights[5].m_range = 5.f;
-	m_lightSystem->m_lights[5].m_ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
-	m_lightSystem->m_lights[5].m_diffuse = XMFLOAT4(0.64f, 0.64f, 0.44f, 1.0f);
-	m_lightSystem->m_lights[5].m_specular = XMFLOAT4(0.1f, 0.1f, 0.1f, 0.0f);
-	m_lightSystem->m_lights[5].m_position = XMFLOAT3(4.796f, 1.952f, 8.044f);
-	m_lightSystem->m_lights[5].m_direction = XMFLOAT3(0.0f, -1.0f, 0.0f);
-	m_lightSystem->m_lights[5].m_attenuation = XMFLOAT3(1.0f, 0.25f, 0.05f);
-	m_lightSystem->m_lights[5].m_falloff = 3.f;
-	m_lightSystem->m_lights[5].m_phi = (float)cos(XMConvertToRadians(120.f));
-	m_lightSystem->m_lights[5].m_theta = (float)cos(XMConvertToRadians(60.f));
-	m_lightSystem->m_lights[5].m_enable = false;
+	m_lightSystem->m_lights[(INT)LightTag::Room2].m_type = SPOT_LIGHT;
+	m_lightSystem->m_lights[(INT)LightTag::Room2].m_range = 5.f;
+	m_lightSystem->m_lights[(INT)LightTag::Room2].m_ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
+	m_lightSystem->m_lights[(INT)LightTag::Room2].m_diffuse = XMFLOAT4(0.64f, 0.64f, 0.44f, 1.0f);
+	m_lightSystem->m_lights[(INT)LightTag::Room2].m_specular = XMFLOAT4(0.1f, 0.1f, 0.1f, 0.0f);
+	m_lightSystem->m_lights[(INT)LightTag::Room2].m_position = XMFLOAT3(4.796f, 1.952f, 8.044f);
+	m_lightSystem->m_lights[(INT)LightTag::Room2].m_direction = XMFLOAT3(0.0f, -1.0f, 0.0f);
+	m_lightSystem->m_lights[(INT)LightTag::Room2].m_attenuation = XMFLOAT3(1.0f, 0.25f, 0.05f);
+	m_lightSystem->m_lights[(INT)LightTag::Room2].m_falloff = 3.f;
+	m_lightSystem->m_lights[(INT)LightTag::Room2].m_phi = (float)cos(XMConvertToRadians(120.f));
+	m_lightSystem->m_lights[(INT)LightTag::Room2].m_theta = (float)cos(XMConvertToRadians(60.f));
+	m_lightSystem->m_lights[(INT)LightTag::Room2].m_enable = false;
 
-	m_lightSystem->m_lights[6].m_type = SPOT_LIGHT;
-	m_lightSystem->m_lights[6].m_range = 5.f;
-	m_lightSystem->m_lights[6].m_ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
-	m_lightSystem->m_lights[6].m_diffuse = XMFLOAT4(0.64f, 0.64f, 0.44f, 1.0f);
-	m_lightSystem->m_lights[6].m_specular = XMFLOAT4(0.1f, 0.1f, 0.1f, 0.0f);
-	m_lightSystem->m_lights[6].m_position = XMFLOAT3(-4.433f, 1.952f, 39.324f);
-	m_lightSystem->m_lights[6].m_direction = XMFLOAT3(0.0f, -1.0f, 0.0f);
-	m_lightSystem->m_lights[6].m_attenuation = XMFLOAT3(1.0f, 0.25f, 0.05f);
-	m_lightSystem->m_lights[6].m_falloff = 3.f;
-	m_lightSystem->m_lights[6].m_phi = (float)cos(XMConvertToRadians(120.f));
-	m_lightSystem->m_lights[6].m_theta = (float)cos(XMConvertToRadians(60.f));
-	m_lightSystem->m_lights[6].m_enable = false;
+	m_lightSystem->m_lights[(INT)LightTag::Room3].m_type = SPOT_LIGHT;
+	m_lightSystem->m_lights[(INT)LightTag::Room3].m_range = 5.f;
+	m_lightSystem->m_lights[(INT)LightTag::Room3].m_ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
+	m_lightSystem->m_lights[(INT)LightTag::Room3].m_diffuse = XMFLOAT4(0.64f, 0.64f, 0.44f, 1.0f);
+	m_lightSystem->m_lights[(INT)LightTag::Room3].m_specular = XMFLOAT4(0.1f, 0.1f, 0.1f, 0.0f);
+	m_lightSystem->m_lights[(INT)LightTag::Room3].m_position = XMFLOAT3(-4.433f, 1.952f, 39.324f);
+	m_lightSystem->m_lights[(INT)LightTag::Room3].m_direction = XMFLOAT3(0.0f, -1.0f, 0.0f);
+	m_lightSystem->m_lights[(INT)LightTag::Room3].m_attenuation = XMFLOAT3(1.0f, 0.25f, 0.05f);
+	m_lightSystem->m_lights[(INT)LightTag::Room3].m_falloff = 3.f;
+	m_lightSystem->m_lights[(INT)LightTag::Room3].m_phi = (float)cos(XMConvertToRadians(120.f));
+	m_lightSystem->m_lights[(INT)LightTag::Room3].m_theta = (float)cos(XMConvertToRadians(60.f));
+	m_lightSystem->m_lights[(INT)LightTag::Room3].m_enable = false;
 
-	m_lightSystem->m_lights[7].m_type = SPOT_LIGHT;
-	m_lightSystem->m_lights[7].m_range = 5.f;
-	m_lightSystem->m_lights[7].m_ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
-	m_lightSystem->m_lights[7].m_diffuse = XMFLOAT4(0.64f, 0.64f, 0.44f, 1.0f);
-	m_lightSystem->m_lights[7].m_specular = XMFLOAT4(0.1f, 0.1f, 0.1f, 0.0f);
-	m_lightSystem->m_lights[7].m_position = XMFLOAT3(3.116f, 1.952f, 39.184f);
-	m_lightSystem->m_lights[7].m_direction = XMFLOAT3(0.0f, -1.0f, 0.0f);
-	m_lightSystem->m_lights[7].m_attenuation = XMFLOAT3(1.0f, 0.25f, 0.05f);
-	m_lightSystem->m_lights[7].m_falloff = 3.f;
-	m_lightSystem->m_lights[7].m_phi = (float)cos(XMConvertToRadians(120.f));
-	m_lightSystem->m_lights[7].m_theta = (float)cos(XMConvertToRadians(60.f));
-	m_lightSystem->m_lights[7].m_enable = false;
+	m_lightSystem->m_lights[(INT)LightTag::Room4].m_type = SPOT_LIGHT;
+	m_lightSystem->m_lights[(INT)LightTag::Room4].m_range = 5.f;
+	m_lightSystem->m_lights[(INT)LightTag::Room4].m_ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
+	m_lightSystem->m_lights[(INT)LightTag::Room4].m_diffuse = XMFLOAT4(0.64f, 0.64f, 0.44f, 1.0f);
+	m_lightSystem->m_lights[(INT)LightTag::Room4].m_specular = XMFLOAT4(0.1f, 0.1f, 0.1f, 0.0f);
+	m_lightSystem->m_lights[(INT)LightTag::Room4].m_position = XMFLOAT3(3.116f, 1.952f, 39.184f);
+	m_lightSystem->m_lights[(INT)LightTag::Room4].m_direction = XMFLOAT3(0.0f, -1.0f, 0.0f);
+	m_lightSystem->m_lights[(INT)LightTag::Room4].m_attenuation = XMFLOAT3(1.0f, 0.25f, 0.05f);
+	m_lightSystem->m_lights[(INT)LightTag::Room4].m_falloff = 3.f;
+	m_lightSystem->m_lights[(INT)LightTag::Room4].m_phi = (float)cos(XMConvertToRadians(120.f));
+	m_lightSystem->m_lights[(INT)LightTag::Room4].m_theta = (float)cos(XMConvertToRadians(60.f));
+	m_lightSystem->m_lights[(INT)LightTag::Room4].m_enable = false;
 
 	m_lightSystem->CreateShaderVariable(device, commandlist);
 }
 
 void TowerScene::OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime)
 {
+	if (m_exitUI) m_exitUI->OnProcessingMouseMessage(hWnd, width, height, deltaTime);
+	if (m_resultUI) m_exitUI->OnProcessingMouseMessage(hWnd, width, height, deltaTime);
+
 	if (!CheckState(State::CantPlayerControl)) {
 		SetCursor(NULL);
 		RECT windowRect; 
@@ -439,6 +436,7 @@ void TowerScene::Update(FLOAT timeElapsed)
 	for (const auto& shader : m_globalShaders)
 		shader.second->Update(timeElapsed);
 	g_particleSystem->Update(timeElapsed);
+	g_towerObjectManager->Update(timeElapsed);
 	m_fadeFilter->Update(timeElapsed);
 
 	UpdateLightSystem(timeElapsed);
@@ -447,20 +445,13 @@ void TowerScene::Update(FLOAT timeElapsed)
 		m_age += timeElapsed;
 		if (m_age >= m_lifeTime) {
 			m_age = 0.f;
-
 			ResetState(State::WarpGate);
 		}
 		else {
-			FLOAT diffuse = -0.3f;
-			diffuse *= m_age / m_lifeTime;
-			m_lightSystem->m_lights[0].m_diffuse.x = m_directionalDiffuse.x + diffuse;
-			m_lightSystem->m_lights[0].m_diffuse.y = m_directionalDiffuse.y + diffuse;
-			m_lightSystem->m_lights[0].m_diffuse.z = m_directionalDiffuse.z + diffuse;
-
-			FLOAT direction = 2.f;
-			direction *= m_age / m_lifeTime;
-			m_lightSystem->m_lights[0].m_direction.x = m_directionalDirection.x + direction;
-			m_lightSystem->m_lights[0].m_direction.z = m_directionalDirection.z + direction;
+			m_lightSystem->m_lights[(INT)LightTag::Directional].m_diffuse = 
+				Vector4::Add(m_directionalDiffuse, Vector4::Mul({ -0.3f, -0.3f, -0.3f, 0.f}, m_age / m_lifeTime));
+			m_lightSystem->m_lights[(INT)LightTag::Directional].m_direction =
+				Vector3::Add(m_directionalDirection, Vector3::Mul({ 2.f, 0.f, 2.f }, m_age / m_lifeTime));
 		}
 	}
 
@@ -530,7 +521,7 @@ void TowerScene::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UI
 	case 0:
 	{
 		m_globalShaders.at("OBJECT")->Render(commandList);
-
+		g_towerObjectManager->Render(commandList);
 		break;
 	}
 	case 1:
@@ -742,17 +733,6 @@ void TowerScene::SetHpBar(const shared_ptr<AnimationObject>& object)
 	hpBar->SetPosition(XMFLOAT3{ FAR_POSITION, FAR_POSITION, FAR_POSITION });
 	m_globalShaders["HORZGAUGE"]->SetObject(hpBar);
 	object->SetHpBar(hpBar);
-}
-
-void TowerScene::SetArrow(const shared_ptr<GameObject>& object, INT arrowId)
-{
-	auto& arrow = m_arrows[arrowId];
-	arrow->SetPosition(Vector3::Add(object->GetPosition(), XMFLOAT3{ 0.f, 0.9f, 0.f }));
-	
-	arrow->SetVelocity({ Vector3::Mul(Vector3::Normalize(object->GetFront()), PlayerSetting::ARROW_SPEED) });
-	arrow->Rotate(0.f, 0.f, object->GetYaw());
-
-	m_globalShaders["OBJECT"]->SetArrow(arrowId, arrow);
 }
 
 void TowerScene::RotateToTarget(const shared_ptr<Player>& player, INT targetId)
@@ -1234,10 +1214,10 @@ void TowerScene::RecvStartBattle(char* ptr)
 
 	m_gate->SetInterect([&]() {
 		m_globalShaders["OBJECT"]->RemoveObject(m_gate);
-		m_lightSystem->m_lights[4].m_enable = true;
-		m_lightSystem->m_lights[5].m_enable = true;
-		m_lightSystem->m_lights[6].m_enable = true;
-		m_lightSystem->m_lights[7].m_enable = true;
+		m_lightSystem->m_lights[(INT)LightTag::Room1].m_enable = true;
+		m_lightSystem->m_lights[(INT)LightTag::Room2].m_enable = true;
+		m_lightSystem->m_lights[(INT)LightTag::Room3].m_enable = true;
+		m_lightSystem->m_lights[(INT)LightTag::Room4].m_enable = true;
 
 		for (auto& monster : m_monsters) {
 			m_globalShaders["ANIMATION"]->SetMonster(monster.first, monster.second);
@@ -1290,23 +1270,17 @@ void TowerScene::RecvPlayerShoot(char* ptr)
 
 	if (packet->id == m_player->GetId()) {
 		//RotateToTarget(m_player, packet->target_id);
-		SetArrow(m_player, packet->arrow_id);
+		g_towerObjectManager->CreateArrow(m_player, packet->arrow_id);
 	}
 	else {
 		auto& player = m_multiPlayers[packet->id];
 		//RotateToTarget(player, packet->target_id);
-		SetArrow(player, packet->arrow_id);
+		g_towerObjectManager->CreateArrow(player, packet->arrow_id);
 	}
 }
 
 void TowerScene::RecvRemoveArrow(char* ptr)
 {
 	SC_REMOVE_ARROW_PACKET* packet = reinterpret_cast<SC_REMOVE_ARROW_PACKET*>(ptr);
-
-	auto arrow = m_globalShaders["OBJECT"]->FindArrow(packet->arrow_id);
-	if (!arrow)
-		return;
-
-	arrow->Reset();
-	m_globalShaders["OBJECT"]->RemoveArrow(packet->arrow_id);
+	g_towerObjectManager->RemoveArrow(packet->arrow_id);
 }

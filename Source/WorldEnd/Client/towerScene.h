@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "scene.h"
 #include "framework.h"
+#include "objectManager.h"
 
 class TowerScene : public Scene
 {
@@ -19,6 +20,17 @@ public:
 		BlurLevel4			= Unused,
 		BlurLevel5			= OutputResult,
 		CantPlayerControl	= EnterScene | OutputExitUI | OutputResult | Fading
+	};
+	enum class LightTag : INT {
+		Directional,
+		Corridor1,
+		Corridor2,
+		Corridor3,
+		Room1,
+		Room2,
+		Room3,
+		Room4,
+		Count
 	};
 
 	TowerScene();
@@ -56,7 +68,6 @@ public:
 	void LoadMonsterFromFile(const shared_ptr<Monster>& monster);
 
 	void SetHpBar(const shared_ptr<AnimationObject>& object);
-	void SetArrow(const shared_ptr<GameObject>& object, INT arrowId);
 	void RotateToTarget(const shared_ptr<Player>& player, INT targetId);
 	void RotateToTarget(const shared_ptr<Player>& player);
 	INT SetTarget(const shared_ptr<Player>& player);
@@ -116,6 +127,7 @@ protected:
 
 	shared_ptr<LightSystem>								m_lightSystem;
 	shared_ptr<Shadow>									m_shadow;
+
 	unique_ptr<BlurFilter>								m_blurFilter;
 	unique_ptr<FadeFilter>								m_fadeFilter;
 	unique_ptr<SobelFilter>								m_sobelFilter;
@@ -133,9 +145,7 @@ protected:
 
 	XMFLOAT4											m_directionalDiffuse;
 	XMFLOAT3											m_directionalDirection;
-	const FLOAT			m_lifeTime = 3.f;
-	FLOAT				m_age;
-
-	unordered_map<INT, shared_ptr<Arrow>>	m_arrows;
+	const FLOAT											m_lifeTime = (FLOAT)RoomSetting::BATTLE_DELAY_TIME.count();
+	FLOAT												m_age;
 };
 

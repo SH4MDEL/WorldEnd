@@ -102,12 +102,45 @@ public:
 	~Arrow() = default;
 
 	void Update(FLOAT timeElapsed) override;
+	void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) override;
+
 	void Reset();
 
 	XMFLOAT3 GetVelocity() const { return m_velocity; }
 
 	void SetVelocity(XMFLOAT3 velocity) { m_velocity = velocity; }
+	void SetEnable() { m_enable = true; }
+	void SetDisable() { m_enable = false; }
 
 private:
+	BOOL		m_enable;
 	XMFLOAT3	m_velocity;
+};
+
+constexpr INT MAX_ARROWRAIN_ARROWS = 30;
+constexpr FLOAT ARROW_LIFECYCLE = 0.8f;
+constexpr FLOAT MAX_ARROW_HEIGHT = 4.f;
+class ArrowRain : public GameObject
+{
+public:
+	ArrowRain();
+	~ArrowRain() override = default;
+
+	void Update(FLOAT timeElapsed) override;
+	void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) override;
+	void RenderMagicCircle(const ComPtr<ID3D12GraphicsCommandList>& commandList);
+
+	BOOL IsEnable() { return m_enable; }
+
+	void SetPosition(const XMFLOAT3& position) override;
+	void SetEnable() { m_enable = true; }
+	void SetDisable() { m_enable = false; }
+
+private:
+	BOOL														m_enable;
+	const FLOAT													m_lifeTime = 3.f;
+	FLOAT														m_age;
+
+	array<pair<unique_ptr<Arrow>, FLOAT>, MAX_ARROWRAIN_ARROWS>	m_arrows;
+	unique_ptr<GameObject>										m_magicCircle;
 };

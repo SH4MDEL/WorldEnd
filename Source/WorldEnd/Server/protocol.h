@@ -251,6 +251,7 @@ namespace RoomSetting
 	constexpr float DEFAULT_HEIGHT = 0.f;
 	constexpr unsigned char BOSS_FLOOR = 5;
 	constexpr int MAX_ARROWS = 30;
+	constexpr int MAX_ARROWRAINS = 3;
 	constexpr auto ARROW_REMOVE_TIME = 3s;
 
 	constexpr float DOWNSIDE_STAIRS_HEIGHT = 4.4f;

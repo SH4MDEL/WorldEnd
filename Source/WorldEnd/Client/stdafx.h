@@ -67,18 +67,20 @@ using namespace std;
 
 class GameFramework;
 class ParticleSystem;
+class TowerObjectManager;
 
-extern GameFramework                g_GameFramework;
-extern mt19937				        g_randomEngine;
+extern GameFramework                    g_GameFramework;
+extern mt19937				            g_randomEngine;
 
-extern SOCKET                       g_socket;                           // 소켓
-extern string				        g_serverIP;							// 서버 아이피
-extern thread                       g_networkThread;
-extern mutex                        g_mutex;
-extern unique_ptr<ParticleSystem>   g_particleSystem;
-extern stack<function<void()>>      g_clickEventStack;
+extern SOCKET                           g_socket;                           // 소켓
+extern string				            g_serverIP;							// 서버 아이피
+extern thread                           g_networkThread;
+extern mutex                            g_mutex;
+extern unique_ptr<ParticleSystem>       g_particleSystem;
+extern unique_ptr<TowerObjectManager>   g_towerObjectManager;
+extern stack<function<void()>>          g_clickEventStack;
 
-extern POINT                        g_mousePosition;
+extern POINT                            g_mousePosition;
 
 
 constexpr int MAX_PLAYERS = 2;
@@ -211,6 +213,39 @@ namespace Vector3
         XMFLOAT3 result;
         XMVECTOR v{ XMVector3Length(XMLoadFloat3(&a)) };
         XMStoreFloat3(&result, v);
+        return result.x;
+    }
+}
+
+namespace Vector4
+{
+    inline XMFLOAT4 Add(const XMFLOAT4& a, const XMFLOAT4& b)
+    {
+        return XMFLOAT4{ a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w };
+    }
+    inline XMFLOAT4 Sub(const XMFLOAT4& a, const XMFLOAT4& b)
+    {
+        return XMFLOAT4{ a.x - b.x, a.y - b.y, a.z - b.z, a.w - b.w };
+    }
+    inline XMFLOAT4 Mul(const XMFLOAT4& a, const FLOAT& scalar)
+    {
+        return XMFLOAT4{ a.x * scalar, a.y * scalar, a.z * scalar, a.w * scalar };
+    }
+    inline FLOAT Dot(const XMFLOAT4& a, const XMFLOAT4& b)
+    {
+        return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
+    }
+    inline XMFLOAT4 Normalize(const XMFLOAT4& a)
+    {
+        XMFLOAT4 result;
+        XMStoreFloat4(&result, XMVector4Normalize(XMLoadFloat4(&a)));
+        return result;
+    }
+    inline FLOAT Length(const XMFLOAT4& a)
+    {
+        XMFLOAT4 result;
+        XMVECTOR v{ XMVector4Length(XMLoadFloat4(&a)) };
+        XMStoreFloat4(&result, v);
         return result.x;
     }
 }
