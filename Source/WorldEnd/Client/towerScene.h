@@ -125,6 +125,7 @@ protected:
 
 	shared_ptr<WarpGate>								m_gate;
 
+	unique_ptr<TowerObjectManager>						m_towerObjectManager;
 	shared_ptr<LightSystem>								m_lightSystem;
 	shared_ptr<Shadow>									m_shadow;
 

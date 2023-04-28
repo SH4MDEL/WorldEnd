@@ -17,14 +17,14 @@ public:
 	void CreateArrow(const shared_ptr<GameObject>& parent, INT arrowId);
 	void RemoveArrow(INT arrowId);
 
-	void CreateArrowRain(const shared_ptr<GameObject>& parent);
+	void CreateArrowRain(const XMFLOAT3& position);
 
 private:
 	shared_ptr<Shader>											m_arrowShader;
 	array<unique_ptr<Arrow>, RoomSetting::MAX_ARROWS>			m_arrows;
 
 	shared_ptr<Shader>											m_magicCircleShader;
-	shared_ptr<Shader>								m_arrowRainShader;
+	shared_ptr<Shader>											m_arrowRainShader;
 	array<unique_ptr<ArrowRain>, RoomSetting::MAX_ARROWRAINS>	m_arrowRains;
 };
 

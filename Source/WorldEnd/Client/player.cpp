@@ -27,7 +27,7 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 			ChangeAnimation(PlayerAnimation::ULTIMATE);
 
 			XMFLOAT3 pos = Vector3::Add(Vector3::Mul(m_front, 0.8f), GetPosition());
-			g_towerObjectManager->CreateArrowRain(shared_from_this());
+
 			CreateAttackPacket(ActionType::ULTIMATE);
 
 			SendPacket();

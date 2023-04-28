@@ -56,11 +56,11 @@ void TowerObjectManager::RemoveArrow(INT arrowId)
 	m_arrows[arrowId]->SetDisable();
 }
 
-void TowerObjectManager::CreateArrowRain(const shared_ptr<GameObject>& parent)
+void TowerObjectManager::CreateArrowRain(const XMFLOAT3& position)
 {
 	for (auto& arrowRain : m_arrowRains) {
 		if (!arrowRain->IsEnable()) {
-			arrowRain->SetPosition(Vector3::Add(Vector3::Mul(parent->GetFront(), 2.f), parent->GetPosition()));
+			arrowRain->SetPosition(position);
 			arrowRain->SetEnable();
 			return;
 		}

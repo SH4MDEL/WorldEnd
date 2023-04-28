@@ -140,7 +140,7 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	g_particleSystem = make_unique<ParticleSystem>(device, commandlist,
 		static_pointer_cast<ParticleShader>(m_globalShaders["EMITTERPARTICLE"]),
 		static_pointer_cast<ParticleShader>(m_globalShaders["PUMPERPARTICLE"]));
-	g_towerObjectManager = make_unique<TowerObjectManager>(device, commandlist,
+	m_towerObjectManager = make_unique<TowerObjectManager>(device, commandlist,
 		m_globalShaders["OBJECT"], 
 		m_globalShaders["OBJECT"], 
 		m_globalShaders["OBJECT"]);
@@ -436,7 +436,7 @@ void TowerScene::Update(FLOAT timeElapsed)
 	for (const auto& shader : m_globalShaders)
 		shader.second->Update(timeElapsed);
 	g_particleSystem->Update(timeElapsed);
-	g_towerObjectManager->Update(timeElapsed);
+	m_towerObjectManager->Update(timeElapsed);
 	m_fadeFilter->Update(timeElapsed);
 
 	UpdateLightSystem(timeElapsed);
@@ -521,7 +521,7 @@ void TowerScene::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UI
 	case 0:
 	{
 		m_globalShaders.at("OBJECT")->Render(commandList);
-		g_towerObjectManager->Render(commandList);
+		m_towerObjectManager->Render(commandList);
 		break;
 	}
 	case 1:
@@ -1270,17 +1270,17 @@ void TowerScene::RecvPlayerShoot(char* ptr)
 
 	if (packet->id == m_player->GetId()) {
 		//RotateToTarget(m_player, packet->target_id);
-		g_towerObjectManager->CreateArrow(m_player, packet->arrow_id);
+		m_towerObjectManager->CreateArrow(m_player, packet->arrow_id);
 	}
 	else {
 		auto& player = m_multiPlayers[packet->id];
 		//RotateToTarget(player, packet->target_id);
-		g_towerObjectManager->CreateArrow(player, packet->arrow_id);
+		m_towerObjectManager->CreateArrow(player, packet->arrow_id);
 	}
 }
 
 void TowerScene::RecvRemoveArrow(char* ptr)
 {
 	SC_REMOVE_ARROW_PACKET* packet = reinterpret_cast<SC_REMOVE_ARROW_PACKET*>(ptr);
-	g_towerObjectManager->RemoveArrow(packet->arrow_id);
+	m_towerObjectManager->RemoveArrow(packet->arrow_id);
 }
