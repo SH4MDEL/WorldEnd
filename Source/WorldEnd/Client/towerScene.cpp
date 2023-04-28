@@ -982,6 +982,9 @@ void TowerScene::ProcessPacket(char* ptr)
 	case SC_PACKET_CHANGE_HP:
 		RecvChangeHp(ptr);
 		break;
+	case SC_PACKET_ADD_TRIGGER:
+		RecvAddTrigger(ptr);
+		break;
 	}
 }
 
@@ -1341,5 +1344,19 @@ void TowerScene::RecvChangeHp(char* ptr)
 	}
 	else {
 		m_monsters[packet->id]->SetHp(packet->hp);
+	}
+}
+
+void TowerScene::RecvAddTrigger(char* ptr)
+{
+	SC_ADD_TRIGGER_PACKET* packet = reinterpret_cast<SC_ADD_TRIGGER_PACKET*>(ptr);
+
+	switch (packet->trigger_type) {
+	case TriggerType::ARROW_RAIN:
+
+		break;
+	case TriggerType::UNDEAD_GRASP:
+
+		break;
 	}
 }

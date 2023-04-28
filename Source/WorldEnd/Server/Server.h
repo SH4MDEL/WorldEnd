@@ -65,6 +65,7 @@ public:
 	void SendRemoveArrow(int client_id, int arrow_id);
 	void SendMonsterShoot(int client_id);
 	void SendChangeHp(int client_id, FLOAT hp);
+	void SendTrigger(int client_id, TriggerType type, const XMFLOAT3& pos);
 
 	bool IsPlayer(int client_id);
 	void GameRoomObjectCollisionCheck(const std::shared_ptr<MovementObject>& object,
@@ -83,8 +84,8 @@ public:
 		std::chrono::system_clock::time_point attack_time);
 	void SetRemoveArrowTimerEvent(int client_id, int arrow_id);
 	void SetBattleStartTimerEvent(int client_id);
-	void SetTrigger(int client_id, TriggerType type);
-	void SetTrigger(int client_id, int target_id, TriggerType type);
+	void SetTrigger(int client_id, TriggerType type, const XMFLOAT3& pos);
+	void SetTrigger(int client_id, TriggerType type, int target_id);
 
 	INT GetNewId();
 	INT GetNewMonsterId(MonsterType type);

@@ -72,6 +72,7 @@ constexpr char SC_PACKET_REMOVE_ARROW = 21;
 constexpr char SC_PACKET_MONSTER_SHOOT = 22;
 constexpr char SC_PACKET_INTERACT_OBJECT = 23;
 constexpr char SC_PACKET_CHANGE_HP = 24;
+constexpr char SC_PACKET_ADD_TRIGGER = 25;
 
 enum class PlayerType : char { WARRIOR, ARCHER, COUNT };
 enum class MonsterType : char { WARRIOR, ARCHER, WIZARD, COUNT };
@@ -179,8 +180,8 @@ namespace TriggerSetting
 
 	constexpr DirectX::XMFLOAT3
 		EXTENT[static_cast<int>(TriggerType::COUNT)]{
-			DirectX::XMFLOAT3{ 10.65f, 10.65f, 10.65f },
-			DirectX::XMFLOAT3{ 10.f, 10.f, 10.f }
+			DirectX::XMFLOAT3{ 4.f, 4.f, 4.f },
+			DirectX::XMFLOAT3{ 1.f, 1.f, 1.f }
 		};
 }
 
@@ -590,6 +591,14 @@ struct SC_CHANGE_HP_PACKET
 	UCHAR type;
 	INT id;
 	FLOAT hp;
+};
+
+struct SC_ADD_TRIGGER_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+	TriggerType trigger_type;
+	DirectX::XMFLOAT3 pos;
 };
 
 #pragma pack (pop)

@@ -601,7 +601,7 @@ void Server::WorkerThread()
 				break;
 			}
 			case ActionType::ULTIMATE:
-				SetTrigger(id, TriggerType::ARROW_RAIN);
+				SetTrigger(id, TriggerType::ARROW_RAIN, Vector3::Mul(m_clients[id]->GetFront(), 3.f));
 				break;
 			}
 
@@ -1114,6 +1114,26 @@ void Server::SendChangeHp(int client_id, FLOAT hp)
 	}
 }
 
+void Server::SendTrigger(int client_id, TriggerType type, const XMFLOAT3& pos)
+{
+	int room_num = m_clients[client_id]->GetRoomNum();
+	auto game_room = m_game_room_manager->GetGameRoom(room_num);
+	if (!game_room)
+		return;
+
+	SC_ADD_TRIGGER_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = SC_PACKET_ADD_TRIGGER;
+	packet.trigger_type = type;
+	packet.pos = pos;
+
+	for (int id : game_room->GetPlayerIds()) {
+		if (-1 == id) continue;
+		
+		m_clients[id]->DoSend(&packet);
+	}
+}
+
 bool Server::IsPlayer(int client_id)
 {
 	if (0 <= client_id && client_id < MAX_USER)
@@ -1415,9 +1435,16 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 			}
 		}
 		else if (MonsterBehavior::CAST == ev.next_behavior_type) {
+			int target = monster->GetTargetId();
+			if (target < 0 || target >= MAX_USER) {
+				break;
+			}
+
 			TIMER_EVENT cast_ev{ .event_time = system_clock::now() + MonsterSetting::CAST_COLLISION_TIME,
-				.obj_id = ev.obj_id, .target_id = monster->GetTargetId(), .event_type = EventType::TRIGGER_SET ,
-				.trigger_type = TriggerType::UNDEAD_GRASP, .latest_id = 1, .aggro_level = 3 };
+				.obj_id = ev.obj_id, .target_id = target,
+				.position = m_clients[target]->GetPosition(),
+				.event_type = EventType::TRIGGER_SET , .trigger_type = TriggerType::UNDEAD_GRASP,
+				.latest_id = 1, .aggro_level = 3 };
 
 			m_timer_queue.push(cast_ev);
 		}
@@ -1539,12 +1566,13 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 		if (ev.latest_id < ev.aggro_level) {
 			TIMER_EVENT trigger_ev{ .event_time = system_clock::now()
 				+ TriggerSetting::GENTIME[static_cast<int>(ev.trigger_type)],
-				.obj_id = ev.obj_id, .target_id = ev.target_id, .event_type = EventType::TRIGGER_SET,
-				.trigger_type = ev.trigger_type, .latest_id = static_cast<BYTE>((ev.latest_id + 1)),
-				.aggro_level = ev.aggro_level };
+				.obj_id = ev.obj_id, .target_id = ev.target_id,
+				.position = m_clients[ev.target_id]->GetPosition(),
+				.event_type = EventType::TRIGGER_SET, .trigger_type = ev.trigger_type,
+				.latest_id = static_cast<BYTE>((ev.latest_id + 1)), .aggro_level = ev.aggro_level };
 			m_timer_queue.push(trigger_ev);
 		}
-		SetTrigger(ev.obj_id, ev.target_id, ev.trigger_type);
+		SetTrigger(ev.obj_id, ev.trigger_type, ev.position);
 
 		break;
 	}
@@ -1735,7 +1763,7 @@ void Server::SetBattleStartTimerEvent(int client_id)
 	m_timer_queue.push(ev);
 }
 
-void Server::SetTrigger(int client_id, TriggerType type)
+void Server::SetTrigger(int client_id, TriggerType type, const XMFLOAT3& pos)
 {
 	auto game_room = m_game_room_manager->GetGameRoom(m_clients[client_id]->GetRoomNum());
 	if (!game_room)
@@ -1754,39 +1782,18 @@ void Server::SetTrigger(int client_id, TriggerType type)
 	case TriggerType::UNDEAD_GRASP:
 		auto monster = dynamic_pointer_cast<Monster>(m_clients[client_id]);
 		damage = m_clients[client_id]->GetDamage();
-		XMFLOAT3 target_position = m_clients[monster->GetTargetId()]->GetPosition();
-		m_triggers[trigger_id]->Create(damage, client_id, target_position);
+		m_triggers[trigger_id]->Create(damage, client_id, pos);
 		break;
 	}
+
+	SendTrigger(client_id, type, pos);
 
 	game_room->AddTrigger(trigger_id);
 }
 
-void Server::SetTrigger(int client_id, int target_id, TriggerType type)
+void Server::SetTrigger(int client_id, TriggerType type, int target_id)
 {
-	auto game_room = m_game_room_manager->GetGameRoom(m_clients[client_id]->GetRoomNum());
-	if (!game_room)
-		return;
-
-	int trigger_id = GetNewTriggerId(type);
-	float damage{};
-
-	switch (type) {
-	case TriggerType::ARROW_RAIN:
-		damage = m_clients[client_id]->GetDamage() *
-			m_clients[client_id]->GetSkillRatio(ActionType::ULTIMATE);
-		m_triggers[trigger_id]->Create(damage, client_id);
-		break;
-
-	case TriggerType::UNDEAD_GRASP:
-		auto monster = dynamic_pointer_cast<Monster>(m_clients[client_id]);
-		damage = m_clients[client_id]->GetDamage();
-		XMFLOAT3 target_position = m_clients[target_id]->GetPosition();
-		m_triggers[trigger_id]->Create(damage, client_id, target_position);
-		break;
-	}
-
-	game_room->AddTrigger(trigger_id);
+	SetTrigger(client_id, type, m_clients[target_id]->GetPosition());
 }
 
 void Server::CollideObject(const std::shared_ptr<GameObject>& object, const std::span<INT>& ids,
