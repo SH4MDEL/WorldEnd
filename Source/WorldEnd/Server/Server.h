@@ -70,6 +70,7 @@ public:
 	bool IsPlayer(int client_id);
 	void GameRoomObjectCollisionCheck(const std::shared_ptr<MovementObject>& object,
 			int room_num);
+	void ProcessArrow(int client_id, ActionType type);
 
 	void Timer();
 	void ProcessEvent(const TIMER_EVENT& ev);

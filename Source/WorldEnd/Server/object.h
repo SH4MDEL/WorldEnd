@@ -220,6 +220,7 @@ public:
 	virtual MONSTER_DATA GetMonsterData() const { return MONSTER_DATA(); }
 	virtual MonsterType GetMonsterType() const { return MonsterType::COUNT; }
 	virtual const SOCKET& GetSocket() const { return SOCKET(); }
+	virtual USHORT GetCurrentAnimation() const { return 0; }
 	virtual UINT GetLastMoveTime() const { return 0; }
 	virtual void DoSend(void* p) {}
 	virtual void DoSend(void* p, INT packet_count) {}

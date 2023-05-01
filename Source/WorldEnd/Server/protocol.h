@@ -193,8 +193,9 @@ namespace PlayerSetting
 	constexpr float	RUN_SPEED = 10.f;
 	constexpr float	DASH_SPEED = 12.f;
 	constexpr float ROLL_SPEED = 10.f;
-	constexpr float ARROW_SPEED = 20.f;
-	constexpr float AUTO_TARGET_RANGE = 12.f;
+	constexpr float ARROW_SPEED = 15.5f;
+	constexpr float AUTO_TARGET_RANGE = 12.5f;
+	constexpr float ARROW_RANGE = 12.f;
 
 	constexpr auto DASH_DURATION = 300ms;
 	constexpr float MAX_STAMINA = 120.f;
@@ -236,8 +237,9 @@ namespace MonsterSetting
 	constexpr float WALK_SPEED = 3.f;
 	constexpr float STEP_BACK_SPEED = 1.5f;
 	constexpr float FLEE_SPEED = 4.5f;
-	constexpr float ARROW_SPEED = 15.f;
+	constexpr float ARROW_SPEED = 18.f;
 	constexpr float RECOGNIZE_RANGE = 20.f;
+	constexpr float ARROW_RANGE = 15.f;
 
 	constexpr auto DECREASE_AGRO_LEVEL_TIME = 10s;
 
@@ -247,7 +249,7 @@ namespace MonsterSetting
 		2.f, 6.f, 2.f };
 	constexpr std::chrono::milliseconds
 		ATK_COLLISION_TIME[static_cast<int>(MonsterType::COUNT)]{ 300ms, 0ms, 1100ms };
-	std::chrono::milliseconds CAST_COLLISION_TIME = 430ms;
+	constexpr std::chrono::milliseconds CAST_COLLISION_TIME = 430ms;
 }
 
 namespace RoomSetting
@@ -271,8 +273,8 @@ namespace RoomSetting
 
 	constexpr auto BATTLE_DELAY_TIME = 3s;
 	constexpr float EVENT_RADIUS = 1.f;
-	constexpr DirectX::XMFLOAT3 START_POSITION { 0.f, -DOWNSIDE_STAIRS_HEIGHT, -45.f };
-	//constexpr DirectX::XMFLOAT3 START_POSITION{ 0.f, 0.f, 0.f };
+	//constexpr DirectX::XMFLOAT3 START_POSITION { 0.f, -DOWNSIDE_STAIRS_HEIGHT, -45.f };
+	constexpr DirectX::XMFLOAT3 START_POSITION{ 0.f, 0.f, 0.f };
 	constexpr DirectX::XMFLOAT3 BATTLE_STARTER_POSITION { 0.f, 0.f, 24.f };
 	constexpr DirectX::XMFLOAT3 WARP_PORTAL_POSITION { -1.f, TOPSIDE_STAIRS_HEIGHT, 60.f };
 }

@@ -45,7 +45,15 @@ void TowerObjectManager::CreateArrow(const shared_ptr<GameObject>& parent, INT a
 {
 	m_arrows[arrowId]->SetPosition(Vector3::Add(parent->GetPosition(), XMFLOAT3{ 0.f, 0.9f, 0.f }));
 	
-	m_arrows[arrowId]->SetVelocity({ Vector3::Mul(Vector3::Normalize(parent->GetFront()), SPEED) });
+	//XMFLOAT3 vel = Vector3::Normalize(Vector3::Add(parent->GetFront(), XMFLOAT3{ 0.f, 0.5f, 0.f }));
+	
+	XMFLOAT3 vel = Vector3::Mul(Vector3::Normalize(parent->GetFront()), SPEED);
+	vel = Vector3::Add(vel, { 0.f, 0.15f * SPEED, 0.f });
+	m_arrows[arrowId]->SetVelocity(vel);
+
+	//m_arrows[arrowId]->SetVelocity(Vector3::Mul(parent->GetFront(), SPEED));
+
+
 	m_arrows[arrowId]->Rotate(0.f, 0.f, parent->GetYaw());
 
 	m_arrows[arrowId]->SetEnable();

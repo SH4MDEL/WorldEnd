@@ -59,7 +59,7 @@ public:
 	FLOAT GetStamina() const { return m_stamina; }
 	BYTE GetLatestId() const { return m_latest_id; }
 	bool GetInteractable() const { return m_interactable; }
-	USHORT GetCurrentAnimation() const { return m_current_animation; }
+	virtual USHORT GetCurrentAnimation() const override { return m_current_animation; }
 	virtual UINT GetLastMoveTime() const override { return m_last_move_time; }
 
 	PLAYER_DATA GetPlayerData() const override;

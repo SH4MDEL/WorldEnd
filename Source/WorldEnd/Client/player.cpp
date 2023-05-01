@@ -334,6 +334,7 @@ void Player::Update(FLOAT timeElapsed)
 //#ifndef USE_NETWORK
 	Move(m_velocity);
 //#endif // !USE_NETWORK
+	MoveOnStairs();
 
 	ApplyFriction(timeElapsed);
 }
@@ -434,6 +435,35 @@ void Player::ChangeAnimation(USHORT animation, bool other)
 	AnimationObject::ChangeAnimation(animation);
 }
 
+void Player::MoveOnStairs()
+{
+	XMFLOAT3 pos = GetPosition();
+	float ratio{};
+	if (pos.z >= RoomSetting::DOWNSIDE_STAIRS_BACK &&
+		pos.z <= RoomSetting::DOWNSIDE_STAIRS_FRONT)
+	{
+		ratio = RoomSetting::DOWNSIDE_STAIRS_FRONT - pos.z;
+		pos.y = RoomSetting::DEFAULT_HEIGHT -
+			RoomSetting::DOWNSIDE_STAIRS_HEIGHT * ratio / 10.f;
+	}
+	else if (pos.z >= RoomSetting::TOPSIDE_STAIRS_BACK &&
+		pos.z <= RoomSetting::TOPSIDE_STAIRS_FRONT)
+	{
+		ratio = pos.z - RoomSetting::TOPSIDE_STAIRS_BACK;
+		pos.y = RoomSetting::DEFAULT_HEIGHT +
+			RoomSetting::TOPSIDE_STAIRS_HEIGHT * ratio / 10.f;
+	}
+	else if (pos.z >= RoomSetting::DOWNSIDE_STAIRS_FRONT &&
+		pos.z <= RoomSetting::TOPSIDE_STAIRS_BACK)
+	{
+		if (std::fabs(pos.y - RoomSetting::DEFAULT_HEIGHT) <= std::numeric_limits<float>::epsilon()) {
+			return;
+		}
+		pos.y = RoomSetting::DEFAULT_HEIGHT;
+	}
+	SetPosition(pos);
+}
+
 void Player::CreateMovePacket()
 {
 #ifdef USE_NETWORK
@@ -523,6 +553,12 @@ void Arrow::Update(FLOAT timeElapsed)
 	if (m_enable) {
 		GameObject::Update(timeElapsed);
 		Move(Vector3::Mul(m_velocity, timeElapsed));
+
+		// 중력적용
+		m_velocity = Vector3::Add(m_velocity, XMFLOAT3(0.f, -10.f * timeElapsed, 0.f));
+
+		if(m_velocity.y < 0)
+			Rotate(0.f, -m_velocity.y / 3.f, 0.f);
 	}
 }
 

@@ -47,6 +47,8 @@ public:
 	void ChangeAnimation(USHORT animation, bool other);
 
 	// 추가
+	void MoveOnStairs();
+
 	void SetId(INT id) { m_id = id; }
 	INT GetId() const { return m_id; }
 

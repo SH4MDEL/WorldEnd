@@ -772,8 +772,11 @@ INT TowerScene::SetTarget(const shared_ptr<GameObject>& object)
 
 	for (const auto& elm : m_monsters) {
 		if (elm.second) {
-			if (elm.second->GetHp() <= std::numeric_limits<float>::epsilon()) continue;
 			// 체력이 0이면(죽었다면) 건너뜀
+			if (elm.second->GetHp() <= std::numeric_limits<float>::epsilon()) continue;
+
+			// 추가는 되었으나 그려지고 있지 않다면 건너뜀
+			if (!m_globalShaders["ANIMATION"]->GetMonsters().contains(elm.first)) continue;
 
 			sub = Vector3::Sub(pos, elm.second->GetPosition());
 			length = Vector3::Length(sub);
@@ -992,28 +995,25 @@ void TowerScene::RecvAddObject(char* ptr)
 {
 	SC_ADD_OBJECT_PACKET* packet = reinterpret_cast<SC_ADD_OBJECT_PACKET*>(ptr);
 
-	PLAYER_DATA player_data{};
-
-	player_data.hp = packet->player_data.hp;
-	player_data.id = packet->player_data.id;
-	player_data.pos = packet->player_data.pos;
+	INT id = packet->player_data.id;
 
 	auto multiPlayer = make_shared<Player>();
 	multiPlayer->SetType(packet->player_type);
 	LoadPlayerFromFile(multiPlayer);
 
-	multiPlayer->SetPosition(XMFLOAT3{ 0.f, 0.f, 0.f });
+	// 멀티플레이어 설정
+	multiPlayer->SetPosition(packet->player_data.pos);
+	multiPlayer->SetHp(packet->player_data.hp);
 
-	m_multiPlayers.insert({ player_data.id, multiPlayer });
+	m_multiPlayers.insert({ id, multiPlayer });
 
 	SetHpBar(multiPlayer);
 
-	m_idSet.insert({ player_data.id, (INT)m_idSet.size() });
-	m_hpUI[m_idSet[player_data.id]]->SetEnable();
+	m_idSet.insert({ id, (INT)m_idSet.size() });
+	m_hpUI[m_idSet[id]]->SetEnable();
 
-	m_globalShaders["ANIMATION"]->SetMultiPlayer(player_data.id, multiPlayer);
-	cout << "add player" << static_cast<int>(player_data.id) << endl;
-
+	m_globalShaders["ANIMATION"]->SetMultiPlayer(id, multiPlayer);
+	cout << "add player" << id << endl;
 }
 
 void TowerScene::RecvRemovePlayer(char* ptr)

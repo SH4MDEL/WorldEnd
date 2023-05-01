@@ -39,6 +39,8 @@ Server::Server()
 
 	m_game_room_manager = std::make_unique<GameRoomManager>();
 
+
+	printf("Complete Initialize!\n");
 	// ----------------------- //
 }
 
@@ -525,17 +527,19 @@ void Server::WorkerThread()
 			}
 
 			std::span<int> ids{};
+			float length{};
 			if (IsPlayer(id)) {
-				ids = game_room->GetMonsterIds();
 				// 플레이어면 충돌대상은 몬스터이므로 ids는 몬스터
+				ids = game_room->GetMonsterIds();
+				length = PlayerSetting::ARROW_RANGE;
 			}
 			else {
-				ids = game_room->GetPlayerIds();
 				// 플레이어가 아니면 충돌대상은 플레이어이므로 ids는 플레이어
+				ids = game_room->GetPlayerIds();
+				length = MonsterSetting::ARROW_RANGE;
 			}
 
 			// 화살이 날아갈 거리, 임시값 30
-			float length{ 30.f };
 			float near_dist{std::numeric_limits<float>::max()};
 			int near_id{ -1 };
 			XMVECTOR pos{ XMLoadFloat3(position) };
@@ -584,22 +588,20 @@ void Server::WorkerThread()
 			
 			switch (*type) {
 			case ActionType::NORMAL_ATTACK:
-			case ActionType::SKILL: 
-			{
-				auto game_room = m_game_room_manager->GetGameRoom(m_clients[id]->GetRoomNum());
-				if (!game_room) {
-					break;
+				if (IsPlayer(id)) {
+					if (m_clients[id]->GetCurrentAnimation() != ObjectAnimation::ATTACK)
+						break;
 				}
-
-				int arrow_id = game_room->GetArrowId();
-
-				SetRemoveArrowTimerEvent(id, arrow_id);
-
-				int target = GetNearTarget(id, PlayerSetting::AUTO_TARGET_RANGE);
-				SendArrowShoot(id, arrow_id);
-				SetHitScanTimerEvent(id, target, *type, arrow_id);
+				ProcessArrow(id, *type);
 				break;
-			}
+			case ActionType::SKILL:
+				if (IsPlayer(id)) {
+					if (m_clients[id]->GetCurrentAnimation() != PlayerAnimation::SKILL)
+						break;
+				}
+				ProcessArrow(id, *type);
+				
+				break;
 			case ActionType::ULTIMATE:
 				SetTrigger(id, TriggerType::ARROW_RAIN, 
 					Vector3::Add(m_clients[id]->GetPosition(), Vector3::Mul(m_clients[id]->GetFront(), 3.f)));
@@ -1167,6 +1169,30 @@ void Server::GameRoomObjectCollisionCheck(const std::shared_ptr<MovementObject>&
 	if (IsPlayer(object->GetId())) {
 		m_game_room_manager->EventCollisionCheck(object->GetRoomNum(), object->GetId());
 	}
+}
+
+void Server::ProcessArrow(int client_id, ActionType type)
+{
+	auto game_room = m_game_room_manager->GetGameRoom(m_clients[client_id]->GetRoomNum());
+	if (!game_room) {
+		return;
+	}
+
+	int arrow_id = game_room->GetArrowId();
+
+	SetRemoveArrowTimerEvent(client_id, arrow_id);
+
+	float target_range{};
+	if (IsPlayer(client_id)) {
+		target_range = PlayerSetting::ARROW_RANGE;
+	}
+	else {
+		target_range = MonsterSetting::ARROW_RANGE;
+	}
+
+	int target = GetNearTarget(client_id, target_range);
+	SendArrowShoot(client_id, arrow_id);
+	SetHitScanTimerEvent(client_id, target, type, arrow_id);
 }
 
 INT Server::GetNewId()
