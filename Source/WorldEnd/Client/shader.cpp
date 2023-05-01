@@ -838,7 +838,7 @@ UIShader::UIShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSi
 #if defined(_DEBUG)
 	UINT compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
 #else
-	UINT compileFlags = 0;
+	UINT compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
 #endif
 
 	DX::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/ui.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "VS_UI_MAIN", "vs_5_1", compileFlags, 0, &mvsByteCode, nullptr));

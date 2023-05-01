@@ -131,7 +131,7 @@ void Server::Network()
 		if (fps.count() < 1) continue;
 
 		if (frame_count.count() & 1) {
-			//SendPlayerDataPacket();
+			m_game_room_manager->SendPlayerData();
 		}
 		else {
 			m_game_room_manager->SendMonsterData();
@@ -688,10 +688,7 @@ void Server::ProcessPacket(int id, char* p)
 		// 속도만 받아와서 처리해도 됨
 		client->SetVelocity(packet->velocity);
 
-		XMFLOAT3 pos = packet->pos;
-		pos.x += packet->velocity.x;
-		pos.y += packet->velocity.y;
-		pos.z += packet->velocity.z;
+		XMFLOAT3 pos = Vector3::Add(client->GetPosition(), packet->velocity);
 		client->SetYaw(packet->yaw);
 
 		Move(client, pos);
@@ -1241,17 +1238,19 @@ INT Server::GetNewTriggerId(TriggerType type)
 
 void Server::Move(const std::shared_ptr<Client>& client, XMFLOAT3 position)
 {
+	client->SetPosition(position);
+
 	// 게임 룸에 진입한채 움직이면 시야처리 X (타워 씬)
 	int room_num = client->GetRoomNum();
+
 	if (m_game_room_manager->IsValidRoomNum(room_num)) {
-		MoveObject(client, position);
 		SetPositionOnStairs(client);
 		RotateBoundingBox(client);
 
 		GameRoomObjectCollisionCheck(client, room_num);
 		m_game_room_manager->GetGameRoom(room_num)->CheckTriggerCollision(client->GetId());
 
-		SendMoveInGameRoom(client->GetId(), room_num);
+		//SendMoveInGameRoom(client->GetId(), room_num);
 	}
 	// 게임 룸이 아닌채 움직이면 시야처리 (마을 씬)
 	else {
@@ -1296,9 +1295,6 @@ int Server::GetNearTarget(int client_id, float max_range)
 void Server::MoveObject(const std::shared_ptr<GameObject>& object, XMFLOAT3 position)
 {
 	object->SetPosition(position);
-
-	// 바운드 박스 갱신
-	object->SetBoundingBoxCenter(position);
 }
 
 void Server::RotateBoundingBox(const std::shared_ptr<GameObject>& object)

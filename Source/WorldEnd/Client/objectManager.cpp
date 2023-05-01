@@ -41,11 +41,11 @@ void TowerObjectManager::Render(const ComPtr<ID3D12GraphicsCommandList>& command
 	}
 }
 
-void TowerObjectManager::CreateArrow(const shared_ptr<GameObject>& parent, INT arrowId)
+void TowerObjectManager::CreateArrow(const shared_ptr<GameObject>& parent, INT arrowId, FLOAT SPEED)
 {
 	m_arrows[arrowId]->SetPosition(Vector3::Add(parent->GetPosition(), XMFLOAT3{ 0.f, 0.9f, 0.f }));
-
-	m_arrows[arrowId]->SetVelocity({ Vector3::Mul(Vector3::Normalize(parent->GetFront()), PlayerSetting::ARROW_SPEED) });
+	
+	m_arrows[arrowId]->SetVelocity({ Vector3::Mul(Vector3::Normalize(parent->GetFront()), SPEED) });
 	m_arrows[arrowId]->Rotate(0.f, 0.f, parent->GetYaw());
 
 	m_arrows[arrowId]->SetEnable();

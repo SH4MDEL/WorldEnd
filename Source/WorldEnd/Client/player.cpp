@@ -331,9 +331,9 @@ void Player::Update(FLOAT timeElapsed)
 	}
 
 
-#ifndef USE_NETWORK
+//#ifndef USE_NETWORK
 	Move(m_velocity);
-#endif // !USE_NETWORK
+//#endif // !USE_NETWORK
 
 	ApplyFriction(timeElapsed);
 }

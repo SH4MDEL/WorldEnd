@@ -47,6 +47,7 @@ public:
 	void SetLatestId(BYTE id);
 	void SetInteractable(bool val);
 	void SetCurrentAnimation(USHORT animation);
+	void SetLastMoveTime(UINT time);
 
 	const SOCKET& GetSocket() const override { return m_socket; }
 	ExpOver& GetExpOver() { return m_recv_over; }
@@ -54,11 +55,12 @@ public:
 	bool GetReadyCheck() const { return m_ready_check; }
 	PlayerType GetPlayerType() const override { return m_player_type; }
 	virtual FLOAT GetSkillRatio(ActionType type) const override;
-	const BoundingOrientedBox& GetWeaponBoundingBox() const { return m_weopon_bounding_box; }
+	const BoundingOrientedBox& GetWeaponBoundingBox() const { return m_weapon_bounding_box; }
 	FLOAT GetStamina() const { return m_stamina; }
 	BYTE GetLatestId() const { return m_latest_id; }
 	bool GetInteractable() const { return m_interactable; }
 	USHORT GetCurrentAnimation() const { return m_current_animation; }
+	virtual UINT GetLastMoveTime() const override { return m_last_move_time; }
 
 	PLAYER_DATA GetPlayerData() const override;
 
@@ -70,11 +72,12 @@ private:
 	SOCKET					m_socket;
 	ExpOver					m_recv_over;
 	INT						m_remain_size;
+	UINT					m_last_move_time;
 
 	bool					m_ready_check;      // 로비에서 준비 
 
 	PlayerType				m_player_type;      // 플레이어 종류
-	BoundingOrientedBox		m_weopon_bounding_box;
+	BoundingOrientedBox		m_weapon_bounding_box;
 
 	FLOAT					m_stamina;
 	BYTE					m_latest_id;

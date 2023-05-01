@@ -115,6 +115,30 @@ INT GameRoom::GetArrowId()
 	return id;
 }
 
+void GameRoom::SendPlayerData()
+{
+	Server& server = Server::GetInstance();
+
+	SC_UPDATE_CLIENT_PACKET packet[MAX_INGAME_USER]{};
+
+	INT player_count{0};
+	for (INT id : m_player_ids) {
+		if (-1 == id) continue;
+
+		packet[player_count].size = sizeof(SC_UPDATE_CLIENT_PACKET);
+		packet[player_count].type = SC_PACKET_UPDATE_CLIENT;
+		packet[player_count].data = server.m_clients[id]->GetPlayerData();
+		packet[player_count].move_time = server.m_clients[id]->GetLastMoveTime();
+		++player_count;
+	}
+
+	for (INT id : m_player_ids) {
+		if (-1 == id) continue;
+
+		server.m_clients[id]->DoSend(&packet, player_count);
+	}
+}
+
 void GameRoom::SendMonsterData()
 {
 	Server& server = Server::GetInstance();
@@ -345,9 +369,16 @@ void GameRoom::InitMonsters(INT room_num)
 	
 	// Init 은 플레이어 진입 시 불려야함
 	INT new_id{};
-	for (size_t i = 0; i < 2; ++i) {
-		new_id = server.GetNewMonsterId(MonsterType::WIZARD);
-		
+	for (size_t i = 0; i < 5; ++i) {
+		if (i < 2) {
+			new_id = server.GetNewMonsterId(MonsterType::WARRIOR);
+		}
+		else if (2 <= i && i < 4) {
+			new_id = server.GetNewMonsterId(MonsterType::ARCHER);
+		}
+		else {
+			new_id = server.GetNewMonsterId(MonsterType::WIZARD);
+		}
 		m_monster_ids[i] = new_id;
 		
 		auto monster = dynamic_pointer_cast<Monster>(server.m_clients[new_id]);
@@ -639,6 +670,18 @@ void GameRoomManager::Update(float elapsed_time)
 		lock.unlock();
 
 		game_room->Update(elapsed_time);
+	}
+}
+
+void GameRoomManager::SendPlayerData()
+{
+	for (const auto& game_room : m_game_rooms) {
+		std::unique_lock<std::mutex> lock{ game_room->GetStateMutex() };
+		if (GameRoomState::EMPTY == game_room->GetState())
+			continue;
+		lock.unlock();
+
+		game_room->SendPlayerData();
 	}
 }
 

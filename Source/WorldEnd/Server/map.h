@@ -34,6 +34,7 @@ public:
 	std::shared_ptr<WarpPortal> GetWarpPortal() const;
 	INT GetArrowId();
 
+	void SendPlayerData();
 	void SendMonsterData();
 	void SendAddMonster(INT player_id);
 
@@ -116,6 +117,7 @@ public:
 	void RemoveTrigger(INT trigger_id, INT room_num);
 	void EventCollisionCheck(INT room_num, INT player_id);
 
+	void SendPlayerData();
 	void SendMonsterData();
 	void SendAddMonster(INT room_num, INT player_id);
 

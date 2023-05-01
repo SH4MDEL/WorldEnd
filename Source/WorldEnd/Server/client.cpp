@@ -49,6 +49,7 @@ void Client::Init()
 	m_stamina = PlayerSetting::MAX_STAMINA;
 	m_interactable = false;
 	m_latest_id = 0;
+	m_last_move_time = 0;
 	this->SetTriggerFlag();
 
 	// 나중에 DB에서 처리될 것들
@@ -118,12 +119,12 @@ void Client::SetPlayerType(PlayerType type)
 
 void Client::SetWeaponCenter(const XMFLOAT3& center)
 {
-	m_weopon_bounding_box.Center = center;
+	m_weapon_bounding_box.Center = center;
 }
 
 void Client::SetWeaponOrientation(const XMFLOAT4& orientation)
 {
-	m_weopon_bounding_box.Orientation = orientation;
+	m_weapon_bounding_box.Orientation = orientation;
 }
 
 void Client::SetStamina(FLOAT stamina)
@@ -144,6 +145,11 @@ void Client::SetInteractable(bool val)
 void Client::SetCurrentAnimation(USHORT animation)
 {
 	m_current_animation = animation;
+}
+
+void Client::SetLastMoveTime(UINT time)
+{
+	m_last_move_time = time;
 }
 
 FLOAT Client::GetSkillRatio(ActionType type) const
@@ -195,12 +201,12 @@ void Client::SetBoundingBox(PlayerType type)
 	switch (type) {
 	case PlayerType::WARRIOR:
 		m_bounding_box = BoundingOrientedBox{ m_position, XMFLOAT3{0.37f, 0.65f, 0.37f}, XMFLOAT4{0.f, 0.f, 0.f, 1.f } };
-		m_weopon_bounding_box = BoundingOrientedBox{ m_position, XMFLOAT3{0.13f, 0.03f, 0.68f}, XMFLOAT4{0.f, 0.f, 0.f, 1.f } };
+		m_weapon_bounding_box = BoundingOrientedBox{ m_position, XMFLOAT3{0.13f, 0.03f, 0.68f}, XMFLOAT4{0.f, 0.f, 0.f, 1.f } };
 		break;
 
 	case PlayerType::ARCHER:
 		m_bounding_box = BoundingOrientedBox{ m_position, XMFLOAT3{0.37f, 0.65f, 0.37f}, XMFLOAT4{0.f, 0.f, 0.f, 1.f } };
-		m_weopon_bounding_box = BoundingOrientedBox{ m_position, XMFLOAT3{0.18f, 0.04f, 0.68f}, XMFLOAT4{0.f, 0.f, 0.f, 1.f } };
+		m_weapon_bounding_box = BoundingOrientedBox{ m_position, XMFLOAT3{0.18f, 0.04f, 0.68f}, XMFLOAT4{0.f, 0.f, 0.f, 1.f } };
 		// 화살 바운드 박스로 교체 필요함, 활은 충돌하지 않을 것이기 때문
 		break;
 	}

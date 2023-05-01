@@ -413,12 +413,15 @@ bool AnimationObject::ChangeAnimation(USHORT animation)
 	case ObjectAnimation::WALK:
 		ChangeAnimationSettings(AnimationBlending::BLENDING, ANIMATION_TYPE_LOOP,
 			ANIMATION_TYPE_LOOP, m_currentAnimation);
-		m_animationController->SetTrackSpeed(0, 1.2f);
+		//m_animationController->SetTrackSpeed(0, 1.7f);
+		// 플레이어만 속도를 변경해야 함
 		break;
 
 	case ObjectAnimation::RUN:
 		ChangeAnimationSettings(AnimationBlending::NORMAL, ANIMATION_TYPE_LOOP,
 			ANIMATION_TYPE_LOOP, m_currentAnimation);
+		//m_animationController->SetTrackSpeed(0, 1.3f);
+		// 플레이어만 속도를 변경해야 함
 		break;
 
 	case ObjectAnimation::ATTACK: 

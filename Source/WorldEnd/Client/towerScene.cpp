@@ -1037,19 +1037,18 @@ void TowerScene::RecvUpdateClient(char* ptr)
 {
 	SC_UPDATE_CLIENT_PACKET* packet = reinterpret_cast<SC_UPDATE_CLIENT_PACKET*>(ptr);
 
-	if (-1 == packet->data.id) {
-		return;
-	}
+	//if (-1 == packet->data.id) {
+	//	return;
+	//}
 
 	if (packet->data.id == m_player->GetId()) {
 		m_player->SetPosition(packet->data.pos);
 	}
 	else {
-		// towerScene의 multiPlayer를 업데이트 해도 shader의 multiPlayer도 업데이트 됨.
-		XMFLOAT3 playerPosition = packet->data.pos;
 		auto& player = m_multiPlayers[packet->data.id];
-		player->SetPosition(playerPosition);
-		player->SetVelocity(packet->data.velocity);
+
+		player->SetPosition(packet->data.pos);
+		//player->SetVelocity(packet->data.velocity);
 		player->Rotate(0.f, 0.f, packet->data.yaw - player->GetYaw());
 		player->SetHp(packet->data.hp);
 		m_hpUI[m_idSet[packet->data.id]]->SetGauge(packet->data.hp);
@@ -1254,16 +1253,16 @@ void TowerScene::RecvArrowShoot(char* ptr)
 	if (0 <= packet->id && packet->id < MAX_USER) {
 		if (packet->id == m_player->GetId()) {
 			//RotateToTarget(m_player, packet->target_id);
-			m_towerObjectManager->CreateArrow(m_player, packet->arrow_id);
+			m_towerObjectManager->CreateArrow(m_player, packet->arrow_id, PlayerSetting::ARROW_SPEED);
 		}
 		else {
 			auto& player = m_multiPlayers[packet->id];
 			//RotateToTarget(player, packet->target_id);
-			m_towerObjectManager->CreateArrow(player, packet->arrow_id);
+			m_towerObjectManager->CreateArrow(player, packet->arrow_id, PlayerSetting::ARROW_SPEED);
 		}
 	}
 	else {
-		m_towerObjectManager->CreateArrow(m_monsters[packet->id], packet->arrow_id);
+		m_towerObjectManager->CreateArrow(m_monsters[packet->id], packet->arrow_id, MonsterSetting::ARROW_SPEED);
 	}
 }
 
