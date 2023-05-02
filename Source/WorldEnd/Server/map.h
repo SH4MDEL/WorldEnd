@@ -4,7 +4,7 @@
 #include "client.h"
 #include "monster.h"
 
-enum class GameRoomState { EMPTY, ACCEPT, INGAME, CLEAR, COUNT };
+enum class GameRoomState { EMPTY, ACCEPT, INGAME, ONBATTLE, CLEAR, COUNT };
 
 class GameRoom : public std::enable_shared_from_this<GameRoom>
 {
@@ -18,7 +18,7 @@ public:
 	void WarpNextFloor(INT room_num);
 
 	void SetType(EnvironmentType type) { m_type = type; }
-	void SetPlayer(INT player_id);
+	bool SetPlayer(INT room_num, INT player_id);
 	void SetState(GameRoomState state) { m_state = state; }
 	void SetMonsterCount(INT count) { m_monster_count = count; }
 
@@ -34,6 +34,7 @@ public:
 	std::shared_ptr<WarpPortal> GetWarpPortal() const;
 	INT GetArrowId();
 
+	void SendAddPlayer(INT sender, INT receiver);
 	void SendPlayerData();
 	void SendMonsterData();
 	void SendAddMonster(INT player_id);
@@ -51,6 +52,10 @@ public:
 
 	std::array<INT, MAX_INGAME_USER>& GetPlayerIds() { return m_player_ids; }
 	std::array<INT, MAX_INGAME_MONSTER>& GetMonsterIds() { return m_monster_ids; }
+
+private:
+	void CollideWithEventObject(INT player_id, InteractionType type);
+	INT GetPlayerCount();
 
 private:
 	std::array<INT, MAX_INGAME_USER>			m_player_ids;
@@ -72,7 +77,6 @@ private:
 	INT						m_arrow_id;
 	std::mutex				m_arrow_lock;
 
-	void CollideWithEventObject(INT player_id, InteractionType type);
 };
 
 class Town
@@ -94,7 +98,8 @@ public:
 
 	void Update(float elapsed_time);
 
-	void SetPlayer(INT room_num, INT player_id);
+	bool FillPlayer(INT player_id);
+	bool SetPlayer(INT room_num, INT player_id);
 	bool IsValidRoomNum(INT room_num);
 
 	std::vector<std::shared_ptr<GameObject>>& GetStructures() { return m_structures; }
@@ -122,8 +127,10 @@ public:
 	void SendAddMonster(INT room_num, INT player_id);
 
 private:
+	INT FindEmptyRoom();
+	INT FindCanAccessRoom();
+
+private:
 	std::array<std::shared_ptr<GameRoom>, MAX_GAME_ROOM_NUM>	m_game_rooms;
 	std::vector<std::shared_ptr<GameObject>>					m_structures;
-
-	INT FindEmptyRoom();
 };

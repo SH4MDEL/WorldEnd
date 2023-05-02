@@ -988,7 +988,8 @@ void TowerScene::RecvLoginOk(char* ptr)
 {
 	SC_LOGIN_OK_PACKET* packet = reinterpret_cast<SC_LOGIN_OK_PACKET*>(ptr);
 	m_player->SetId(packet->player_data.id);
-	m_player->SetPosition(RoomSetting::START_POSITION);
+	m_player->SetPosition(packet->player_data.pos);
+	m_player->SetHp(packet->player_data.hp);
 }
 
 void TowerScene::RecvAddObject(char* ptr)

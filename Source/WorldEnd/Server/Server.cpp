@@ -676,8 +676,13 @@ void Server::ProcessPacket(int id, char* p)
 
 		// 원래는 던전 진입 시 던전에 배치해야하지만
 		// 현재 마을이 없이 바로 던전에 진입하므로 던전에 입장시킴
-		client->SetRoomNum(0);
-		m_game_room_manager->SetPlayer(client->GetRoomNum(), id);
+		/*client->SetRoomNum(0);
+		m_game_room_manager->SetPlayer(client->GetRoomNum(), id);*/
+
+		if (!m_game_room_manager->FillPlayer(id)) {
+			Disconnect(id);
+			// 채우지 못할 경우 현재는 접속 종료
+		}
 		m_game_room_manager->SendAddMonster(client->GetRoomNum(), id);
 
 		printf("%d is connect\n", client->GetId());
@@ -796,38 +801,11 @@ void Server::SendLoginOk(int client_id)
 	SC_LOGIN_OK_PACKET packet{};
 	packet.size = sizeof(packet);
 	packet.type = SC_PACKET_LOGIN_OK;
-	packet.player_data.id = m_clients[client_id]->GetId();
-	packet.player_data.pos = m_clients[client_id]->GetPosition();
-	packet.player_data.hp = m_clients[client_id]->GetHp();
+	packet.player_data = m_clients[client_id]->GetPlayerData();
 	packet.player_type = m_clients[client_id]->GetPlayerType();
 	strcpy_s(packet.name, sizeof(packet.name), m_clients[client_id]->GetName().c_str());
 
 	m_clients[client_id]->DoSend(&packet);
-
-	packet.type = SC_PACKET_ADD_OBJECT;
-
-	// 현재 접속해 있는 모든 클라이언트들에게 새로 로그인한 클라이언트들의 정보를 전송
-	for (size_t i = 0; i < MAX_USER; ++i) {
-		if (-1 == m_clients[i]->GetId()) continue;
-		if (m_clients[client_id]->GetId() == m_clients[i]->GetId()) continue;
-		
-		m_clients[i]->DoSend(&packet);
-	}
-
-	// 새로 로그인한 클라이언트에게 현재 접속해 있는 모든 클라이언트들의 정보를 전송
-	for (size_t i = 0; i < MAX_USER; ++i){
-		if (-1 == m_clients[i]->GetId()) continue;
-		if (m_clients[client_id]->GetId() == m_clients[i]->GetId()) continue;
-
-		SC_LOGIN_OK_PACKET sub_packet{};
-		sub_packet.size = sizeof(sub_packet);
-		sub_packet.type = SC_PACKET_ADD_OBJECT;
-		sub_packet.player_data = m_clients[i]->GetPlayerData();
-		strcpy_s(sub_packet.name, sizeof(sub_packet.name), m_clients[i]->GetName().c_str());
-		sub_packet.player_type = m_clients[i]->GetPlayerType();
-
-		m_clients[client_id]->DoSend(&sub_packet);
-	}
 }
 
 void Server::SendMoveInGameRoom(int client_id, int room_num)

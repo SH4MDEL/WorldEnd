@@ -62,6 +62,10 @@ void TowerObjectManager::CreateArrow(const shared_ptr<GameObject>& parent, INT a
 void TowerObjectManager::RemoveArrow(INT arrowId)
 {
 	m_arrows[arrowId]->SetDisable();
+	
+	XMFLOAT4X4 transform{};
+	XMStoreFloat4x4(&transform, XMMatrixIdentity());
+	m_arrows[arrowId]->SetTransformMatrix(transform);
 }
 
 void TowerObjectManager::CreateArrowRain(const XMFLOAT3& position)

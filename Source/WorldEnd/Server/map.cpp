@@ -81,19 +81,58 @@ void GameRoom::WarpNextFloor(INT room_num)
 	}
 }
 
-// 파티 생성하지 않고 진입 시 사용하는 함수
-// 혼자서만 들어가므로 나중에 for문 검사 필요없으니 삭제 필요함
-void GameRoom::SetPlayer(INT player_id)
+// 빈자리를 찾아 진입
+bool GameRoom::SetPlayer(INT room_num, INT player_id)
 {
-	for (int& id : m_player_ids) {
+	Server& server = Server::GetInstance();
+
+	bool join{ false };
+
+	// 한번에 한명씩 빈자리에 넣는 것을 보장
+	// 빈자리를 찾았을 경우 id를 넣고 락을 해제하지만
+	// 빈자리를 못찾으면 락을 함수 종료시점에 해제해줌
+	std::unique_lock<std::mutex> l{ m_player_lock };
+	for (INT& id : m_player_ids) {
 		if (-1 == id) {
 			id = player_id;
-			if (GameRoomState::INGAME == m_state) {
-				m_battle_starter->SendEvent(player_id, nullptr);
+			server.m_clients[id]->SetRoomNum(room_num);
+
+			// 플레이어 진입 시 3명이 되었을 경우 INGAME으로 변경
+			INT count = GetPlayerCount();
+			if (count == MAX_INGAME_USER) {
+				std::unique_lock<std::mutex> lock{ m_state_lock };
+				if (GameRoomState::INGAME != m_state) {
+					m_state = GameRoomState::INGAME;
+				}
+			}
+
+			l.unlock();
+			server.m_clients[id]->SetPosition(RoomSetting::START_POSITION);
+			join = true;
+
+			if (GameRoomState::ONBATTLE == m_state) {
+				// 전투가 이미 시작되었음을 전송하는 것이 필요
 			}
 			break;
 		}
 	}
+	// 방에 진입한 인원이 3명인경우 INGAME 으로 전환 필요
+
+	// 방에 참여했다면 Add 전송
+	if (join) {
+		for (INT id : m_player_ids) {
+			if (-1 == id) continue;
+			if (id == player_id) continue;
+
+			// 내 정보를 기존에 방에 있던 플레이어에게 전송
+			SendAddPlayer(player_id, id);
+
+			// 방에 있던 id가 내가 아니면 해당id의 정보를 나에게 전송
+			SendAddPlayer(id, player_id);
+		}
+	}
+
+	return join;
 }
 
 std::shared_ptr<BattleStarter> GameRoom::GetBattleStarter() const
@@ -109,10 +148,24 @@ std::shared_ptr<WarpPortal> GameRoom::GetWarpPortal() const
 INT GameRoom::GetArrowId()
 {
 	std::lock_guard<std::mutex> lock{ m_arrow_lock };
-	int id = m_arrow_id;
+	INT id = m_arrow_id;
 	m_arrow_id = (m_arrow_id + 1) % RoomSetting::MAX_ARROWS;
 
 	return id;
+}
+
+void GameRoom::SendAddPlayer(INT sender, INT receiver)
+{
+	Server& server = Server::GetInstance();
+
+	SC_ADD_OBJECT_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = SC_PACKET_ADD_OBJECT;
+	packet.player_data = server.m_clients[sender]->GetPlayerData();
+	packet.player_type = server.m_clients[sender]->GetPlayerType();
+	strcpy_s(packet.name, sizeof(packet.name), server.m_clients[sender]->GetName().c_str());
+
+	server.m_clients[receiver]->DoSend(&packet);
 }
 
 void GameRoom::SendPlayerData()
@@ -200,12 +253,11 @@ void GameRoom::SendAddMonster(INT player_id)
 		}
 		++i;
 	}
-	
 
 	server.m_clients[player_id]->DoSend(&packet, monster_count);
 	
-	if (GameRoomState::INGAME == m_state) {
-		m_battle_starter->SendEvent(player_id, nullptr);
+	if (GameRoomState::ONBATTLE == m_state) {
+		//m_battle_starter->SendEvent(player_id, nullptr);
 	}
 }
 
@@ -322,7 +374,9 @@ void GameRoom::RemoveTrigger(INT trigger_id)
 void GameRoom::CheckEventCollision(INT player_id)
 {
 	// 전투 오브젝트와 충돌검사
-	if (GameRoomState::ACCEPT == m_state) {
+	if (GameRoomState::INGAME == m_state || 
+		GameRoomState::ACCEPT == m_state) 
+	{
 		CollideWithEventObject(player_id, InteractionType::BATTLE_STARTER);
 	}
 	// 포탈과 충돌검사
@@ -439,6 +493,18 @@ void GameRoom::CollideWithEventObject(INT player_id, InteractionType type)
 	}
 }
 
+INT GameRoom::GetPlayerCount()
+{
+	INT count{ 0 };
+	for (INT id : m_player_ids) {
+		if (-1 == id) continue;
+
+		++count;
+	}
+
+	return count;
+}
+
 GameRoomManager::GameRoomManager()
 {
 	LoadMap();
@@ -447,9 +513,22 @@ GameRoomManager::GameRoomManager()
 	}
 }
 
+bool GameRoomManager::FillPlayer(INT player_id)
+{
+	INT room_num{ FindCanAccessRoom() };
+	while (room_num != -1) {
+
+		if (SetPlayer(room_num, player_id))
+			return true;
+		else
+			room_num = FindCanAccessRoom();
+	}
+	return false;
+}
+
 // gameroom 의 Setplayer 와 마찬가지로 파티 생성 없이 진입할 때
 // 호출되어야 할 함수
-void GameRoomManager::SetPlayer(INT room_num, INT player_id)
+bool GameRoomManager::SetPlayer(INT room_num, INT player_id)
 {
 	{
 		std::unique_lock<std::mutex> lock{ m_game_rooms[room_num]->GetStateMutex() };
@@ -459,12 +538,8 @@ void GameRoomManager::SetPlayer(INT room_num, INT player_id)
 			m_game_rooms[room_num]->InitGameRoom(room_num);
 		}
 	}
-
-	Server& server = Server::GetInstance();
-	server.m_clients[player_id]->SetRoomNum(room_num);
-	server.m_clients[player_id]->SetPosition(RoomSetting::START_POSITION);
 	
-	m_game_rooms[room_num]->SetPlayer(player_id);
+	return m_game_rooms[room_num]->SetPlayer(room_num, player_id);
 }
 
 std::shared_ptr<GameRoom> GameRoomManager::GetGameRoom(INT room_num)
@@ -582,8 +657,10 @@ void GameRoomManager::StartBattle(INT room_num)
 	auto& room = m_game_rooms[room_num];
 
 	std::unique_lock<std::mutex> l{ room->GetStateMutex() };
-	if (GameRoomState::ACCEPT == room->GetState()) {
-		room->SetState(GameRoomState::INGAME);
+	if (GameRoomState::INGAME == room->GetState() || 
+		GameRoomState::ACCEPT == room->GetState()) 
+	{
+		room->SetState(GameRoomState::ONBATTLE);
 		l.unlock();
 
 		m_game_rooms[room_num]->StartBattle();
@@ -599,7 +676,7 @@ void GameRoomManager::WarpNextFloor(INT room_num)
 
 	std::unique_lock<std::mutex> l{ room->GetStateMutex() };
 	if (GameRoomState::CLEAR == room->GetState()) {
-		room->SetState(GameRoomState::ACCEPT);
+		room->SetState(GameRoomState::INGAME);
 		l.unlock();
 
 		m_game_rooms[room_num]->WarpNextFloor(room_num);
@@ -620,8 +697,7 @@ bool GameRoomManager::EnterGameRoom(const std::shared_ptr<Party>& party)
 		if (-1 == members[i]) continue;
 
 		auto client = dynamic_pointer_cast<Client>(server.m_clients[members[i]]);
-		client->SetRoomNum(room_num);
-		m_game_rooms[room_num]->SetPlayer(members[i]);
+		m_game_rooms[room_num]->SetPlayer(room_num, members[i]);
 	}
 	
 	return true;
@@ -665,7 +741,7 @@ void GameRoomManager::Update(float elapsed_time)
 {
 	for (const auto& game_room : m_game_rooms) {
 		std::unique_lock<std::mutex> lock{ game_room->GetStateMutex() };
-		if (GameRoomState::INGAME != game_room->GetState()) 
+		if (GameRoomState::ONBATTLE != game_room->GetState()) 
 			continue;
 		lock.unlock();
 
@@ -689,7 +765,7 @@ void GameRoomManager::SendMonsterData()
 {
 	for (const auto& game_room : m_game_rooms) {
 		std::unique_lock<std::mutex> lock{ game_room->GetStateMutex() };
-		if (GameRoomState::INGAME != game_room->GetState()) 
+		if (GameRoomState::ONBATTLE != game_room->GetState()) 
 			continue;
 		lock.unlock();
 
@@ -707,7 +783,23 @@ INT GameRoomManager::FindEmptyRoom()
 	for (size_t i = 0; const auto & game_room : m_game_rooms) {
 		std::unique_lock<std::mutex> lock{ game_room->GetStateMutex() };
 		if (GameRoomState::EMPTY == game_room->GetState()) {
-			game_room->SetState(GameRoomState::ACCEPT);
+			game_room->SetState(GameRoomState::INGAME);
+			return i;
+		}
+		lock.unlock();
+
+		++i;
+	}
+	return -1;
+}
+
+INT GameRoomManager::FindCanAccessRoom()
+{
+	for (size_t i = 0; const auto & game_room : m_game_rooms) {
+		std::unique_lock<std::mutex> lock{ game_room->GetStateMutex() };
+		if (GameRoomState::EMPTY == game_room->GetState() ||
+			GameRoomState::ACCEPT == game_room->GetState())
+		{
 			return i;
 		}
 		lock.unlock();
