@@ -166,6 +166,9 @@ void WarpPortal::SendEvent(const std::span<INT>& ids, void* c)
 {
 	BYTE* floor = reinterpret_cast<BYTE*>(c);
 
+	if (!m_valid)
+		return;
+
 	m_valid = false;
 
 	SC_WARP_NEXT_FLOOR_PACKET packet{};
@@ -176,13 +179,12 @@ void WarpPortal::SendEvent(const std::span<INT>& ids, void* c)
 	Server& server = Server::GetInstance();
 	for (INT id : ids) {
 		if (-1 == id) continue;
-		{
-			std::lock_guard<std::mutex> lock{ server.m_clients[id]->GetStateMutex() };
-			if (State::INGAME != server.m_clients[id]->GetState()) continue;
-		}
 
-		server.MoveObject(server.m_clients[id], RoomSetting::START_POSITION);
-		server.m_clients[id]->DoSend(&packet);
+		auto client = dynamic_pointer_cast<Client>(server.m_clients[id]);
+
+		client->RestoreCondition();
+		server.MoveObject(client, RoomSetting::START_POSITION);
+		client->DoSend(&packet);
 	}
 }
 
@@ -287,18 +289,13 @@ void Trigger::Activate(INT id)
 	
 }
 
-void Trigger::Create(FLOAT damage, INT id)
+void Trigger::Create(FLOAT damage, INT id, INT room_num)
 {
 	Server& server = Server::GetInstance();
-	m_event_bounding_box.Center = server.m_clients[id]->GetPosition();
-
-	m_damage = damage;
-	m_created_id = id;
-	m_state = State::INGAME;
-	SetRemoveEvent(id);
+	this->Create(damage, id, server.m_clients[id]->GetPosition(), room_num);
 }
 
-void Trigger::Create(FLOAT damage, INT id, const XMFLOAT3& position)
+void Trigger::Create(FLOAT damage, INT id, const XMFLOAT3& position, INT room_num)
 {
 	Server& server = Server::GetInstance();
 	m_event_bounding_box.Center = position;
@@ -307,6 +304,25 @@ void Trigger::Create(FLOAT damage, INT id, const XMFLOAT3& position)
 	m_created_id = id;
 	m_state = State::INGAME;
 	SetRemoveEvent(id);
+
+	auto game_room = server.GetGameRoomManager()->GetGameRoom(room_num);
+	std::span<INT> ids{};
+	
+	// 적에게 적용되는 것, 아군에게 적용되는 것, 둘다 적용되는 것 구분 필요
+	// 현재는 type만으로 구분
+	if (TriggerType::ARROW_RAIN == m_type) {
+		ids = game_room->GetMonsterIds();
+	}
+	else if (TriggerType::UNDEAD_GRASP == m_type) {
+		ids = game_room->GetPlayerIds();
+	}
+
+	for (INT id : ids) {
+		if (-1 == id) continue;
+		if (State::INGAME != server.m_clients[id]->GetState()) continue;
+
+		game_room->CheckTriggerCollision(id);
+	}
 }
 
 ArrowRain::ArrowRain()

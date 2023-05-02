@@ -150,12 +150,13 @@ void Player::OnProcessingMouseMessage(UINT message, LPARAM lParam)
 		if (m_cooldownList[ActionType::NORMAL_ATTACK])
 			return;
 
-
-
 		ChangeAnimation(ObjectAnimation::ATTACK);
 		CreateAttackPacket(ActionType::NORMAL_ATTACK);
 		break;
 	case WM_RBUTTONDOWN:
+		if (ObjectAnimation::DEATH == m_currentAnimation)
+			return;
+
 		if (!m_dashed) {
 			if (!m_cooldownList[ActionType::DASH]) {
 
@@ -172,6 +173,9 @@ void Player::OnProcessingMouseMessage(UINT message, LPARAM lParam)
 		}
 		break;
 	case WM_RBUTTONUP:
+		if (ObjectAnimation::DEATH == m_currentAnimation)
+			return;
+
 		if (m_dashed) {
 			m_dashed = false;
 			CreateChangeStaminaPacket(true);

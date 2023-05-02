@@ -1215,10 +1215,12 @@ void TowerScene::RecvWarpNextFloor(char* ptr)
 	
 	SetState(State::Fading);
 	m_fadeFilter->FadeOut([&]() {
+		m_player->ChangeAnimation(ObjectAnimation::IDLE);
 		m_player->SetPosition(RoomSetting::START_POSITION);
 
 		for (auto& elm : m_multiPlayers) {
 			elm.second->SetPosition(RoomSetting::START_POSITION);
+			elm.second->ChangeAnimation(ObjectAnimation::IDLE);
 		}
 
 		m_globalShaders["OBJECT"]->SetObject(m_gate);

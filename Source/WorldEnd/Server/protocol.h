@@ -207,7 +207,7 @@ namespace PlayerSetting
 	constexpr auto ROLL_COOLDOWN = 3s;
 	constexpr auto DASH_COOLDOWN = 1200ms;
 
-	constexpr float SKILL_RATIO[static_cast<int>(PlayerType::COUNT)]{ 1.3f, 1.9f };
+	constexpr float SKILL_RATIO[static_cast<int>(PlayerType::COUNT)]{ 1.5f, 1.2f };
 	constexpr float ULTIMATE_RATIO[static_cast<int>(PlayerType::COUNT)]{ 2.f, 0.3f };
 
 	constexpr std::chrono::milliseconds

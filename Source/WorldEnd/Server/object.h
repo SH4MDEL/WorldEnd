@@ -136,8 +136,8 @@ public:
 	void SetCooldownEvent(INT id);
 	void SetRemoveEvent(INT id);
 	void Activate(INT id);
-	void Create(FLOAT damage, INT id);
-	void Create(FLOAT damage, INT id, const XMFLOAT3& position);
+	void Create(FLOAT damage, INT id, INT room_num);
+	void Create(FLOAT damage, INT id, const XMFLOAT3& position, INT room_num);
 
 protected:
 	virtual void ProcessTrigger(INT id) = 0;

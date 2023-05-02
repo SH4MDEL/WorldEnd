@@ -653,6 +653,23 @@ void Server::WorkerThread()
 			delete exp_over;
 			break;
 		}
+		case OP_TRIGGER_COOLDOWN: {
+			int trigger_id = static_cast<int>(key);
+			int* obj_id = reinterpret_cast<int*>(exp_over->_send_buf);
+			
+			// 특정 id의 트리거(obj_id)에 대한 발동시킨 오브젝트(target_id)의 플래그 초기화
+			UCHAR trigger = static_cast<UCHAR>(m_triggers[trigger_id]->GetType());
+			m_clients[*obj_id]->SetTriggerFlag(trigger, false);
+
+			auto game_room = m_game_room_manager->GetGameRoom(m_clients[*obj_id]->GetRoomNum());
+			if (!game_room)
+				break;
+
+			game_room->CheckTriggerCollision(*obj_id);
+
+			delete exp_over;
+			break;
+		}
 
 		}
 	}
@@ -709,6 +726,11 @@ void Server::ProcessPacket(int id, char* p)
 	}
 	case CS_PACKET_ATTACK: {
 		CS_ATTACK_PACKET* packet = reinterpret_cast<CS_ATTACK_PACKET*>(p);
+
+		// 패킷을 전송받았을 때 충돌 타이밍을 네트워크 전송 시간만큼을 보정해 줘야 함
+		// client 객체에서 지연 시간을 저장하고, 해당 값으로 보정해주면?
+		auto time = std::chrono::system_clock::now() - packet->attack_time;
+		packet->attack_time += time;
 
 		// 충돌 위치, 시간을 서버에서 결정
 		switch (client->GetPlayerType()) {
@@ -1254,6 +1276,7 @@ void Server::Move(const std::shared_ptr<Client>& client, XMFLOAT3 position)
 		GameRoomObjectCollisionCheck(client, room_num);
 		m_game_room_manager->GetGameRoom(room_num)->CheckTriggerCollision(client->GetId());
 
+		// 이동은 MORPG 방식으로 처리해서 주석
 		//SendMoveInGameRoom(client->GetId(), room_num);
 	}
 	// 게임 룸이 아닌채 움직이면 시야처리 (마을 씬)
@@ -1546,9 +1569,11 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 		break;
 	}
 	case EventType::TRIGGER_COOLDOWN: {
-		// 특정 id의 트리거(obj_id)에 대한 발동시킨 오브젝트(target_id)의 플래그 초기화
-		UCHAR trigger = static_cast<UCHAR>(m_triggers[ev.obj_id]->GetType());
-		m_clients[ev.target_id]->SetTriggerFlag(trigger, false);
+		ExpOver* over = new ExpOver;
+		over->_comp_type = OP_TRIGGER_COOLDOWN;
+
+		memcpy(over->_send_buf, &ev.target_id, sizeof(int));
+		PostQueuedCompletionStatus(m_handle_iocp, 1, ev.obj_id, &over->_wsa_over);
 		break;
 	}
 	case EventType::TRIGGER_REMOVE: {
@@ -1573,6 +1598,7 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 				.latest_id = static_cast<BYTE>((ev.latest_id + 1)), .aggro_level = ev.aggro_level };
 			m_timer_queue.push(trigger_ev);
 		}
+		// 경고를 보낼 필요 있음, 첫타는 바로 트리거가 생성됨
 		SetTrigger(ev.obj_id, ev.trigger_type, ev.position);
 
 		break;
@@ -1766,30 +1792,31 @@ void Server::SetBattleStartTimerEvent(int client_id)
 
 void Server::SetTrigger(int client_id, TriggerType type, const XMFLOAT3& pos)
 {
-	auto game_room = m_game_room_manager->GetGameRoom(m_clients[client_id]->GetRoomNum());
+	int room_num = m_clients[client_id]->GetRoomNum();
+	auto game_room = m_game_room_manager->GetGameRoom(room_num);
 	if (!game_room)
 		return;
 
 	int trigger_id = GetNewTriggerId(type);
 	float damage{};
 
+	game_room->AddTrigger(trigger_id);
+
 	switch (type) {
 	case TriggerType::ARROW_RAIN:
 		damage = m_clients[client_id]->GetDamage() *
 			m_clients[client_id]->GetSkillRatio(ActionType::ULTIMATE);
-		m_triggers[trigger_id]->Create(damage, client_id);
+		m_triggers[trigger_id]->Create(damage, client_id, room_num);
 		break;
 
 	case TriggerType::UNDEAD_GRASP:
 		auto monster = dynamic_pointer_cast<Monster>(m_clients[client_id]);
 		damage = m_clients[client_id]->GetDamage();
-		m_triggers[trigger_id]->Create(damage, client_id, pos);
+		m_triggers[trigger_id]->Create(damage, client_id, pos, room_num);
 		break;
 	}
 
 	SendTrigger(client_id, type, pos);
-
-	game_room->AddTrigger(trigger_id);
 }
 
 void Server::SetTrigger(int client_id, TriggerType type, int target_id)

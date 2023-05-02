@@ -2,13 +2,13 @@
 #include "stdafx.h"
 #include "object.h"
 
-enum CompType 
+enum CompType
 {
 	OP_RECV, OP_SEND, OP_ACCEPT, OP_COOLDOWN_RESET, OP_MONSTER_REMOVE,
 	OP_FLOOR_CLEAR, OP_FLOOR_FAIL, OP_BEHAVIOR_CHANGE, OP_AGRO_REDUCE,
 	OP_ATTACK_COLLISION, OP_MONSTER_ATTACK_COLLISION, OP_STAMINA_CHANGE,
 	OP_HIT_SCAN, OP_ARROW_SHOOT, OP_ARROW_REMOVE, OP_GAME_ROOM_RESET,
-	OP_BATTLE_START
+	OP_BATTLE_START, OP_TRIGGER_COOLDOWN
 };
 
 class ExpOver {
@@ -66,6 +66,7 @@ public:
 
 	void ChangeStamina(FLOAT value);
 	virtual void DecreaseHp(FLOAT damage, INT id) override;
+	void RestoreCondition();
 
 private:
 	// 통신 관련 변수

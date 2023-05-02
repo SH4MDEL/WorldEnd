@@ -37,6 +37,11 @@ void GameRoom::InteractObject(InteractionType type)
 {
 	switch (type) {
 	case InteractionType::BATTLE_STARTER:
+		{
+			std::lock_guard<std::mutex> l{ m_state_lock };
+			if (m_state != GameRoomState::INGAME)
+				m_state = GameRoomState::INGAME;
+		}
 		m_battle_starter->SendEvent(m_player_ids, &type);
 		break;
 	case InteractionType::PORTAL:
@@ -397,6 +402,8 @@ void GameRoom::CheckTriggerCollision(INT id)
 
 	BoundingOrientedBox obb{};
 	for (INT trigger_id : trigger_list) {
+		if (State::INGAME != server.m_triggers[trigger_id]->GetState()) continue;
+		
 		obb = server.m_triggers[trigger_id]->GetEventBoundingBox();
 
 		// 충돌했을 때 트리거 플래그가 0이면 Activate

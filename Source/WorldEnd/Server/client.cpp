@@ -55,7 +55,7 @@ void Client::Init()
 	// 나중에 DB에서 처리될 것들
 	SetPlayerType(PlayerType::WARRIOR);
 	m_name = "Player";
-	m_damage = 90.f;
+	m_damage = 20.f;
 	m_hp = m_max_hp = 100.f;
 }
 
@@ -194,6 +194,16 @@ void Client::DecreaseHp(FLOAT damage, INT id)
 		m_state = State::DEATH;
 		m_current_animation = ObjectAnimation::DEATH;
 	}
+}
+
+// 다음 방 넘어갈 때 상태 회복
+void Client::RestoreCondition()
+{
+	m_state = State::INGAME;
+	m_current_animation = ObjectAnimation::IDLE;
+	m_hp = m_max_hp;
+	m_stamina = PlayerSetting::MAX_STAMINA;
+	m_interactable = false;
 }
 
 void Client::SetBoundingBox(PlayerType type)
