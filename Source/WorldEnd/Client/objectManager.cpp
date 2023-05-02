@@ -1,7 +1,7 @@
 #include "objectManager.h"
 
 TowerObjectManager::TowerObjectManager(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, 
-	const shared_ptr<Shader>& arrowShader, const shared_ptr<Shader>& magicCircleShader, const shared_ptr<Shader>& arrowRainShader) :
+	const shared_ptr<Shader>& arrowShader, const shared_ptr<Shader>& magicCircleShader, const shared_ptr<InstancingShader>& arrowRainShader) :
 	m_arrowShader{ arrowShader }, m_magicCircleShader{ magicCircleShader }, m_arrowRainShader{ arrowRainShader }
 {
 	for (auto& arrow : m_arrows) {
@@ -11,8 +11,10 @@ TowerObjectManager::TowerObjectManager(const ComPtr<ID3D12Device>& device, const
 	}
 
 	for (auto& arrowRain : m_arrowRains) {
-		arrowRain = make_unique<ArrowRain>();
+		arrowRain = make_shared<ArrowRain>();
+		m_arrowRainShader->SetObject(arrowRain);
 	}
+	m_arrowRainShader->SetMesh("MeshArrow");
 }
 
 void TowerObjectManager::Update(FLOAT timeElapsed)
@@ -35,10 +37,7 @@ void TowerObjectManager::Render(const ComPtr<ID3D12GraphicsCommandList>& command
 	for (auto& arrowRain : m_arrowRains) {
 		arrowRain->RenderMagicCircle(commandList);
 	}
-	commandList->SetPipelineState(m_arrowRainShader->GetPipelineState().Get());
-	for (auto& arrowRain : m_arrowRains) {
-		arrowRain->Render(commandList);
-	}
+	m_arrowRainShader->Render(commandList);
 }
 
 void TowerObjectManager::CreateArrow(const shared_ptr<GameObject>& parent, INT arrowId)

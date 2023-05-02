@@ -2,6 +2,7 @@
 #include "camera.h"
 #include "particleSystem.h"
 #include "objectManager.h"
+#include "instancingShader.h"
 
 Player::Player() : m_velocity{ 0.0f, 0.0f, 0.0f }, m_maxVelocity{ 10.0f }, m_friction{ 0.5f }, 
 	m_hp{ 100.f }, m_maxHp{ 100.f }, m_stamina{ PlayerSetting::MAX_STAMINA }, m_maxStamina{ PlayerSetting::MAX_STAMINA }, 
@@ -538,11 +539,18 @@ void Arrow::Reset()
 	m_velocity = XMFLOAT3(0.f, 0.f, 0.f);
 }
 
+void Arrow::UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& commandList)
+{
+	for (const auto & material : m_materials->m_materials) {
+		material.UpdateShaderVariable(commandList);
+	}
+}
+
 ArrowRain::ArrowRain() : m_enable{ false }, m_age{ 0.f },
-	m_lifeTime{ chrono::duration_cast<chrono::seconds>(TriggerSetting::DURATION[static_cast<INT>(TriggerType::ARROW_RAIN)]).count()}
+	m_lifeTime{ (FLOAT)(chrono::duration_cast<chrono::seconds>(TriggerSetting::DURATION[static_cast<INT>(TriggerType::ARROW_RAIN)]).count())}
 {
 	for (auto& arrow : m_arrows) {
-		arrow.first = make_unique<Arrow>();
+		arrow.first = make_shared<Arrow>();
 		arrow.first->SetMesh("MeshArrow");
 		arrow.first->SetMaterials("Archer_WeaponArrow");
 		arrow.first->Rotate(0.f, 90.f, 0.f);
@@ -550,6 +558,7 @@ ArrowRain::ArrowRain() : m_enable{ false }, m_age{ 0.f },
 		arrow.second = DX::GetRandomFLOAT(0.f, ARROW_LIFECYCLE);
 	}
 	m_magicCircle = make_unique<GameObject>();
+	m_magicCircle->SetMesh("MAGICCIRCLE");
 	m_magicCircle->SetTexture("MAGICCIRCLE");
 }
 
@@ -587,7 +596,14 @@ void ArrowRain::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList)
 
 void ArrowRain::RenderMagicCircle(const ComPtr<ID3D12GraphicsCommandList>& commandList)
 {
-	if (m_enable) m_magicCircle->Render(commandList);
+	if (m_enable) {
+		m_magicCircle->Render(commandList);
+	}
+}
+
+void ArrowRain::UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& commandList)
+{
+	if (m_arrows[0].first) m_arrows[0].first->UpdateShaderVariable(commandList);
 }
 
 void ArrowRain::SetPosition(const XMFLOAT3& position)
@@ -597,10 +613,15 @@ void ArrowRain::SetPosition(const XMFLOAT3& position)
 	XMFLOAT3 extent = TriggerSetting::EXTENT[static_cast<INT>(TriggerType::ARROW_RAIN)];
 
 	for (auto& arrow : m_arrows) {
-		arrow.first->SetPosition(Vector3::Add(GetPosition(), { 
+		arrow.first->SetPosition(Vector3::Add(position, {
 			DX::GetRandomFLOAT(-extent.x / 2.f, extent.x / 2.f),
 			MAX_ARROW_HEIGHT - (MAX_ARROW_HEIGHT * arrow.second / ARROW_LIFECYCLE), 
 			DX::GetRandomFLOAT(-extent.z / 2.f, extent.z / 2.f) }));
 	}
 	m_magicCircle->SetPosition(position);
+}
+
+array<pair<shared_ptr<Arrow>, FLOAT>, MAX_ARROWRAIN_ARROWS>& ArrowRain::GetArrows()
+{
+	return m_arrows;
 }

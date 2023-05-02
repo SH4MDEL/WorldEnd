@@ -27,6 +27,7 @@ public:
 	virtual void Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw);
 	virtual void UpdateTransform(XMFLOAT4X4* parentMatrix = nullptr);
 	virtual void UpdateAnimationTransform(XMFLOAT4X4* parentMatrix = nullptr);
+	virtual void UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& commandList);
 
 	void SetMesh(const string& name);
 	void SetTexture(const string& name);

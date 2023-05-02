@@ -138,6 +138,8 @@ protected:
 	// UI 관련
 	array<shared_ptr<HorzGaugeUI>, MAX_INGAME_USER - 1>	m_hpUI;
 	unordered_map<INT, INT>								m_idSet;
+	shared_ptr<UI>										m_interactUI;
+	shared_ptr<TextUI>									m_interactTextUI;
 	shared_ptr<UI>										m_exitUI;
 	shared_ptr<UI>										m_resultUI;
 	shared_ptr<TextUI>									m_resultTextUI;

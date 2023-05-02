@@ -3,6 +3,7 @@
 #include "object.h"
 #include "ui.h"
 
+
 class Camera;
 
 class Player : public AnimationObject
@@ -106,6 +107,8 @@ public:
 
 	void Reset();
 
+	void UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& commandList) override;
+
 	XMFLOAT3 GetVelocity() const { return m_velocity; }
 
 	void SetVelocity(XMFLOAT3 velocity) { m_velocity = velocity; }
@@ -120,6 +123,7 @@ private:
 constexpr INT MAX_ARROWRAIN_ARROWS = 30;
 constexpr FLOAT ARROW_LIFECYCLE = 0.8f;
 constexpr FLOAT MAX_ARROW_HEIGHT = 4.f;
+class InstancingShader;
 class ArrowRain : public GameObject
 {
 public:
@@ -130,17 +134,21 @@ public:
 	void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) override;
 	void RenderMagicCircle(const ComPtr<ID3D12GraphicsCommandList>& commandList);
 
+	void UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& commandList) override;
+
 	BOOL IsEnable() { return m_enable; }
 
 	void SetPosition(const XMFLOAT3& position) override;
 	void SetEnable() { m_enable = true; }
 	void SetDisable() { m_enable = false; }
 
+	array<pair<shared_ptr<Arrow>, FLOAT>, MAX_ARROWRAIN_ARROWS>& GetArrows();
+
 private:
 	BOOL														m_enable;
 	const FLOAT													m_lifeTime;
 	FLOAT														m_age;
 
-	array<pair<unique_ptr<Arrow>, FLOAT>, MAX_ARROWRAIN_ARROWS>	m_arrows;
+	array<pair<shared_ptr<Arrow>, FLOAT>, MAX_ARROWRAIN_ARROWS>	m_arrows;
 	unique_ptr<GameObject>										m_magicCircle;
 };
