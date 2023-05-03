@@ -951,6 +951,9 @@ void TowerScene::ProcessPacket(char* ptr)
 	case SC_PACKET_ADD_TRIGGER:
 		RecvAddTrigger(ptr);
 		break;
+	case SC_PACKET_ADD_MAGIC_CIRCLE:
+		RecvAddMagicCircle(ptr);
+		break;
 	}
 }
 
@@ -1106,6 +1109,9 @@ void TowerScene::RecvChangeMonsterBehavior(char* ptr)
 	if (!m_monsters.contains(packet->id))
 		return;
 	auto& monster = m_monsters[packet->id];
+
+	if (ObjectAnimation::DEATH == monster->GetCurrentAnimation())
+		return;
 
 	monster->ChangeAnimation(packet->animation);
 	//monster->ChangeBehavior(packet->behavior);
@@ -1331,4 +1337,11 @@ void TowerScene::RecvAddTrigger(char* ptr)
 
 		break;
 	}
+}
+
+void TowerScene::RecvAddMagicCircle(char* ptr)
+{
+	SC_ADD_MAGIC_CIRCLE_PACKET* packet = reinterpret_cast<SC_ADD_MAGIC_CIRCLE_PACKET*>(ptr);
+
+	printf("마법진 생성\n");
 }

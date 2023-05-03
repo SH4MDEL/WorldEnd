@@ -136,6 +136,7 @@ public:
 
 	virtual FLOAT GetMaxHp() const { return 0.f; }
 	virtual FLOAT GetHp() const { return 0.f; }
+	USHORT GetCurrentAnimation() const { return m_currentAnimation; }
 
 	virtual void Update(FLOAT timeElapsed) override;
 	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) override;

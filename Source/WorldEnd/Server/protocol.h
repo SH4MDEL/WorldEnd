@@ -73,6 +73,7 @@ constexpr char SC_PACKET_MONSTER_SHOOT = 22;
 constexpr char SC_PACKET_INTERACT_OBJECT = 23;
 constexpr char SC_PACKET_CHANGE_HP = 24;
 constexpr char SC_PACKET_ADD_TRIGGER = 25;
+constexpr char SC_PACKET_ADD_MAGIC_CIRCLE = 26;
 
 enum class PlayerType : char { WARRIOR, ARCHER, COUNT };
 enum class MonsterType : char { WARRIOR, ARCHER, WIZARD, COUNT };
@@ -602,6 +603,14 @@ struct SC_ADD_TRIGGER_PACKET
 	UCHAR type;
 	TriggerType trigger_type;
 	DirectX::XMFLOAT3 pos;
+};
+
+struct SC_ADD_MAGIC_CIRCLE_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+	DirectX::XMFLOAT3 pos;
+	DirectX::XMFLOAT3 extent;
 };
 
 #pragma pack (pop)

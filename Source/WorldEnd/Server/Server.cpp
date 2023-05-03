@@ -670,6 +670,29 @@ void Server::WorkerThread()
 			delete exp_over;
 			break;
 		}
+		case OP_MULTIPLE_TRIGGER_SET: {
+			int id = static_cast<int>(key);
+			int* target_id = reinterpret_cast<int*>(&exp_over->_send_buf);
+			TriggerType* type = reinterpret_cast<TriggerType*>((exp_over->_send_buf + sizeof(int)));
+			BYTE* current_count = reinterpret_cast<BYTE*>((exp_over->_send_buf + sizeof(int) + sizeof(TriggerType)));
+			BYTE* max_count = reinterpret_cast<BYTE*>((exp_over->_send_buf +
+				sizeof(int) + sizeof(TriggerType) + sizeof(BYTE)));
+
+			SendMagicCircle(m_clients[id]->GetRoomNum(), m_clients[*target_id]->GetPosition(),
+				TriggerSetting::EXTENT[static_cast<int>(*type)]);
+
+			TIMER_EVENT trigger_ev{ .event_time = std::chrono::system_clock::now()
+			+ TriggerSetting::GENTIME[static_cast<int>(*type)],
+			.obj_id = id, .target_id = *target_id, .position = m_clients[*target_id]->GetPosition(),
+			.event_type = EventType::MULTIPLE_TRIGGER_SET, .trigger_type = *type,
+			.latest_id = static_cast<BYTE>((*current_count + 1)), .aggro_level = *max_count,
+			.is_valid = true };
+
+			m_timer_queue.push(trigger_ev);
+
+			delete exp_over;
+			break;
+		}
 
 		}
 	}
@@ -1134,6 +1157,25 @@ void Server::SendTrigger(int client_id, TriggerType type, const XMFLOAT3& pos)
 	}
 }
 
+void Server::SendMagicCircle(int room_num, const XMFLOAT3& pos, const XMFLOAT3& extent)
+{
+	auto game_room = m_game_room_manager->GetGameRoom(room_num);
+	if (!game_room)
+		return;
+
+	SC_ADD_MAGIC_CIRCLE_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = SC_PACKET_ADD_MAGIC_CIRCLE;
+	packet.pos = pos;
+	packet.extent = extent;
+
+	for (int id : game_room->GetPlayerIds()) {
+		if (-1 == id) continue;
+
+		m_clients[id]->DoSend(&packet);
+	}
+}
+
 bool Server::IsPlayer(int client_id)
 {
 	if (0 <= client_id && client_id < MAX_USER)
@@ -1464,13 +1506,14 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 				break;
 			}
 
-			TIMER_EVENT cast_ev{ .event_time = system_clock::now() + MonsterSetting::CAST_COLLISION_TIME,
-				.obj_id = ev.obj_id, .target_id = target,
-				.position = m_clients[target]->GetPosition(),
-				.event_type = EventType::TRIGGER_SET , .trigger_type = TriggerType::UNDEAD_GRASP,
-				.latest_id = 1, .aggro_level = 3 };
+			TIMER_EVENT trigger_ev{ .event_time = std::chrono::system_clock::now()
+			+ TriggerSetting::GENTIME[static_cast<int>(TriggerType::UNDEAD_GRASP)],
+			.obj_id = ev.obj_id, .target_id = ev.target_id,
+			.position = m_clients[ev.target_id]->GetPosition(),
+			.event_type = EventType::MULTIPLE_TRIGGER_SET, .trigger_type = TriggerType::UNDEAD_GRASP,
+			.latest_id = 0, .aggro_level = 3, .is_valid = false };
 
-			m_timer_queue.push(cast_ev);
+			m_timer_queue.push(trigger_ev);
 		}
 
 		ExpOver* over = new ExpOver;
@@ -1586,20 +1629,23 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 		}
 		break;
 	}
-	case EventType::TRIGGER_SET: {
+	case EventType::MULTIPLE_TRIGGER_SET: {
 		// 트리거 생성 반복
 		// latest_id 를 현재 생성횟수, aggro_level 을 최대 생성 횟수로 체크
 		if (ev.latest_id < ev.aggro_level) {
-			TIMER_EVENT trigger_ev{ .event_time = system_clock::now()
-				+ TriggerSetting::GENTIME[static_cast<int>(ev.trigger_type)],
-				.obj_id = ev.obj_id, .target_id = ev.target_id,
-				.position = m_clients[ev.target_id]->GetPosition(),
-				.event_type = EventType::TRIGGER_SET, .trigger_type = ev.trigger_type,
-				.latest_id = static_cast<BYTE>((ev.latest_id + 1)), .aggro_level = ev.aggro_level };
-			m_timer_queue.push(trigger_ev);
+			ExpOver* over = new ExpOver;
+			over->_comp_type = OP_MULTIPLE_TRIGGER_SET;
+			memcpy(&over->_send_buf, &ev.target_id, sizeof(int));
+			memcpy((over->_send_buf + sizeof(int)), &ev.trigger_type, sizeof(TriggerType));
+			memcpy((over->_send_buf + sizeof(int) + sizeof(TriggerType)), &ev.latest_id, sizeof(BYTE));
+			memcpy((over->_send_buf + sizeof(int) + sizeof(TriggerType) + sizeof(BYTE)),
+				&ev.aggro_level, sizeof(BYTE));
+
+			PostQueuedCompletionStatus(m_handle_iocp, 1, ev.obj_id, &over->_wsa_over);
 		}
-		// 경고를 보낼 필요 있음, 첫타는 바로 트리거가 생성됨
-		SetTrigger(ev.obj_id, ev.trigger_type, ev.position);
+
+		if(ev.is_valid)
+			SetTrigger(ev.obj_id, ev.trigger_type, ev.position);
 
 		break;
 	}

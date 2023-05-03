@@ -11,7 +11,7 @@ enum class EventType : char
 	COOLDOWN_RESET, BEHAVIOR_CHANGE, AGRO_LEVEL_DECREASE,
 	ATTACK_COLLISION, MONSTER_ATTACK_COLLISION, STAMINA_CHANGE,
 	HIT_SCAN, ARROW_SHOOT, ARROW_REMOVE, GAME_ROOM_RESET,
-	TRIGGER_COOLDOWN, TRIGGER_REMOVE, TRIGGER_SET, BATTLE_START,
+	TRIGGER_COOLDOWN, TRIGGER_REMOVE, MULTIPLE_TRIGGER_SET, BATTLE_START,
 	
 };
 
@@ -28,6 +28,7 @@ struct TIMER_EVENT {
 	BYTE latest_id;
 	BYTE aggro_level;
 	bool is_stamina_increase;
+	bool is_valid;
 
 	constexpr bool operator <(const TIMER_EVENT& left)const
 	{
@@ -66,6 +67,7 @@ public:
 	void SendMonsterShoot(int client_id);
 	void SendChangeHp(int client_id, FLOAT hp);
 	void SendTrigger(int client_id, TriggerType type, const XMFLOAT3& pos);
+	void SendMagicCircle(int room_num, const XMFLOAT3& pos, const XMFLOAT3& extent);
 
 	bool IsPlayer(int client_id);
 	void GameRoomObjectCollisionCheck(const std::shared_ptr<MovementObject>& object,
