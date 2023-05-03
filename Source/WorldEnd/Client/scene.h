@@ -1,6 +1,7 @@
 #pragma once
 #include "stdafx.h"
 #include "shader.h"
+#include "instancingShader.h"
 #include "object.h"
 #include "player.h"
 #include "monster.h"

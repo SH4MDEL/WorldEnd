@@ -25,11 +25,8 @@ void GameObject::Update(FLOAT timeElapsed)
 
 void GameObject::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList)
 {
-	XMFLOAT4X4 worldMatrix;
-	XMStoreFloat4x4(&worldMatrix, XMMatrixTranspose(XMLoadFloat4x4(&m_worldMatrix)));
-	commandList->SetGraphicsRoot32BitConstants((INT)ShaderRegister::GameObject, 16, &worldMatrix, 0);
+	GameObject::UpdateShaderVariable(commandList);
 
-	if (m_texture) { m_texture->UpdateShaderVariable(commandList); }
 	if (m_materials) {
 		for (size_t i = 0; const auto& material : m_materials->m_materials) {
 			material.UpdateShaderVariable(commandList);
@@ -142,6 +139,15 @@ void GameObject::UpdateAnimationTransform(XMFLOAT4X4* parentMatrix)
 
 	if (m_sibling) m_sibling->UpdateAnimationTransform(parentMatrix);
 	if (m_child) m_child->UpdateAnimationTransform(&m_animationMatrix);
+}
+
+void GameObject::UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& commandList)
+{
+	XMFLOAT4X4 worldMatrix;
+	XMStoreFloat4x4(&worldMatrix, XMMatrixTranspose(XMLoadFloat4x4(&m_worldMatrix)));
+	commandList->SetGraphicsRoot32BitConstants((INT)ShaderRegister::GameObject, 16, &worldMatrix, 0);
+
+	if (m_texture) { m_texture->UpdateShaderVariable(commandList); }
 }
 
 void GameObject::ReleaseUploadBuffer() const

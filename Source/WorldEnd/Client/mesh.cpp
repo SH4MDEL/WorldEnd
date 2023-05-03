@@ -690,7 +690,7 @@ SkyboxMesh::SkyboxMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12Gr
 	m_vertexBufferView.SizeInBytes = sizeof(SkyboxVertex) * vertices.size();
 }
 
-BillboardMesh::BillboardMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, XMFLOAT3 position, XMFLOAT2 size)
+PlaneMesh::PlaneMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, XMFLOAT3 position, XMFLOAT2 size)
 {
 	m_nIndices = 0;
 	m_primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_POINTLIST;

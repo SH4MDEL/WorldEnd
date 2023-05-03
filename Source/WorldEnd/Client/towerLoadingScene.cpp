@@ -81,11 +81,14 @@ void TowerLoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const C
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/AD_RuneGate_B_01Mesh.bin"));
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/TowerSceneMesh/AD_RuneGateGround_B_01Mesh.bin"));
 
-	auto hpBarMesh{ make_shared<BillboardMesh>(device, commandlist, XMFLOAT3{ 0.f, 0.f, 0.f }, XMFLOAT2{ 0.75f, 0.15f }) };
+	auto hpBarMesh{ make_shared<PlaneMesh>(device, commandlist, XMFLOAT3{ 0.f, 0.f, 0.f }, XMFLOAT2{ 0.75f, 0.15f }) };
 	auto skyboxMesh{ make_shared <SkyboxMesh>(device, commandlist, 20.0f, 20.0f, 20.0f) };
+	auto magicCircleExtent = TriggerSetting::EXTENT[static_cast<INT>(TriggerType::ARROW_RAIN)];
+	auto magicCircleMesh{ make_shared<PlaneMesh>(device, commandlist, XMFLOAT3{ 0.f, 0.f, 0.f }, XMFLOAT2{ magicCircleExtent.x, magicCircleExtent.z }) };
 
 	m_meshs.insert({ "SKYBOX", skyboxMesh });
 	m_meshs.insert({ "HPBAR", hpBarMesh });
+	m_meshs.insert({ "MAGICCIRCLE", magicCircleMesh });
 
 
 	// 텍스처 로딩
@@ -101,7 +104,7 @@ void TowerLoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const C
 	skyboxTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURECUBE);
 
 	auto magicCircleTexture{ make_shared<Texture>() };
-	magicCircleTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/MagicCircle.dds"), (INT)ShaderRegister::SkyboxTexture);	// MagicCircle
+	magicCircleTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/MagicCircle.dds"), (INT)ShaderRegister::BaseTexture);	// MagicCircle
 	magicCircleTexture->CreateSrvDescriptorHeap(device);
 	magicCircleTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
 

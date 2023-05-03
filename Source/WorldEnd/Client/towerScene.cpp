@@ -141,9 +141,8 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 		static_pointer_cast<ParticleShader>(m_globalShaders["EMITTERPARTICLE"]),
 		static_pointer_cast<ParticleShader>(m_globalShaders["PUMPERPARTICLE"]));
 	m_towerObjectManager = make_unique<TowerObjectManager>(device, commandlist,
-		m_globalShaders["OBJECT"], 
-		m_globalShaders["OBJECT"], 
-		m_globalShaders["OBJECT"]);
+		m_globalShaders["OBJECT"], m_globalShaders["TRIGGEREFFECT"], 
+		static_pointer_cast<InstancingShader>(m_globalShaders["ARROW_INSTANCE"]));
 
 	BuildUI(device, commandlist);
 
@@ -196,6 +195,15 @@ void TowerScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 		m_globalShaders["UI"]->SetUI(m_hpUI[i]);
 	}
 
+	m_interactUI = make_shared<StandardUI>(XMFLOAT2{ 0.25f, 0.15f }, XMFLOAT2{ 0.24f, 0.08f });
+	m_interactUI->SetTexture("BUTTONUI");
+	m_interactTextUI = make_shared<TextUI>(XMFLOAT2{0.f, -0.2f}, XMFLOAT2{80.f, 20.f});
+	m_interactTextUI->SetColorBrush("WHITE");
+	m_interactTextUI->SetTextFormat("KOPUB18");
+	m_interactUI->SetChild(m_interactTextUI);
+	m_interactUI->SetDisable();
+	m_globalShaders["UI"]->SetUI(m_interactUI);
+
 	auto skillUI = make_shared<VertGaugeUI>(XMFLOAT2{ -0.60f, -0.80f }, XMFLOAT2{ 0.15f, 0.15f }, 0.f);
 	skillUI->SetTexture("WARRIORSKILL");
 	m_globalShaders["UI"]->SetUI(skillUI);
@@ -208,7 +216,7 @@ void TowerScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 	m_exitUI = make_shared<BackgroundUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 1.f, 1.f }); 
 	auto exitUI{ make_shared<StandardUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.4f, 0.5f}) };
 	exitUI->SetTexture("FRAMEUI");
-	auto exitTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.0f}, XMFLOAT2{120.f, 20.f}) };
+	auto exitTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{120.f, 20.f}) };
 	exitTextUI->SetText(L"던전에서 나가시겠습니까?");
 	exitTextUI->SetColorBrush("WHITE");
 	exitTextUI->SetTextFormat("KOPUB18");
@@ -608,6 +616,7 @@ void TowerScene::RenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext)
 {
 	if (m_exitUI) m_exitUI->RenderText(deviceContext);
 	if (m_resultUI) m_resultUI->RenderText(deviceContext);
+	if (m_interactUI) m_interactUI->RenderText(deviceContext);
 }
 
 void TowerScene::LoadSceneFromFile(wstring fileName, wstring sceneName)
@@ -1212,13 +1221,29 @@ void TowerScene::RecvSetInteractable(char* ptr)
 	m_player->SetInteractable(packet->interactable);
 	m_player->SetInteractableType(packet->interactable_type);
 
-	cout << "충돌 상태 : " << packet->interactable << endl;
+	if (packet->interactable) {
+		m_interactUI->SetEnable();
+	}
+	else {
+		m_interactUI->SetDisable();
+	}
+
+	switch (packet->interactable_type)
+	{
+	case BATTLE_STARTER:
+		m_interactTextUI->SetText(TEXT("F : 전투 시작"));
+		break;
+	case PORTAL:
+		m_interactTextUI->SetText(TEXT("F : 다음 층 이동"));
+		break;
+	}
 }
 
 void TowerScene::RecvWarpNextFloor(char* ptr)
 {
 	SC_WARP_NEXT_FLOOR_PACKET* packet = reinterpret_cast<SC_WARP_NEXT_FLOOR_PACKET*>(ptr);
 	
+	m_interactUI->SetDisable();
 	SetState(State::Fading);
 	m_fadeFilter->FadeOut([&]() {
 		m_player->ChangeAnimation(ObjectAnimation::IDLE);
@@ -1291,6 +1316,7 @@ void TowerScene::RecvInteractObject(char* ptr)
 	case InteractionType::BATTLE_STARTER:
 		SetState(State::WarpGate);
 
+		m_interactUI->SetDisable();
 		m_gate->SetInterect([&]() {
 			m_globalShaders["OBJECT"]->RemoveObject(m_gate);
 		m_lightSystem->m_lights[4].m_enable = true;

@@ -64,6 +64,7 @@ void GlobalLoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const 
 	auto skyboxShader{ make_shared<SkyboxShader>(device, rootsignature) };
 	auto uiShader{ make_shared<UIShader>(device, rootsignature) };
 	auto postUiShader{ make_shared<UIShader>(device, rootsignature) };
+	auto triggerEffectShader{ make_shared<TriggerEffectShader>(device, rootsignature) };
 	auto horzGaugeShader{ make_shared<HorzGaugeShader>(device, rootsignature) };
 	auto vertGaugeShader{ make_shared<VertGaugeShader>(device, rootsignature) };
 	auto shadowShader{ make_shared<ShadowShader>(device, rootsignature) };
@@ -76,9 +77,12 @@ void GlobalLoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const 
 	auto compositeShader{ make_shared<CompositeShader>(device, postRootSignature) };
 	auto fadeShader{ make_shared<FadeShader>(device, postRootSignature) };
 
+	auto arrowInstance{ make_shared<ArrowInstance>(device, rootsignature, MAX_ARROWRAIN_ARROWS) };
+
 	m_globalShaders.insert({ "ANIMATION", animationShader });
 	m_globalShaders.insert({ "OBJECT", objectShader });
 	m_globalShaders.insert({ "SKYBOX", skyboxShader });
+	m_globalShaders.insert({ "TRIGGEREFFECT", triggerEffectShader });
 	m_globalShaders.insert({ "HORZGAUGE", horzGaugeShader });
 	m_globalShaders.insert({ "VERTGAUGE", vertGaugeShader });
 	m_globalShaders.insert({ "SHADOW", shadowShader });
@@ -93,11 +97,13 @@ void GlobalLoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const 
 	m_globalShaders.insert({ "COMPOSITE", compositeShader });
 	m_globalShaders.insert({ "FADE", fadeShader });
 
+	m_globalShaders.insert({ "ARROW_INSTANCE", arrowInstance });
+
 	// 메쉬 로딩
 	LoadAnimationMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/WarriorMesh.bin"));
 	LoadAnimationMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/ArcherMesh.bin"));
 
-	auto staminaBarMesh{ make_shared<BillboardMesh>(device, commandlist, XMFLOAT3{ 0.f, 0.f, 0.f }, XMFLOAT2{ 0.1f, 0.89f }) };
+	auto staminaBarMesh{ make_shared<PlaneMesh>(device, commandlist, XMFLOAT3{ 0.f, 0.f, 0.f }, XMFLOAT2{ 0.1f, 0.89f }) };
 	m_globalMeshs.insert({ "STAMINABAR", staminaBarMesh });
 
 
