@@ -2,6 +2,7 @@
 #include "camera.h"
 #include "particleSystem.h"
 #include "objectManager.h"
+#include "instancingShader.h"
 
 Player::Player() : m_velocity{ 0.0f, 0.0f, 0.0f }, m_maxVelocity{ 10.0f }, m_friction{ 0.5f }, 
 	m_hp{ 100.f }, m_maxHp{ 100.f }, m_stamina{ PlayerSetting::MAX_STAMINA }, m_maxStamina{ PlayerSetting::MAX_STAMINA }, 
@@ -150,12 +151,13 @@ void Player::OnProcessingMouseMessage(UINT message, LPARAM lParam)
 		if (m_cooldownList[ActionType::NORMAL_ATTACK])
 			return;
 
-
-
 		ChangeAnimation(ObjectAnimation::ATTACK);
 		CreateAttackPacket(ActionType::NORMAL_ATTACK);
 		break;
 	case WM_RBUTTONDOWN:
+		if (ObjectAnimation::DEATH == m_currentAnimation)
+			return;
+
 		if (!m_dashed) {
 			if (!m_cooldownList[ActionType::DASH]) {
 
@@ -172,6 +174,9 @@ void Player::OnProcessingMouseMessage(UINT message, LPARAM lParam)
 		}
 		break;
 	case WM_RBUTTONUP:
+		if (ObjectAnimation::DEATH == m_currentAnimation)
+			return;
+
 		if (m_dashed) {
 			m_dashed = false;
 			CreateChangeStaminaPacket(true);
@@ -331,9 +336,10 @@ void Player::Update(FLOAT timeElapsed)
 	}
 
 
-#ifndef USE_NETWORK
+//#ifndef USE_NETWORK
 	Move(m_velocity);
-#endif // !USE_NETWORK
+//#endif // !USE_NETWORK
+	MoveOnStairs();
 
 	ApplyFriction(timeElapsed);
 }
@@ -434,6 +440,35 @@ void Player::ChangeAnimation(USHORT animation, bool other)
 	AnimationObject::ChangeAnimation(animation);
 }
 
+void Player::MoveOnStairs()
+{
+	XMFLOAT3 pos = GetPosition();
+	float ratio{};
+	if (pos.z >= RoomSetting::DOWNSIDE_STAIRS_BACK &&
+		pos.z <= RoomSetting::DOWNSIDE_STAIRS_FRONT)
+	{
+		ratio = RoomSetting::DOWNSIDE_STAIRS_FRONT - pos.z;
+		pos.y = RoomSetting::DEFAULT_HEIGHT -
+			RoomSetting::DOWNSIDE_STAIRS_HEIGHT * ratio / 10.f;
+	}
+	else if (pos.z >= RoomSetting::TOPSIDE_STAIRS_BACK &&
+		pos.z <= RoomSetting::TOPSIDE_STAIRS_FRONT)
+	{
+		ratio = pos.z - RoomSetting::TOPSIDE_STAIRS_BACK;
+		pos.y = RoomSetting::DEFAULT_HEIGHT +
+			RoomSetting::TOPSIDE_STAIRS_HEIGHT * ratio / 10.f;
+	}
+	else if (pos.z >= RoomSetting::DOWNSIDE_STAIRS_FRONT &&
+		pos.z <= RoomSetting::TOPSIDE_STAIRS_BACK)
+	{
+		if (std::fabs(pos.y - RoomSetting::DEFAULT_HEIGHT) <= std::numeric_limits<float>::epsilon()) {
+			return;
+		}
+		pos.y = RoomSetting::DEFAULT_HEIGHT;
+	}
+	SetPosition(pos);
+}
+
 void Player::CreateMovePacket()
 {
 #ifdef USE_NETWORK
@@ -523,6 +558,12 @@ void Arrow::Update(FLOAT timeElapsed)
 	if (m_enable) {
 		GameObject::Update(timeElapsed);
 		Move(Vector3::Mul(m_velocity, timeElapsed));
+
+		// 중력적용
+		m_velocity = Vector3::Add(m_velocity, XMFLOAT3(0.f, -10.f * timeElapsed, 0.f));
+
+		if(m_velocity.y < 0)
+			Rotate(0.f, -m_velocity.y / 3.f, 0.f);
 	}
 }
 
@@ -538,11 +579,18 @@ void Arrow::Reset()
 	m_velocity = XMFLOAT3(0.f, 0.f, 0.f);
 }
 
+void Arrow::UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& commandList)
+{
+	for (const auto & material : m_materials->m_materials) {
+		material.UpdateShaderVariable(commandList);
+	}
+}
+
 ArrowRain::ArrowRain() : m_enable{ false }, m_age{ 0.f },
-	m_lifeTime{ chrono::duration_cast<chrono::seconds>(TriggerSetting::DURATION[static_cast<INT>(TriggerType::ARROW_RAIN)]).count()}
+	m_lifeTime{ (FLOAT)(chrono::duration_cast<chrono::seconds>(TriggerSetting::DURATION[static_cast<INT>(TriggerType::ARROW_RAIN)]).count())}
 {
 	for (auto& arrow : m_arrows) {
-		arrow.first = make_unique<Arrow>();
+		arrow.first = make_shared<Arrow>();
 		arrow.first->SetMesh("MeshArrow");
 		arrow.first->SetMaterials("Archer_WeaponArrow");
 		arrow.first->Rotate(0.f, 90.f, 0.f);
@@ -550,6 +598,7 @@ ArrowRain::ArrowRain() : m_enable{ false }, m_age{ 0.f },
 		arrow.second = DX::GetRandomFLOAT(0.f, ARROW_LIFECYCLE);
 	}
 	m_magicCircle = make_unique<GameObject>();
+	m_magicCircle->SetMesh("MAGICCIRCLE");
 	m_magicCircle->SetTexture("MAGICCIRCLE");
 }
 
@@ -587,7 +636,14 @@ void ArrowRain::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList)
 
 void ArrowRain::RenderMagicCircle(const ComPtr<ID3D12GraphicsCommandList>& commandList)
 {
-	if (m_enable) m_magicCircle->Render(commandList);
+	if (m_enable) {
+		m_magicCircle->Render(commandList);
+	}
+}
+
+void ArrowRain::UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& commandList)
+{
+	if (m_arrows[0].first) m_arrows[0].first->UpdateShaderVariable(commandList);
 }
 
 void ArrowRain::SetPosition(const XMFLOAT3& position)
@@ -597,10 +653,15 @@ void ArrowRain::SetPosition(const XMFLOAT3& position)
 	XMFLOAT3 extent = TriggerSetting::EXTENT[static_cast<INT>(TriggerType::ARROW_RAIN)];
 
 	for (auto& arrow : m_arrows) {
-		arrow.first->SetPosition(Vector3::Add(GetPosition(), { 
+		arrow.first->SetPosition(Vector3::Add(position, {
 			DX::GetRandomFLOAT(-extent.x / 2.f, extent.x / 2.f),
 			MAX_ARROW_HEIGHT - (MAX_ARROW_HEIGHT * arrow.second / ARROW_LIFECYCLE), 
 			DX::GetRandomFLOAT(-extent.z / 2.f, extent.z / 2.f) }));
 	}
 	m_magicCircle->SetPosition(position);
+}
+
+array<pair<shared_ptr<Arrow>, FLOAT>, MAX_ARROWRAIN_ARROWS>& ArrowRain::GetArrows()
+{
+	return m_arrows;
 }

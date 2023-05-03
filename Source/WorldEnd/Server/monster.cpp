@@ -79,10 +79,6 @@ void Monster::Update(FLOAT elapsed_time)
 	if (State::INGAME != m_state) return;
 
 	DoBehavior(elapsed_time);
-
-	Server& server = Server::GetInstance();
-	auto game_room = server.GetGameRoomManager()->GetGameRoom(m_room_num);
-	game_room->CheckTriggerCollision(m_id);
 }
 
 void Monster::UpdatePosition(const XMFLOAT3& dir, FLOAT elapsed_time, FLOAT speed)
@@ -93,6 +89,10 @@ void Monster::UpdatePosition(const XMFLOAT3& dir, FLOAT elapsed_time, FLOAT spee
 	m_position = Vector3::Add(m_position, Vector3::Mul(m_velocity, elapsed_time));
 
 	m_bounding_box.Center = m_position;
+
+	Server& server = Server::GetInstance();
+	auto game_room = server.GetGameRoomManager()->GetGameRoom(m_room_num);
+	game_room->CheckTriggerCollision(m_id);
 }
 
 void Monster::UpdateRotation(const XMFLOAT3& dir)
@@ -178,7 +178,8 @@ void Monster::SetBehaviorTimerEvent(MonsterBehavior behavior)
 
 void Monster::SetTarget(INT id)
 {
-	m_target_id = id;
+	if (m_target_id != id)
+		m_target_id = id;
 }
 
 void Monster::SetAggroLevel(BYTE aggro_level)
@@ -317,10 +318,10 @@ void Monster::DecreaseHp(FLOAT damage, INT id)
 	if (AggroLevel::HIT_AGGRO < m_aggro_level)
 		return;
 
-	// 일정 비율 이상 데미지가 들어오면 타겟 변경
-	if ((m_max_hp / 11.f - damage) <= std::numeric_limits<FLOAT>::epsilon()) {
+	// 일정 비율 이상 (현재는 20%) 데미지가 들어오면 타겟 변경
+	if ((m_max_hp / 5.f - damage) <= std::numeric_limits<FLOAT>::epsilon()) {
 		SetTarget(id);
-		SetAggroLevel(AggroLevel::HIT_AGGRO);
+		//SetAggroLevel(AggroLevel::HIT_AGGRO);
 	}
 }
 
@@ -382,7 +383,7 @@ void Monster::ChasePlayer(FLOAT elapsed_time)
 
 	UpdatePosition(player_dir, elapsed_time, MonsterSetting::WALK_SPEED);
 	UpdateRotation(player_dir);
-	CollisionCheck();
+	CollisionCheck();	
 }
 
 void Monster::Retarget()

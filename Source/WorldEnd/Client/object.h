@@ -27,6 +27,7 @@ public:
 	virtual void Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw);
 	virtual void UpdateTransform(XMFLOAT4X4* parentMatrix = nullptr);
 	virtual void UpdateAnimationTransform(XMFLOAT4X4* parentMatrix = nullptr);
+	virtual void UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& commandList);
 
 	void SetMesh(const string& name);
 	void SetTexture(const string& name);
@@ -136,6 +137,7 @@ public:
 
 	virtual FLOAT GetMaxHp() const { return 0.f; }
 	virtual FLOAT GetHp() const { return 0.f; }
+	USHORT GetCurrentAnimation() const { return m_currentAnimation; }
 
 	virtual void Update(FLOAT timeElapsed) override;
 	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) override;

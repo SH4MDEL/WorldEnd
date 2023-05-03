@@ -136,8 +136,8 @@ public:
 	void SetCooldownEvent(INT id);
 	void SetRemoveEvent(INT id);
 	void Activate(INT id);
-	void Create(FLOAT damage, INT id);
-	void Create(FLOAT damage, INT id, const XMFLOAT3& position);
+	void Create(FLOAT damage, INT id, INT room_num);
+	void Create(FLOAT damage, INT id, const XMFLOAT3& position, INT room_num);
 
 protected:
 	virtual void ProcessTrigger(INT id) = 0;
@@ -220,6 +220,8 @@ public:
 	virtual MONSTER_DATA GetMonsterData() const { return MONSTER_DATA(); }
 	virtual MonsterType GetMonsterType() const { return MonsterType::COUNT; }
 	virtual const SOCKET& GetSocket() const { return SOCKET(); }
+	virtual USHORT GetCurrentAnimation() const { return 0; }
+	virtual UINT GetLastMoveTime() const { return 0; }
 	virtual void DoSend(void* p) {}
 	virtual void DoSend(void* p, INT packet_count) {}
 

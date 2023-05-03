@@ -2,13 +2,13 @@
 #include "stdafx.h"
 #include "object.h"
 
-enum CompType 
+enum CompType
 {
 	OP_RECV, OP_SEND, OP_ACCEPT, OP_COOLDOWN_RESET, OP_MONSTER_REMOVE,
 	OP_FLOOR_CLEAR, OP_FLOOR_FAIL, OP_BEHAVIOR_CHANGE, OP_AGRO_REDUCE,
 	OP_ATTACK_COLLISION, OP_MONSTER_ATTACK_COLLISION, OP_STAMINA_CHANGE,
 	OP_HIT_SCAN, OP_ARROW_SHOOT, OP_ARROW_REMOVE, OP_GAME_ROOM_RESET,
-	OP_BATTLE_START
+	OP_BATTLE_START, OP_TRIGGER_COOLDOWN, OP_MULTIPLE_TRIGGER_SET
 };
 
 class ExpOver {
@@ -47,6 +47,7 @@ public:
 	void SetLatestId(BYTE id);
 	void SetInteractable(bool val);
 	void SetCurrentAnimation(USHORT animation);
+	void SetLastMoveTime(UINT time);
 
 	const SOCKET& GetSocket() const override { return m_socket; }
 	ExpOver& GetExpOver() { return m_recv_over; }
@@ -54,27 +55,30 @@ public:
 	bool GetReadyCheck() const { return m_ready_check; }
 	PlayerType GetPlayerType() const override { return m_player_type; }
 	virtual FLOAT GetSkillRatio(ActionType type) const override;
-	const BoundingOrientedBox& GetWeaponBoundingBox() const { return m_weopon_bounding_box; }
+	const BoundingOrientedBox& GetWeaponBoundingBox() const { return m_weapon_bounding_box; }
 	FLOAT GetStamina() const { return m_stamina; }
 	BYTE GetLatestId() const { return m_latest_id; }
 	bool GetInteractable() const { return m_interactable; }
-	USHORT GetCurrentAnimation() const { return m_current_animation; }
+	virtual USHORT GetCurrentAnimation() const override { return m_current_animation; }
+	virtual UINT GetLastMoveTime() const override { return m_last_move_time; }
 
 	PLAYER_DATA GetPlayerData() const override;
 
 	void ChangeStamina(FLOAT value);
 	virtual void DecreaseHp(FLOAT damage, INT id) override;
+	void RestoreCondition();
 
 private:
 	// 통신 관련 변수
 	SOCKET					m_socket;
 	ExpOver					m_recv_over;
 	INT						m_remain_size;
+	UINT					m_last_move_time;
 
 	bool					m_ready_check;      // 로비에서 준비 
 
 	PlayerType				m_player_type;      // 플레이어 종류
-	BoundingOrientedBox		m_weopon_bounding_box;
+	BoundingOrientedBox		m_weapon_bounding_box;
 
 	FLOAT					m_stamina;
 	BYTE					m_latest_id;

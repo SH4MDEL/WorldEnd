@@ -141,9 +141,8 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 		static_pointer_cast<ParticleShader>(m_globalShaders["EMITTERPARTICLE"]),
 		static_pointer_cast<ParticleShader>(m_globalShaders["PUMPERPARTICLE"]));
 	m_towerObjectManager = make_unique<TowerObjectManager>(device, commandlist,
-		m_globalShaders["OBJECT"], 
-		m_globalShaders["OBJECT"], 
-		m_globalShaders["OBJECT"]);
+		m_globalShaders["OBJECT"], m_globalShaders["TRIGGEREFFECT"], 
+		static_pointer_cast<InstancingShader>(m_globalShaders["ARROW_INSTANCE"]));
 
 	BuildUI(device, commandlist);
 
@@ -196,6 +195,15 @@ void TowerScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 		m_globalShaders["UI"]->SetUI(m_hpUI[i]);
 	}
 
+	m_interactUI = make_shared<StandardUI>(XMFLOAT2{ 0.25f, 0.15f }, XMFLOAT2{ 0.24f, 0.08f });
+	m_interactUI->SetTexture("BUTTONUI");
+	m_interactTextUI = make_shared<TextUI>(XMFLOAT2{0.f, -0.2f}, XMFLOAT2{80.f, 20.f});
+	m_interactTextUI->SetColorBrush("WHITE");
+	m_interactTextUI->SetTextFormat("KOPUB18");
+	m_interactUI->SetChild(m_interactTextUI);
+	m_interactUI->SetDisable();
+	m_globalShaders["UI"]->SetUI(m_interactUI);
+
 	auto skillUI = make_shared<VertGaugeUI>(XMFLOAT2{ -0.60f, -0.80f }, XMFLOAT2{ 0.15f, 0.15f }, 0.f);
 	skillUI->SetTexture("WARRIORSKILL");
 	m_globalShaders["UI"]->SetUI(skillUI);
@@ -208,7 +216,7 @@ void TowerScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 	m_exitUI = make_shared<BackgroundUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 1.f, 1.f }); 
 	auto exitUI{ make_shared<StandardUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.4f, 0.5f}) };
 	exitUI->SetTexture("FRAMEUI");
-	auto exitTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.0f}, XMFLOAT2{120.f, 20.f}) };
+	auto exitTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{120.f, 20.f}) };
 	exitTextUI->SetText(L"던전에서 나가시겠습니까?");
 	exitTextUI->SetColorBrush("WHITE");
 	exitTextUI->SetTextFormat("KOPUB18");
@@ -608,6 +616,7 @@ void TowerScene::RenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext)
 {
 	if (m_exitUI) m_exitUI->RenderText(deviceContext);
 	if (m_resultUI) m_resultUI->RenderText(deviceContext);
+	if (m_interactUI) m_interactUI->RenderText(deviceContext);
 }
 
 void TowerScene::LoadSceneFromFile(wstring fileName, wstring sceneName)
@@ -772,8 +781,11 @@ INT TowerScene::SetTarget(const shared_ptr<GameObject>& object)
 
 	for (const auto& elm : m_monsters) {
 		if (elm.second) {
-			if (elm.second->GetHp() <= std::numeric_limits<float>::epsilon()) continue;
 			// 체력이 0이면(죽었다면) 건너뜀
+			if (elm.second->GetHp() <= std::numeric_limits<float>::epsilon()) continue;
+
+			// 추가는 되었으나 그려지고 있지 않다면 건너뜀
+			if (!m_globalShaders["ANIMATION"]->GetMonsters().contains(elm.first)) continue;
 
 			sub = Vector3::Sub(pos, elm.second->GetPosition());
 			length = Vector3::Length(sub);
@@ -948,6 +960,9 @@ void TowerScene::ProcessPacket(char* ptr)
 	case SC_PACKET_ADD_TRIGGER:
 		RecvAddTrigger(ptr);
 		break;
+	case SC_PACKET_ADD_MAGIC_CIRCLE:
+		RecvAddMagicCircle(ptr);
+		break;
 	}
 }
 
@@ -985,35 +1000,33 @@ void TowerScene::RecvLoginOk(char* ptr)
 {
 	SC_LOGIN_OK_PACKET* packet = reinterpret_cast<SC_LOGIN_OK_PACKET*>(ptr);
 	m_player->SetId(packet->player_data.id);
-	m_player->SetPosition(RoomSetting::START_POSITION);
+	m_player->SetPosition(packet->player_data.pos);
+	m_player->SetHp(packet->player_data.hp);
 }
 
 void TowerScene::RecvAddObject(char* ptr)
 {
 	SC_ADD_OBJECT_PACKET* packet = reinterpret_cast<SC_ADD_OBJECT_PACKET*>(ptr);
 
-	PLAYER_DATA player_data{};
-
-	player_data.hp = packet->player_data.hp;
-	player_data.id = packet->player_data.id;
-	player_data.pos = packet->player_data.pos;
+	INT id = packet->player_data.id;
 
 	auto multiPlayer = make_shared<Player>();
 	multiPlayer->SetType(packet->player_type);
 	LoadPlayerFromFile(multiPlayer);
 
-	multiPlayer->SetPosition(XMFLOAT3{ 0.f, 0.f, 0.f });
+	// 멀티플레이어 설정
+	multiPlayer->SetPosition(packet->player_data.pos);
+	multiPlayer->SetHp(packet->player_data.hp);
 
-	m_multiPlayers.insert({ player_data.id, multiPlayer });
+	m_multiPlayers.insert({ id, multiPlayer });
 
 	SetHpBar(multiPlayer);
 
-	m_idSet.insert({ player_data.id, (INT)m_idSet.size() });
-	m_hpUI[m_idSet[player_data.id]]->SetEnable();
+	m_idSet.insert({ id, (INT)m_idSet.size() });
+	m_hpUI[m_idSet[id]]->SetEnable();
 
-	m_globalShaders["ANIMATION"]->SetMultiPlayer(player_data.id, multiPlayer);
-	cout << "add player" << static_cast<int>(player_data.id) << endl;
-
+	m_globalShaders["ANIMATION"]->SetMultiPlayer(id, multiPlayer);
+	cout << "add player" << id << endl;
 }
 
 void TowerScene::RecvRemovePlayer(char* ptr)
@@ -1037,19 +1050,18 @@ void TowerScene::RecvUpdateClient(char* ptr)
 {
 	SC_UPDATE_CLIENT_PACKET* packet = reinterpret_cast<SC_UPDATE_CLIENT_PACKET*>(ptr);
 
-	if (-1 == packet->data.id) {
-		return;
-	}
+	//if (-1 == packet->data.id) {
+	//	return;
+	//}
 
 	if (packet->data.id == m_player->GetId()) {
 		m_player->SetPosition(packet->data.pos);
 	}
 	else {
-		// towerScene의 multiPlayer를 업데이트 해도 shader의 multiPlayer도 업데이트 됨.
-		XMFLOAT3 playerPosition = packet->data.pos;
 		auto& player = m_multiPlayers[packet->data.id];
-		player->SetPosition(playerPosition);
-		player->SetVelocity(packet->data.velocity);
+
+		player->SetPosition(packet->data.pos);
+		//player->SetVelocity(packet->data.velocity);
 		player->Rotate(0.f, 0.f, packet->data.yaw - player->GetYaw());
 		player->SetHp(packet->data.hp);
 		m_hpUI[m_idSet[packet->data.id]]->SetGauge(packet->data.hp);
@@ -1106,6 +1118,9 @@ void TowerScene::RecvChangeMonsterBehavior(char* ptr)
 	if (!m_monsters.contains(packet->id))
 		return;
 	auto& monster = m_monsters[packet->id];
+
+	if (ObjectAnimation::DEATH == monster->GetCurrentAnimation())
+		return;
 
 	monster->ChangeAnimation(packet->animation);
 	//monster->ChangeBehavior(packet->behavior);
@@ -1206,19 +1221,37 @@ void TowerScene::RecvSetInteractable(char* ptr)
 	m_player->SetInteractable(packet->interactable);
 	m_player->SetInteractableType(packet->interactable_type);
 
-	cout << "충돌 상태 : " << packet->interactable << endl;
+	if (packet->interactable) {
+		m_interactUI->SetEnable();
+	}
+	else {
+		m_interactUI->SetDisable();
+	}
+
+	switch (packet->interactable_type)
+	{
+	case BATTLE_STARTER:
+		m_interactTextUI->SetText(TEXT("F : 전투 시작"));
+		break;
+	case PORTAL:
+		m_interactTextUI->SetText(TEXT("F : 다음 층 이동"));
+		break;
+	}
 }
 
 void TowerScene::RecvWarpNextFloor(char* ptr)
 {
 	SC_WARP_NEXT_FLOOR_PACKET* packet = reinterpret_cast<SC_WARP_NEXT_FLOOR_PACKET*>(ptr);
 	
+	m_interactUI->SetDisable();
 	SetState(State::Fading);
 	m_fadeFilter->FadeOut([&]() {
+		m_player->ChangeAnimation(ObjectAnimation::IDLE);
 		m_player->SetPosition(RoomSetting::START_POSITION);
 
 		for (auto& elm : m_multiPlayers) {
 			elm.second->SetPosition(RoomSetting::START_POSITION);
+			elm.second->ChangeAnimation(ObjectAnimation::IDLE);
 		}
 
 		m_globalShaders["OBJECT"]->SetObject(m_gate);
@@ -1254,16 +1287,16 @@ void TowerScene::RecvArrowShoot(char* ptr)
 	if (0 <= packet->id && packet->id < MAX_USER) {
 		if (packet->id == m_player->GetId()) {
 			//RotateToTarget(m_player, packet->target_id);
-			m_towerObjectManager->CreateArrow(m_player, packet->arrow_id);
+			m_towerObjectManager->CreateArrow(m_player, packet->arrow_id, PlayerSetting::ARROW_SPEED);
 		}
 		else {
 			auto& player = m_multiPlayers[packet->id];
 			//RotateToTarget(player, packet->target_id);
-			m_towerObjectManager->CreateArrow(player, packet->arrow_id);
+			m_towerObjectManager->CreateArrow(player, packet->arrow_id, PlayerSetting::ARROW_SPEED);
 		}
 	}
 	else {
-		m_towerObjectManager->CreateArrow(m_monsters[packet->id], packet->arrow_id);
+		m_towerObjectManager->CreateArrow(m_monsters[packet->id], packet->arrow_id, MonsterSetting::ARROW_SPEED);
 	}
 }
 
@@ -1283,6 +1316,7 @@ void TowerScene::RecvInteractObject(char* ptr)
 	case InteractionType::BATTLE_STARTER:
 		SetState(State::WarpGate);
 
+		m_interactUI->SetDisable();
 		m_gate->SetInterect([&]() {
 			m_globalShaders["OBJECT"]->RemoveObject(m_gate);
 		m_lightSystem->m_lights[4].m_enable = true;
@@ -1329,4 +1363,11 @@ void TowerScene::RecvAddTrigger(char* ptr)
 
 		break;
 	}
+}
+
+void TowerScene::RecvAddMagicCircle(char* ptr)
+{
+	SC_ADD_MAGIC_CIRCLE_PACKET* packet = reinterpret_cast<SC_ADD_MAGIC_CIRCLE_PACKET*>(ptr);
+
+	printf("마법진 생성\n");
 }

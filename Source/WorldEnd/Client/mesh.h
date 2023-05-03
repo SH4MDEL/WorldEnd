@@ -201,10 +201,11 @@ public:
 	~SkyboxMesh() = default;
 };
 
-class BillboardMesh : public Mesh
+// 기하 셰이더를 사용해야 함.
+class PlaneMesh : public Mesh
 {
 public:
-	BillboardMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList,
+	PlaneMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList,
 		XMFLOAT3 position, XMFLOAT2 size);
-	~BillboardMesh() = default;
+	~PlaneMesh() = default;
 };

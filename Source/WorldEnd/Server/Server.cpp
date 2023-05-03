@@ -39,6 +39,8 @@ Server::Server()
 
 	m_game_room_manager = std::make_unique<GameRoomManager>();
 
+
+	printf("Complete Initialize!\n");
 	// ----------------------- //
 }
 
@@ -131,7 +133,7 @@ void Server::Network()
 		if (fps.count() < 1) continue;
 
 		if (frame_count.count() & 1) {
-			//SendPlayerDataPacket();
+			m_game_room_manager->SendPlayerData();
 		}
 		else {
 			m_game_room_manager->SendMonsterData();
@@ -525,17 +527,19 @@ void Server::WorkerThread()
 			}
 
 			std::span<int> ids{};
+			float length{};
 			if (IsPlayer(id)) {
-				ids = game_room->GetMonsterIds();
 				// 플레이어면 충돌대상은 몬스터이므로 ids는 몬스터
+				ids = game_room->GetMonsterIds();
+				length = PlayerSetting::ARROW_RANGE;
 			}
 			else {
-				ids = game_room->GetPlayerIds();
 				// 플레이어가 아니면 충돌대상은 플레이어이므로 ids는 플레이어
+				ids = game_room->GetPlayerIds();
+				length = MonsterSetting::ARROW_RANGE;
 			}
 
 			// 화살이 날아갈 거리, 임시값 30
-			float length{ 30.f };
 			float near_dist{std::numeric_limits<float>::max()};
 			int near_id{ -1 };
 			XMVECTOR pos{ XMLoadFloat3(position) };
@@ -584,22 +588,20 @@ void Server::WorkerThread()
 			
 			switch (*type) {
 			case ActionType::NORMAL_ATTACK:
-			case ActionType::SKILL: 
-			{
-				auto game_room = m_game_room_manager->GetGameRoom(m_clients[id]->GetRoomNum());
-				if (!game_room) {
-					break;
+				if (IsPlayer(id)) {
+					if (m_clients[id]->GetCurrentAnimation() != ObjectAnimation::ATTACK)
+						break;
 				}
-
-				int arrow_id = game_room->GetArrowId();
-
-				SetRemoveArrowTimerEvent(id, arrow_id);
-
-				int target = GetNearTarget(id, PlayerSetting::AUTO_TARGET_RANGE);
-				SendArrowShoot(id, arrow_id);
-				SetHitScanTimerEvent(id, target, *type, arrow_id);
+				ProcessArrow(id, *type);
 				break;
-			}
+			case ActionType::SKILL:
+				if (IsPlayer(id)) {
+					if (m_clients[id]->GetCurrentAnimation() != PlayerAnimation::SKILL)
+						break;
+				}
+				ProcessArrow(id, *type);
+				
+				break;
 			case ActionType::ULTIMATE:
 				SetTrigger(id, TriggerType::ARROW_RAIN, 
 					Vector3::Add(m_clients[id]->GetPosition(), Vector3::Mul(m_clients[id]->GetFront(), 3.f)));
@@ -651,6 +653,46 @@ void Server::WorkerThread()
 			delete exp_over;
 			break;
 		}
+		case OP_TRIGGER_COOLDOWN: {
+			int trigger_id = static_cast<int>(key);
+			int* obj_id = reinterpret_cast<int*>(exp_over->_send_buf);
+			
+			// 특정 id의 트리거(obj_id)에 대한 발동시킨 오브젝트(target_id)의 플래그 초기화
+			UCHAR trigger = static_cast<UCHAR>(m_triggers[trigger_id]->GetType());
+			m_clients[*obj_id]->SetTriggerFlag(trigger, false);
+
+			auto game_room = m_game_room_manager->GetGameRoom(m_clients[*obj_id]->GetRoomNum());
+			if (!game_room)
+				break;
+
+			game_room->CheckTriggerCollision(*obj_id);
+
+			delete exp_over;
+			break;
+		}
+		case OP_MULTIPLE_TRIGGER_SET: {
+			int id = static_cast<int>(key);
+			int* target_id = reinterpret_cast<int*>(&exp_over->_send_buf);
+			TriggerType* type = reinterpret_cast<TriggerType*>((exp_over->_send_buf + sizeof(int)));
+			BYTE* current_count = reinterpret_cast<BYTE*>((exp_over->_send_buf + sizeof(int) + sizeof(TriggerType)));
+			BYTE* max_count = reinterpret_cast<BYTE*>((exp_over->_send_buf +
+				sizeof(int) + sizeof(TriggerType) + sizeof(BYTE)));
+
+			SendMagicCircle(m_clients[id]->GetRoomNum(), m_clients[*target_id]->GetPosition(),
+				TriggerSetting::EXTENT[static_cast<int>(*type)]);
+
+			TIMER_EVENT trigger_ev{ .event_time = std::chrono::system_clock::now()
+			+ TriggerSetting::GENTIME[static_cast<int>(*type)],
+			.obj_id = id, .target_id = *target_id, .position = m_clients[*target_id]->GetPosition(),
+			.event_type = EventType::MULTIPLE_TRIGGER_SET, .trigger_type = *type,
+			.latest_id = static_cast<BYTE>((*current_count + 1)), .aggro_level = *max_count,
+			.is_valid = true };
+
+			m_timer_queue.push(trigger_ev);
+
+			delete exp_over;
+			break;
+		}
 
 		}
 	}
@@ -674,8 +716,13 @@ void Server::ProcessPacket(int id, char* p)
 
 		// 원래는 던전 진입 시 던전에 배치해야하지만
 		// 현재 마을이 없이 바로 던전에 진입하므로 던전에 입장시킴
-		client->SetRoomNum(0);
-		m_game_room_manager->SetPlayer(client->GetRoomNum(), id);
+		/*client->SetRoomNum(0);
+		m_game_room_manager->SetPlayer(client->GetRoomNum(), id);*/
+
+		if (!m_game_room_manager->FillPlayer(id)) {
+			Disconnect(id);
+			// 채우지 못할 경우 현재는 접속 종료
+		}
 		m_game_room_manager->SendAddMonster(client->GetRoomNum(), id);
 
 		printf("%d is connect\n", client->GetId());
@@ -688,10 +735,7 @@ void Server::ProcessPacket(int id, char* p)
 		// 속도만 받아와서 처리해도 됨
 		client->SetVelocity(packet->velocity);
 
-		XMFLOAT3 pos = packet->pos;
-		pos.x += packet->velocity.x;
-		pos.y += packet->velocity.y;
-		pos.z += packet->velocity.z;
+		XMFLOAT3 pos = Vector3::Add(client->GetPosition(), packet->velocity);
 		client->SetYaw(packet->yaw);
 
 		Move(client, pos);
@@ -705,6 +749,11 @@ void Server::ProcessPacket(int id, char* p)
 	}
 	case CS_PACKET_ATTACK: {
 		CS_ATTACK_PACKET* packet = reinterpret_cast<CS_ATTACK_PACKET*>(p);
+
+		// 패킷을 전송받았을 때 충돌 타이밍을 네트워크 전송 시간만큼을 보정해 줘야 함
+		// client 객체에서 지연 시간을 저장하고, 해당 값으로 보정해주면?
+		auto time = std::chrono::system_clock::now() - packet->attack_time;
+		packet->attack_time += time;
 
 		// 충돌 위치, 시간을 서버에서 결정
 		switch (client->GetPlayerType()) {
@@ -797,38 +846,11 @@ void Server::SendLoginOk(int client_id)
 	SC_LOGIN_OK_PACKET packet{};
 	packet.size = sizeof(packet);
 	packet.type = SC_PACKET_LOGIN_OK;
-	packet.player_data.id = m_clients[client_id]->GetId();
-	packet.player_data.pos = m_clients[client_id]->GetPosition();
-	packet.player_data.hp = m_clients[client_id]->GetHp();
+	packet.player_data = m_clients[client_id]->GetPlayerData();
 	packet.player_type = m_clients[client_id]->GetPlayerType();
 	strcpy_s(packet.name, sizeof(packet.name), m_clients[client_id]->GetName().c_str());
 
 	m_clients[client_id]->DoSend(&packet);
-
-	packet.type = SC_PACKET_ADD_OBJECT;
-
-	// 현재 접속해 있는 모든 클라이언트들에게 새로 로그인한 클라이언트들의 정보를 전송
-	for (size_t i = 0; i < MAX_USER; ++i) {
-		if (-1 == m_clients[i]->GetId()) continue;
-		if (m_clients[client_id]->GetId() == m_clients[i]->GetId()) continue;
-		
-		m_clients[i]->DoSend(&packet);
-	}
-
-	// 새로 로그인한 클라이언트에게 현재 접속해 있는 모든 클라이언트들의 정보를 전송
-	for (size_t i = 0; i < MAX_USER; ++i){
-		if (-1 == m_clients[i]->GetId()) continue;
-		if (m_clients[client_id]->GetId() == m_clients[i]->GetId()) continue;
-
-		SC_LOGIN_OK_PACKET sub_packet{};
-		sub_packet.size = sizeof(sub_packet);
-		sub_packet.type = SC_PACKET_ADD_OBJECT;
-		sub_packet.player_data = m_clients[i]->GetPlayerData();
-		strcpy_s(sub_packet.name, sizeof(sub_packet.name), m_clients[i]->GetName().c_str());
-		sub_packet.player_type = m_clients[i]->GetPlayerType();
-
-		m_clients[client_id]->DoSend(&sub_packet);
-	}
 }
 
 void Server::SendMoveInGameRoom(int client_id, int room_num)
@@ -1135,6 +1157,25 @@ void Server::SendTrigger(int client_id, TriggerType type, const XMFLOAT3& pos)
 	}
 }
 
+void Server::SendMagicCircle(int room_num, const XMFLOAT3& pos, const XMFLOAT3& extent)
+{
+	auto game_room = m_game_room_manager->GetGameRoom(room_num);
+	if (!game_room)
+		return;
+
+	SC_ADD_MAGIC_CIRCLE_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = SC_PACKET_ADD_MAGIC_CIRCLE;
+	packet.pos = pos;
+	packet.extent = extent;
+
+	for (int id : game_room->GetPlayerIds()) {
+		if (-1 == id) continue;
+
+		m_clients[id]->DoSend(&packet);
+	}
+}
+
 bool Server::IsPlayer(int client_id)
 {
 	if (0 <= client_id && client_id < MAX_USER)
@@ -1170,6 +1211,30 @@ void Server::GameRoomObjectCollisionCheck(const std::shared_ptr<MovementObject>&
 	if (IsPlayer(object->GetId())) {
 		m_game_room_manager->EventCollisionCheck(object->GetRoomNum(), object->GetId());
 	}
+}
+
+void Server::ProcessArrow(int client_id, ActionType type)
+{
+	auto game_room = m_game_room_manager->GetGameRoom(m_clients[client_id]->GetRoomNum());
+	if (!game_room) {
+		return;
+	}
+
+	int arrow_id = game_room->GetArrowId();
+
+	SetRemoveArrowTimerEvent(client_id, arrow_id);
+
+	float target_range{};
+	if (IsPlayer(client_id)) {
+		target_range = PlayerSetting::ARROW_RANGE;
+	}
+	else {
+		target_range = MonsterSetting::ARROW_RANGE;
+	}
+
+	int target = GetNearTarget(client_id, target_range);
+	SendArrowShoot(client_id, arrow_id);
+	SetHitScanTimerEvent(client_id, target, type, arrow_id);
 }
 
 INT Server::GetNewId()
@@ -1241,17 +1306,20 @@ INT Server::GetNewTriggerId(TriggerType type)
 
 void Server::Move(const std::shared_ptr<Client>& client, XMFLOAT3 position)
 {
+	client->SetPosition(position);
+
 	// 게임 룸에 진입한채 움직이면 시야처리 X (타워 씬)
 	int room_num = client->GetRoomNum();
+
 	if (m_game_room_manager->IsValidRoomNum(room_num)) {
-		MoveObject(client, position);
 		SetPositionOnStairs(client);
 		RotateBoundingBox(client);
 
 		GameRoomObjectCollisionCheck(client, room_num);
 		m_game_room_manager->GetGameRoom(room_num)->CheckTriggerCollision(client->GetId());
 
-		SendMoveInGameRoom(client->GetId(), room_num);
+		// 이동은 MORPG 방식으로 처리해서 주석
+		//SendMoveInGameRoom(client->GetId(), room_num);
 	}
 	// 게임 룸이 아닌채 움직이면 시야처리 (마을 씬)
 	else {
@@ -1296,9 +1364,6 @@ int Server::GetNearTarget(int client_id, float max_range)
 void Server::MoveObject(const std::shared_ptr<GameObject>& object, XMFLOAT3 position)
 {
 	object->SetPosition(position);
-
-	// 바운드 박스 갱신
-	object->SetBoundingBoxCenter(position);
 }
 
 void Server::RotateBoundingBox(const std::shared_ptr<GameObject>& object)
@@ -1441,13 +1506,14 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 				break;
 			}
 
-			TIMER_EVENT cast_ev{ .event_time = system_clock::now() + MonsterSetting::CAST_COLLISION_TIME,
-				.obj_id = ev.obj_id, .target_id = target,
-				.position = m_clients[target]->GetPosition(),
-				.event_type = EventType::TRIGGER_SET , .trigger_type = TriggerType::UNDEAD_GRASP,
-				.latest_id = 1, .aggro_level = 3 };
+			TIMER_EVENT trigger_ev{ .event_time = std::chrono::system_clock::now()
+			+ TriggerSetting::GENTIME[static_cast<int>(TriggerType::UNDEAD_GRASP)],
+			.obj_id = ev.obj_id, .target_id = ev.target_id,
+			.position = m_clients[ev.target_id]->GetPosition(),
+			.event_type = EventType::MULTIPLE_TRIGGER_SET, .trigger_type = TriggerType::UNDEAD_GRASP,
+			.latest_id = 0, .aggro_level = 3, .is_valid = false };
 
-			m_timer_queue.push(cast_ev);
+			m_timer_queue.push(trigger_ev);
 		}
 
 		ExpOver* over = new ExpOver;
@@ -1546,9 +1612,11 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 		break;
 	}
 	case EventType::TRIGGER_COOLDOWN: {
-		// 특정 id의 트리거(obj_id)에 대한 발동시킨 오브젝트(target_id)의 플래그 초기화
-		UCHAR trigger = static_cast<UCHAR>(m_triggers[ev.obj_id]->GetType());
-		m_clients[ev.target_id]->SetTriggerFlag(trigger, false);
+		ExpOver* over = new ExpOver;
+		over->_comp_type = OP_TRIGGER_COOLDOWN;
+
+		memcpy(over->_send_buf, &ev.target_id, sizeof(int));
+		PostQueuedCompletionStatus(m_handle_iocp, 1, ev.obj_id, &over->_wsa_over);
 		break;
 	}
 	case EventType::TRIGGER_REMOVE: {
@@ -1561,19 +1629,23 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 		}
 		break;
 	}
-	case EventType::TRIGGER_SET: {
+	case EventType::MULTIPLE_TRIGGER_SET: {
 		// 트리거 생성 반복
 		// latest_id 를 현재 생성횟수, aggro_level 을 최대 생성 횟수로 체크
 		if (ev.latest_id < ev.aggro_level) {
-			TIMER_EVENT trigger_ev{ .event_time = system_clock::now()
-				+ TriggerSetting::GENTIME[static_cast<int>(ev.trigger_type)],
-				.obj_id = ev.obj_id, .target_id = ev.target_id,
-				.position = m_clients[ev.target_id]->GetPosition(),
-				.event_type = EventType::TRIGGER_SET, .trigger_type = ev.trigger_type,
-				.latest_id = static_cast<BYTE>((ev.latest_id + 1)), .aggro_level = ev.aggro_level };
-			m_timer_queue.push(trigger_ev);
+			ExpOver* over = new ExpOver;
+			over->_comp_type = OP_MULTIPLE_TRIGGER_SET;
+			memcpy(&over->_send_buf, &ev.target_id, sizeof(int));
+			memcpy((over->_send_buf + sizeof(int)), &ev.trigger_type, sizeof(TriggerType));
+			memcpy((over->_send_buf + sizeof(int) + sizeof(TriggerType)), &ev.latest_id, sizeof(BYTE));
+			memcpy((over->_send_buf + sizeof(int) + sizeof(TriggerType) + sizeof(BYTE)),
+				&ev.aggro_level, sizeof(BYTE));
+
+			PostQueuedCompletionStatus(m_handle_iocp, 1, ev.obj_id, &over->_wsa_over);
 		}
-		SetTrigger(ev.obj_id, ev.trigger_type, ev.position);
+
+		if(ev.is_valid)
+			SetTrigger(ev.obj_id, ev.trigger_type, ev.position);
 
 		break;
 	}
@@ -1766,30 +1838,31 @@ void Server::SetBattleStartTimerEvent(int client_id)
 
 void Server::SetTrigger(int client_id, TriggerType type, const XMFLOAT3& pos)
 {
-	auto game_room = m_game_room_manager->GetGameRoom(m_clients[client_id]->GetRoomNum());
+	int room_num = m_clients[client_id]->GetRoomNum();
+	auto game_room = m_game_room_manager->GetGameRoom(room_num);
 	if (!game_room)
 		return;
 
 	int trigger_id = GetNewTriggerId(type);
 	float damage{};
 
+	game_room->AddTrigger(trigger_id);
+
 	switch (type) {
 	case TriggerType::ARROW_RAIN:
 		damage = m_clients[client_id]->GetDamage() *
 			m_clients[client_id]->GetSkillRatio(ActionType::ULTIMATE);
-		m_triggers[trigger_id]->Create(damage, client_id);
+		m_triggers[trigger_id]->Create(damage, client_id, room_num);
 		break;
 
 	case TriggerType::UNDEAD_GRASP:
 		auto monster = dynamic_pointer_cast<Monster>(m_clients[client_id]);
 		damage = m_clients[client_id]->GetDamage();
-		m_triggers[trigger_id]->Create(damage, client_id, pos);
+		m_triggers[trigger_id]->Create(damage, client_id, pos, room_num);
 		break;
 	}
 
 	SendTrigger(client_id, type, pos);
-
-	game_room->AddTrigger(trigger_id);
 }
 
 void Server::SetTrigger(int client_id, TriggerType type, int target_id)

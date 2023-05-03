@@ -9,12 +9,12 @@ class TowerObjectManager
 {
 public:
 	TowerObjectManager(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, 
-		const shared_ptr<Shader>& arrowShader, const shared_ptr<Shader>& magicCircleShader, const shared_ptr<Shader>& arrowRainShader);
+		const shared_ptr<Shader>& arrowShader, const shared_ptr<Shader>& magicCircleShader, const shared_ptr<InstancingShader>& arrowRainShader);
 
 	void Update(FLOAT timeElapsed);
 	void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList);
 
-	void CreateArrow(const shared_ptr<GameObject>& parent, INT arrowId);
+	void CreateArrow(const shared_ptr<GameObject>& parent, INT arrowId, FLOAT SPEED);
 	void RemoveArrow(INT arrowId);
 
 	void CreateArrowRain(const XMFLOAT3& position);
@@ -24,7 +24,7 @@ private:
 	array<unique_ptr<Arrow>, RoomSetting::MAX_ARROWS>			m_arrows;
 
 	shared_ptr<Shader>											m_magicCircleShader;
-	shared_ptr<Shader>											m_arrowRainShader;
-	array<unique_ptr<ArrowRain>, RoomSetting::MAX_ARROWRAINS>	m_arrowRains;
+	shared_ptr<InstancingShader>								m_arrowRainShader;
+	array<shared_ptr<ArrowRain>, RoomSetting::MAX_ARROWRAINS>	m_arrowRains;
 };
 

@@ -103,11 +103,11 @@ public:
 	~AnimationShadowShader() = default;
 };
 
-class UIRenderShader : public Shader
+class TriggerEffectShader : public Shader
 {
 public:
-	UIRenderShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature);
-	~UIRenderShader() = default;
+	TriggerEffectShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature);
+	~TriggerEffectShader() = default;
 };
 
 class HorzBlurShader : public Shader
