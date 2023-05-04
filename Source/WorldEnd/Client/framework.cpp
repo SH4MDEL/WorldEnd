@@ -512,7 +512,9 @@ void GameFramework::CreateD2DDevice()
 	DX::ThrowIfFailed(m_d2dDevice->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_NONE, (ID2D1DeviceContext2**)&m_d2dDeviceContext));
 	m_d2dDeviceContext->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);
 
-	DX::ThrowIfFailed(DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory), (IUnknown**)&m_writeFactory));
+	DX::ThrowIfFailed(DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory5), (IUnknown**)&m_writeFactory));
+
+	// https://learn.microsoft.com/en-us/windows/win32/directwrite/custom-font-sets-win10
 }
 
 void GameFramework::CreateD2DRenderTarget()
@@ -526,8 +528,8 @@ void GameFramework::CreateD2DRenderTarget()
 
 		DX::ThrowIfFailed(m_11On12Device->CreateWrappedResource(m_renderTargets[i].Get(),
 			&d3d11Flags, 
-			D3D12_RESOURCE_STATE_PRESENT,
-			D3D12_RESOURCE_STATE_PRESENT,
+			D3D12_RESOURCE_STATE_COPY_SOURCE,
+			D3D12_RESOURCE_STATE_COPY_SOURCE,
 			IID_PPV_ARGS(&m_d3d11WrappedRenderTarget[i])));
 		ComPtr<IDXGISurface> dxgiSurface;
 		DX::ThrowIfFailed(m_d3d11WrappedRenderTarget[i]->QueryInterface(__uuidof(IDXGISurface), (void**)&dxgiSurface));
@@ -677,10 +679,15 @@ void GameFramework::Render()
 
 	WaitForMultipleObjects(THREAD_NUM, m_finishPostProcess.data(), true, INFINITE);
 
-	// Submit END and post.
-	m_commandQueue->ExecuteCommandLists(THREAD_NUM + 1, m_batchSubmit.data() + 2 * THREAD_NUM + 3);
-
 	RenderText();
+	// Submit post1 and post2.
+	m_commandQueue->ExecuteCommandLists(THREAD_NUM - 1, m_batchSubmit.data() + 2 * THREAD_NUM + 3);
+
+	WaitForPreviousFrame();
+	PostRenderText();
+
+	// Submit post3 and END.
+	m_commandQueue->ExecuteCommandLists(2, m_batchSubmit.data() + 2 * THREAD_NUM + 5);
 
 	DX::ThrowIfFailed(m_swapChain->Present(1, 0));
 
@@ -860,6 +867,22 @@ void GameFramework::RenderText()
 
 	if (m_scenes[m_sceneIndex]) {
 		m_scenes[m_sceneIndex]->RenderText(m_d2dDeviceContext);
+	}
+
+	m_d2dDeviceContext->EndDraw();
+
+	m_11On12Device->ReleaseWrappedResources(m_d3d11WrappedRenderTarget[m_frameIndex].GetAddressOf(), 1);
+	m_deviceContext->Flush();
+}
+
+void GameFramework::PostRenderText()
+{
+	m_11On12Device->AcquireWrappedResources(m_d3d11WrappedRenderTarget[m_frameIndex].GetAddressOf(), 1);
+	m_d2dDeviceContext->SetTarget(m_d2dRenderTarget[m_frameIndex].Get());
+	m_d2dDeviceContext->BeginDraw();
+
+	if (m_scenes[m_sceneIndex]) {
+		m_scenes[m_sceneIndex]->PostRenderText(m_d2dDeviceContext);
 	}
 
 	m_d2dDeviceContext->EndDraw();

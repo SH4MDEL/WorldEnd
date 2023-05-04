@@ -85,6 +85,7 @@ public:
 	void EndFrame();
 	void WorkerThread(UINT threadIndex);
 	void RenderText();
+	void PostRenderText();
 
 	void WaitForPreviousFrame();
 	void WaitForGpu();
@@ -150,11 +151,12 @@ private:
 	// Text Write (UI Layer)
 	ComPtr<ID3D11DeviceContext>									m_deviceContext;
 	ComPtr<ID3D11On12Device>									m_11On12Device;
-	ComPtr<IDWriteFactory>										m_writeFactory;
+	ComPtr<IDWriteFactory5>										m_writeFactory;
 	ComPtr<ID2D1Factory3>										m_d2dFactory;
 	ComPtr<ID2D1Device2>										m_d2dDevice;
 	ComPtr<ID2D1DeviceContext2>									m_d2dDeviceContext;
 	ComPtr<ID3D11Resource>										m_d3d11WrappedRenderTarget[SwapChainBufferCount];
+	ComPtr<ID3D11Resource>										m_d3d11PostWrappedRenderTarget[SwapChainBufferCount];
 	ComPtr<ID2D1Bitmap1>										m_d2dRenderTarget[SwapChainBufferCount];
 
 	ComPtr<ID3D12Resource>										m_frameworkBuffer;

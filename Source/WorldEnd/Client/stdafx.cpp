@@ -10,6 +10,9 @@ mt19937							g_randomEngine{ random_device{}() };
 SOCKET							g_socket{};
 string							g_serverIP{ "127.0.0.1" };
 thread							g_networkThread{};
+mutex                           g_mutex;
+wstring                         g_loadingText{L""};
+INT                             g_loadingIndex;
 unique_ptr<ParticleSystem>		g_particleSystem;
 stack<function<void()>>			g_clickEventStack;
 

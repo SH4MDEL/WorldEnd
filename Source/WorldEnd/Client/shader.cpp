@@ -2,6 +2,11 @@
 
 Shader::Shader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature) : Shader{}
 {
+	g_mutex.lock();
+	g_loadingText = L"Shader";
+	++g_loadingIndex;
+	g_mutex.unlock();
+
 	ComPtr<ID3DBlob> mvsByteCode;
 	ComPtr<ID3DBlob> mpsByteCode;
 
@@ -162,6 +167,11 @@ void Shader::RemoveMonster(INT id)
 
 StaticObjectShader::StaticObjectShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature)
 {
+	g_mutex.lock();
+	g_loadingText = L"StaticObjectShader";
+	++g_loadingIndex;
+	g_mutex.unlock();
+
 	ComPtr<ID3DBlob> mvsByteCode;
 	ComPtr<ID3DBlob> mpsByteCode;
 
@@ -202,6 +212,11 @@ StaticObjectShader::StaticObjectShader(const ComPtr<ID3D12Device>& device, const
 
 AnimationShader::AnimationShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature)
 {
+	g_mutex.lock();
+	g_loadingText = L"AnimationShader";
+	++g_loadingIndex;
+	g_mutex.unlock();
+
 	ComPtr<ID3DBlob> mvsByteCode;
 	ComPtr<ID3DBlob> mpsByteCode;
 
@@ -244,6 +259,11 @@ AnimationShader::AnimationShader(const ComPtr<ID3D12Device>& device, const ComPt
 
 SkyboxShader::SkyboxShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature)
 {
+	g_mutex.lock();
+	g_loadingText = L"SkyboxShader";
+	++g_loadingIndex;
+	g_mutex.unlock();
+
 	ComPtr<ID3DBlob> mvsByteCode;
 	ComPtr<ID3DBlob> mpsByteCode;
 
@@ -285,6 +305,11 @@ SkyboxShader::SkyboxShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D
 
 HorzGaugeShader::HorzGaugeShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature)
 {
+	g_mutex.lock();
+	g_loadingText = L"HorzGaugeShader";
+	++g_loadingIndex;
+	g_mutex.unlock();
+
 	ComPtr<ID3DBlob> mvsByteCode;
 	ComPtr<ID3DBlob> mgsByteCode;
 	ComPtr<ID3DBlob> mpsByteCode;
@@ -342,6 +367,11 @@ HorzGaugeShader::HorzGaugeShader(const ComPtr<ID3D12Device>& device, const ComPt
 
 VertGaugeShader::VertGaugeShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature)
 {
+	g_mutex.lock();
+	g_loadingText = L"VertGaugeShader";
+	++g_loadingIndex;
+	g_mutex.unlock();
+
 	ComPtr<ID3DBlob> mvsByteCode;
 	ComPtr<ID3DBlob> mgsByteCode;
 	ComPtr<ID3DBlob> mpsByteCode;
@@ -399,6 +429,11 @@ VertGaugeShader::VertGaugeShader(const ComPtr<ID3D12Device>& device, const ComPt
 
 ShadowShader::ShadowShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature)
 {
+	g_mutex.lock();
+	g_loadingText = L"ShadowShader";
+	++g_loadingIndex;
+	g_mutex.unlock();
+
 	ComPtr<ID3DBlob> mvsByteCode;
 
 #if defined(_DEBUG)
@@ -441,6 +476,11 @@ ShadowShader::ShadowShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D
 
 AnimationShadowShader::AnimationShadowShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature)
 {
+	g_mutex.lock();
+	g_loadingText = L"AnimationShadowShader";
+	++g_loadingIndex;
+	g_mutex.unlock();
+
 	ComPtr<ID3DBlob> mvsByteCode;
 
 #if defined(_DEBUG)
@@ -485,6 +525,11 @@ AnimationShadowShader::AnimationShadowShader(const ComPtr<ID3D12Device>& device,
 
 HorzBlurShader::HorzBlurShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature)
 {
+	g_mutex.lock();
+	g_loadingText = L"HorzBlurShader";
+	++g_loadingIndex;
+	g_mutex.unlock();
+
 	ComPtr<ID3DBlob> mcsByteCode;
 
 #if defined(_DEBUG)
@@ -504,6 +549,11 @@ HorzBlurShader::HorzBlurShader(const ComPtr<ID3D12Device>& device, const ComPtr<
 
 VertBlurShader::VertBlurShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature)
 {
+	g_mutex.lock();
+	g_loadingText = L"VertBlurShader";
+	++g_loadingIndex;
+	g_mutex.unlock();
+
 	ComPtr<ID3DBlob> mcsByteCode;
 
 #if defined(_DEBUG)
@@ -523,6 +573,11 @@ VertBlurShader::VertBlurShader(const ComPtr<ID3D12Device>& device, const ComPtr<
 
 FadeShader::FadeShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature)
 {
+	g_mutex.lock();
+	g_loadingText = L"FadeShader";
+	++g_loadingIndex;
+	g_mutex.unlock();
+
 	ComPtr<ID3DBlob> mcsByteCode;
 
 #if defined(_DEBUG)
@@ -542,6 +597,11 @@ FadeShader::FadeShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12Ro
 
 SobelShader::SobelShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature)
 {
+	g_mutex.lock();
+	g_loadingText = L"SobelShader";
+	++g_loadingIndex;
+	g_mutex.unlock();
+
 	ComPtr<ID3DBlob> mcsByteCode;
 
 #if defined(_DEBUG)
@@ -561,6 +621,11 @@ SobelShader::SobelShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 
 CompositeShader::CompositeShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature)
 {
+	g_mutex.lock();
+	g_loadingText = L"CompositeShader";
+	++g_loadingIndex;
+	g_mutex.unlock();
+
 	ComPtr<ID3DBlob> mvsByteCode;
 	ComPtr<ID3DBlob> mpsByteCode;
 
@@ -611,6 +676,11 @@ void CompositeShader::Render(const ComPtr<ID3D12GraphicsCommandList>& commandLis
 
 TriggerEffectShader::TriggerEffectShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature)
 {
+	g_mutex.lock();
+	g_loadingText = L"TriggerEffectShader";
+	++g_loadingIndex;
+	g_mutex.unlock();
+
 	ComPtr<ID3DBlob> mvsByteCode;
 	ComPtr<ID3DBlob> mgsByteCode;
 	ComPtr<ID3DBlob> mpsByteCode;
@@ -663,6 +733,11 @@ TriggerEffectShader::TriggerEffectShader(const ComPtr<ID3D12Device>& device, con
 
 EmitterParticleShader::EmitterParticleShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature)
 {
+	g_mutex.lock();
+	g_loadingText = L"EmitterParticleShader";
+	++g_loadingIndex;
+	g_mutex.unlock();
+
 	ComPtr<ID3DBlob> mvsByteCode;
 	ComPtr<ID3DBlob> mgsdByteCode;
 	ComPtr<ID3DBlob> mgssoByteCode;
@@ -749,6 +824,11 @@ EmitterParticleShader::EmitterParticleShader(const ComPtr<ID3D12Device>& device,
 
 PumperParticleShader::PumperParticleShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature)
 {
+	g_mutex.lock();
+	g_loadingText = L"PumperParticleShader";
+	++g_loadingIndex;
+	g_mutex.unlock();
+
 	ComPtr<ID3DBlob> mvsByteCode;
 	ComPtr<ID3DBlob> mgsdByteCode;
 	ComPtr<ID3DBlob> mgssoByteCode;
@@ -833,6 +913,11 @@ PumperParticleShader::PumperParticleShader(const ComPtr<ID3D12Device>& device, c
 
 UIShader::UIShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature)
 {
+	g_mutex.lock();
+	g_loadingText = L"UIShader";
+	++g_loadingIndex;
+	g_mutex.unlock();
+
 	ComPtr<ID3DBlob> mvsByteCode;
 	ComPtr<ID3DBlob> mgsByteCode;
 	ComPtr<ID3DBlob> mpsByteCode;

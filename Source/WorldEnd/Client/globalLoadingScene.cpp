@@ -1,6 +1,6 @@
 #include "globalLoadingScene.h"
 
-GlobalLoadingScene::GlobalLoadingScene() : m_loadEnd{ false }
+GlobalLoadingScene::GlobalLoadingScene() : m_loadEnd { false }
 {
 
 }
@@ -15,7 +15,8 @@ void GlobalLoadingScene::OnCreate(const ComPtr<ID3D12Device>& device,
 	const ComPtr<ID3D12RootSignature>& rootSignature,
 	const ComPtr<ID3D12RootSignature>& postRootSignature)
 {
-	m_loadingText = make_shared<LoadingText>(61);
+	g_loadingIndex = 0;
+	m_loadingText = make_shared<Text>();
 
 	auto skyblueBrush = ComPtr<ID2D1SolidColorBrush>();
 	DX::ThrowIfFailed(g_GameFramework.GetD2DDeviceContext()->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::SkyBlue, 1.f), &skyblueBrush));
@@ -120,6 +121,10 @@ void GlobalLoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const 
 	buttonUITexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/UI_Button.dds"), (INT)ShaderRegister::BaseTexture);
 	buttonUITexture->CreateSrvDescriptorHeap(device);
 	buttonUITexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+	auto goldUITexture{ make_shared<Texture>() };
+	goldUITexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/Gold.dds"), (INT)ShaderRegister::BaseTexture);
+	goldUITexture->CreateSrvDescriptorHeap(device);
+	goldUITexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
 
 	auto warriorSkillTexture{ make_shared<Texture>() };
 	warriorSkillTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/SkillTexture/Warrior_Skill.dds"), (INT)ShaderRegister::BaseTexture);
@@ -141,6 +146,7 @@ void GlobalLoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const 
 	m_globalTextures.insert({ "FRAMEUI", frameUITexture });
 	m_globalTextures.insert({ "CANCELUI", cancelUITexture });
 	m_globalTextures.insert({ "BUTTONUI", buttonUITexture });
+	m_globalTextures.insert({ "GOLDUI", goldUITexture });
 	m_globalTextures.insert({ "WARRIORSKILL", warriorSkillTexture });
 	m_globalTextures.insert({ "WARRIORULTIMATE", warriorUltimateTexture });
 	m_globalTextures.insert({ "STAMINABAR", staminaBarTexture });
@@ -154,13 +160,12 @@ void GlobalLoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const 
 	// 애니메이션 로딩
 	LoadAnimationSetFromFile(TEXT("./Resource/Animation/WarriorAnimation.bin"), "WarriorAnimation");
 	LoadAnimationSetFromFile(TEXT("./Resource/Animation/ArcherAnimation.bin"), "ArcherAnimation");
-
 	// 텍스트 로딩
 	auto whiteBrush = ComPtr<ID2D1SolidColorBrush>();
 	DX::ThrowIfFailed(g_GameFramework.GetD2DDeviceContext()->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::White, 1.f), &whiteBrush));
 	Text::m_colorBrushes.insert({ "WHITE", whiteBrush });
 	
-	const array<INT, 4> fontSize{ 12, 15, 18, 21 };
+	const array<INT, 4> fontSize{ 15, 18, 21, 27 };
 	for (const auto size : fontSize) {
 		auto koPub = ComPtr<IDWriteTextFormat>();
 		DX::ThrowIfFailed(g_GameFramework.GetWriteFactory()->CreateTextFormat(
@@ -174,6 +179,21 @@ void GlobalLoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const 
 		string name{ "KOPUB" };
 		name += to_string(size);
 		Text::m_textFormats.insert({ name, koPub });
+	}
+	const array<INT, 5> mapleFontSize{ 15, 18, 21, 24, 27 };
+	for (const auto size : mapleFontSize) {
+		auto maple = ComPtr<IDWriteTextFormat>();
+		DX::ThrowIfFailed(g_GameFramework.GetWriteFactory()->CreateTextFormat(
+			TEXT("./Resource/Font/Maplestory Bold.ttf"), nullptr,
+			DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, (FLOAT)size,
+			TEXT("ko-kr"), &maple
+		));
+		maple->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
+		maple->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
+
+		string name{ "MAPLE" };
+		name += to_string(size);
+		Text::m_textFormats.insert({ name, maple });
 	}
 
 	commandlist->Close();
@@ -191,7 +211,7 @@ void GlobalLoadingScene::DestroyObjects()
 
 void GlobalLoadingScene::Update(FLOAT timeElapsed)
 {
-	m_loadingText->Update(timeElapsed);
+	m_loadingText->SetText(g_loadingText + L" 로딩 중.. " + to_wstring(g_loadingIndex) + m_maxFileCount);
 	if (m_loadEnd) {
 		ReleaseUploadBuffer();
 		g_GameFramework.ChangeScene(SCENETAG::VillageLoadingScene);
@@ -227,7 +247,10 @@ void GlobalLoadingScene::LoadMeshFromFile(const ComPtr<ID3D12Device>& device, co
 	ifstream in{ fileName, std::ios::binary };
 	if (!in) return;
 
-	m_loadingText->SetFileName(fileName);
+	g_mutex.lock();
+	g_loadingText = fileName;
+	++g_loadingIndex;
+	g_mutex.unlock();
 
 	BYTE strLength;
 	string backup;
@@ -248,8 +271,6 @@ void GlobalLoadingScene::LoadMeshFromFile(const ComPtr<ID3D12Device>& device, co
 			break;
 		}
 	}
-
-	m_loadingText->LoadingFile();
 }
 
 void GlobalLoadingScene::LoadAnimationMeshFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, wstring fileName)
@@ -257,7 +278,10 @@ void GlobalLoadingScene::LoadAnimationMeshFromFile(const ComPtr<ID3D12Device>& d
 	ifstream in{ fileName, std::ios::binary };
 	if (!in) return;
 
-	m_loadingText->SetFileName(fileName);
+	g_mutex.lock();
+	g_loadingText = fileName;
+	++g_loadingIndex;
+	g_mutex.unlock();
 
 	BYTE strLength;
 	string backup;
@@ -285,8 +309,6 @@ void GlobalLoadingScene::LoadAnimationMeshFromFile(const ComPtr<ID3D12Device>& d
 			break;
 		}
 	}
-
-	m_loadingText->LoadingFile();
 }
 
 void GlobalLoadingScene::LoadMaterialFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, wstring fileName)
@@ -294,7 +316,10 @@ void GlobalLoadingScene::LoadMaterialFromFile(const ComPtr<ID3D12Device>& device
 	ifstream in{ fileName, std::ios::binary };
 	if (!in) return;
 
-	m_loadingText->SetFileName(fileName);
+	g_mutex.lock();
+	g_loadingText = fileName;
+	++g_loadingIndex;
+	g_mutex.unlock();
 
 	BYTE strLength;
 	INT frame, texture;
@@ -324,8 +349,6 @@ void GlobalLoadingScene::LoadMaterialFromFile(const ComPtr<ID3D12Device>& device
 			break;
 		}
 	}
-
-	m_loadingText->LoadingFile();
 }
 
 void GlobalLoadingScene::LoadAnimationSetFromFile(wstring fileName, const string& animationSetName)
@@ -333,7 +356,10 @@ void GlobalLoadingScene::LoadAnimationSetFromFile(wstring fileName, const string
 	ifstream in{ fileName, std::ios::binary };
 	if (!in) return;
 
-	m_loadingText->SetFileName(fileName);
+	g_mutex.lock();
+	g_loadingText = fileName;
+	++g_loadingIndex;
+	g_mutex.unlock();
 
 	BYTE strLength{};
 	in.read((char*)(&strLength), sizeof(BYTE));
@@ -348,7 +374,5 @@ void GlobalLoadingScene::LoadAnimationSetFromFile(wstring fileName, const string
 	animationSet->LoadAnimationSet(in, animationSetName);
 
 	m_globalAnimationSets.insert({ animationSetName, animationSet });
-
-	m_loadingText->LoadingFile();
 }
 

@@ -4,6 +4,11 @@
 InstancingShader::InstancingShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature, UINT count) :
 	m_instancingCount(count)
 {
+	g_mutex.lock();
+	g_loadingText = L"InstancingShader";
+	++g_loadingIndex;
+	g_mutex.unlock();
+
 	ComPtr<ID3DBlob> mvsByteCode;
 	ComPtr<ID3DBlob> mpsByteCode;
 
@@ -111,6 +116,11 @@ void InstancingShader::SetMesh(const string& name)
 ArrowInstance::ArrowInstance(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature, UINT count)
 {
 	m_instancingCount = count;
+
+	g_mutex.lock();
+	g_loadingText = L"ArrowInstance";
+	++g_loadingIndex;
+	g_mutex.unlock();
 
 	ComPtr<ID3DBlob> mvsByteCode;
 	ComPtr<ID3DBlob> mpsByteCode;

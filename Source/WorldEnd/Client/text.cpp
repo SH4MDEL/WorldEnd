@@ -39,13 +39,3 @@ void Text::UpdateTransform()
 {
 	m_layoutRect = { m_position.x - m_width, m_position.y - m_height, m_position.x + m_width , m_position.y + m_height };
 }
-
-
-LoadingText::LoadingText(UINT maxFileNum) : m_maxFileNum{ maxFileNum }, m_LoadedFileNum{ 0 }
-{
-}
-
-void LoadingText::Update(FLOAT timeElapsed)
-{
-	m_text = m_fileName + L" ·Îµù Áß.. " + to_wstring(m_LoadedFileNum) + L" / " + to_wstring(m_maxFileNum);
-}

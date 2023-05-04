@@ -22,5 +22,6 @@ void LoadingScene::PreProcess(const ComPtr<ID3D12GraphicsCommandList>& commandLi
 void LoadingScene::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) const {}
 void LoadingScene::PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList, const ComPtr<ID3D12Resource>& renderTarget, UINT threadIndex) {}
 void LoadingScene::RenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext) {}
+void LoadingScene::PostRenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext){}
 
 shared_ptr<Shadow> LoadingScene::GetShadow() { return nullptr; }

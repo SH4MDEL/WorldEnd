@@ -15,7 +15,8 @@ void VillageLoadingScene::OnCreate(const ComPtr<ID3D12Device>& device,
 	const ComPtr<ID3D12RootSignature>& rootSignature,
 	const ComPtr<ID3D12RootSignature>& postRootSignature)
 {
-	m_loadingText = make_shared<LoadingText>(61);
+	g_loadingIndex = 0;
+	m_loadingText = make_shared<Text>();
 
 	m_loadingText->SetColorBrush("SKYBLUE");
 	m_loadingText->SetTextFormat("KOPUB24");
@@ -66,7 +67,7 @@ void VillageLoadingScene::DestroyObjects()
 
 void VillageLoadingScene::Update(FLOAT timeElapsed)
 {
-	m_loadingText->Update(timeElapsed);
+	m_loadingText->SetText(g_loadingText + L" ·Îµù Áß.. " + to_wstring(g_loadingIndex) + m_maxFileCount);
 	if (m_loadEnd) {
 		ReleaseUploadBuffer();
 		g_GameFramework.ChangeScene(SCENETAG::LoginScene);
@@ -103,7 +104,10 @@ void VillageLoadingScene::LoadMeshFromFile(const ComPtr<ID3D12Device>& device, c
 	ifstream in{ fileName, std::ios::binary };
 	if (!in) return;
 
-	m_loadingText->SetFileName(fileName);
+	g_mutex.lock();
+	g_loadingText = fileName;
+	++g_loadingIndex;
+	g_mutex.unlock();
 
 	BYTE strLength;
 	string backup;
@@ -123,8 +127,6 @@ void VillageLoadingScene::LoadMeshFromFile(const ComPtr<ID3D12Device>& device, c
 			break;
 		}
 	}
-
-	m_loadingText->LoadingFile();
 }
 
 void VillageLoadingScene::LoadAnimationMeshFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, wstring fileName)
@@ -132,7 +134,10 @@ void VillageLoadingScene::LoadAnimationMeshFromFile(const ComPtr<ID3D12Device>& 
 	ifstream in{ fileName, std::ios::binary };
 	if (!in) return;
 
-	m_loadingText->SetFileName(fileName);
+	g_mutex.lock();
+	g_loadingText = fileName;
+	++g_loadingIndex;
+	g_mutex.unlock();
 
 	BYTE strLength;
 	string backup;
@@ -160,8 +165,6 @@ void VillageLoadingScene::LoadAnimationMeshFromFile(const ComPtr<ID3D12Device>& 
 			break;
 		}
 	}
-
-	m_loadingText->LoadingFile();
 }
 
 void VillageLoadingScene::LoadMaterialFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, wstring fileName)
@@ -169,7 +172,10 @@ void VillageLoadingScene::LoadMaterialFromFile(const ComPtr<ID3D12Device>& devic
 	ifstream in{ fileName, std::ios::binary };
 	if (!in) return;
 
-	m_loadingText->SetFileName(fileName);
+	g_mutex.lock();
+	g_loadingText = fileName;
+	++g_loadingIndex;
+	g_mutex.unlock();
 
 	BYTE strLength;
 	INT frame, texture;
@@ -199,8 +205,6 @@ void VillageLoadingScene::LoadMaterialFromFile(const ComPtr<ID3D12Device>& devic
 			break;
 		}
 	}
-
-	m_loadingText->LoadingFile();
 }
 
 void VillageLoadingScene::LoadAnimationSetFromFile(wstring fileName, const string& animationSetName)
@@ -208,7 +212,10 @@ void VillageLoadingScene::LoadAnimationSetFromFile(wstring fileName, const strin
 	ifstream in{ fileName, std::ios::binary };
 	if (!in) return;
 
-	m_loadingText->SetFileName(fileName);
+	g_mutex.lock();
+	g_loadingText = fileName;
+	++g_loadingIndex;
+	g_mutex.unlock();
 
 	BYTE strLength{};
 	in.read((char*)(&strLength), sizeof(BYTE));
@@ -223,6 +230,4 @@ void VillageLoadingScene::LoadAnimationSetFromFile(wstring fileName, const strin
 	animationSet->LoadAnimationSet(in, animationSetName);
 
 	m_globalAnimationSets.insert({ animationSetName, animationSet });
-
-	m_loadingText->LoadingFile();
 }

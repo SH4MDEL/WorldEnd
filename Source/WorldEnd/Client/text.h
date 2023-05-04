@@ -33,20 +33,3 @@ protected:
 	string	m_colorBrush;
 	string	m_textFormat;
 };
-
-class LoadingText : public Text
-{
-public:
-	LoadingText(UINT maxFileNum);
-	~LoadingText() = default;
-
-	void Update(FLOAT timeElapsed) override;
-
-	void SetFileName(const wstring& fileName) { m_fileName = fileName; }
-	void LoadingFile() { ++m_LoadedFileNum; }
-
-private:
-	wstring				m_fileName;
-	UINT				m_maxFileNum;
-	UINT				m_LoadedFileNum;
-};

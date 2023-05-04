@@ -64,6 +64,7 @@ public:
 	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) const = 0;
 	virtual void PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList, const ComPtr<ID3D12Resource>& renderTarget, UINT threadIndex) = 0;
 	virtual void RenderText(const ComPtr< ID2D1DeviceContext2>& deviceContext) = 0;
+	virtual void PostRenderText(const ComPtr< ID2D1DeviceContext2>& deviceContext) = 0;
 	
 	virtual shared_ptr<Shadow> GetShadow() = 0;
 
@@ -96,6 +97,7 @@ public:
 	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) const override;
 	virtual void PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList, const ComPtr<ID3D12Resource>& renderTarget, UINT threadIndex) override;
 	virtual void RenderText(const ComPtr< ID2D1DeviceContext2>& deviceContext) override;
+	virtual void PostRenderText(const ComPtr< ID2D1DeviceContext2>& deviceContext) override;
 
 	virtual shared_ptr<Shadow> GetShadow() override;
 };

@@ -243,11 +243,19 @@ void TowerScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 	m_resultUI = make_shared<BackgroundUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 1.f, 1.f });
 	auto resultUI{ make_shared<StandardUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.4f, 0.5f}) };
 	resultUI->SetTexture("FRAMEUI");
-	m_resultTextUI = make_shared<TextUI>(XMFLOAT2{ 0.f, 0.0f }, XMFLOAT2{ 100.f, 20.f });
+	m_resultTextUI = make_shared<TextUI>(XMFLOAT2{ 0.f, 0.2f }, XMFLOAT2{ 100.f, 20.f });
 	m_resultTextUI->SetText(L"클리어!");
 	m_resultTextUI->SetColorBrush("WHITE");
-	m_resultTextUI->SetTextFormat("KOPUB18");
+	m_resultTextUI->SetTextFormat("MAPLE27");
 	resultUI->SetChild(m_resultTextUI);
+	auto resultRewardTextureUI{ make_shared<StandardUI>(XMFLOAT2{-0.2f, -0.2f}, XMFLOAT2{0.05f, 0.05f}) };
+	resultRewardTextureUI->SetTexture("GOLDUI");
+	resultUI->SetChild(resultRewardTextureUI);
+	m_resultRewardTextUI = make_shared<TextUI>(XMFLOAT2{0.2f, -0.2f}, XMFLOAT2{100.f, 20.f});
+	m_resultRewardTextUI->SetText(TEXT(""));
+	m_resultRewardTextUI->SetColorBrush("WHITE");
+	m_resultRewardTextUI->SetTextFormat("KOPUB24");
+	resultUI->SetChild(m_resultRewardTextUI);
 	auto resultButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.f, -0.7f}, XMFLOAT2{0.15f, 0.075f}) };
 	resultButtonUI->SetTexture("BUTTONUI");
 	resultButtonUI->SetClickEvent([&]() {
@@ -614,11 +622,13 @@ void TowerScene::PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandLis
 
 void TowerScene::RenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext)
 {
+	if (m_interactUI) m_interactUI->RenderText(deviceContext);
+}
+
+void TowerScene::PostRenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext)
+{
 	if (m_exitUI) m_exitUI->RenderText(deviceContext);
 	if (m_resultUI) m_resultUI->RenderText(deviceContext);
-	if (!CheckState(State::Bluring)) {
-		if (m_interactUI) m_interactUI->RenderText(deviceContext);
-	}
 }
 
 void TowerScene::LoadSceneFromFile(wstring fileName, wstring sceneName)
@@ -1137,7 +1147,7 @@ void TowerScene::RecvResetCooldown(char* ptr)
 void TowerScene::RecvClearFloor(char* ptr)
 {
 	SC_CLEAR_FLOOR_PACKET* packet = reinterpret_cast<SC_CLEAR_FLOOR_PACKET*>(ptr);
-	cout << packet->reward << endl;
+	m_resultRewardTextUI->SetText(to_wstring(packet->reward));
 	SetState(State::OutputResult);
 	m_resultUI->SetEnable();
 }
@@ -1362,7 +1372,7 @@ void TowerScene::RecvAddTrigger(char* ptr)
 		m_towerObjectManager->CreateArrowRain(packet->pos);
 		break;
 	case TriggerType::UNDEAD_GRASP:
-
+		cout << "UNDEAD_GRASP 생성\n";
 		break;
 	}
 }
@@ -1371,5 +1381,5 @@ void TowerScene::RecvAddMagicCircle(char* ptr)
 {
 	SC_ADD_MAGIC_CIRCLE_PACKET* packet = reinterpret_cast<SC_ADD_MAGIC_CIRCLE_PACKET*>(ptr);
 
-	printf("마법진 생성\n");
+	cout << "마법진 생성\n";
 }

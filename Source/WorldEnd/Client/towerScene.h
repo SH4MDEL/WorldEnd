@@ -61,6 +61,7 @@ public:
 	void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) const override;
 	void PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList, const ComPtr<ID3D12Resource>& renderTarget, UINT threadIndex) override;
 	void RenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext) override;
+	void PostRenderText(const ComPtr< ID2D1DeviceContext2>& deviceContext) override;
 
 	shared_ptr<Shadow> GetShadow() override { return m_shadow; }
 	void LoadSceneFromFile(wstring fileName, wstring sceneName);
@@ -145,6 +146,7 @@ protected:
 	shared_ptr<UI>										m_exitUI;
 	shared_ptr<UI>										m_resultUI;
 	shared_ptr<TextUI>									m_resultTextUI;
+	shared_ptr<TextUI>									m_resultRewardTextUI;
 
 	// 서버 추가 코드
 	unordered_map<INT, shared_ptr<Player>>	            m_multiPlayers;

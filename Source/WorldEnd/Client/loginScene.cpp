@@ -198,6 +198,10 @@ void LoginScene::RenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext)
 	if (m_titleUI) m_titleUI->RenderText(deviceContext);
 }
 
+void LoginScene::PostRenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext)
+{
+}
+
 bool LoginScene::CheckState(State sceneState)
 {
 	return m_sceneState & (INT)sceneState;

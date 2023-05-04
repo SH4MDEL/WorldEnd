@@ -31,7 +31,8 @@ public:
 	void LoadAnimationSetFromFile(wstring fileName, const string& animationSetName);
 
 private:
-	shared_ptr<LoadingText>				m_loadingText;
+	shared_ptr<Text>				m_loadingText;
+	const wstring					m_maxFileCount = L" / 1";
 
 	thread								m_loadingThread;
 	ComPtr<ID3D12GraphicsCommandList>	m_threadCommandList;

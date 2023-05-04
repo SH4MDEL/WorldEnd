@@ -57,6 +57,7 @@ using Microsoft::WRL::ComPtr;
 using namespace std;
 
 #include <dwrite.h>
+#include <dwrite_3.h>
 #include <d3d11on12.h>
 #include <d2d1_3.h>
 
@@ -76,6 +77,8 @@ extern SOCKET                           g_socket;                           // �
 extern string				            g_serverIP;							// 서버 아이피
 extern thread                           g_networkThread;
 extern mutex                            g_mutex;
+extern wstring                          g_loadingText;
+extern INT                              g_loadingIndex;
 extern unique_ptr<ParticleSystem>       g_particleSystem;
 extern stack<function<void()>>          g_clickEventStack;
 

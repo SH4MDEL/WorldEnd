@@ -15,7 +15,8 @@ void TowerLoadingScene::OnCreate(const ComPtr<ID3D12Device>& device,
 	const ComPtr<ID3D12RootSignature>& rootSignature, 
 	const ComPtr<ID3D12RootSignature>& postRootSignature)
 {
-	m_loadingText = make_shared<LoadingText>(51);
+	g_loadingIndex = 0;
+	m_loadingText = make_shared<Text>();
 
 	m_loadingText->SetColorBrush("SKYBLUE");
 	m_loadingText->SetTextFormat("KOPUB24");
@@ -169,7 +170,7 @@ void TowerLoadingScene::DestroyObjects()
 
 void TowerLoadingScene::Update(FLOAT timeElapsed) 
 {
-	m_loadingText->Update(timeElapsed);
+	m_loadingText->SetText(g_loadingText + L" 로딩 중.. " + to_wstring(g_loadingIndex) + m_maxFileCount);
 	if (m_loadEnd) {
 		ReleaseUploadBuffer();
 		g_GameFramework.ChangeScene(SCENETAG::TowerScene);
@@ -190,7 +191,10 @@ void TowerLoadingScene::LoadMeshFromFile(const ComPtr<ID3D12Device>& device, con
 	ifstream in{ fileName, std::ios::binary };
 	if (!in) return;
 
-	m_loadingText->SetFileName(fileName);
+	g_mutex.lock();
+	g_loadingText = fileName;
+	++g_loadingIndex;
+	g_mutex.unlock();
 
 	BYTE strLength;
 	string backup;
@@ -210,8 +214,6 @@ void TowerLoadingScene::LoadMeshFromFile(const ComPtr<ID3D12Device>& device, con
 			break;
 		}
 	}
-
-	m_loadingText->LoadingFile();
 }
 
 void TowerLoadingScene::LoadAnimationMeshFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, wstring fileName)
@@ -219,7 +221,10 @@ void TowerLoadingScene::LoadAnimationMeshFromFile(const ComPtr<ID3D12Device>& de
 	ifstream in{ fileName, std::ios::binary };
 	if (!in) return;
 
-	m_loadingText->SetFileName(fileName);
+	g_mutex.lock();
+	g_loadingText = fileName;
+	++g_loadingIndex;
+	g_mutex.unlock();
 
 	BYTE strLength;
 	string backup;
@@ -247,8 +252,6 @@ void TowerLoadingScene::LoadAnimationMeshFromFile(const ComPtr<ID3D12Device>& de
 			break;
 		}
 	}
-
-	m_loadingText->LoadingFile();
 }
 
 void TowerLoadingScene::LoadMaterialFromFile(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, wstring fileName)
@@ -256,7 +259,10 @@ void TowerLoadingScene::LoadMaterialFromFile(const ComPtr<ID3D12Device>& device,
 	ifstream in{ fileName, std::ios::binary };
 	if (!in) return;
 
-	m_loadingText->SetFileName(fileName);
+	g_mutex.lock();
+	g_loadingText = fileName;
+	++g_loadingIndex;
+	g_mutex.unlock();
 
 	BYTE strLength;
 	INT frame, texture;
@@ -286,8 +292,6 @@ void TowerLoadingScene::LoadMaterialFromFile(const ComPtr<ID3D12Device>& device,
 			break;
 		}
 	}
-
-	m_loadingText->LoadingFile();
 }
 
 void TowerLoadingScene::LoadAnimationSetFromFile(wstring fileName, const string& animationSetName)
@@ -295,7 +299,10 @@ void TowerLoadingScene::LoadAnimationSetFromFile(wstring fileName, const string&
 	ifstream in{ fileName, std::ios::binary };
 	if (!in) return;
 
-	m_loadingText->SetFileName(fileName);
+	g_mutex.lock();
+	g_loadingText = fileName;
+	++g_loadingIndex;
+	g_mutex.unlock();
 
 	BYTE strLength{};
 	in.read((char*)(&strLength), sizeof(BYTE));
@@ -310,6 +317,4 @@ void TowerLoadingScene::LoadAnimationSetFromFile(wstring fileName, const string&
 	animationSet->LoadAnimationSet(in, animationSetName);
 
 	m_animationSets.insert({ animationSetName, animationSet });
-
-	m_loadingText->LoadingFile();
 }

@@ -45,6 +45,7 @@ public:
 	void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) const override;
 	void PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList, const ComPtr<ID3D12Resource>& renderTarget, UINT threadIndex) override;
 	void RenderText(const ComPtr< ID2D1DeviceContext2>& deviceContext) override;
+	void PostRenderText(const ComPtr< ID2D1DeviceContext2>& deviceContext) override;
 
 	shared_ptr<Shadow> GetShadow() override { return nullptr; }
 
