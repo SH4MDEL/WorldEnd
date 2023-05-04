@@ -47,45 +47,99 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 		PlayerAnimation::ROLL != m_currentAnimation)
 	{
 		XMFLOAT3 eye = m_camera->GetEye();
+		eye.y = 0.f;
 		XMFLOAT3 direction{ Vector3::Normalize(Vector3::Sub(GetPosition(), eye)) };
-		if (GetAsyncKeyState('W') & 0x8000) {
+
+		if (GetAsyncKeyState('W') && GetAsyncKeyState('A') & 0x8000) {
+			XMFLOAT3 front{ Vector3::Normalize(Vector3::Sub(GetPosition(), eye)) };
+			XMFLOAT3 left{ Vector3::Normalize(Vector3::Cross(direction, GetUp())) };
+			XMFLOAT3 frontLeft{ Vector3::Normalize(Vector3::Add(front, left)) };
+			XMFLOAT3 angle{ Vector3::Angle(GetFront(), frontLeft) };
+			XMFLOAT3 clockwise{ Vector3::Cross(GetFront(), frontLeft) };
+			if (clockwise.y >= 0.f) {
+				Rotate(0.f, 0.f, timeElapsed * XMConvertToDegrees(angle.y) * 10.f);
+			}
+			else {
+				Rotate(0.f, 0.f, -timeElapsed * XMConvertToDegrees(angle.y) * 10.f);
+			}
+		}
+		else if (GetAsyncKeyState('W') && GetAsyncKeyState('D') & 0x8000) {
+			XMFLOAT3 front{ Vector3::Normalize(Vector3::Sub(GetPosition(), eye)) };
+			XMFLOAT3 right{ Vector3::Normalize(Vector3::Cross(GetUp(), direction)) };
+			XMFLOAT3 frontRight{ Vector3::Normalize(Vector3::Add(front, right)) };
+			XMFLOAT3 angle{ Vector3::Angle(GetFront(), frontRight) };
+			XMFLOAT3 clockwise{ Vector3::Cross(GetFront(), frontRight) };
+			if (clockwise.y >= 0.f) {
+				Rotate(0.f, 0.f, timeElapsed * XMConvertToDegrees(angle.y) * 10.f);
+			}
+			else {
+				Rotate(0.f, 0.f, -timeElapsed * XMConvertToDegrees(angle.y) * 10.f);
+			}
+		}
+		else if (GetAsyncKeyState('S') && GetAsyncKeyState('A') & 0x8000) {
+			XMFLOAT3 back{ Vector3::Normalize(Vector3::Sub(eye, GetPosition())) };
+			XMFLOAT3 left{ Vector3::Normalize(Vector3::Cross(direction, GetUp())) };
+			XMFLOAT3 backLeft{ Vector3::Normalize(Vector3::Add(back, left)) };
+			XMFLOAT3 angle{ Vector3::Angle(GetFront(), backLeft) };
+			XMFLOAT3 clockwise{ Vector3::Cross(GetFront(), backLeft) };
+			if (clockwise.y >= 0.f) {
+				Rotate(0.f, 0.f, timeElapsed * XMConvertToDegrees(angle.y) * 10.f);
+			}
+			else {
+				Rotate(0.f, 0.f, -timeElapsed * XMConvertToDegrees(angle.y) * 10.f);
+			}
+		}
+		else if (GetAsyncKeyState('S') && GetAsyncKeyState('D') & 0x8000) {
+			XMFLOAT3 back{ Vector3::Normalize(Vector3::Sub(eye, GetPosition())) };
+			XMFLOAT3 right{ Vector3::Normalize(Vector3::Cross(GetUp(), direction)) };
+			XMFLOAT3 backRight{ Vector3::Normalize(Vector3::Add(back, right)) };
+			XMFLOAT3 angle{ Vector3::Angle(GetFront(), backRight) };
+			XMFLOAT3 clockwise{ Vector3::Cross(GetFront(), backRight) };
+			if (clockwise.y >= 0.f) {
+				Rotate(0.f, 0.f, timeElapsed * XMConvertToDegrees(angle.y) * 10.f);
+			}
+			else {
+				Rotate(0.f, 0.f, -timeElapsed * XMConvertToDegrees(angle.y) * 10.f);
+			}
+		}
+		else if (GetAsyncKeyState('W') & 0x8000) {
 			XMFLOAT3 front{ Vector3::Normalize(Vector3::Sub(GetPosition(), eye)) };
 			XMFLOAT3 angle{ Vector3::Angle(GetFront(), front) };
 			XMFLOAT3 clockwise{ Vector3::Cross(GetFront(), front) };
-			if (clockwise.y >= 0) {
+			if (clockwise.y >= 0.f) {
 				Rotate(0.f, 0.f, timeElapsed * XMConvertToDegrees(angle.y) * 10.f);
 			}
 			else {
 				Rotate(0.f, 0.f, -timeElapsed * XMConvertToDegrees(angle.y) * 10.f);
 			}
 		}
-		if (GetAsyncKeyState('A') & 0x8000) {
+		else if (GetAsyncKeyState('A') & 0x8000) {
 			XMFLOAT3 left{ Vector3::Normalize(Vector3::Cross(direction, GetUp())) };
 			XMFLOAT3 angle{ Vector3::Angle(GetFront(), left) };
 			XMFLOAT3 clockwise{ Vector3::Cross(GetFront(), left) };
-			if (clockwise.y >= 0) {
+			if (clockwise.y >= 0.f) {
 				Rotate(0.f, 0.f, timeElapsed * XMConvertToDegrees(angle.y) * 10.f);
 			}
 			else {
 				Rotate(0.f, 0.f, -timeElapsed * XMConvertToDegrees(angle.y) * 10.f);
 			}
 		}
-		if (GetAsyncKeyState('S') & 0x8000) {
+		else if (GetAsyncKeyState('S') & 0x8000) {
 			XMFLOAT3 back{ Vector3::Normalize(Vector3::Sub(eye, GetPosition())) };
 			XMFLOAT3 angle{ Vector3::Angle(GetFront(), back) };
 			XMFLOAT3 clockwise{ Vector3::Cross(GetFront(), back) };
-			if (clockwise.y >= 0) {
+			if (clockwise.y >= 0.f) {
 				Rotate(0.f, 0.f, timeElapsed * XMConvertToDegrees(angle.y) * 10.f);
 			}
 			else {
 				Rotate(0.f, 0.f, -timeElapsed * XMConvertToDegrees(angle.y) * 10.f);
 			}
 		}
-		if (GetAsyncKeyState('D') & 0x8000) {
+		else if (GetAsyncKeyState('D') & 0x8000) {
 			XMFLOAT3 right{ Vector3::Normalize(Vector3::Cross(GetUp(), direction)) };
 			XMFLOAT3 angle{ Vector3::Angle(GetFront(), right) };
 			XMFLOAT3 clockwise{ Vector3::Cross(GetFront(), right) };
-			if (clockwise.y >= 0) {
+			if (clockwise.y >= 0.f) {
 				Rotate(0.f, 0.f, timeElapsed * XMConvertToDegrees(angle.y) * 10.f);
 			}
 			else {

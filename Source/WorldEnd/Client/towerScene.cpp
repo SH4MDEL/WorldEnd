@@ -616,7 +616,9 @@ void TowerScene::RenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext)
 {
 	if (m_exitUI) m_exitUI->RenderText(deviceContext);
 	if (m_resultUI) m_resultUI->RenderText(deviceContext);
-	if (m_interactUI) m_interactUI->RenderText(deviceContext);
+	if (!CheckState(State::Bluring)) {
+		if (m_interactUI) m_interactUI->RenderText(deviceContext);
+	}
 }
 
 void TowerScene::LoadSceneFromFile(wstring fileName, wstring sceneName)
