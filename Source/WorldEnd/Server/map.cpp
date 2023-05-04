@@ -430,8 +430,8 @@ void GameRoom::InitMonsters(INT room_num)
 	
 	// Init 은 플레이어 진입 시 불려야함
 	INT new_id{};
-	for (size_t i = 0; i < 1; ++i) {
-		/*if (i < 2) {
+	for (size_t i = 0; i < 5; ++i) {
+		if (i < 2) {
 			new_id = server.GetNewMonsterId(MonsterType::WARRIOR);
 		}
 		else if (2 <= i && i < 4) {
@@ -439,8 +439,8 @@ void GameRoom::InitMonsters(INT room_num)
 		}
 		else {
 			new_id = server.GetNewMonsterId(MonsterType::WIZARD);
-		}*/
-		new_id = server.GetNewMonsterId(MonsterType::WIZARD);
+		}
+		//new_id = server.GetNewMonsterId(MonsterType::WIZARD);
 		m_monster_ids[i] = new_id;
 		
 		auto monster = dynamic_pointer_cast<Monster>(server.m_clients[new_id]);
@@ -645,7 +645,10 @@ void GameRoomManager::LoadMap()
 
 		object->SetBoundingBox(bounding_box);
 
-		m_structures.push_back(object);
+		if (objectName == "Invisible_Wall")
+			m_invisible_walls.push_back(object);
+		else
+			m_structures.push_back(object);
 	}
 }
 

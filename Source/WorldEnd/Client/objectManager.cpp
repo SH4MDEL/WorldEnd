@@ -40,18 +40,23 @@ void TowerObjectManager::Render(const ComPtr<ID3D12GraphicsCommandList>& command
 	m_arrowRainShader->Render(commandList);
 }
 
-void TowerObjectManager::CreateArrow(const shared_ptr<GameObject>& parent, INT arrowId, FLOAT SPEED)
+void TowerObjectManager::CreateArrow(const shared_ptr<GameObject>& parent, INT arrowId, FLOAT SPEED,
+		ActionType type)
 {
-	m_arrows[arrowId]->SetPosition(Vector3::Add(parent->GetPosition(), XMFLOAT3{ 0.f, 0.9f, 0.f }));
-	
-	//XMFLOAT3 vel = Vector3::Normalize(Vector3::Add(parent->GetFront(), XMFLOAT3{ 0.f, 0.5f, 0.f }));
-	
+	XMFLOAT3 pos{};
 	XMFLOAT3 vel = Vector3::Mul(Vector3::Normalize(parent->GetFront()), SPEED);
-	vel = Vector3::Add(vel, { 0.f, 0.15f * SPEED, 0.f });
+	if (ActionType::NORMAL_ATTACK == type) {
+		pos = { 0.f, 0.9f, 0.f };
+		vel = Vector3::Add(vel, { 0.f, 0.15f * SPEED, 0.f });
+	}
+	else if (ActionType::SKILL == type) {
+		pos = { 0.f, 0.5f, 0.f };
+		vel = Vector3::Add(vel, { 0.f, 0.185f * SPEED, 0.f });
+	}
+	m_arrows[arrowId]->SetPosition(Vector3::Add(parent->GetPosition(), pos));
+	
+	
 	m_arrows[arrowId]->SetVelocity(vel);
-
-	//m_arrows[arrowId]->SetVelocity(Vector3::Mul(parent->GetFront(), SPEED));
-
 
 	m_arrows[arrowId]->Rotate(0.f, 0.f, parent->GetYaw());
 

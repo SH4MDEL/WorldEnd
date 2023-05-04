@@ -55,7 +55,7 @@ void Client::Init()
 	// 나중에 DB에서 처리될 것들
 	SetPlayerType(PlayerType::WARRIOR);
 	m_name = "Player";
-	m_damage = 20.f;
+	m_damage = 90.f;
 	m_hp = m_max_hp = 100.f;
 }
 

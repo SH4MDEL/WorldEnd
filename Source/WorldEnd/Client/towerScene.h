@@ -128,6 +128,7 @@ protected:
 	shared_ptr<Camera>									m_camera;
 
 	shared_ptr<WarpGate>								m_gate;
+	shared_ptr<GameObject>								m_portal;
 
 	unique_ptr<TowerObjectManager>						m_towerObjectManager;
 	shared_ptr<LightSystem>								m_lightSystem;

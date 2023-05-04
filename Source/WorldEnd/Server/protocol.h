@@ -181,9 +181,11 @@ namespace TriggerSetting
 
 	constexpr DirectX::XMFLOAT3
 		EXTENT[static_cast<int>(TriggerType::COUNT)]{
-			DirectX::XMFLOAT3{ 4.f, 4.f, 4.f },
+			DirectX::XMFLOAT3{ 6.f, 6.f, 6.f },
 			DirectX::XMFLOAT3{ 1.f, 1.f, 1.f }
 		};
+
+	constexpr float ARROWRAIN_DIST = EXTENT[static_cast<int>(TriggerType::ARROW_RAIN)].x;
 }
 
 namespace PlayerSetting
@@ -239,7 +241,7 @@ namespace MonsterSetting
 	constexpr float STEP_BACK_SPEED = 1.5f;
 	constexpr float FLEE_SPEED = 4.5f;
 	constexpr float ARROW_SPEED = 18.f;
-	constexpr float RECOGNIZE_RANGE = 20.f;
+	constexpr float RECOGNIZE_RANGE = 26.f;
 	constexpr float ARROW_RANGE = 15.f;
 
 	constexpr auto DECREASE_AGRO_LEVEL_TIME = 10s;
@@ -573,6 +575,7 @@ struct SC_ARROW_SHOOT_PACKET
 	UCHAR type;
 	INT id;
 	INT arrow_id;
+	ActionType action_type;
 };
 
 struct SC_REMOVE_ARROW_PACKET
