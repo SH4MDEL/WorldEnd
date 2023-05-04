@@ -6,11 +6,12 @@ constexpr short SERVER_PORT = 9000;
 
 constexpr int BUF_SIZE = 5000;
 constexpr int NAME_SIZE = 20;
-constexpr int MAX_INGAME_USER = 3;
+constexpr int MAX_INGAME_USER = 1000;
 constexpr int MAX_INGAME_MONSTER = 10;
 constexpr int MAX_GAME_ROOM_NUM = 3000;
 constexpr int MAX_PARTY_NUM = 1000;
 constexpr int MAX_RECORD_NUM = 5;
+constexpr int MAX_MONSTER_PLACEMENT = 40;
 
 constexpr int MAX_USER = 10000;
 constexpr int MAX_WARRIOR_MONSTER = 30000;
@@ -247,7 +248,7 @@ namespace MonsterSetting
 		2.f, 6.f, 2.f };
 	constexpr std::chrono::milliseconds
 		ATK_COLLISION_TIME[static_cast<int>(MonsterType::COUNT)]{ 300ms, 0ms, 1100ms };
-	std::chrono::milliseconds CAST_COLLISION_TIME = 430ms;
+	constexpr std::chrono::milliseconds CAST_COLLISION_TIME = 430ms;
 }
 
 namespace RoomSetting

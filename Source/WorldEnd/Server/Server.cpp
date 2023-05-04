@@ -301,6 +301,7 @@ void Server::WorkerThread()
 				game_room->SetState(GameRoomState::CLEAR);
 				game_room->GetWarpPortal()->SetValid(true);
 			}
+			m_floor_cnt++;
 
 			delete exp_over;
 			break;
@@ -640,7 +641,6 @@ void Server::WorkerThread()
 			// 방을 비어 있는 상태로 변경
 			std::lock_guard<std::mutex> lock{ game_room->GetStateMutex() };
 			game_room->SetState(GameRoomState::EMPTY);
-
 			delete exp_over;
 			break;
 		}
@@ -671,14 +671,14 @@ void Server::ProcessPacket(int id, char* p)
 			client->SetState(State::INGAME);
 		}
 		SendLoginOk(id);
+			// 원래는 던전 진입 시 던전에 배치해야하지만
+			// 현재 마을이 없이 바로 던전에 진입하므로 던전에 입장시킴
+			client->SetRoomNum(0);
+			m_game_room_manager->SetPlayer(client->GetRoomNum(), id);
+			m_game_room_manager->SendAddMonster(client->GetRoomNum(), id);
 
-		// 원래는 던전 진입 시 던전에 배치해야하지만
-		// 현재 마을이 없이 바로 던전에 진입하므로 던전에 입장시킴
-		client->SetRoomNum(0);
-		m_game_room_manager->SetPlayer(client->GetRoomNum(), id);
-		m_game_room_manager->SendAddMonster(client->GetRoomNum(), id);
-
-		printf("%d is connect\n", client->GetId());
+			printf("%d is connect\n", client->GetId());
+		
 		break;
 	}
 	case CS_PACKET_PLAYER_MOVE: {

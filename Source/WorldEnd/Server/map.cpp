@@ -342,24 +342,64 @@ void GameRoom::InitMonsters(INT room_num)
 {
 	Server& server = Server::GetInstance();
 	// 파일을 읽어서 몬스터를 생성할 예정
-	
+
+	std::uniform_int_distribution<INT> random(0, 1);
+	INT random_map = random(g_random_engine);
+
 	// Init 은 플레이어 진입 시 불려야함
-	INT new_id{};
+	INT new_warrior_id{};
 	for (size_t i = 0; i < 2; ++i) {
-		new_id = server.GetNewMonsterId(MonsterType::WIZARD);
-		
-		m_monster_ids[i] = new_id;
-		
-		auto monster = dynamic_pointer_cast<Monster>(server.m_clients[new_id]);
+		new_warrior_id = server.GetNewMonsterId(MonsterType::WARRIOR);
+
+		m_monster_ids[i] = new_warrior_id;
+
+		auto monster = dynamic_pointer_cast<Monster>(server.m_clients[new_warrior_id]);
 		monster->Init();
 
-		monster->SetId(new_id);
-		monster->InitializePosition();
+		monster->SetId(new_warrior_id);
+		monster->InitializePosition(i, MonsterType::WARRIOR, random_map);
 		monster->SetRoomNum(room_num);
 		monster->SetTarget(0);
 		monster->SetState(State::ACCEPT);
 		++m_monster_count;
 	}
+
+	INT new_archer_id{};
+	for (size_t i = 0; i < 2; ++i) {
+		new_archer_id = server.GetNewMonsterId(MonsterType::ARCHER);
+
+		m_monster_ids[i+2] = new_archer_id;
+
+		auto monster = dynamic_pointer_cast<Monster>(server.m_clients[new_archer_id]);
+		monster->Init();
+
+		monster->SetId(new_archer_id);
+		monster->InitializePosition(i+2, MonsterType::ARCHER, random_map);
+		monster->SetRoomNum(room_num);
+		monster->SetTarget(0);
+		monster->SetState(State::ACCEPT);
+		++m_monster_count;
+	}
+
+	INT new_wizard_id{};
+	for (size_t i = 0; i < 2; ++i) {
+		new_wizard_id = server.GetNewMonsterId(MonsterType::WIZARD);
+		
+		m_monster_ids[i+4] = new_wizard_id;
+		
+		auto monster = dynamic_pointer_cast<Monster>(server.m_clients[new_wizard_id]);
+		monster->Init();
+
+		monster->SetId(new_wizard_id);
+		monster->InitializePosition(i+4, MonsterType::WIZARD, random_map);
+		monster->SetRoomNum(room_num);
+		monster->SetTarget(0);
+		monster->SetState(State::ACCEPT);
+		++m_monster_count;
+	}
+
+	std::cout << random_map << "번 맵 " << std::endl;
+
 }
 
 void GameRoom::InitEnvironment()
