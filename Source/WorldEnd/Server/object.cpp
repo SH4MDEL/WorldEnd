@@ -183,7 +183,6 @@ void WarpPortal::SendEvent(const std::span<INT>& ids, void* c)
 		auto client = dynamic_pointer_cast<Client>(server.m_clients[id]);
 
 		client->RestoreCondition();
-		server.MoveObject(client, RoomSetting::START_POSITION);
 		client->DoSend(&packet);
 	}
 }

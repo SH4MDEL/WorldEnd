@@ -14,7 +14,7 @@ public:
 	void Update(FLOAT timeElapsed);
 	void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList);
 
-	void CreateArrow(const shared_ptr<GameObject>& parent, INT arrowId, FLOAT SPEED);
+	void CreateArrow(const shared_ptr<GameObject>& parent, INT arrowId, FLOAT SPEED, ActionType type);
 	void RemoveArrow(INT arrowId);
 
 	void CreateArrowRain(const XMFLOAT3& position);

@@ -132,7 +132,7 @@ public:
 
 	virtual AnimationController* GetAnimationController() const { return m_animationController.get(); }
 
-	virtual bool ChangeAnimation(USHORT animation);
+	virtual void ChangeAnimation(USHORT animation, bool doSend) {}
 	virtual void SetHpBar(const shared_ptr<GaugeBar>& hpBar) {};
 
 	virtual FLOAT GetMaxHp() const { return 0.f; }

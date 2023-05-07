@@ -85,7 +85,7 @@ void TowerLoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const C
 	auto hpBarMesh{ make_shared<PlaneMesh>(device, commandlist, XMFLOAT3{ 0.f, 0.f, 0.f }, XMFLOAT2{ 0.75f, 0.15f }) };
 	auto skyboxMesh{ make_shared <SkyboxMesh>(device, commandlist, 20.0f, 20.0f, 20.0f) };
 	auto magicCircleExtent = TriggerSetting::EXTENT[static_cast<INT>(TriggerType::ARROW_RAIN)];
-	auto magicCircleMesh{ make_shared<PlaneMesh>(device, commandlist, XMFLOAT3{ 0.f, 0.f, 0.f }, XMFLOAT2{ magicCircleExtent.x, magicCircleExtent.z }) };
+	auto magicCircleMesh{ make_shared<PlaneMesh>(device, commandlist, XMFLOAT3{ 0.f, 0.f, 0.f }, XMFLOAT2{ magicCircleExtent.x * 2, magicCircleExtent.z * 2 }) };
 
 	m_meshs.insert({ "SKYBOX", skyboxMesh });
 	m_meshs.insert({ "HPBAR", hpBarMesh });

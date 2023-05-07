@@ -103,6 +103,7 @@ public:
 	bool IsValidRoomNum(INT room_num);
 
 	std::vector<std::shared_ptr<GameObject>>& GetStructures() { return m_structures; }
+	std::vector<std::shared_ptr<GameObject>>& GetInvisibleWalls() { return m_invisible_walls; }
 	std::shared_ptr<GameRoom> GetGameRoom(INT room_num);
 	/*std::chrono::system_clock::time_point GetStartTime(INT room_num);
 	EnvironmentType GetEnvironment(INT room_num);
@@ -133,4 +134,5 @@ private:
 private:
 	std::array<std::shared_ptr<GameRoom>, MAX_GAME_ROOM_NUM>	m_game_rooms;
 	std::vector<std::shared_ptr<GameObject>>					m_structures;
+	std::vector<std::shared_ptr<GameObject>>					m_invisible_walls;
 };

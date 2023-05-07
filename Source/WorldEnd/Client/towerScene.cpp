@@ -1038,6 +1038,8 @@ void TowerScene::RecvRemovePlayer(char* ptr)
 	SC_REMOVE_PLAYER_PACKET* packet = reinterpret_cast<SC_REMOVE_PLAYER_PACKET*>(ptr);
 
 	m_multiPlayers[packet->id]->SetPosition(XMFLOAT3(FAR_POSITION, FAR_POSITION, FAR_POSITION));
+	
+	m_hpUI[m_idSet[packet->id]]->SetDisable();
 }
 
 void TowerScene::RecvRemoveMonster(char* ptr)
@@ -1088,7 +1090,7 @@ void TowerScene::RecvAddMonster(char* ptr)
 	auto monster = make_shared<Monster>();
 	monster->SetType(packet->monster_type);
 	LoadMonsterFromFile(monster);
-	monster->ChangeAnimation(ObjectAnimation::WALK);
+	monster->ChangeAnimation(ObjectAnimation::WALK, false);
 
 	monster->SetPosition(XMFLOAT3{ monster_data.pos.x, monster_data.pos.y, monster_data.pos.z });
 	m_monsters.insert({ static_cast<INT>(monster_data.id), monster });
@@ -1126,7 +1128,7 @@ void TowerScene::RecvChangeMonsterBehavior(char* ptr)
 	if (ObjectAnimation::DEATH == monster->GetCurrentAnimation())
 		return;
 
-	monster->ChangeAnimation(packet->animation);
+	monster->ChangeAnimation(packet->animation, false);
 	//monster->ChangeBehavior(packet->behavior);
 }
 
@@ -1250,12 +1252,14 @@ void TowerScene::RecvWarpNextFloor(char* ptr)
 	m_interactUI->SetDisable();
 	SetState(State::Fading);
 	m_fadeFilter->FadeOut([&]() {
-		m_player->ChangeAnimation(ObjectAnimation::IDLE);
+		m_player->ChangeAnimation(ObjectAnimation::IDLE, false);
 		m_player->SetPosition(RoomSetting::START_POSITION);
+		m_player->SetHp(m_player->GetMaxHp());
 
 		for (auto& elm : m_multiPlayers) {
 			elm.second->SetPosition(RoomSetting::START_POSITION);
-			elm.second->ChangeAnimation(ObjectAnimation::IDLE);
+			elm.second->ChangeAnimation(ObjectAnimation::IDLE, false);
+			elm.second->SetHp(m_player->GetMaxHp());
 		}
 
 		m_globalShaders["OBJECT"]->SetObject(m_gate);
@@ -1290,17 +1294,18 @@ void TowerScene::RecvArrowShoot(char* ptr)
 
 	if (0 <= packet->id && packet->id < MAX_USER) {
 		if (packet->id == m_player->GetId()) {
-			//RotateToTarget(m_player, packet->target_id);
-			m_towerObjectManager->CreateArrow(m_player, packet->arrow_id, PlayerSetting::ARROW_SPEED);
+			m_towerObjectManager->CreateArrow(m_player, packet->arrow_id, PlayerSetting::ARROW_SPEED,
+				packet->action_type);
 		}
 		else {
 			auto& player = m_multiPlayers[packet->id];
-			//RotateToTarget(player, packet->target_id);
-			m_towerObjectManager->CreateArrow(player, packet->arrow_id, PlayerSetting::ARROW_SPEED);
+			m_towerObjectManager->CreateArrow(player, packet->arrow_id, PlayerSetting::ARROW_SPEED,
+				packet->action_type);
 		}
 	}
 	else {
-		m_towerObjectManager->CreateArrow(m_monsters[packet->id], packet->arrow_id, MonsterSetting::ARROW_SPEED);
+		m_towerObjectManager->CreateArrow(m_monsters[packet->id], packet->arrow_id, MonsterSetting::ARROW_SPEED,
+			packet->action_type);
 	}
 }
 

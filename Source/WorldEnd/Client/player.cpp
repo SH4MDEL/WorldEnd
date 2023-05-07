@@ -25,7 +25,7 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 	if (GetAsyncKeyState('Q') & 0x8000) {
 		if (!m_cooldownList[ActionType::ULTIMATE]) {
 			m_ultimateCool = 0.f;
-			ChangeAnimation(PlayerAnimation::ULTIMATE);
+			ChangeAnimation(PlayerAnimation::ULTIMATE, true);
 
 			XMFLOAT3 pos = Vector3::Add(Vector3::Mul(m_front, 0.8f), GetPosition());
 			
@@ -161,7 +161,7 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 		if (!m_cooldownList[ActionType::ROLL]) {
 			if (m_stamina >= PlayerSetting::MINIMUM_ROLL_STAMINA) {
 
-				ChangeAnimation(PlayerAnimation::ROLL);
+				ChangeAnimation(PlayerAnimation::ROLL, true);
 				m_moveSpeed = PlayerSetting::ROLL_SPEED;
 
 				CreateCooldownPacket(ActionType::ROLL);
@@ -175,7 +175,7 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 	if (GetAsyncKeyState('E') & 0x8000) {
 		if (!m_cooldownList[ActionType::SKILL]) {
 			m_skillCool = 0.f;
-			ChangeAnimation(PlayerAnimation::SKILL);
+			ChangeAnimation(PlayerAnimation::SKILL, true);
 
 			XMFLOAT3 pos = Vector3::Add(Vector3::Mul(m_front, 0.8f), GetPosition());
 			CreateAttackPacket(ActionType::SKILL);
@@ -205,7 +205,7 @@ void Player::OnProcessingMouseMessage(UINT message, LPARAM lParam)
 		if (m_cooldownList[ActionType::NORMAL_ATTACK])
 			return;
 
-		ChangeAnimation(ObjectAnimation::ATTACK);
+		ChangeAnimation(ObjectAnimation::ATTACK, true);
 		CreateAttackPacket(ActionType::NORMAL_ATTACK);
 		break;
 	case WM_RBUTTONDOWN:
@@ -217,7 +217,7 @@ void Player::OnProcessingMouseMessage(UINT message, LPARAM lParam)
 
 				if (m_stamina >= PlayerSetting::MINIMUM_DASH_STAMINA) {
 					m_dashed = true;
-					ChangeAnimation(PlayerAnimation::DASH);
+					ChangeAnimation(PlayerAnimation::DASH, true);
 					m_moveSpeed = PlayerSetting::DASH_SPEED;
 					m_startDash = chrono::system_clock::now();
 
@@ -259,7 +259,7 @@ void Player::Update(FLOAT timeElapsed)
 
 			// 공격 애니메이션 종료 시 IDLE 로 변경
 			if (fabs(track.GetPosition() - animation->GetLength()) <= numeric_limits<float>::epsilon()) {
-				ChangeAnimation(ObjectAnimation::IDLE);
+				ChangeAnimation(ObjectAnimation::IDLE, true);
 				SendPacket();
 			}
 		}
@@ -270,9 +270,9 @@ void Player::Update(FLOAT timeElapsed)
 			// 스킬 애니메이션 종료 시 IDLE 로 변경
 			if (fabs(track.GetPosition() - animation->GetLength()) <= numeric_limits<float>::epsilon()) {
 				if (m_dashed && (PlayerAnimation::RUN == m_prevAnimation))
-					ChangeAnimation(PlayerAnimation::RUN);
+					ChangeAnimation(PlayerAnimation::RUN, true);
 				else
-					ChangeAnimation(ObjectAnimation::IDLE);
+					ChangeAnimation(ObjectAnimation::IDLE, true);
 
 				SendPacket();
 			}
@@ -284,9 +284,9 @@ void Player::Update(FLOAT timeElapsed)
 			// 스킬 애니메이션 종료 시 IDLE 로 변경
 			if (fabs(track.GetPosition() - animation->GetLength()) <= numeric_limits<float>::epsilon()) {
 				if (m_dashed && (PlayerAnimation::RUN == m_prevAnimation))
-					ChangeAnimation(PlayerAnimation::RUN);
+					ChangeAnimation(PlayerAnimation::RUN, true);
 				else
-					ChangeAnimation(ObjectAnimation::IDLE);
+					ChangeAnimation(ObjectAnimation::IDLE, true);
 
 				SendPacket();
 			}
@@ -300,11 +300,11 @@ void Player::Update(FLOAT timeElapsed)
 
 			if (fabs(track.GetPosition() - animation->GetLength()) <= 0.25f) {
 				if (m_dashed && (PlayerAnimation::RUN == m_prevAnimation)) {
-					ChangeAnimation(PlayerAnimation::RUN);
+					ChangeAnimation(PlayerAnimation::RUN, true);
 					m_moveSpeed = PlayerSetting::RUN_SPEED;
 				}
 				else {
-					ChangeAnimation(ObjectAnimation::IDLE);
+					ChangeAnimation(ObjectAnimation::IDLE, true);
 					m_moveSpeed = PlayerSetting::WALK_SPEED;
 					
 					CreateChangeStaminaPacket(true);
@@ -318,12 +318,12 @@ void Player::Update(FLOAT timeElapsed)
 
 			
 			if (chrono::system_clock::now() > m_startDash + PlayerSetting::DASH_DURATION) {
-				ChangeAnimation(ObjectAnimation::RUN);
+				ChangeAnimation(ObjectAnimation::RUN, true);
 				m_moveSpeed = PlayerSetting::RUN_SPEED;
 				SendPacket();
 			}
 			else if (fabs(track.GetPosition() - animation->GetLength()) <= numeric_limits<float>::epsilon()) {
-				ChangeAnimation(ObjectAnimation::WALK);
+				ChangeAnimation(ObjectAnimation::WALK, true);
 				m_moveSpeed = PlayerSetting::WALK_SPEED;
 				SendPacket();
 			}
@@ -331,7 +331,7 @@ void Player::Update(FLOAT timeElapsed)
 		else {
 			float length = fabs(m_velocity.x) + fabs(m_velocity.z);
 			if (length <= numeric_limits<float>::epsilon()) {
-				ChangeAnimation(ObjectAnimation::IDLE);
+				ChangeAnimation(ObjectAnimation::IDLE, true);
 				SendPacket();
 			}
 			else {
@@ -340,17 +340,17 @@ void Player::Update(FLOAT timeElapsed)
 						m_dashed = false;
 						m_moveSpeed = PlayerSetting::WALK_SPEED;
 
-						ChangeAnimation(ObjectAnimation::WALK);
+						ChangeAnimation(ObjectAnimation::WALK, true);
 						CreateChangeStaminaPacket(true);
 						SendPacket();
 					}
 					else {
-						ChangeAnimation(ObjectAnimation::RUN);
+						ChangeAnimation(ObjectAnimation::RUN, true);
 						SendPacket();
 					}
 				}
 				else {
-					ChangeAnimation(ObjectAnimation::WALK);
+					ChangeAnimation(ObjectAnimation::WALK, true);
 					m_moveSpeed = PlayerSetting::WALK_SPEED;
 					SendPacket();
 				}
@@ -475,23 +475,68 @@ void Player::ResetAllCooldown()
 	}
 }
 
-bool Player::ChangeAnimation(USHORT animation)
+void Player::ChangeAnimation(USHORT animation, bool doSend)
 {
-	if (!AnimationObject::ChangeAnimation(animation))
-		return false;
-#ifdef USE_NETWORK
-	CS_CHANGE_ANIMATION_PACKET packet{};
-	packet.size = sizeof(packet);
-	packet.type = CS_PACKET_CHANGE_ANIMATION;
-	packet.animation = m_currentAnimation;
-	SetBuffer(&packet, packet.size);
-#endif
-	return true;
-}
+	if (m_currentAnimation == animation)
+		return ;
 
-void Player::ChangeAnimation(USHORT animation, bool other)
-{
-	AnimationObject::ChangeAnimation(animation);
+	int start_num{};
+	m_animationController->SetTrackSpeed(0, 1.f);
+	switch (animation) {
+	case ObjectAnimation::IDLE:
+		ChangeAnimationSettings(AnimationBlending::BLENDING, ANIMATION_TYPE_LOOP,
+			ANIMATION_TYPE_LOOP, m_currentAnimation);
+		break;
+
+	case ObjectAnimation::WALK:
+		ChangeAnimationSettings(AnimationBlending::BLENDING, ANIMATION_TYPE_LOOP,
+			ANIMATION_TYPE_LOOP, m_currentAnimation);
+		m_animationController->SetTrackSpeed(0, 1.7f);
+		break;
+
+	case ObjectAnimation::RUN:
+		ChangeAnimationSettings(AnimationBlending::NORMAL, ANIMATION_TYPE_LOOP,
+			ANIMATION_TYPE_LOOP, m_currentAnimation);
+		m_animationController->SetTrackSpeed(0, 1.3f);
+		break;
+
+	case ObjectAnimation::ATTACK:
+		ChangeAnimationSettings(AnimationBlending::NORMAL, ANIMATION_TYPE_ONCE,
+			ANIMATION_TYPE_LOOP, m_currentAnimation);
+		break;
+
+	case ObjectAnimation::DEATH:
+		ChangeAnimationSettings(AnimationBlending::NORMAL, ANIMATION_TYPE_ONCE,
+			ANIMATION_TYPE_LOOP, m_currentAnimation);
+		break;
+
+	case PlayerAnimation::DASH:
+		start_num = PlayerAnimation::ANIMATION_START;
+		ChangeAnimationSettings(AnimationBlending::NORMAL, ANIMATION_TYPE_LOOP,
+			ANIMATION_TYPE_LOOP, m_currentAnimation);
+		break;
+	case PlayerAnimation::SKILL:
+		start_num = PlayerAnimation::ANIMATION_START;
+		ChangeAnimationSettings(AnimationBlending::NORMAL, ANIMATION_TYPE_ONCE,
+			ANIMATION_TYPE_LOOP, m_currentAnimation);
+		break;
+	case PlayerAnimation::ULTIMATE:
+		start_num = PlayerAnimation::ANIMATION_START;
+		ChangeAnimationSettings(AnimationBlending::NORMAL, ANIMATION_TYPE_ONCE,
+			ANIMATION_TYPE_LOOP, m_currentAnimation);
+		break;
+	case PlayerAnimation::ROLL:
+		start_num = PlayerAnimation::ANIMATION_START;
+		ChangeAnimationSettings(AnimationBlending::NORMAL, ANIMATION_TYPE_ONCE,
+			ANIMATION_TYPE_LOOP, m_currentAnimation);
+		break;
+	}
+	m_prevAnimation = m_currentAnimation;
+	m_currentAnimation = animation;
+	m_animationController->SetTrackAnimation(0, animation - start_num);
+
+	if (doSend)
+		CreateChangeAnimation(animation);
 }
 
 void Player::MoveOnStairs()
@@ -570,6 +615,17 @@ void Player::CreateInteractPacket()
 	packet.size = sizeof(packet);
 	packet.type = CS_PACKET_INTERACT_OBJECT;
 	packet.interaction_type = m_interactableType;
+	SetBuffer(&packet, packet.size);
+#endif
+}
+
+void Player::CreateChangeAnimation(USHORT animation)
+{
+#ifdef USE_NETWORK
+	CS_CHANGE_ANIMATION_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = CS_PACKET_CHANGE_ANIMATION;
+	packet.animation = m_currentAnimation;
 	SetBuffer(&packet, packet.size);
 #endif
 }
@@ -708,9 +764,9 @@ void ArrowRain::SetPosition(const XMFLOAT3& position)
 
 	for (auto& arrow : m_arrows) {
 		arrow.first->SetPosition(Vector3::Add(position, {
-			DX::GetRandomFLOAT(-extent.x / 2.f, extent.x / 2.f),
+			DX::GetRandomFLOAT(-extent.x, extent.x),
 			MAX_ARROW_HEIGHT - (MAX_ARROW_HEIGHT * arrow.second / ARROW_LIFECYCLE), 
-			DX::GetRandomFLOAT(-extent.z / 2.f, extent.z / 2.f) }));
+			DX::GetRandomFLOAT(-extent.z, extent.z) }));
 	}
 	m_magicCircle->SetPosition(position);
 }

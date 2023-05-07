@@ -44,8 +44,7 @@ public:
 
 	void ResetCooldown(char type);
 	void ResetAllCooldown();
-	virtual bool ChangeAnimation(USHORT animation) override;
-	void ChangeAnimation(USHORT animation, bool other);
+	virtual void ChangeAnimation(USHORT animation, bool doSend) override;
 
 	// 추가
 	void MoveOnStairs();
@@ -57,6 +56,7 @@ public:
 	void CreateCooldownPacket(ActionType type);
 	void CreateAttackPacket(ActionType cooldownType);
 	void CreateInteractPacket();
+	void CreateChangeAnimation(USHORT animation);
 	void CreateChangeStaminaPacket(bool value);
 	void SetBuffer(void* mess, size_t size);
 	void SendPacket();

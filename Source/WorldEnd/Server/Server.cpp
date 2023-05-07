@@ -585,27 +585,30 @@ void Server::WorkerThread()
 		case OP_ARROW_SHOOT: {
 			int id = static_cast<int>(key);
 			ActionType* type = reinterpret_cast<ActionType*>(exp_over->_send_buf);
-			
+			int* target_id = reinterpret_cast<int*>((exp_over->_send_buf + sizeof(ActionType)));
+
 			switch (*type) {
 			case ActionType::NORMAL_ATTACK:
 				if (IsPlayer(id)) {
 					if (m_clients[id]->GetCurrentAnimation() != ObjectAnimation::ATTACK)
 						break;
 				}
-				ProcessArrow(id, *type);
+				ProcessArrow(id, *target_id, *type);
 				break;
 			case ActionType::SKILL:
 				if (IsPlayer(id)) {
 					if (m_clients[id]->GetCurrentAnimation() != PlayerAnimation::SKILL)
 						break;
 				}
-				ProcessArrow(id, *type);
+				ProcessArrow(id, *target_id, *type);
 				
 				break;
-			case ActionType::ULTIMATE:
-				SetTrigger(id, TriggerType::ARROW_RAIN, 
-					Vector3::Add(m_clients[id]->GetPosition(), Vector3::Mul(m_clients[id]->GetFront(), 3.f)));
+			case ActionType::ULTIMATE: {
+				XMFLOAT3* pos = reinterpret_cast<XMFLOAT3*>((exp_over->_send_buf +
+					sizeof(ActionType) + sizeof(int)));
+				SetTrigger(id, TriggerType::ARROW_RAIN, *pos);
 				break;
+			}
 			}
 
 			delete exp_over;
@@ -649,6 +652,25 @@ void Server::WorkerThread()
 		case OP_BATTLE_START: {
 			int id = static_cast<int>(key);
 			m_game_room_manager->StartBattle(m_clients[id]->GetRoomNum());
+
+			delete exp_over;
+			break;
+		}
+		case OP_PORTAL_WARP: {
+			int id = static_cast<int>(key);
+			auto game_room = m_game_room_manager->GetGameRoom(m_clients[id]->GetRoomNum());
+			if (!game_room) {
+				delete exp_over;
+				break;
+			}
+
+			auto& ids = game_room->GetPlayerIds();
+
+			for (int id : ids) {
+				if (-1 == id) continue;
+
+				Move(dynamic_pointer_cast<Client>(m_clients[id]), RoomSetting::START_POSITION);
+			}
 
 			delete exp_over;
 			break;
@@ -799,7 +821,8 @@ void Server::ProcessPacket(int id, char* p)
 			break;
 		case InteractionType::PORTAL:
 			client->SetInteractable(false);
-			m_game_room_manager->WarpNextFloor(client->GetRoomNum());
+			m_game_room_manager->WarpNextFloor(m_clients[id]->GetRoomNum());
+			SetWarpTimerEvent(id);
 			break;
 		case InteractionType::ENHANCMENT:
 
@@ -978,8 +1001,10 @@ void Server::SendMonsterAttack(int client_id, const std::span<int>& clients,
 
 	for (size_t i = 0; int id : clients) {
 		if (-1 == id) continue;
-		if (State::INGAME != m_clients[id]->GetState()) continue;
-
+		{
+			std::lock_guard<std::mutex> l{ m_clients[id]->GetStateMutex() };
+			if (State::INGAME != m_clients[id]->GetState()) continue;
+		}
 		// 충돌했을 경우에만 index 증가
 		if (obb.Intersects(m_clients[id]->GetBoundingBox())) {
 			m_clients[id]->DecreaseHp(m_clients[client_id]->GetDamage(), -1);
@@ -1016,6 +1041,11 @@ void Server::SendMonsterAttack(int monster_id, int player_id)
 		packet.hps[i] = 0;
 	}
 
+	{
+		std::lock_guard<std::mutex> l{ m_clients[player_id]->GetStateMutex() };
+		if (State::DEATH == m_clients[player_id]->GetState())
+			return;
+	}
 	m_clients[player_id]->DecreaseHp(m_clients[monster_id]->GetDamage(), -1);
 	// player의 DecreaseHp의 2번째인자는 함수 내에서 사용 X, 아무값 작성한 것
 
@@ -1043,13 +1073,14 @@ void Server::SendMonsterAttack(int monster_id, int player_id)
 	}
 }
 
-void Server::SendArrowShoot(int client_id, int arrow_id)
+void Server::SendArrowShoot(int client_id, int arrow_id, ActionType type)
 {
 	SC_ARROW_SHOOT_PACKET packet{};
 	packet.size = sizeof(packet);
 	packet.type = SC_PACKET_ARROW_SHOOT;
 	packet.id = client_id;
 	packet.arrow_id = arrow_id;
+	packet.action_type = type;
 
 	int room_num = m_clients[client_id]->GetRoomNum();
 	auto game_room = m_game_room_manager->GetGameRoom(room_num);
@@ -1200,10 +1231,21 @@ void Server::GameRoomObjectCollisionCheck(const std::shared_ptr<MovementObject>&
 
 	auto& v = m_game_room_manager->GetStructures();
 
-	for (auto& obj : v) {
+	for (const auto& obj : v) {
 		auto& obb = obj->GetBoundingBox();
 		if (player_obb.Intersects(obb)) {
 			CollideByStaticOBB(object, obj);
+		}
+	}
+
+	if (GameRoomState::ONBATTLE == game_room->GetState()) {
+		auto& v2 = m_game_room_manager->GetInvisibleWalls();
+
+		for (const auto& obj : v2) {
+			auto& obb = obj->GetBoundingBox();
+			if (player_obb.Intersects(obb)) {
+				CollideByStaticOBB(object, obj);
+			}
 		}
 	}
 
@@ -1213,7 +1255,7 @@ void Server::GameRoomObjectCollisionCheck(const std::shared_ptr<MovementObject>&
 	}
 }
 
-void Server::ProcessArrow(int client_id, ActionType type)
+void Server::ProcessArrow(int client_id, int target_id, ActionType type)
 {
 	auto game_room = m_game_room_manager->GetGameRoom(m_clients[client_id]->GetRoomNum());
 	if (!game_room) {
@@ -1224,17 +1266,8 @@ void Server::ProcessArrow(int client_id, ActionType type)
 
 	SetRemoveArrowTimerEvent(client_id, arrow_id);
 
-	float target_range{};
-	if (IsPlayer(client_id)) {
-		target_range = PlayerSetting::ARROW_RANGE;
-	}
-	else {
-		target_range = MonsterSetting::ARROW_RANGE;
-	}
-
-	int target = GetNearTarget(client_id, target_range);
-	SendArrowShoot(client_id, arrow_id);
-	SetHitScanTimerEvent(client_id, target, type, arrow_id);
+	SendArrowShoot(client_id, arrow_id, type);
+	SetHitScanTimerEvent(client_id, target_id, type, arrow_id);
 }
 
 INT Server::GetNewId()
@@ -1493,7 +1526,8 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 			}
 			case MonsterType::ARCHER: {
 				TIMER_EVENT attack_ev{ .event_time = system_clock::now(), .obj_id = ev.obj_id,
-				.event_type = EventType::ARROW_SHOOT, .action_type = ActionType::NORMAL_ATTACK };
+					.target_id = monster->GetTargetId(), .event_type = EventType::ARROW_SHOOT,
+					.action_type = ActionType::NORMAL_ATTACK };
 
 				m_timer_queue.push(attack_ev);
 				break;
@@ -1519,6 +1553,7 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 		ExpOver* over = new ExpOver;
 		over->_comp_type = OP_BEHAVIOR_CHANGE;
 		memcpy(&over->_send_buf, &ev.next_behavior_type, sizeof(MonsterBehavior));
+
 		PostQueuedCompletionStatus(m_handle_iocp, 1, ev.obj_id, &over->_wsa_over);
 		break;
 	}
@@ -1554,6 +1589,7 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 		over->_comp_type = OP_ATTACK_COLLISION;
 		memcpy(&over->_send_buf[0], &ev.action_type, sizeof(ActionType));
 		memcpy(&over->_send_buf[1], &ev.position, sizeof(XMFLOAT3));
+
 		PostQueuedCompletionStatus(m_handle_iocp, 1, ev.obj_id, &over->_wsa_over);
 		break;
 	}
@@ -1562,6 +1598,7 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 		over->_comp_type = OP_MONSTER_ATTACK_COLLISION;
 		memcpy(&over->_send_buf[0], &ev.action_type, sizeof(ActionType));
 		memcpy(&over->_send_buf[1], &ev.position, sizeof(XMFLOAT3));
+
 		PostQueuedCompletionStatus(m_handle_iocp, 1, ev.obj_id, &over->_wsa_over);
 		break;
 	}
@@ -1575,6 +1612,7 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 		memcpy(&over->_send_buf[0], &ev.is_stamina_increase, sizeof(bool));
 		memcpy(&over->_send_buf[1], &ev.latest_id, sizeof(BYTE));
 		memcpy(&over->_send_buf[2], &ev.target_id, sizeof(int));
+
 		PostQueuedCompletionStatus(m_handle_iocp, 1, ev.obj_id, &over->_wsa_over);
 		break;
 	}
@@ -1586,13 +1624,17 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 		memcpy((over->_send_buf + sizeof(int) + sizeof(char)), &ev.position, sizeof(XMFLOAT3));
 		memcpy((over->_send_buf + sizeof(int) + sizeof(char) + sizeof(XMFLOAT3)),
 			&ev.direction, sizeof(XMFLOAT3));
+
 		PostQueuedCompletionStatus(m_handle_iocp, 1, ev.obj_id, &over->_wsa_over);
 		break;
 	}
 	case EventType::ARROW_SHOOT: {
 		ExpOver* over = new ExpOver;
 		over->_comp_type = OP_ARROW_SHOOT;
-		memcpy(&over->_send_buf, &ev.action_type, sizeof(ActionType));
+		memcpy(over->_send_buf, &ev.action_type, sizeof(ActionType));
+		memcpy((over->_send_buf + sizeof(ActionType)), &ev.target_id, sizeof(int));
+		memcpy((over->_send_buf + sizeof(ActionType) + sizeof(int)), &ev.position, sizeof(XMFLOAT3));
+
 		PostQueuedCompletionStatus(m_handle_iocp, 1, ev.obj_id, &over->_wsa_over);
 		break;
 	}
@@ -1600,6 +1642,7 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 		ExpOver* over = new ExpOver;
 		over->_comp_type = OP_ARROW_REMOVE;
 		memcpy(over->_send_buf, &ev.target_id, sizeof(int));
+
 		PostQueuedCompletionStatus(m_handle_iocp, 1, ev.obj_id, &over->_wsa_over);
 		break;
 	}
@@ -1614,8 +1657,8 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 	case EventType::TRIGGER_COOLDOWN: {
 		ExpOver* over = new ExpOver;
 		over->_comp_type = OP_TRIGGER_COOLDOWN;
-
 		memcpy(over->_send_buf, &ev.target_id, sizeof(int));
+
 		PostQueuedCompletionStatus(m_handle_iocp, 1, ev.obj_id, &over->_wsa_over);
 		break;
 	}
@@ -1652,6 +1695,12 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 	case EventType::BATTLE_START: {
 		ExpOver* over = new ExpOver;
 		over->_comp_type = OP_BATTLE_START;
+		PostQueuedCompletionStatus(m_handle_iocp, 1, ev.obj_id, &over->_wsa_over);
+		break;
+	}
+	case EventType::PORTAL_WARP: {
+		ExpOver* over = new ExpOver;
+		over->_comp_type = OP_PORTAL_WARP;
 		PostQueuedCompletionStatus(m_handle_iocp, 1, ev.obj_id, &over->_wsa_over);
 		break;
 	}
@@ -1800,9 +1849,19 @@ void Server::SetArrowShootTimerEvent(int id, ActionType attack_type,
 	std::chrono::system_clock::time_point attack_time)
 {
 	auto client = dynamic_pointer_cast<Client>(m_clients[id]);
+	
+	float target_range{};
+	if (IsPlayer(id)) {
+		target_range = PlayerSetting::ARROW_RANGE;
+	}
+	else {
+		target_range = MonsterSetting::ARROW_RANGE;
+	}
 
-	TIMER_EVENT ev{ .obj_id = id, .event_type = EventType::ARROW_SHOOT,
-		.action_type = attack_type };
+	int target = GetNearTarget(id, target_range);
+
+	TIMER_EVENT ev{ .obj_id = id, .target_id = target,
+		.event_type = EventType::ARROW_SHOOT, .action_type = attack_type };
 
 	int type = static_cast<int>(PlayerType::ARCHER);
 	switch (attack_type) {
@@ -1814,6 +1873,8 @@ void Server::SetArrowShootTimerEvent(int id, ActionType attack_type,
 		break;
 	case ActionType::ULTIMATE:
 		ev.event_time = attack_time + PlayerSetting::ULTIMATE_COLLISION_TIME[type];
+		ev.position = Vector3::Add(m_clients[id]->GetPosition(),
+			Vector3::Mul(m_clients[id]->GetFront(), TriggerSetting::ARROWRAIN_DIST));
 		break;
 	}
 	m_timer_queue.push(ev);
@@ -1836,6 +1897,15 @@ void Server::SetBattleStartTimerEvent(int client_id)
 	m_timer_queue.push(ev);
 }
 
+void Server::SetWarpTimerEvent(int client_id)
+{
+	using namespace std::literals;
+	TIMER_EVENT ev{ .event_time = std::chrono::system_clock::now() + RoomSetting::WARP_DELAY_TIME,
+		.obj_id = client_id, .event_type = EventType::PORTAL_WARP };
+
+	m_timer_queue.push(ev);
+}
+
 void Server::SetTrigger(int client_id, TriggerType type, const XMFLOAT3& pos)
 {
 	int room_num = m_clients[client_id]->GetRoomNum();
@@ -1852,7 +1922,7 @@ void Server::SetTrigger(int client_id, TriggerType type, const XMFLOAT3& pos)
 	case TriggerType::ARROW_RAIN:
 		damage = m_clients[client_id]->GetDamage() *
 			m_clients[client_id]->GetSkillRatio(ActionType::ULTIMATE);
-		m_triggers[trigger_id]->Create(damage, client_id, room_num);
+		m_triggers[trigger_id]->Create(damage, client_id, pos, room_num);
 		break;
 
 	case TriggerType::UNDEAD_GRASP:

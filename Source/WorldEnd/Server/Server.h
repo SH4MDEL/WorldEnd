@@ -12,7 +12,7 @@ enum class EventType : char
 	ATTACK_COLLISION, MONSTER_ATTACK_COLLISION, STAMINA_CHANGE,
 	HIT_SCAN, ARROW_SHOOT, ARROW_REMOVE, GAME_ROOM_RESET,
 	TRIGGER_COOLDOWN, TRIGGER_REMOVE, MULTIPLE_TRIGGER_SET, BATTLE_START,
-	
+	PORTAL_WARP
 };
 
 struct TIMER_EVENT {
@@ -62,7 +62,7 @@ public:
 	void SendMonsterAttack(int client_id, const std::span<int>& clients,
 		const BoundingOrientedBox& obb);
 	void SendMonsterAttack(int monster_id, int player_id);
-	void SendArrowShoot(int client_id, int arrow_id);
+	void SendArrowShoot(int client_id, int arrow_id, ActionType type);
 	void SendRemoveArrow(int client_id, int arrow_id);
 	void SendMonsterShoot(int client_id);
 	void SendChangeHp(int client_id, FLOAT hp);
@@ -72,7 +72,7 @@ public:
 	bool IsPlayer(int client_id);
 	void GameRoomObjectCollisionCheck(const std::shared_ptr<MovementObject>& object,
 			int room_num);
-	void ProcessArrow(int client_id, ActionType type);
+	void ProcessArrow(int client_id, int target_id, ActionType type);
 
 	void Timer();
 	void ProcessEvent(const TIMER_EVENT& ev);
@@ -87,6 +87,7 @@ public:
 		std::chrono::system_clock::time_point attack_time);
 	void SetRemoveArrowTimerEvent(int client_id, int arrow_id);
 	void SetBattleStartTimerEvent(int client_id);
+	void SetWarpTimerEvent(int client_id);
 	void SetTrigger(int client_id, TriggerType type, const XMFLOAT3& pos);
 	void SetTrigger(int client_id, TriggerType type, int target_id);
 

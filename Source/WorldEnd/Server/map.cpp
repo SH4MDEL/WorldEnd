@@ -645,7 +645,10 @@ void GameRoomManager::LoadMap()
 
 		object->SetBoundingBox(bounding_box);
 
-		m_structures.push_back(object);
+		if (objectName == "Invisible_Wall")
+			m_invisible_walls.push_back(object);
+		else
+			m_structures.push_back(object);
 	}
 }
 
