@@ -779,7 +779,7 @@ void ArcherMonster::SetBehaviorAnimation(MonsterBehavior behavior)
 		m_current_animation = ArcherMonsterAnimation::RUN;
 		break;
 	case MonsterBehavior::DELAY:
-		m_current_animation = ArcherMonsterAnimation::IDLE;
+		m_current_animation = ArcherMonsterAnimation::LOOK_AROUND;
 		break;
 	}
 }
@@ -804,7 +804,7 @@ std::chrono::milliseconds ArcherMonster::SetBehaviorTime(MonsterBehavior behavio
 		time = 1000ms;
 		break;
 	case MonsterBehavior::ATTACK:
-		time = 700ms;
+		time = 500ms;
 		break;
 	case MonsterBehavior::DEATH:
 		time = 2000ms;
@@ -1032,7 +1032,7 @@ std::chrono::milliseconds WizardMonster::SetBehaviorTime(MonsterBehavior behavio
 		time = 2000ms;
 		break;
 	case MonsterBehavior::LAUGHING:
-		time = 4000ms;
+		time = 4300ms;
 		break;
 	case MonsterBehavior::DELAY:
 		time = 3000ms;

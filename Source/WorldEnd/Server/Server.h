@@ -12,7 +12,7 @@ enum class EventType : char
 	ATTACK_COLLISION, MONSTER_ATTACK_COLLISION, STAMINA_CHANGE,
 	HIT_SCAN, ARROW_SHOOT, ARROW_REMOVE, GAME_ROOM_RESET,
 	TRIGGER_COOLDOWN, TRIGGER_REMOVE, MULTIPLE_TRIGGER_SET, BATTLE_START,
-	
+	PORTAL_WARP
 };
 
 struct TIMER_EVENT {
@@ -87,6 +87,7 @@ public:
 		std::chrono::system_clock::time_point attack_time);
 	void SetRemoveArrowTimerEvent(int client_id, int arrow_id);
 	void SetBattleStartTimerEvent(int client_id);
+	void SetWarpTimerEvent(int client_id);
 	void SetTrigger(int client_id, TriggerType type, const XMFLOAT3& pos);
 	void SetTrigger(int client_id, TriggerType type, int target_id);
 

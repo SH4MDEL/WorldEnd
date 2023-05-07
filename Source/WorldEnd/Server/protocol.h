@@ -171,21 +171,21 @@ namespace TriggerSetting
 
 	constexpr std::chrono::milliseconds 
 		COOLDOWN[static_cast<int>(TriggerType::COUNT)]{
-			300ms, 0ms
+			600ms, 0ms
 		};
 
 	constexpr std::chrono::milliseconds
 		DURATION[static_cast<int>(TriggerType::COUNT)]{
-			2000ms, 300ms
+			4000ms, 300ms
 		};
 
 	constexpr DirectX::XMFLOAT3
 		EXTENT[static_cast<int>(TriggerType::COUNT)]{
-			DirectX::XMFLOAT3{ 6.f, 6.f, 6.f },
+			DirectX::XMFLOAT3{ 3.f, 3.f, 3.f },
 			DirectX::XMFLOAT3{ 1.f, 1.f, 1.f }
 		};
 
-	constexpr float ARROWRAIN_DIST = EXTENT[static_cast<int>(TriggerType::ARROW_RAIN)].x;
+	constexpr float ARROWRAIN_DIST = EXTENT[static_cast<int>(TriggerType::ARROW_RAIN)].x + 2.f;
 }
 
 namespace PlayerSetting
@@ -211,7 +211,7 @@ namespace PlayerSetting
 	constexpr auto DASH_COOLDOWN = 1200ms;
 
 	constexpr float SKILL_RATIO[static_cast<int>(PlayerType::COUNT)]{ 1.5f, 1.2f };
-	constexpr float ULTIMATE_RATIO[static_cast<int>(PlayerType::COUNT)]{ 2.f, 0.3f };
+	constexpr float ULTIMATE_RATIO[static_cast<int>(PlayerType::COUNT)]{ 2.f, 0.2f };
 
 	constexpr std::chrono::milliseconds
 		ATTACK_COLLISION_TIME[static_cast<int>(PlayerType::COUNT)]{ 210ms, 360ms };
@@ -222,13 +222,13 @@ namespace PlayerSetting
 	constexpr std::chrono::milliseconds
 		ATTACK_COOLDOWN[static_cast<int>(PlayerType::COUNT)]{ 1000ms, 1000ms };
 	constexpr std::chrono::seconds
-		SKILL_COOLDOWN[static_cast<int>(PlayerType::COUNT)]{ 7s, 2s };
+		SKILL_COOLDOWN[static_cast<int>(PlayerType::COUNT)]{ 7s, 5s };
 	constexpr std::chrono::seconds
-		ULTIMATE_COOLDOWN[static_cast<int>(PlayerType::COUNT)]{ 20s, 2s };
+		ULTIMATE_COOLDOWN[static_cast<int>(PlayerType::COUNT)]{ 20s, 15s };
 	constexpr DirectX::XMFLOAT3
 		ULTIMATE_EXTENT[static_cast<int>(PlayerType::COUNT)]{
 			DirectX::XMFLOAT3{ 2.f, 2.f, 2.f },
-			DirectX::XMFLOAT3{ 0.f, 0.f, 0.f } 
+			DirectX::XMFLOAT3{ 0.f, 0.f, 0.f }
 		};
 
 }
@@ -275,9 +275,10 @@ namespace RoomSetting
 	constexpr float TOPSIDE_STAIRS_BACK = 43.f;
 
 	constexpr auto BATTLE_DELAY_TIME = 3s;
+	constexpr auto WARP_DELAY_TIME = 1000ms;
 	constexpr float EVENT_RADIUS = 1.f;
-	//constexpr DirectX::XMFLOAT3 START_POSITION { 0.f, -DOWNSIDE_STAIRS_HEIGHT, -45.f };
-	constexpr DirectX::XMFLOAT3 START_POSITION{ 0.f, 0.f, 0.f };
+	constexpr DirectX::XMFLOAT3 START_POSITION { 0.f, -DOWNSIDE_STAIRS_HEIGHT, -45.f };
+	//constexpr DirectX::XMFLOAT3 START_POSITION{ 0.f, 0.f, 0.f };
 	constexpr DirectX::XMFLOAT3 BATTLE_STARTER_POSITION { 0.f, 0.f, 24.f };
 	constexpr DirectX::XMFLOAT3 WARP_PORTAL_POSITION { -1.f, TOPSIDE_STAIRS_HEIGHT, 60.f };
 }

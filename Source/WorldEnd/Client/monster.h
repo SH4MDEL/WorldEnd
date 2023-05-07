@@ -22,7 +22,7 @@ public:
 	FLOAT GetHp() const override { return m_hp; }
 	MonsterType GetType() const { return m_type; }
 
-
+	virtual void ChangeAnimation(USHORT animation, bool doSend) override;
 
 private:
 	FLOAT				m_hp;			// Ã¼·Â
