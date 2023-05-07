@@ -145,3 +145,25 @@ void Monster::ChangeAnimation(USHORT animation, bool doSend)
 	m_animationController->SetTrackAnimation(0, animation - start_num);
 }
 
+
+MonsterMagicCircle::MonsterMagicCircle() : m_enable{ false }, 
+m_lifeTime{ (FLOAT)(chrono::duration_cast<chrono::seconds>(TriggerSetting::GENTIME[(INT)TriggerType::UNDEAD_GRASP]).count()) }, m_age{0.f}
+{}
+
+void MonsterMagicCircle::Update(FLOAT timeElapsed)
+{
+	if (m_enable) {
+		m_age += timeElapsed;
+		if (m_age >= m_lifeTime) {
+			m_age = 0.f;
+			m_enable = false;
+			return;
+		}
+		GameObject::Update(timeElapsed);
+	}
+}
+
+void MonsterMagicCircle::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList)
+{
+	if (m_enable) GameObject::Render(commandList);
+}

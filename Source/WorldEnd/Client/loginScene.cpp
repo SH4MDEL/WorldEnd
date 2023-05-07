@@ -3,7 +3,14 @@
 LoginScene::LoginScene() : 
 	m_sceneState{ (INT)State::Unused } 
 {}
-LoginScene::~LoginScene() {}
+LoginScene::~LoginScene() 
+{ 
+	//OnDestroy();
+	//m_globalMeshs.clear();
+	//m_globalTextures.clear();
+	//m_globalMaterials.clear();
+	//m_globalAnimationSets.clear();
+}
 
 void LoginScene::OnCreate(
 	const ComPtr<ID3D12Device>& device, 
@@ -11,6 +18,7 @@ void LoginScene::OnCreate(
 	const ComPtr<ID3D12RootSignature>& rootSignature, 
 	const ComPtr<ID3D12RootSignature>& postRootSignature) 
 {
+	g_selectedPlayerType = PlayerType::WARRIOR;
 	BuildObjects(device, commandList, rootSignature, postRootSignature);
 }
 
@@ -72,6 +80,14 @@ void LoginScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	gameExitButtonUI->SetChild(gameExitButtonTextUI);
 	m_titleUI->SetChild(gameExitButtonUI);
 	m_globalShaders["UI"]->SetUI(m_titleUI);
+
+	//auto characterSelectUI{ make_shared<StandardUI>(XMFLOAT2{ -0.7f, 0.8f }, XMFLOAT2{ 0.2f, 0.8f }) };
+	m_characterSelectTextUI = make_shared<TextUI>(XMFLOAT2{ -0.7f, 0.8f }, XMFLOAT2{ 80.f, 15.f });
+	m_characterSelectTextUI->SetText(L"WARRIOR 선택 중");
+	m_characterSelectTextUI->SetColorBrush("WHITE");
+	m_characterSelectTextUI->SetTextFormat("KOPUB18");
+	//characterSelectUI->SetChild(m_characterSelectTextUI);
+	m_globalShaders["UI"]->SetUI(m_characterSelectTextUI);
 }
 
 void LoginScene::DestroyObjects()
@@ -98,7 +114,17 @@ void LoginScene::OnProcessingMouseMessage(UINT message, LPARAM lParam)
 	}
 }
 
-void LoginScene::OnProcessingKeyboardMessage(FLOAT timeElapsed) {}
+void LoginScene::OnProcessingKeyboardMessage(FLOAT timeElapsed) 
+{
+	if (GetAsyncKeyState('1') & 0x8000) {
+		m_characterSelectTextUI->SetText(L"WARRIOR 선택 중");
+		g_selectedPlayerType = PlayerType::WARRIOR;
+	}
+	else if (GetAsyncKeyState('2') & 0x8000) {
+		m_characterSelectTextUI->SetText(L"ARCHER 선택 중");
+		g_selectedPlayerType = PlayerType::ARCHER;
+	}
+}
 
 void LoginScene::Update(FLOAT timeElapsed) 
 {
@@ -196,6 +222,7 @@ void LoginScene::PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandLis
 void LoginScene::RenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext) 
 {
 	if (m_titleUI) m_titleUI->RenderText(deviceContext);
+	if (m_characterSelectTextUI) m_characterSelectTextUI->RenderText(deviceContext);
 }
 
 void LoginScene::PostRenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext)

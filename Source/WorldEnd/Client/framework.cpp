@@ -515,6 +515,20 @@ void GameFramework::CreateD2DDevice()
 	DX::ThrowIfFailed(DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory5), (IUnknown**)&m_writeFactory));
 
 	// https://learn.microsoft.com/en-us/windows/win32/directwrite/custom-font-sets-win10
+
+	//ComPtr<IDWriteFontCollection1> fontCollection;
+
+	//ComPtr<IDWriteFontFile> kopub;
+	//DX::ThrowIfFailed(m_writeFactory->CreateFontFileReference(TEXT("./Resource/Font/KoPub Dotum Bold.ttf"), nullptr, &kopub));
+
+	//ComPtr<IDWriteFontSetBuilder1> fontSetBuilder;
+	//DX::ThrowIfFailed(m_writeFactory->CreateFontSetBuilder(&fontSetBuilder));
+	//fontSetBuilder->AddFontFile(kopub.Get());
+
+	//ComPtr<IDWriteFontSet> customFontSet;
+	//fontSetBuilder->CreateFontSet(&customFontSet);
+	//m_writeFactory->CreateFontCollectionFromFontSet(customFontSet.Get(), fontCollection.GetAddressOf());
+
 }
 
 void GameFramework::CreateD2DRenderTarget()

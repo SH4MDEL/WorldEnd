@@ -91,7 +91,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     g_GameFramework.OnDestroy();
 
 #ifdef _DEBUG
-    //CheckMemoryLeak();
+    CheckMemoryLeak();
 #endif // !_DEBUG
     return (int)msg.wParam;
 }

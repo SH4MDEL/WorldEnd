@@ -60,5 +60,6 @@ private:
 	unique_ptr<FadeFilter>								m_fadeFilter;
 
 	shared_ptr<UI>										m_titleUI;
+	shared_ptr<TextUI>									m_characterSelectTextUI;
 };
 

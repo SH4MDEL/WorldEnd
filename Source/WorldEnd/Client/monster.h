@@ -32,3 +32,23 @@ private:
 	MonsterType			m_type;
 };
 
+class MonsterMagicCircle : public GameObject
+{
+public:
+	MonsterMagicCircle();
+	~MonsterMagicCircle() = default;
+
+	void Update(FLOAT timeElapsed) override;
+	void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) override;
+
+	BOOL IsEnable() { return m_enable; }
+
+	void SetEnable() { m_enable = true; }
+	void SetDisable() { m_enable = false; }
+
+private:
+	BOOL		m_enable;
+
+	const FLOAT	m_lifeTime;
+	FLOAT		m_age;
+};

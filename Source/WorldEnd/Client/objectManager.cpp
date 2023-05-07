@@ -15,6 +15,12 @@ TowerObjectManager::TowerObjectManager(const ComPtr<ID3D12Device>& device, const
 		m_arrowRainShader->SetObject(arrowRain);
 	}
 	m_arrowRainShader->SetMesh("MeshArrow");
+
+	for (auto& magicCircle : m_monsterMagicCircles) {
+		magicCircle = make_shared<MonsterMagicCircle>();
+		magicCircle->SetMesh("MONSTERMAGICCIRCLE");
+		magicCircle->SetTexture("MONSTERMAGICCIRCLE");
+	}
 }
 
 void TowerObjectManager::Update(FLOAT timeElapsed)
@@ -24,6 +30,9 @@ void TowerObjectManager::Update(FLOAT timeElapsed)
 	}
 	for (auto& arrowRain : m_arrowRains) {
 		arrowRain->Update(timeElapsed);
+	}
+	for (auto& circle : m_monsterMagicCircles) {
+		circle->Update(timeElapsed);
 	}
 }
 
@@ -38,6 +47,11 @@ void TowerObjectManager::Render(const ComPtr<ID3D12GraphicsCommandList>& command
 		arrowRain->RenderMagicCircle(commandList);
 	}
 	m_arrowRainShader->Render(commandList);
+
+	commandList->SetPipelineState(m_magicCircleShader->GetPipelineState().Get());
+	for (auto& circle : m_monsterMagicCircles) {
+		circle->Render(commandList);
+	}
 }
 
 void TowerObjectManager::CreateArrow(const shared_ptr<GameObject>& parent, INT arrowId, FLOAT SPEED,
@@ -78,6 +92,17 @@ void TowerObjectManager::CreateArrowRain(const XMFLOAT3& position)
 		if (!arrowRain->IsEnable()) {
 			arrowRain->SetPosition(position);
 			arrowRain->SetEnable();
+			return;
+		}
+	}
+}
+
+void TowerObjectManager::CreateMonsterMagicCircle(const XMFLOAT3& position)
+{
+	for (auto& circle : m_monsterMagicCircles) {
+		if (!circle->IsEnable()) {
+			circle->SetPosition(position);
+			circle->SetEnable();
 			return;
 		}
 	}

@@ -11,6 +11,7 @@ SOCKET							g_socket{};
 string							g_serverIP{ "127.0.0.1" };
 thread							g_networkThread{};
 mutex                           g_mutex;
+PlayerType                      g_selectedPlayerType;
 wstring                         g_loadingText{L""};
 INT                             g_loadingIndex;
 unique_ptr<ParticleSystem>		g_particleSystem;

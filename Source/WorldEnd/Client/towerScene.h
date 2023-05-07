@@ -14,13 +14,14 @@ public:
 		OutputExitUI		= 0x08,
 		OutputResult		= 0x10,
 		Fading				= 0x20,
+		Leave				= 0x40,
 		BlurLevel1			= Unused,
 		BlurLevel2			= Unused,
 		BlurLevel3			= OutputExitUI,
 		BlurLevel4			= Unused,
 		BlurLevel5			= OutputResult,
 		Bluring				= BlurLevel1 | BlurLevel2 | BlurLevel3 | BlurLevel4 | BlurLevel5,
-		CantPlayerControl	= OutputExitUI | OutputResult | Fading
+		CantPlayerControl	= OutputExitUI | OutputResult | Fading | Leave
 	};
 	enum class LightTag : INT {
 		Directional,
@@ -74,7 +75,7 @@ public:
 	void RotateToTarget(const shared_ptr<GameObject>& object);
 	INT SetTarget(const shared_ptr<GameObject>& object);
 
-	bool CheckState(State sceneState);
+	bool CheckState(State sceneState) const;
 	void SetState(State sceneState);
 	void ResetState(State sceneState);
 
@@ -148,6 +149,8 @@ protected:
 	unordered_map<INT, INT>								m_idSet;
 	shared_ptr<UI>										m_interactUI;
 	shared_ptr<TextUI>									m_interactTextUI;
+	shared_ptr<VertGaugeUI>								m_skillUI;
+	shared_ptr<VertGaugeUI>								m_ultimateUI;
 	shared_ptr<UI>										m_exitUI;
 	shared_ptr<UI>										m_resultUI;
 	shared_ptr<TextUI>									m_resultTextUI;

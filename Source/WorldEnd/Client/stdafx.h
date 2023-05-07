@@ -77,6 +77,7 @@ extern SOCKET                           g_socket;                           // �
 extern string				            g_serverIP;							// 서버 아이피
 extern thread                           g_networkThread;
 extern mutex                            g_mutex;
+extern PlayerType                       g_selectedPlayerType;
 extern wstring                          g_loadingText;
 extern INT                              g_loadingIndex;
 extern unique_ptr<ParticleSystem>       g_particleSystem;

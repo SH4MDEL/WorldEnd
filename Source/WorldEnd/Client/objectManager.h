@@ -1,5 +1,6 @@
 #pragma once
 #include "player.h"
+#include "monster.h"
 #include "shader.h"
 #include "instancingShader.h"
 
@@ -19,6 +20,8 @@ public:
 
 	void CreateArrowRain(const XMFLOAT3& position);
 
+	void CreateMonsterMagicCircle(const XMFLOAT3& position);
+
 private:
 	shared_ptr<Shader>											m_arrowShader;
 	array<unique_ptr<Arrow>, RoomSetting::MAX_ARROWS>			m_arrows;
@@ -26,5 +29,7 @@ private:
 	shared_ptr<Shader>											m_magicCircleShader;
 	shared_ptr<InstancingShader>								m_arrowRainShader;
 	array<shared_ptr<ArrowRain>, RoomSetting::MAX_ARROWRAINS>	m_arrowRains;
+
+	array<shared_ptr<MonsterMagicCircle>, 10>					m_monsterMagicCircles;
 };
 

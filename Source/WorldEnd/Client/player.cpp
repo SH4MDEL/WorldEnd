@@ -6,7 +6,8 @@
 
 Player::Player() : m_velocity{ 0.0f, 0.0f, 0.0f }, m_maxVelocity{ 10.0f }, m_friction{ 0.5f }, 
 	m_hp{ 100.f }, m_maxHp{ 100.f }, m_stamina{ PlayerSetting::MAX_STAMINA }, m_maxStamina{ PlayerSetting::MAX_STAMINA }, 
-	m_skillCool{ static_cast<FLOAT>(PlayerSetting::SKILL_COOLDOWN[(INT)m_type].count())}, m_ultimateCool{ static_cast<FLOAT>(PlayerSetting::ULTIMATE_COOLDOWN[(INT)m_type].count()) },
+	m_skillCool{ static_cast<FLOAT>(PlayerSetting::SKILL_COOLDOWN[(INT)m_type].count())}, 
+	m_ultimateCool{ static_cast<FLOAT>(PlayerSetting::ULTIMATE_COOLDOWN[(INT)m_type].count()) },
 	m_id{ -1 }, m_cooldownList{ false, }, m_dashed{ false }, m_moveSpeed{ PlayerSetting::WALK_SPEED },
 	m_interactable{ false }, m_interactableType{ InteractionType::NONE }, m_bufSize{ 0 }
 {
@@ -160,6 +161,8 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 	if (GetAsyncKeyState(VK_SPACE) & 0x8000) {
 		if (!m_cooldownList[ActionType::ROLL]) {
 			if (m_stamina >= PlayerSetting::MINIMUM_ROLL_STAMINA) {
+				m_stamina -= PlayerSetting::ROLL_STAMINA_CHANGE_AMOUNT;
+				SetStamina(m_stamina);
 
 				ChangeAnimation(PlayerAnimation::ROLL, true);
 				m_moveSpeed = PlayerSetting::ROLL_SPEED;
@@ -373,7 +376,12 @@ void Player::Update(FLOAT timeElapsed)
 		staminaBarPosition.y += 1.f;
 		m_staminaBar->SetPosition(staminaBarPosition);
 
-		if (m_stamina < m_maxStamina) {
+		if (m_currentAnimation == PlayerAnimation::RUN || 
+			m_currentAnimation == PlayerAnimation::DASH) {
+			m_stamina -= PlayerSetting::DEFAULT_STAMINA_CHANGE_AMOUNT * timeElapsed;
+			SetStamina(m_stamina);
+		}
+		else if (m_stamina < m_maxStamina) {
 			m_stamina += PlayerSetting::DEFAULT_STAMINA_CHANGE_AMOUNT * timeElapsed;
 			SetStamina(m_stamina);
 		}

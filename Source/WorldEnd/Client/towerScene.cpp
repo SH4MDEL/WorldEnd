@@ -10,10 +10,7 @@ TowerScene::TowerScene() :
 	m_sceneState{ (INT)State::InitScene }
 {}
 
-TowerScene::~TowerScene()
-{
-
-}
+TowerScene::~TowerScene() {  }
 
 void TowerScene::OnCreate(const ComPtr<ID3D12Device>& device,
 	const ComPtr<ID3D12GraphicsCommandList>& commandList,
@@ -89,7 +86,7 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 
 	// 플레이어 생성
 	m_player = make_shared<Player>();
-	m_player->SetType(PlayerType::ARCHER);
+	m_player->SetType(g_selectedPlayerType);
 	LoadPlayerFromFile(m_player);
 
 	m_globalShaders["ANIMATION"]->SetPlayer(m_player);
@@ -166,8 +163,12 @@ void TowerScene::DestroyObjects()
 	m_camera.reset();
 
 	m_gate.reset();
+	m_portal.reset();
+
+	m_towerObjectManager.reset();
 	m_lightSystem.reset();
 	m_shadow.reset();
+
 	m_blurFilter.reset();
 	m_fadeFilter.reset();
 	m_sobelFilter.reset();
@@ -178,12 +179,22 @@ void TowerScene::DestroyObjects()
 		hpUI.reset();
 	}
 	m_idSet.clear();
+	m_interactUI.reset();
+	m_interactTextUI.reset();
 	m_exitUI.reset();
 	m_resultUI.reset();
 	m_resultTextUI.reset();
+	m_resultRewardTextUI.reset();
 
 	m_multiPlayers.clear();
 	m_monsters.clear();
+
+	for (auto& structure : m_structures) {
+		structure.reset();
+	}
+	for (auto& invisibleWall : m_invisibleWalls) {
+		invisibleWall.reset();
+	}
 }
 
 void TowerScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist)
@@ -205,14 +216,31 @@ void TowerScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 	m_interactUI->SetDisable();
 	m_globalShaders["UI"]->SetUI(m_interactUI);
 
-	auto skillUI = make_shared<VertGaugeUI>(XMFLOAT2{ -0.60f, -0.80f }, XMFLOAT2{ 0.15f, 0.15f }, 0.f);
-	skillUI->SetTexture("WARRIORSKILL");
-	m_globalShaders["UI"]->SetUI(skillUI);
-	m_player->SetSkillGauge(skillUI);
-	auto ultimateUI = make_shared<VertGaugeUI>(XMFLOAT2{ -0.85f, -0.80f }, XMFLOAT2{ 0.15f, 0.15f }, 0.f);
-	ultimateUI->SetTexture("WARRIORULTIMATE");
-	m_globalShaders["UI"]->SetUI(ultimateUI);
-	m_player->SetUltimateGauge(ultimateUI);
+	m_skillUI = make_shared<VertGaugeUI>(XMFLOAT2{ -0.60f, -0.75f }, XMFLOAT2{ 0.15f, 0.15f }, 0.f);
+	auto eText = make_shared<TextUI>(XMFLOAT2{ 0.f, -0.8f }, XMFLOAT2{ 0.15f, 0.15f });
+	eText->SetColorBrush("WHITE");
+	eText->SetTextFormat("KOPUB24");
+	eText->SetText(TEXT("E"));
+	m_skillUI->SetChild(eText);
+	m_ultimateUI = make_shared<VertGaugeUI>(XMFLOAT2{ -0.85f, -0.75f }, XMFLOAT2{ 0.15f, 0.15f }, 0.f);
+	auto qText = make_shared<TextUI>(XMFLOAT2{ 0.f, -0.8f }, XMFLOAT2{ 0.15f, 0.15f });
+	qText->SetColorBrush("WHITE");
+	qText->SetTextFormat("KOPUB24");
+	qText->SetText(TEXT("Q"));
+	m_ultimateUI->SetChild(qText);
+	if (g_selectedPlayerType == PlayerType::WARRIOR) {
+		m_skillUI->SetTexture("WARRIORSKILL");
+		m_ultimateUI->SetTexture("WARRIORULTIMATE");
+	}
+	if (g_selectedPlayerType == PlayerType::ARCHER) {
+		m_skillUI->SetTexture("ARCHERSKILL");
+		m_ultimateUI->SetTexture("ARCHERULTIMATE");
+	}
+	m_globalShaders["UI"]->SetUI(m_skillUI);
+	m_player->SetSkillGauge(m_skillUI);
+	m_globalShaders["UI"]->SetUI(m_ultimateUI);
+	m_player->SetUltimateGauge(m_ultimateUI);
+	m_player->ResetAllCooldown();
 
 	m_exitUI = make_shared<BackgroundUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 1.f, 1.f }); 
 	auto exitUI{ make_shared<StandardUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.4f, 0.5f}) };
@@ -227,7 +255,7 @@ void TowerScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 	exitButtonUI->SetClickEvent([&]() {
 		SetState(State::Fading);
 		m_fadeFilter->FadeOut([&]() {
-			g_GameFramework.ChangeScene(SCENETAG::VillageLoadingScene);
+			SetState(State::Leave);
 		});
 	});
 	auto exitButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{10.f, 10.f}) };
@@ -448,6 +476,13 @@ void TowerScene::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 
 void TowerScene::Update(FLOAT timeElapsed)
 {
+	if (CheckState(State::Leave)) {
+		g_GameFramework.ChangeScene(SCENETAG::VillageLoadingScene);
+		closesocket(g_socket);
+		return;
+	}
+	RecvPacket();
+
 	m_camera->Update(timeElapsed);
 	if (m_globalShaders["SKYBOX"]) for (auto& skybox : m_globalShaders["SKYBOX"]->GetObjects()) skybox->SetPosition(m_camera->GetEye());
 	for (const auto& shader : m_globalShaders)
@@ -649,6 +684,7 @@ void TowerScene::CollideByStaticOBB(const shared_ptr<GameObject>& obj, const sha
 
 void TowerScene::PreProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex)
 {
+	if (CheckState(State::Leave)) return;
 	switch (threadIndex)
 	{
 	case 0:
@@ -670,6 +706,7 @@ void TowerScene::PreProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList
 
 void TowerScene::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) const
 {
+	if (CheckState(State::Leave)) return;
 	if (m_camera) m_camera->UpdateShaderVariable(commandList);
 	if (m_lightSystem) m_lightSystem->UpdateShaderVariable(commandList);
 
@@ -700,6 +737,7 @@ void TowerScene::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UI
 
 void TowerScene::PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList, const ComPtr<ID3D12Resource>& renderTarget, UINT threadIndex)
 {
+	if (CheckState(State::Leave)) return;
 	switch (threadIndex)
 	{
 	case 0:
@@ -764,6 +802,8 @@ void TowerScene::PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandLis
 void TowerScene::RenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext)
 {
 	if (m_interactUI) m_interactUI->RenderText(deviceContext);
+	if (m_skillUI) m_skillUI->RenderText(deviceContext);
+	if (m_ultimateUI) m_ultimateUI->RenderText(deviceContext);
 }
 
 void TowerScene::PostRenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext)
@@ -956,7 +996,7 @@ INT TowerScene::SetTarget(const shared_ptr<GameObject>& object)
 	return target;
 }
 
-bool TowerScene::CheckState(State sceneState)
+bool TowerScene::CheckState(State sceneState) const
 {
 	return m_sceneState & (INT)sceneState;
 }
@@ -997,6 +1037,9 @@ void TowerScene::InitServer()
 
 	connect(g_socket, reinterpret_cast<SOCKADDR*>(&server_address), sizeof(server_address));
 
+	unsigned long noblock = 1;
+	ioctlsocket(g_socket, FIONBIO, &noblock);
+
 	constexpr char name[10] = "HSC\0";
 	CS_LOGIN_PACKET login_packet{};
 	login_packet.size = sizeof(login_packet);
@@ -1005,8 +1048,8 @@ void TowerScene::InitServer()
 	memcpy(login_packet.name, name, sizeof(char) * 10);
 	send(g_socket, reinterpret_cast<char*>(&login_packet), sizeof(login_packet), NULL);
 
-	g_networkThread = thread{ &TowerScene::RecvPacket, this};
-	g_networkThread.detach();
+	//g_networkThread = thread{ &TowerScene::RecvPacket, this};
+	//g_networkThread.detach();
 
 #endif
 }
@@ -1026,21 +1069,19 @@ void TowerScene::SendPlayerData()
 
 void TowerScene::RecvPacket()
 {
-	while (true) {
+	char buf[BUF_SIZE] = {0};
+	WSABUF wsabuf{ BUF_SIZE, buf };
+	DWORD recv_byte{ 0 }, recv_flag{ 0 };
 
-		char buf[BUF_SIZE] = {0};
-		WSABUF wsabuf{ BUF_SIZE, buf };
-		DWORD recv_byte{ 0 }, recv_flag{ 0 };
+	int retval = WSARecv(g_socket, &wsabuf, 1, &recv_byte, &recv_flag, nullptr, nullptr);
+	if (retval == SOCKET_ERROR && WSAGetLastError() != WSAEWOULDBLOCK) {
+		ErrorDisplay("RecvSizeType");
+	}
 
-		if (WSARecv(g_socket, &wsabuf, 1, &recv_byte, &recv_flag, nullptr, nullptr) == SOCKET_ERROR)
-			ErrorDisplay("RecvSizeType");
-
-		if(recv_byte > 0)
-			PacketReassembly(wsabuf.buf, recv_byte);
-
+	if (recv_byte > 0) {
+		PacketReassembly(wsabuf.buf, recv_byte);
 	}
 }
-
 
 void TowerScene::ProcessPacket(char* ptr)
 {
@@ -1531,6 +1572,5 @@ void TowerScene::RecvAddTrigger(char* ptr)
 void TowerScene::RecvAddMagicCircle(char* ptr)
 {
 	SC_ADD_MAGIC_CIRCLE_PACKET* packet = reinterpret_cast<SC_ADD_MAGIC_CIRCLE_PACKET*>(ptr);
-
-	cout << "마법진 생성\n";
+	m_towerObjectManager->CreateMonsterMagicCircle(packet->pos);
 }

@@ -136,6 +136,16 @@ void GlobalLoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const 
 	warriorUltimateTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/SkillTexture/Warrior_Ultimate_Cool.dds"), (INT)ShaderRegister::SubTexture);
 	warriorUltimateTexture->CreateSrvDescriptorHeap(device);
 	warriorUltimateTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+	auto archerSkillTexture{ make_shared<Texture>() };
+	archerSkillTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/SkillTexture/Archer_Skill.dds"), (INT)ShaderRegister::BaseTexture);
+	archerSkillTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/SkillTexture/Archer_Skill_Cool.dds"), (INT)ShaderRegister::SubTexture);
+	archerSkillTexture->CreateSrvDescriptorHeap(device);
+	archerSkillTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+	auto archerUltimateTexture{ make_shared<Texture>() };
+	archerUltimateTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/SkillTexture/Archer_Ultimate.dds"), (INT)ShaderRegister::BaseTexture);
+	archerUltimateTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/SkillTexture/Archer_Ultimate_Cool.dds"), (INT)ShaderRegister::SubTexture);
+	archerUltimateTexture->CreateSrvDescriptorHeap(device);
+	archerUltimateTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
 
 	auto staminaBarTexture{ make_shared<Texture>() };
 	staminaBarTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/Full_StaminaBar.dds"), (INT)ShaderRegister::BaseTexture); // BaseTexture
@@ -149,6 +159,8 @@ void GlobalLoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const 
 	m_globalTextures.insert({ "GOLDUI", goldUITexture });
 	m_globalTextures.insert({ "WARRIORSKILL", warriorSkillTexture });
 	m_globalTextures.insert({ "WARRIORULTIMATE", warriorUltimateTexture });
+	m_globalTextures.insert({ "ARCHERSKILL", archerSkillTexture });
+	m_globalTextures.insert({ "ARCHERULTIMATE", archerUltimateTexture });
 	m_globalTextures.insert({ "STAMINABAR", staminaBarTexture });
 
 

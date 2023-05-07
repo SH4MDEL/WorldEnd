@@ -86,11 +86,14 @@ void TowerLoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const C
 	auto skyboxMesh{ make_shared <SkyboxMesh>(device, commandlist, 20.0f, 20.0f, 20.0f) };
 	auto magicCircleExtent = TriggerSetting::EXTENT[static_cast<INT>(TriggerType::ARROW_RAIN)];
 	auto magicCircleMesh{ make_shared<PlaneMesh>(device, commandlist, XMFLOAT3{ 0.f, 0.f, 0.f }, XMFLOAT2{ magicCircleExtent.x * 2, magicCircleExtent.z * 2 }) };
+	auto monsterMagicCircleExtent = TriggerSetting::EXTENT[static_cast<INT>(TriggerType::UNDEAD_GRASP)];
+	auto monsterMagicCircleMesh{ make_shared<PlaneMesh>(device, commandlist, XMFLOAT3{ 0.f, 0.f, 0.f }, XMFLOAT2{ monsterMagicCircleExtent.x * 2, monsterMagicCircleExtent.z * 2 }) };
+
 
 	m_meshs.insert({ "SKYBOX", skyboxMesh });
 	m_meshs.insert({ "HPBAR", hpBarMesh });
 	m_meshs.insert({ "MAGICCIRCLE", magicCircleMesh });
-
+	m_meshs.insert({ "MONSTERMAGICCIRCLE", monsterMagicCircleMesh });
 
 	// 텍스처 로딩
 	auto hpBarTexture{ make_shared<Texture>() };
@@ -108,11 +111,15 @@ void TowerLoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const C
 	magicCircleTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/MagicCircle.dds"), (INT)ShaderRegister::BaseTexture);	// MagicCircle
 	magicCircleTexture->CreateSrvDescriptorHeap(device);
 	magicCircleTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+	auto monsterMagicCircleTexture{ make_shared<Texture>() };
+	monsterMagicCircleTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/MonsterMagicCircle.dds"), (INT)ShaderRegister::BaseTexture);	// MagicCircle
+	monsterMagicCircleTexture->CreateSrvDescriptorHeap(device);
+	monsterMagicCircleTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
 
 	m_textures.insert({ "SKYBOX", skyboxTexture });
 	m_textures.insert({ "HPBAR", hpBarTexture });
 	m_textures.insert({ "MAGICCIRCLE", magicCircleTexture });
-
+	m_textures.insert({ "MONSTERMAGICCIRCLE", monsterMagicCircleTexture });
 
 	// 메테리얼 로딩
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/Undead_WarriorTexture.bin"));
