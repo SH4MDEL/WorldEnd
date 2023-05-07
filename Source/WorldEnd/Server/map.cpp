@@ -3,6 +3,8 @@
 #include "Server.h"
 #include "map.h"
 
+std::uniform_int_distribution<INT> random(0, 1);
+
 GameRoom::GameRoom() : m_state{ GameRoomState::EMPTY }, m_floor{ 1 },
 m_type{ EnvironmentType::FOG }, m_monster_count{ 0 }, m_arrow_id{ 0 }
 {
@@ -428,7 +430,6 @@ void GameRoom::InitMonsters(INT room_num)
 	Server& server = Server::GetInstance();
 	// 파일을 읽어서 몬스터를 생성할 예정
 
-	std::uniform_int_distribution<INT> random(0, 1);
 	INT random_map = random(g_random_engine);
 
 	// Init 은 플레이어 진입 시 불려야함
@@ -547,7 +548,7 @@ INT GameRoom::GetPlayerCount()
 
 GameRoomManager::GameRoomManager()
 {
-	LoadMap();
+	//LoadMap();
 	for (auto& game_room : m_game_rooms) {
 		game_room = std::make_shared<GameRoom>();
 	}

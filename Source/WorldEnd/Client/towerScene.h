@@ -115,6 +115,10 @@ private:
 
 	void UpdateLightSystem(FLOAT timeElapsed);
 
+	void LoadMap();
+	void CollideWithMap();
+	void CollideByStaticOBB(const shared_ptr<GameObject>& obj, const shared_ptr<GameObject>& static_obj);
+
 protected:
 	ComPtr<ID3D12Resource>								m_sceneBuffer;
 	SceneInfo*											m_sceneBufferPointer;
@@ -152,6 +156,8 @@ protected:
 	// 서버 추가 코드
 	unordered_map<INT, shared_ptr<Player>>	            m_multiPlayers;
 	unordered_map<INT, shared_ptr<Monster>>             m_monsters;
+	vector<shared_ptr<GameObject>>						m_structures;
+	vector<shared_ptr<GameObject>>						m_invisibleWalls;
 
 	XMFLOAT4											m_directionalDiffuse;
 	XMFLOAT3											m_directionalDirection;

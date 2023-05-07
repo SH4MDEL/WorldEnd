@@ -92,8 +92,8 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	m_player->SetType(PlayerType::ARCHER);
 	LoadPlayerFromFile(m_player);
 
-	m_player->SetPosition(XMFLOAT3{ 0.f, 0.f, -50.f });
 	m_globalShaders["ANIMATION"]->SetPlayer(m_player);
+	m_player->SetPosition(RoomSetting::START_POSITION);
 
 	// 체력 바 생성
 	SetHpBar(m_player);
@@ -122,6 +122,7 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 
 	// 씬 로드
 	LoadSceneFromFile(TEXT("./Resource/Scene/TowerScene.bin"), TEXT("TowerScene"));
+	LoadMap();
 
 	// 게이트 로드
 	m_gate = make_shared<WarpGate>();
@@ -455,6 +456,8 @@ void TowerScene::Update(FLOAT timeElapsed)
 	m_towerObjectManager->Update(timeElapsed);
 	m_fadeFilter->Update(timeElapsed);
 
+	CollideWithMap();
+
 	UpdateLightSystem(timeElapsed);
 
 	if (CheckState(State::WarpGate)) {
@@ -496,6 +499,152 @@ void TowerScene::UpdateLightSystem(FLOAT timeElapsed)
 			}
 		}();
 	}
+}
+
+void TowerScene::LoadMap()
+{
+	std::unordered_map<std::string, BoundingOrientedBox> bounding_box_data;
+
+	std::ifstream in{ "./Resource/GameRoom/GameRoomObject.bin", std::ios::binary };
+
+	BYTE strLength{};
+	std::string objectName;
+	BoundingOrientedBox bounding_box{};
+
+	while (in.read((char*)(&strLength), sizeof(BYTE))) {
+		objectName.resize(strLength, '\0');
+		in.read((char*)(&objectName[0]), strLength);
+
+		in.read((char*)(&bounding_box.Extents), sizeof(XMFLOAT3));
+
+		bounding_box_data.insert({ objectName, bounding_box });
+	}
+	in.close();
+
+
+	in.open("./Resource/GameRoom/GameRoomMap.bin", std::ios::binary);
+
+	XMFLOAT3 position{};
+	FLOAT yaw{};
+
+	while (in.read((char*)(&strLength), sizeof(BYTE))) {
+		objectName.resize(strLength, '\0');
+		in.read(&objectName[0], strLength);
+
+		in.read((char*)(&position), sizeof(XMFLOAT3));
+		in.read((char*)(&yaw), sizeof(FLOAT));
+		// 라디안 값
+
+		if (!bounding_box_data.contains(objectName))
+			continue;
+
+		auto object = std::make_shared<GameObject>();
+		object->SetPosition(position);
+		//object->SetYaw(XMConvertToDegrees(yaw));
+		object->Rotate(0, 0, yaw);
+
+		XMVECTOR vec = XMQuaternionRotationRollPitchYaw(0.f, yaw, 0.f);
+		XMFLOAT4 q{};
+		XMStoreFloat4(&q, vec);
+
+		bounding_box = bounding_box_data[objectName];
+		bounding_box.Center = position;
+		bounding_box.Orientation = XMFLOAT4{ q.x, q.y, q.z, q.w };
+
+		object->SetBoundingBox(bounding_box);
+
+		if (objectName == "Invisible_Wall")
+			m_invisibleWalls.push_back(object);
+		else
+			m_structures.push_back(object);
+	}
+}
+
+void TowerScene::CollideWithMap()
+{
+	auto& player_obb = m_player->GetBoundingBox();
+
+	for (const auto& obj : m_structures) {
+		auto& obb = obj->GetBoundingBox();
+		if (player_obb.Intersects(obb)) {
+			CollideByStaticOBB(m_player, obj);
+		}
+	}
+
+	auto& v = m_globalShaders["OBJECT"]->GetObjects();
+	if (!m_monsters.empty() && 
+		find(v.begin(), v.end(), m_gate) == v.end())
+	{
+		for (const auto& obj : m_invisibleWalls) {
+			auto& obb = obj->GetBoundingBox();
+			if (player_obb.Intersects(obb)) {
+				CollideByStaticOBB(m_player, obj);
+			}
+		}
+	}
+}
+
+void TowerScene::CollideByStaticOBB(const shared_ptr<GameObject>& obj, const shared_ptr<GameObject>& static_obj)
+{
+
+	XMFLOAT3 corners[8]{};
+
+	BoundingOrientedBox static_obb = static_obj->GetBoundingBox();
+	static_obb.Center.y = 0.f;
+	static_obb.GetCorners(corners);
+
+	// 꼭짓점 시계방향 0,1,5,4
+	XMFLOAT3 o_square[4] = {
+		{corners[0].x, 0.f, corners[0].z},
+		{corners[1].x, 0.f, corners[1].z} ,
+		{corners[5].x, 0.f, corners[5].z} ,
+		{corners[4].x, 0.f, corners[4].z} };
+
+	BoundingOrientedBox object_obb = obj->GetBoundingBox();
+	object_obb.Center.y = 0.f;
+	object_obb.GetCorners(corners);
+
+	XMFLOAT3 p_square[4] = {
+		{corners[0].x, 0.f, corners[0].z},
+		{corners[1].x, 0.f, corners[1].z} ,
+		{corners[5].x, 0.f, corners[5].z} ,
+		{corners[4].x, 0.f, corners[4].z} };
+
+
+
+	for (const XMFLOAT3& point : p_square) {
+		if (!static_obb.Contains(XMLoadFloat3(&point))) continue;
+
+		std::array<float, 4> dist{};
+		dist[0] = XMVectorGetX(XMVector3LinePointDistance(XMLoadFloat3(&o_square[0]), XMLoadFloat3(&o_square[1]), XMLoadFloat3(&point)));
+		dist[1] = XMVectorGetX(XMVector3LinePointDistance(XMLoadFloat3(&o_square[1]), XMLoadFloat3(&o_square[2]), XMLoadFloat3(&point)));
+		dist[2] = XMVectorGetX(XMVector3LinePointDistance(XMLoadFloat3(&o_square[2]), XMLoadFloat3(&o_square[3]), XMLoadFloat3(&point)));
+		dist[3] = XMVectorGetX(XMVector3LinePointDistance(XMLoadFloat3(&o_square[3]), XMLoadFloat3(&o_square[0]), XMLoadFloat3(&point)));
+
+		auto min = min_element(dist.begin(), dist.end());
+
+		XMFLOAT3 v{};
+		if (*min == dist[0])
+		{
+			v = Vector3::Normalize(Vector3::Sub(o_square[1], o_square[2]));
+		}
+		else if (*min == dist[1])
+		{
+			v = Vector3::Normalize(Vector3::Sub(o_square[1], o_square[0]));
+		}
+		else if (*min == dist[2])
+		{
+			v = Vector3::Normalize(Vector3::Sub(o_square[2], o_square[1]));
+		}
+		else if (*min == dist[3])
+		{
+			v = Vector3::Normalize(Vector3::Sub(o_square[0], o_square[1]));
+		}
+		v = Vector3::Mul(v, *min);
+		obj->SetPosition(Vector3::Add(obj->GetPosition(), v));
+		break;
+	}
+
 }
 
 void TowerScene::PreProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex)
@@ -697,8 +846,12 @@ void TowerScene::LoadPlayerFromFile(const shared_ptr<Player>& player)
 		animationSet = "ArcherAnimation";
 		break; 
 	}
-
+		
 	LoadObjectFromFile(filePath, player);
+
+	BoundingOrientedBox obb = BoundingOrientedBox{ player->GetPosition(),
+		XMFLOAT3{0.37f, 0.65f, 0.37f}, XMFLOAT4{0.f, 0.f, 0.f, 1.f}};
+	player->SetBoundingBox(obb);
 
 	player->SetAnimationSet(m_globalAnimationSets[animationSet], animationSet);
 	player->SetAnimationOnTrack(0, ObjectAnimation::IDLE);
@@ -1004,7 +1157,7 @@ void TowerScene::RecvLoginOk(char* ptr)
 {
 	SC_LOGIN_OK_PACKET* packet = reinterpret_cast<SC_LOGIN_OK_PACKET*>(ptr);
 	m_player->SetId(packet->player_data.id);
-	m_player->SetPosition(packet->player_data.pos);
+//	m_player->SetPosition(packet->player_data.pos);
 	m_player->SetHp(packet->player_data.hp);
 }
 
@@ -1062,7 +1215,6 @@ void TowerScene::RecvUpdateClient(char* ptr)
 	//}
 
 	if (packet->data.id == m_player->GetId()) {
-		m_player->SetPosition(packet->data.pos);
 		m_player->SetHp(packet->data.hp);
 	}
 	else {
@@ -1080,22 +1232,20 @@ void TowerScene::RecvAddMonster(char* ptr)
 {
 	SC_ADD_MONSTER_PACKET* packet = reinterpret_cast<SC_ADD_MONSTER_PACKET*>(ptr);
 
-	MONSTER_DATA monster_data{};
-
-	monster_data.id = packet->monster_data.id;
-	monster_data.pos = packet->monster_data.pos;
-	monster_data.hp = packet->monster_data.hp;
-
-	if (monster_data.id == -1)
+	if (packet->monster_data.id == -1)
 		return;
 
 	auto monster = make_shared<Monster>();
+
 	monster->SetType(packet->monster_type);
 	LoadMonsterFromFile(monster);
 	monster->ChangeAnimation(ObjectAnimation::WALK, false);
 
-	monster->SetPosition(XMFLOAT3{ monster_data.pos.x, monster_data.pos.y, monster_data.pos.z });
-	m_monsters.insert({ static_cast<INT>(monster_data.id), monster });
+	monster->SetMaxHp(packet->monster_data.hp);
+	monster->SetHp(packet->monster_data.hp);
+	monster->SetPosition(XMFLOAT3{ packet->monster_data.pos.x,
+		packet->monster_data.pos.y, packet->monster_data.pos.z });
+	m_monsters.insert({ static_cast<INT>(packet->monster_data.id), monster });
 
 	SetHpBar(monster);
 }

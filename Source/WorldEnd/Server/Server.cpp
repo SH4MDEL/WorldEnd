@@ -303,7 +303,6 @@ void Server::WorkerThread()
 				game_room->SetState(GameRoomState::CLEAR);
 				game_room->GetWarpPortal()->SetValid(true);
 			}
-			m_floor_cnt++;
 
 			delete exp_over;
 			break;
@@ -747,7 +746,7 @@ void Server::ProcessPacket(int id, char* p)
 		}
 		m_game_room_manager->SendAddMonster(client->GetRoomNum(), id);
 
-			printf("%d is connect\n", client->GetId());
+		printf("%d is connect\n", client->GetId());
 		
 		break;
 	}
@@ -756,12 +755,15 @@ void Server::ProcessPacket(int id, char* p)
 
 		// 위치는 서버에서 저장하므로 굳이 받을 필요는 없을 것
 		// 속도만 받아와서 처리해도 됨
-		client->SetVelocity(packet->velocity);
+		/*client->SetVelocity(packet->velocity);
 
 		XMFLOAT3 pos = Vector3::Add(client->GetPosition(), packet->velocity);
 		client->SetYaw(packet->yaw);
 
-		Move(client, pos);
+		Move(client, pos);*/
+
+		client->SetYaw(packet->yaw);
+		Move(client, packet->pos);
 		break;
 	}
 	case CS_PACKET_SET_COOLDOWN: {
@@ -1230,7 +1232,7 @@ void Server::GameRoomObjectCollisionCheck(const std::shared_ptr<MovementObject>&
 	CollideObject(object, monster_ids, Server::CollideByStatic);
 	CollideObject(object, player_ids, Server::CollideByStatic);
 
-	auto& v = m_game_room_manager->GetStructures();
+	/*auto& v = m_game_room_manager->GetStructures();
 
 	for (const auto& obj : v) {
 		auto& obb = obj->GetBoundingBox();
@@ -1248,7 +1250,7 @@ void Server::GameRoomObjectCollisionCheck(const std::shared_ptr<MovementObject>&
 				CollideByStaticOBB(object, obj);
 			}
 		}
-	}
+	}*/
 
 	// 포탈, 전투 오브젝트와 상호작용
 	if (IsPlayer(object->GetId())) {
@@ -1860,6 +1862,21 @@ void Server::SetArrowShootTimerEvent(int id, ActionType attack_type,
 	}
 
 	int target = GetNearTarget(id, target_range);
+	if (-1 != target) {
+		XMVECTOR z_axis{ XMVectorSet(0.0f, 0.0f, 1.0f, 1.0f) };
+
+		XMFLOAT3 sub = Vector3::Sub(m_clients[target]->GetPosition(), m_clients[id]->GetPosition());
+		sub.y = 0.f;
+		sub = Vector3::Normalize(sub);
+		XMVECTOR radian{ XMVector3AngleBetweenNormals(z_axis, XMLoadFloat3(&sub)) };
+		FLOAT angle{ XMConvertToDegrees(XMVectorGetX(radian)) };
+
+		XMVECTOR vec = XMQuaternionRotationRollPitchYaw(0.f, XMVectorGetX(radian), 0.f);
+		XMFLOAT4 q{};
+		XMStoreFloat4(&q, vec);
+		m_clients[id]->SetBoundingBoxOrientation(XMFLOAT4{ q.x, q.y, q.z, q.w });
+		m_clients[id]->SetYaw(sub.x < 0 ? -angle : angle);
+	}
 
 	TIMER_EVENT ev{ .obj_id = id, .target_id = target,
 		.event_type = EventType::ARROW_SHOOT, .action_type = attack_type };

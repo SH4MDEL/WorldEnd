@@ -45,6 +45,7 @@ public:
 	FLOAT GetRoll() const { return m_roll; }
 	FLOAT GetPitch() const { return m_pitch; }
 	FLOAT GetYaw() const { return m_yaw; }
+	BoundingOrientedBox GetBoundingBox() const { return m_boundingBox; }
 
 	virtual void ReleaseUploadBuffer() const;
 
