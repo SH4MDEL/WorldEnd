@@ -5,6 +5,8 @@
 #define NOMINMAX
 
 #include <iostream>
+#include <fstream>
+#include <string>
 #include <WS2tcpip.h>
 #include <MSWSock.h>
 #include <thread>

@@ -1038,7 +1038,8 @@ void TowerScene::RecvRemovePlayer(char* ptr)
 	SC_REMOVE_PLAYER_PACKET* packet = reinterpret_cast<SC_REMOVE_PLAYER_PACKET*>(ptr);
 
 	m_multiPlayers[packet->id]->SetPosition(XMFLOAT3(FAR_POSITION, FAR_POSITION, FAR_POSITION));
-	
+	m_multiPlayers[packet->id]->SetId(-1);
+
 	m_hpUI[m_idSet[packet->id]]->SetDisable();
 }
 
@@ -1062,6 +1063,7 @@ void TowerScene::RecvUpdateClient(char* ptr)
 
 	if (packet->data.id == m_player->GetId()) {
 		m_player->SetPosition(packet->data.pos);
+		m_player->SetHp(packet->data.hp);
 	}
 	else {
 		auto& player = m_multiPlayers[packet->data.id];
@@ -1257,6 +1259,8 @@ void TowerScene::RecvWarpNextFloor(char* ptr)
 		m_player->SetHp(m_player->GetMaxHp());
 
 		for (auto& elm : m_multiPlayers) {
+			if (-1 == elm.second->GetId()) continue;
+
 			elm.second->SetPosition(RoomSetting::START_POSITION);
 			elm.second->ChangeAnimation(ObjectAnimation::IDLE, false);
 			elm.second->SetHp(m_player->GetMaxHp());

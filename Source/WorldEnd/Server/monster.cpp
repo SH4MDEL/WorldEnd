@@ -431,19 +431,41 @@ void Monster::CollisionCheck()
 	server.GameRoomObjectCollisionCheck(shared_from_this(), m_room_num);
 }
 
-void Monster::InitializePosition()
+void Monster::InitializePosition(INT mon_cnt, MonsterType mon_type, INT random_map)
 {
 	// 파일을 읽어서 초기 위치를 정하는 함수 필요
 	// 던전 매니저에서 해야하는 일이므로 나중에 던전매니저로 옮겨야 하는 함수
 	// 던전 매니저는 지형지물, 몬스터 배치 등의 던전 정보들을 관리함
+	using namespace std;
 
-	constexpr DirectX::XMFLOAT3 monster_create_area[]
+	ifstream in{ "MonsterPos.txt" };
+
+	float mon_pos[MAX_MONSTER_PLACEMENT]{};
+
+	for (int i = 0; i < MAX_MONSTER_PLACEMENT; ++i) {
+		in >> mon_pos[i];
+	}
+
+	Server& server = Server::GetInstance();
+
+	if (random_map == 0)
 	{
-		{ 9.f, 0.f, 36.f }, { 17.f, 0.f, 28.f }, { 17.f, 0.f, 20.f }, { 9.f, 0.f, 12.f },
-		{ -9.f, 0.f, 36.f }, { -17.f, 0.f, 28.f }, { -17.f, 0.f, 20.f }, { -9.f, 0.f, 12.f },
-	};
-	std::uniform_int_distribution<int> area_distribution{ 0, static_cast<int>(std::size(monster_create_area) - 1) };
-	SetPosition(monster_create_area[area_distribution(g_random_engine)]);
+		if (mon_type == MonsterType::WARRIOR)
+			SetPosition(mon_pos[(mon_cnt * 2) + 2], 0, mon_pos[(mon_cnt * 2) + 3]);
+		else if (mon_type == MonsterType::ARCHER)
+			SetPosition(mon_pos[(mon_cnt * 2) + 6], 0, mon_pos[(mon_cnt * 2) + 7]);
+		else if (mon_type == MonsterType::WIZARD)
+			SetPosition(mon_pos[(mon_cnt * 2) + 8], 0, mon_pos[(mon_cnt * 2) + 9]);
+	}
+	else if (random_map == 1)
+	{
+		if (mon_type == MonsterType::WARRIOR)
+			SetPosition(mon_pos[(mon_cnt * 2) + 22], 0, mon_pos[(mon_cnt * 2) + 23]);
+		else if (mon_type == MonsterType::ARCHER)
+			SetPosition(mon_pos[(mon_cnt * 2) + 24], 0, mon_pos[(mon_cnt * 2) + 25]);
+		else if (mon_type == MonsterType::WIZARD)
+			SetPosition(mon_pos[(mon_cnt * 2) + 28], 0, mon_pos[(mon_cnt * 2) + 29]);
+	}
 }
 
 WarriorMonster::WarriorMonster()
@@ -600,7 +622,7 @@ std::chrono::milliseconds WarriorMonster::SetBehaviorTime(MonsterBehavior behavi
 
 ArcherMonster::ArcherMonster()
 {
-	m_max_hp = 200.f;
+	m_max_hp = 150.f;
 	m_damage = 20;
 	m_attack_range = 12.5f;
 	m_recover_attack_range = 8.f;
@@ -876,7 +898,7 @@ void ArcherMonster::SetFleeDirection()
 
 WizardMonster::WizardMonster()
 {
-	m_max_hp = 200.f;
+	m_max_hp = 170.f;
 	m_damage = 10.f;
 	m_attack_range = 8.f;
 	m_boundary_range = 2.5f;

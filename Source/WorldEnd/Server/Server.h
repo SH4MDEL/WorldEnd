@@ -94,6 +94,7 @@ public:
 	INT GetNewId();
 	INT GetNewMonsterId(MonsterType type);
 	INT GetNewTriggerId(TriggerType type);
+	INT GetFloorCount() { return m_floor_cnt; }
 	GameRoomManager* GetGameRoomManager() { return m_game_room_manager.get(); }
 	HANDLE GetIOCPHandle() const { return m_handle_iocp; }
 
@@ -126,6 +127,8 @@ private:
 
 	std::vector<std::thread>	m_worker_threads;
 	bool						m_accept;
+
+	INT                         m_floor_cnt;
 
 	concurrency::concurrent_priority_queue<TIMER_EVENT> m_timer_queue;
 

@@ -42,7 +42,7 @@ public:
 	
 
 	// 나중에 던전 매니저로 옮겨야 할 함수
-	void InitializePosition();
+	void InitializePosition(INT mon_cnt, MonsterType mon_type, INT random_map);
 
 protected:
 	void UpdatePosition(const XMFLOAT3& dir, FLOAT elapsed_time, FLOAT speed);
