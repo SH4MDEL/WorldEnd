@@ -470,14 +470,6 @@ void TowerScene::Update(FLOAT timeElapsed)
 				Vector3::Add(m_directionalDirection, Vector3::Mul({ 2.f, 0.f, 2.f }, m_age / m_lifeTime));
 		}
 	}
-
-	if (CheckState(State::InitScene)) {
-		ResetState(State::InitScene);
-		SetState(State::EnterScene);
-		m_fadeFilter->FadeIn([&]() {
-			ResetState(State::EnterScene);
-		});
-	}
 }
 
 void TowerScene::UpdateLightSystem(FLOAT timeElapsed)
@@ -746,7 +738,7 @@ void TowerScene::LoadMonsterFromFile(const shared_ptr<Monster>& monster)
 
 void TowerScene::SetHpBar(const shared_ptr<AnimationObject>& object)
 {
-	auto hpBar = make_shared<GaugeBar>();
+	auto hpBar = make_shared<GaugeBar>(0.16f);
 	hpBar->SetMesh("HPBAR");
 	hpBar->SetTexture("HPBAR");
 	hpBar->SetMaxGauge(object->GetMaxHp());

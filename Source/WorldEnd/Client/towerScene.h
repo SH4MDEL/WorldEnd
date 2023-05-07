@@ -20,7 +20,7 @@ public:
 		BlurLevel4			= Unused,
 		BlurLevel5			= OutputResult,
 		Bluring				= BlurLevel1 | BlurLevel2 | BlurLevel3 | BlurLevel4 | BlurLevel5,
-		CantPlayerControl	= EnterScene | OutputExitUI | OutputResult | Fading
+		CantPlayerControl	= OutputExitUI | OutputResult | Fading
 	};
 	enum class LightTag : INT {
 		Directional,
