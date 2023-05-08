@@ -21,6 +21,7 @@
 #include <queue>
 #include <concurrent_priority_queue.h>
 #include <concurrent_unordered_set.h>
+#include <set>
 #include "protocol.h"
 
 #pragma comment (lib, "opengl32.lib")

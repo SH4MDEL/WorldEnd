@@ -46,6 +46,8 @@ public:
 	void CheckEventCollision(INT player_id);
 	void CheckTriggerCollision(INT id);
 
+	INT GenerateRandomRoom(std::set<INT>& history, INT min, INT max);
+
 	void InitGameRoom(INT room_num);
 	void InitMonsters(INT room_num);
 	void InitEnvironment();
@@ -65,6 +67,7 @@ private:
 	std::mutex									m_monster_lock;
 	std::mutex									m_trigger_lock;
 	std::chrono::system_clock::time_point		m_start_time;
+	std::set<INT>                               m_save_room;        // 나온 방은 중복되서 안불리게 set에 저장해서 구별
 
 	std::shared_ptr<WarpPortal>		m_portal;
 	std::shared_ptr<BattleStarter>	m_battle_starter;
