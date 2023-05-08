@@ -430,21 +430,12 @@ void Monster::CollisionCheck()
 	server.GameRoomObjectCollisionCheck(shared_from_this(), m_room_num);
 }
 
-void Monster::InitializePosition(INT mon_cnt, MonsterType mon_type, INT random_map)
+void Monster::InitializePosition(INT mon_cnt, MonsterType mon_type, INT random_map, FLOAT mon_pos[])
 {
 	// 파일을 읽어서 초기 위치를 정하는 함수 필요
 	// 던전 매니저에서 해야하는 일이므로 나중에 던전매니저로 옮겨야 하는 함수
 	// 던전 매니저는 지형지물, 몬스터 배치 등의 던전 정보들을 관리함
-	using namespace std;
-
-	ifstream in{ "MonsterPos.txt" };
-
-	float mon_pos[MAX_MONSTER_PLACEMENT]{};
-
-	for (int i = 0; i < MAX_MONSTER_PLACEMENT; ++i) {
-		in >> mon_pos[i];
-	}
-
+	
 	Server& server = Server::GetInstance();
 
 	if (random_map == 0)
@@ -452,9 +443,9 @@ void Monster::InitializePosition(INT mon_cnt, MonsterType mon_type, INT random_m
 		if (mon_type == MonsterType::WARRIOR)
 			SetPosition(mon_pos[(mon_cnt * 2) + 2], 0, mon_pos[(mon_cnt * 2) + 3]);
 		else if (mon_type == MonsterType::ARCHER)
-			SetPosition(mon_pos[(mon_cnt * 2) + 6], 0, mon_pos[(mon_cnt * 2) + 7]);
+			SetPosition(mon_pos[(mon_cnt * 2) + 4], 0, mon_pos[(mon_cnt * 2) + 5]);
 		else if (mon_type == MonsterType::WIZARD)
-			SetPosition(mon_pos[(mon_cnt * 2) + 8], 0, mon_pos[(mon_cnt * 2) + 9]);
+			SetPosition(mon_pos[(mon_cnt * 2) + 6], 0, mon_pos[(mon_cnt * 2) + 7]);
 	}
 	else if (random_map == 1)
 	{
@@ -463,7 +454,25 @@ void Monster::InitializePosition(INT mon_cnt, MonsterType mon_type, INT random_m
 		else if (mon_type == MonsterType::ARCHER)
 			SetPosition(mon_pos[(mon_cnt * 2) + 24], 0, mon_pos[(mon_cnt * 2) + 25]);
 		else if (mon_type == MonsterType::WIZARD)
-			SetPosition(mon_pos[(mon_cnt * 2) + 28], 0, mon_pos[(mon_cnt * 2) + 29]);
+			SetPosition(mon_pos[(mon_cnt * 2) + 26], 0, mon_pos[(mon_cnt * 2) + 27]);
+	}
+	else if (random_map == 2)
+	{
+		if (mon_type == MonsterType::WARRIOR)
+			SetPosition(mon_pos[(mon_cnt * 2) + 42], 0, mon_pos[(mon_cnt * 2) + 43]);
+		else if (mon_type == MonsterType::ARCHER)
+			SetPosition(mon_pos[(mon_cnt * 2) + 44], 0, mon_pos[(mon_cnt * 2) + 45]);
+		else if (mon_type == MonsterType::WIZARD)
+			SetPosition(mon_pos[(mon_cnt * 2) + 46], 0, mon_pos[(mon_cnt * 2) + 47]);
+	}
+	else if (random_map == 3)
+	{
+		if (mon_type == MonsterType::WARRIOR)
+			SetPosition(mon_pos[(mon_cnt * 2) + 62], 0, mon_pos[(mon_cnt * 2) + 63]);
+		else if (mon_type == MonsterType::ARCHER)
+			SetPosition(mon_pos[(mon_cnt * 2) + 64], 0, mon_pos[(mon_cnt * 2) + 65]);
+		else if (mon_type == MonsterType::WIZARD)
+			SetPosition(mon_pos[(mon_cnt * 2) + 66], 0, mon_pos[(mon_cnt * 2) + 67]);
 	}
 }
 

@@ -11,7 +11,7 @@ constexpr int MAX_INGAME_MONSTER = 10;
 constexpr int MAX_GAME_ROOM_NUM = 3000;
 constexpr int MAX_PARTY_NUM = 1000;
 constexpr int MAX_RECORD_NUM = 5;
-constexpr int MAX_MONSTER_PLACEMENT = 40;
+constexpr int MAX_MONSTER_PLACEMENT = 80;
 
 constexpr int MAX_USER = 10000;
 constexpr int MAX_WARRIOR_MONSTER = 30000;
