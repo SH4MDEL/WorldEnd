@@ -310,12 +310,13 @@ void TowerScene::BuildLight(const ComPtr<ID3D12Device>& device, const ComPtr<ID3
 	m_lightSystem->m_globalAmbient = XMFLOAT4{ 0.1f, 0.1f, 0.1f, 1.f };
 	m_lightSystem->m_numLight = (INT)LightTag::Count;
 
+	m_directionalDiffuse = XMFLOAT4{ 0.4f, 0.4f, 0.4f, 1.f };
+	m_directionalDirection = XMFLOAT3{ -1.f, -1.f, -1.f };
+
 	m_lightSystem->m_lights[(INT)LightTag::Directional].m_type = DIRECTIONAL_LIGHT;
 	m_lightSystem->m_lights[(INT)LightTag::Directional].m_ambient = XMFLOAT4{ 0.2f, 0.2f, 0.2f, 1.f };
-	m_directionalDiffuse = XMFLOAT4{ 0.4f, 0.4f, 0.4f, 1.f };
 	m_lightSystem->m_lights[(INT)LightTag::Directional].m_diffuse = m_directionalDiffuse;
 	m_lightSystem->m_lights[(INT)LightTag::Directional].m_specular = XMFLOAT4{ 0.2f, 0.2f, 0.2f, 0.f };
-	m_directionalDirection = XMFLOAT3{ -1.f, -1.f, -1.f };
 	m_lightSystem->m_lights[(INT)LightTag::Directional].m_direction = m_directionalDirection;
 	m_lightSystem->m_lights[(INT)LightTag::Directional].m_enable = true;
 
@@ -416,7 +417,7 @@ void TowerScene::BuildLight(const ComPtr<ID3D12Device>& device, const ComPtr<ID3
 void TowerScene::OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime)
 {
 	if (m_exitUI) m_exitUI->OnProcessingMouseMessage(hWnd, width, height, deltaTime);
-	if (m_resultUI) m_exitUI->OnProcessingMouseMessage(hWnd, width, height, deltaTime);
+	if (m_resultUI) m_resultUI->OnProcessingMouseMessage(hWnd, width, height, deltaTime);
 
 	if (!CheckState(State::CantPlayerControl)) {
 		SetCursor(NULL);
@@ -482,7 +483,7 @@ void TowerScene::Update(FLOAT timeElapsed)
 		closesocket(g_socket);
 		return;
 	}
-	//RecvPacket();
+	RecvPacket();
 
 	m_camera->Update(timeElapsed);
 	if (m_globalShaders["SKYBOX"]) for (auto& skybox : m_globalShaders["SKYBOX"]->GetObjects()) skybox->SetPosition(m_camera->GetEye());
@@ -1125,8 +1126,8 @@ void TowerScene::InitServer()
 
 	connect(g_socket, reinterpret_cast<SOCKADDR*>(&server_address), sizeof(server_address));
 
-	/*unsigned long noblock = 1;
-	ioctlsocket(g_socket, FIONBIO, &noblock);*/
+	unsigned long noblock = 1;
+	ioctlsocket(g_socket, FIONBIO, &noblock);
 
 	constexpr char name[10] = "HSC\0";
 	CS_LOGIN_PACKET login_packet{};
@@ -1136,8 +1137,8 @@ void TowerScene::InitServer()
 	memcpy(login_packet.name, name, sizeof(char) * 10);
 	send(g_socket, reinterpret_cast<char*>(&login_packet), sizeof(login_packet), NULL);
 
-	g_networkThread = thread{ &TowerScene::RecvPacket, this};
-	g_networkThread.detach();
+	//g_networkThread = thread{ &TowerScene::RecvPacket, this};
+	//g_networkThread.detach();
 
 #endif
 }
@@ -1156,25 +1157,17 @@ void TowerScene::SendPlayerData()
 
 void TowerScene::RecvPacket()
 {
-	while (true) {
-		char buf[BUF_SIZE] = { 0 };
-		WSABUF wsabuf{ BUF_SIZE, buf };
-		DWORD recv_byte{ 0 }, recv_flag{ 0 };
+	char buf[BUF_SIZE] = { 0 };
+	WSABUF wsabuf{ BUF_SIZE, buf };
+	DWORD recv_byte{ 0 }, recv_flag{ 0 };
 
-		if (WSARecv(g_socket, &wsabuf, 1, &recv_byte, &recv_flag, nullptr, nullptr) == SOCKET_ERROR)
-			ErrorDisplay("RecvSizeType");
+	int retval = WSARecv(g_socket, &wsabuf, 1, &recv_byte, &recv_flag, nullptr, nullptr);
+	if (retval == SOCKET_ERROR && WSAGetLastError() != WSAEWOULDBLOCK) {
+		ErrorDisplay("RecvSizeType");
+	}
 
-		if (recv_byte > 0)
-			PacketReassembly(wsabuf.buf, recv_byte);
-
-		/*int retval = WSARecv(g_socket, &wsabuf, 1, &recv_byte, &recv_flag, nullptr, nullptr);
-		if (retval == SOCKET_ERROR && WSAGetLastError() != WSAEWOULDBLOCK) {
-			ErrorDisplay("RecvSizeType");
-		}
-
-		if (recv_byte > 0) {
-			PacketReassembly(wsabuf.buf, recv_byte);
-		}*/
+	if (recv_byte > 0) {
+		PacketReassembly(wsabuf.buf, recv_byte);
 	}
 }
 
@@ -1258,8 +1251,6 @@ void TowerScene::ProcessPacket(char* ptr)
 		break;
 	}
 }
-
-
 
 void TowerScene::PacketReassembly(char* net_buf, size_t io_byte)
 {

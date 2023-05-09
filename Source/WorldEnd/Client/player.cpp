@@ -47,8 +47,7 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 		PlayerAnimation::ULTIMATE != m_currentAnimation &&
 		PlayerAnimation::ROLL != m_currentAnimation)
 	{
-		XMFLOAT3 eye = m_camera->GetEye();
-		eye.y = 0.f;
+		XMFLOAT3 eye = m_camera->GetEye(); eye.y = 0.f;
 		XMFLOAT3 direction{ Vector3::Normalize(Vector3::Sub(GetPosition(), eye)) };
 
 		if (GetAsyncKeyState('W') && GetAsyncKeyState('A') & 0x8000) {
