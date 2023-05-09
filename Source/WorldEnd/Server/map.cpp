@@ -181,21 +181,25 @@ void GameRoom::SendPlayerData()
 
 	SC_UPDATE_CLIENT_PACKET packet[MAX_INGAME_USER]{};
 
-	INT player_count{0};
-	for (INT id : m_player_ids) {
-		if (-1 == id) continue;
-
-		packet[player_count].size = sizeof(SC_UPDATE_CLIENT_PACKET);
-		packet[player_count].type = SC_PACKET_UPDATE_CLIENT;
-		packet[player_count].data = server.m_clients[id]->GetPlayerData();
-		packet[player_count].move_time = server.m_clients[id]->GetLastMoveTime();
-		++player_count;
+	for (size_t i = 0; INT id : m_player_ids) {
+		if (-1 == id) {
+			packet[i].size = sizeof(SC_UPDATE_CLIENT_PACKET);
+			packet[i].type = SC_PACKET_UPDATE_CLIENT;
+			packet[i].data.id = -1;
+		}
+		else {
+			packet[i].size = sizeof(SC_UPDATE_CLIENT_PACKET);
+			packet[i].type = SC_PACKET_UPDATE_CLIENT;
+			packet[i].data = server.m_clients[id]->GetPlayerData();
+			//packet[player_count].move_time = server.m_clients[id]->GetLastMoveTime();
+		}
+		++i;
 	}
 
 	for (INT id : m_player_ids) {
 		if (-1 == id) continue;
 
-		server.m_clients[id]->DoSend(&packet, player_count);
+		server.m_clients[id]->DoSend(&packet, MAX_INGAME_USER);
 	}
 }
 
@@ -424,7 +428,7 @@ INT GameRoom::GenerateRandomRoom(std::set<INT>& save_room, INT min, INT max)
 	} while (save_room.find(rand_value) != save_room.end());
 
 	save_room.insert(rand_value);
-	if (save_room.size() > max - min + 1) {
+	if (save_room.size() > (max - min)) {
 		save_room.erase(save_room.begin());
 	}
 
@@ -456,7 +460,7 @@ void GameRoom::InitMonsters(INT room_num)
 		in >> mon_pos[i];
 	}
 
-	INT random_map = GameRoom::GenerateRandomRoom(m_save_room, 0, 3);
+	INT random_map = GameRoom::GenerateRandomRoom(m_save_room, 0, 4);
 
 	// Init 은 플레이어 진입 시 불려야함
 	INT new_warrior_id{};
@@ -476,7 +480,7 @@ void GameRoom::InitMonsters(INT room_num)
 			monster->SetId(new_warrior_id);
 			monster->InitializePosition(i, MonsterType::WARRIOR, random_map, mon_pos);
 			monster->SetRoomNum(room_num);
-			monster->SetTarget(0);
+			monster->SetTarget(-1);
 			monster->SetState(State::ACCEPT);
 			++m_monster_count;
 		}
@@ -492,7 +496,7 @@ void GameRoom::InitMonsters(INT room_num)
 			monster->SetId(new_archer_id);
 			monster->InitializePosition(i + 3, MonsterType::ARCHER, random_map, mon_pos);
 			monster->SetRoomNum(room_num);
-			monster->SetTarget(0);
+			monster->SetTarget(-1);
 			monster->SetState(State::ACCEPT);
 			++m_monster_count;
 		}
@@ -509,7 +513,7 @@ void GameRoom::InitMonsters(INT room_num)
 			monster->SetId(new_wizard_id);
 			monster->InitializePosition(i + 5, MonsterType::WIZARD, random_map, mon_pos);
 			monster->SetRoomNum(room_num);
-			monster->SetTarget(0);
+			monster->SetTarget(-1);
 			monster->SetState(State::ACCEPT);
 			++m_monster_count;
 		}
@@ -528,7 +532,7 @@ void GameRoom::InitMonsters(INT room_num)
 			monster->SetId(new_warrior_id);
 			monster->InitializePosition(i, MonsterType::WARRIOR, random_map, mon_pos);
 			monster->SetRoomNum(room_num);
-			monster->SetTarget(0);
+			monster->SetTarget(-1);
 			monster->SetState(State::ACCEPT);
 			++m_monster_count;
 		}
@@ -544,7 +548,7 @@ void GameRoom::InitMonsters(INT room_num)
 			monster->SetId(new_archer_id);
 			monster->InitializePosition(i + 2, MonsterType::ARCHER, random_map, mon_pos);
 			monster->SetRoomNum(room_num);
-			monster->SetTarget(0);
+			monster->SetTarget(-1);
 			monster->SetState(State::ACCEPT);
 			++m_monster_count;
 		}
@@ -561,7 +565,7 @@ void GameRoom::InitMonsters(INT room_num)
 			monster->SetId(new_wizard_id);
 			monster->InitializePosition(i + 5, MonsterType::WIZARD, random_map, mon_pos);
 			monster->SetRoomNum(room_num);
-			monster->SetTarget(0);
+			monster->SetTarget(-1);
 			monster->SetState(State::ACCEPT);
 			++m_monster_count;
 		}
@@ -579,7 +583,7 @@ void GameRoom::InitMonsters(INT room_num)
 			monster->SetId(new_warrior_id);
 			monster->InitializePosition(i, MonsterType::WARRIOR, random_map, mon_pos);
 			monster->SetRoomNum(room_num);
-			monster->SetTarget(0);
+			monster->SetTarget(-1);
 			monster->SetState(State::ACCEPT);
 			++m_monster_count;
 		}
@@ -595,7 +599,7 @@ void GameRoom::InitMonsters(INT room_num)
 			monster->SetId(new_archer_id);
 			monster->InitializePosition(i + 2, MonsterType::ARCHER, random_map, mon_pos);
 			monster->SetRoomNum(room_num);
-			monster->SetTarget(0);
+			monster->SetTarget(-1);
 			monster->SetState(State::ACCEPT);
 			++m_monster_count;
 		}
@@ -612,7 +616,7 @@ void GameRoom::InitMonsters(INT room_num)
 			monster->SetId(new_wizard_id);
 			monster->InitializePosition(i + 4, MonsterType::WIZARD, random_map, mon_pos);
 			monster->SetRoomNum(room_num);
-			monster->SetTarget(0);
+			monster->SetTarget(-1);
 			monster->SetState(State::ACCEPT);
 			++m_monster_count;
 		}
@@ -630,7 +634,7 @@ void GameRoom::InitMonsters(INT room_num)
 			monster->SetId(new_warrior_id);
 			monster->InitializePosition(i, MonsterType::WARRIOR, random_map, mon_pos);
 			monster->SetRoomNum(room_num);
-			monster->SetTarget(0);
+			monster->SetTarget(-1);
 			monster->SetState(State::ACCEPT);
 			++m_monster_count;
 		}
@@ -646,7 +650,7 @@ void GameRoom::InitMonsters(INT room_num)
 			monster->SetId(new_archer_id);
 			monster->InitializePosition(i + 3, MonsterType::ARCHER, random_map, mon_pos);
 			monster->SetRoomNum(room_num);
-			monster->SetTarget(0);
+			monster->SetTarget(-1);
 			monster->SetState(State::ACCEPT);
 			++m_monster_count;
 		}
@@ -663,14 +667,12 @@ void GameRoom::InitMonsters(INT room_num)
 			monster->SetId(new_wizard_id);
 			monster->InitializePosition(i + 5, MonsterType::WIZARD, random_map, mon_pos);
 			monster->SetRoomNum(room_num);
-			monster->SetTarget(0);
+			monster->SetTarget(-1);
 			monster->SetState(State::ACCEPT);
 			++m_monster_count;
 		}
 
 	}
-
-	std::cout << random_map << "번 던전 " << std::endl;
 
 }
 
@@ -734,7 +736,7 @@ INT GameRoom::GetPlayerCount()
 
 GameRoomManager::GameRoomManager()
 {
-	//LoadMap();
+	LoadMap();
 	for (auto& game_room : m_game_rooms) {
 		game_room = std::make_shared<GameRoom>();
 	}
@@ -817,7 +819,7 @@ void GameRoomManager::LoadMap()
 {
 	std::unordered_map<std::string, BoundingOrientedBox> bounding_box_data;
 
-	std::ifstream in{ "./Resource/GameRoomObject.bin", std::ios::binary };
+	std::ifstream in{ "./Resource/GameRoom/GameRoomObject.bin", std::ios::binary };
 
 	BYTE strLength{};
 	std::string objectName;
@@ -834,7 +836,7 @@ void GameRoomManager::LoadMap()
 	in.close();
 
 
-	in.open("./Resource/GameRoomMap.bin", std::ios::binary);
+	in.open("./Resource/GameRoom/GameRoomMap.bin", std::ios::binary);
 
 	XMFLOAT3 position{};
 	FLOAT yaw{};

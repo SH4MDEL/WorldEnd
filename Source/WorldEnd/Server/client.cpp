@@ -64,7 +64,7 @@ void Client::DoRecv()
 	DWORD recv_flag = 0;
 	ZeroMemory(&m_recv_over._wsa_over, sizeof(m_recv_over._wsa_over));
 	m_recv_over._wsa_buf.buf = reinterpret_cast<char*>(m_recv_over._send_buf + m_remain_size);
-	m_recv_over._wsa_buf.len = sizeof(m_recv_over._send_buf) - m_remain_size;
+	m_recv_over._wsa_buf.len = BUF_SIZE - m_remain_size;
 	int ret = WSARecv(m_socket, &m_recv_over._wsa_buf, 1, 0, &recv_flag, &m_recv_over._wsa_over, NULL);
 	if (SOCKET_ERROR == ret){
 		int error_num = WSAGetLastError();

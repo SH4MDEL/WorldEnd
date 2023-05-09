@@ -63,6 +63,7 @@ void GameObject::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, Ga
 void GameObject::Move(const XMFLOAT3& shift)
 {
 	SetPosition(Vector3::Add(GetPosition(), shift));
+	m_boundingBox.Center = GetPosition();
 }
 
 void GameObject::Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw)
@@ -109,6 +110,7 @@ void GameObject::SetPosition(const XMFLOAT3& position)
 	m_transformMatrix._41 = position.x;
 	m_transformMatrix._42 = position.y;
 	m_transformMatrix._43 = position.z;
+	m_boundingBox.Center = position;
 	UpdateTransform(nullptr);
 }
 

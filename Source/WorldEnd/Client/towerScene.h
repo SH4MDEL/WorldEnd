@@ -118,6 +118,8 @@ private:
 
 	void LoadMap();
 	void CollideWithMap();
+	void CollideWithObject();
+	void CollideByStatic(const shared_ptr<GameObject>& obj, const shared_ptr<GameObject>& static_obj);
 	void CollideByStaticOBB(const shared_ptr<GameObject>& obj, const shared_ptr<GameObject>& static_obj);
 
 protected:
@@ -166,5 +168,6 @@ protected:
 	XMFLOAT3											m_directionalDirection;
 	const FLOAT											m_lifeTime = (FLOAT)RoomSetting::BATTLE_DELAY_TIME.count();
 	FLOAT												m_age;
+	FLOAT												m_accumulatedTime;
 };
 

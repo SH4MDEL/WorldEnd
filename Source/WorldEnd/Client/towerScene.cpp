@@ -7,7 +7,8 @@ TowerScene::TowerScene() :
 				0.0f, -0.5f, 0.0f, 0.0f,
 				0.0f, 0.0f, 1.0f, 0.0f,
 				0.5f, 0.5f, 0.0f, 1.0f),
-	m_sceneState{ (INT)State::InitScene }
+	m_sceneState{ (INT)State::InitScene },
+	m_accumulatedTime{ 0 }
 {}
 
 TowerScene::~TowerScene() {  }
@@ -481,7 +482,7 @@ void TowerScene::Update(FLOAT timeElapsed)
 		closesocket(g_socket);
 		return;
 	}
-	RecvPacket();
+	//RecvPacket();
 
 	m_camera->Update(timeElapsed);
 	if (m_globalShaders["SKYBOX"]) for (auto& skybox : m_globalShaders["SKYBOX"]->GetObjects()) skybox->SetPosition(m_camera->GetEye());
@@ -491,7 +492,8 @@ void TowerScene::Update(FLOAT timeElapsed)
 	m_towerObjectManager->Update(timeElapsed);
 	m_fadeFilter->Update(timeElapsed);
 
-	CollideWithMap();
+	//CollideWithMap();
+	//CollideWithObject();
 
 	UpdateLightSystem(timeElapsed);
 
@@ -619,9 +621,95 @@ void TowerScene::CollideWithMap()
 	}
 }
 
+void TowerScene::CollideWithObject()
+{
+	auto& player_obb = m_player->GetBoundingBox();
+
+	for (const auto& elm : m_monsters) {
+		if (elm.second) {
+			if (player_obb.Intersects(elm.second->GetBoundingBox())) {
+				CollideByStatic(m_player, elm.second);
+			}
+		}
+	}
+
+	for (const auto& elm : m_multiPlayers) {
+		if (elm.second) {
+			if (player_obb.Intersects(elm.second->GetBoundingBox())) {
+				CollideByStatic(m_player, elm.second);
+			}
+		}
+	}
+}
+
+void TowerScene::CollideByStatic(const shared_ptr<GameObject>& obj, const shared_ptr<GameObject>& static_obj)
+{
+	BoundingOrientedBox& static_obb = static_obj->GetBoundingBox();
+	BoundingOrientedBox& obb = obj->GetBoundingBox();
+
+	FLOAT obb_left = obb.Center.x - obb.Extents.x;
+	FLOAT obb_right = obb.Center.x + obb.Extents.x;
+	FLOAT obb_front = obb.Center.z + obb.Extents.z;
+	FLOAT obb_back = obb.Center.z - obb.Extents.z;
+
+	FLOAT static_obb_left = static_obb.Center.x - static_obb.Extents.x;
+	FLOAT static_obb_right = static_obb.Center.x + static_obb.Extents.x;
+	FLOAT static_obb_front = static_obb.Center.z + static_obb.Extents.z;
+	FLOAT static_obb_back = static_obb.Center.z - static_obb.Extents.z;
+
+	FLOAT x_bias{}, z_bias{};
+	bool push_out_x_plus{ false }, push_out_z_plus{ false };
+
+	// 충돌한 물체의 중심이 x가 더 크면
+	if (obb.Center.x - static_obb.Center.x <= std::numeric_limits<FLOAT>::epsilon()) {
+		x_bias = obb_right - static_obb_left;
+	}
+	else {
+		x_bias = static_obb_right - obb_left;
+		push_out_x_plus = true;
+	}
+
+	// 충돌한 물체의 중심이 z가 더 크면
+	if (obb.Center.z - static_obb.Center.z <= std::numeric_limits<FLOAT>::epsilon()) {
+		z_bias = obb_front - static_obb_back;
+	}
+	else {
+		z_bias = static_obb_front - obb_back;
+		push_out_z_plus = true;
+	}
+
+	XMFLOAT3 pos = obj->GetPosition();
+
+	// z 방향으로 밀어내기
+	if (x_bias - z_bias >= std::numeric_limits<FLOAT>::epsilon()) {
+		// object가 +z 방향으로
+		if (push_out_z_plus) {
+			pos.z += z_bias;
+		}
+		// object가 -z 방향으로
+		else {
+			pos.z -= z_bias;
+		}
+	}
+
+	// x 방향으로 밀어내기
+	else {
+		// object가 +x 방향으로
+		if (push_out_x_plus) {
+			pos.x += x_bias;
+		}
+		// object가 -x 방향으로
+		else {
+			pos.x -= x_bias;
+		}
+	}
+
+	obj->SetPosition(pos);
+	obb.Center = pos;
+}
+
 void TowerScene::CollideByStaticOBB(const shared_ptr<GameObject>& obj, const shared_ptr<GameObject>& static_obj)
 {
-
 	XMFLOAT3 corners[8]{};
 
 	BoundingOrientedBox static_obb = static_obj->GetBoundingBox();
@@ -1037,8 +1125,8 @@ void TowerScene::InitServer()
 
 	connect(g_socket, reinterpret_cast<SOCKADDR*>(&server_address), sizeof(server_address));
 
-	unsigned long noblock = 1;
-	ioctlsocket(g_socket, FIONBIO, &noblock);
+	/*unsigned long noblock = 1;
+	ioctlsocket(g_socket, FIONBIO, &noblock);*/
 
 	constexpr char name[10] = "HSC\0";
 	CS_LOGIN_PACKET login_packet{};
@@ -1048,8 +1136,8 @@ void TowerScene::InitServer()
 	memcpy(login_packet.name, name, sizeof(char) * 10);
 	send(g_socket, reinterpret_cast<char*>(&login_packet), sizeof(login_packet), NULL);
 
-	//g_networkThread = thread{ &TowerScene::RecvPacket, this};
-	//g_networkThread.detach();
+	g_networkThread = thread{ &TowerScene::RecvPacket, this};
+	g_networkThread.detach();
 
 #endif
 }
@@ -1057,29 +1145,36 @@ void TowerScene::InitServer()
 void TowerScene::SendPlayerData()
 {
 #ifdef USE_NETWORK
-	CS_PLAYER_MOVE_PACKET move_packet;
-	move_packet.size = sizeof(move_packet);
-	move_packet.type = CS_PACKET_PLAYER_MOVE;
-	move_packet.pos = m_player->GetPosition();
-	move_packet.velocity = m_player->GetVelocity();
-	move_packet.yaw = m_player->GetYaw();
-	send(g_socket, reinterpret_cast<char*>(&move_packet), sizeof(move_packet), 0);
+	CS_PLAYER_MOVE_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = CS_PACKET_PLAYER_MOVE;
+	packet.pos = m_player->GetPosition();
+	packet.yaw = m_player->GetYaw();
+	send(g_socket, reinterpret_cast<char*>(&packet), packet.size, 0);
 #endif
 }
 
 void TowerScene::RecvPacket()
 {
-	char buf[BUF_SIZE] = {0};
-	WSABUF wsabuf{ BUF_SIZE, buf };
-	DWORD recv_byte{ 0 }, recv_flag{ 0 };
+	while (true) {
+		char buf[BUF_SIZE] = { 0 };
+		WSABUF wsabuf{ BUF_SIZE, buf };
+		DWORD recv_byte{ 0 }, recv_flag{ 0 };
 
-	int retval = WSARecv(g_socket, &wsabuf, 1, &recv_byte, &recv_flag, nullptr, nullptr);
-	if (retval == SOCKET_ERROR && WSAGetLastError() != WSAEWOULDBLOCK) {
-		ErrorDisplay("RecvSizeType");
-	}
+		if (WSARecv(g_socket, &wsabuf, 1, &recv_byte, &recv_flag, nullptr, nullptr) == SOCKET_ERROR)
+			ErrorDisplay("RecvSizeType");
 
-	if (recv_byte > 0) {
-		PacketReassembly(wsabuf.buf, recv_byte);
+		if (recv_byte > 0)
+			PacketReassembly(wsabuf.buf, recv_byte);
+
+		/*int retval = WSARecv(g_socket, &wsabuf, 1, &recv_byte, &recv_flag, nullptr, nullptr);
+		if (retval == SOCKET_ERROR && WSAGetLastError() != WSAEWOULDBLOCK) {
+			ErrorDisplay("RecvSizeType");
+		}
+
+		if (recv_byte > 0) {
+			PacketReassembly(wsabuf.buf, recv_byte);
+		}*/
 	}
 }
 
@@ -1251,11 +1346,12 @@ void TowerScene::RecvUpdateClient(char* ptr)
 {
 	SC_UPDATE_CLIENT_PACKET* packet = reinterpret_cast<SC_UPDATE_CLIENT_PACKET*>(ptr);
 
-	//if (-1 == packet->data.id) {
-	//	return;
-	//}
+	if (-1 == packet->data.id) {
+		return;
+	}
 
 	if (packet->data.id == m_player->GetId()) {
+		m_player->SetPosition(packet->data.pos);
 		m_player->SetHp(packet->data.hp);
 	}
 	else {

@@ -723,7 +723,7 @@ void Server::ProcessPacket(int id, char* p)
 {
 	unsigned char type = p[1];
 	auto client = dynamic_pointer_cast<Client>(m_clients[id]);
-	
+
 	switch (type){
 	case CS_PACKET_LOGIN: {
 		CS_LOGIN_PACKET* packet = reinterpret_cast<CS_LOGIN_PACKET*>(p);
@@ -755,15 +755,12 @@ void Server::ProcessPacket(int id, char* p)
 
 		// 위치는 서버에서 저장하므로 굳이 받을 필요는 없을 것
 		// 속도만 받아와서 처리해도 됨
-		/*client->SetVelocity(packet->velocity);
 
 		XMFLOAT3 pos = Vector3::Add(client->GetPosition(), packet->velocity);
-		client->SetYaw(packet->yaw);
-
-		Move(client, pos);*/
+		Move(client, pos);
 
 		client->SetYaw(packet->yaw);
-		Move(client, packet->pos);
+		//Move(client, packet->pos);
 		break;
 	}
 	case CS_PACKET_SET_COOLDOWN: {
@@ -888,8 +885,8 @@ void Server::SendMoveInGameRoom(int client_id, int room_num)
 	packet.size = sizeof(packet);
 	packet.type = SC_PACKET_UPDATE_CLIENT;
 	packet.data = m_clients[client_id]->GetPlayerData();
-	packet.move_time = static_cast<unsigned>(std::chrono::duration_cast<std::chrono::milliseconds>
-		(std::chrono::high_resolution_clock::now().time_since_epoch()).count());
+	/*packet.move_time = static_cast<unsigned>(std::chrono::duration_cast<std::chrono::milliseconds>
+		(std::chrono::high_resolution_clock::now().time_since_epoch()).count());*/
 
 	auto game_room = m_game_room_manager->GetGameRoom(room_num);
 	if (!game_room)
@@ -1232,7 +1229,7 @@ void Server::GameRoomObjectCollisionCheck(const std::shared_ptr<MovementObject>&
 	CollideObject(object, monster_ids, Server::CollideByStatic);
 	CollideObject(object, player_ids, Server::CollideByStatic);
 
-	/*auto& v = m_game_room_manager->GetStructures();
+	auto& v = m_game_room_manager->GetStructures();
 
 	for (const auto& obj : v) {
 		auto& obb = obj->GetBoundingBox();
@@ -1250,7 +1247,7 @@ void Server::GameRoomObjectCollisionCheck(const std::shared_ptr<MovementObject>&
 				CollideByStaticOBB(object, obj);
 			}
 		}
-	}*/
+	}
 
 	// 포탈, 전투 오브젝트와 상호작용
 	if (IsPlayer(object->GetId())) {
@@ -1545,8 +1542,8 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 
 			TIMER_EVENT trigger_ev{ .event_time = std::chrono::system_clock::now()
 			+ TriggerSetting::GENTIME[static_cast<int>(TriggerType::UNDEAD_GRASP)],
-			.obj_id = ev.obj_id, .target_id = ev.target_id,
-			.position = m_clients[ev.target_id]->GetPosition(),
+			.obj_id = ev.obj_id, .target_id = target,
+			.position = m_clients[target]->GetPosition(),
 			.event_type = EventType::MULTIPLE_TRIGGER_SET, .trigger_type = TriggerType::UNDEAD_GRASP,
 			.latest_id = 0, .aggro_level = 3, .is_valid = false };
 
