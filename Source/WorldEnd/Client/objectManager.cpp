@@ -14,7 +14,6 @@ TowerObjectManager::TowerObjectManager(const ComPtr<ID3D12Device>& device, const
 		arrowRain = make_shared<ArrowRain>();
 		m_arrowRainShader->SetObject(arrowRain);
 	}
-	m_arrowRainShader->SetMesh("MeshArrow");
 
 	for (auto& magicCircle : m_monsterMagicCircles) {
 		magicCircle = make_shared<MonsterMagicCircle>();
@@ -46,6 +45,7 @@ void TowerObjectManager::Render(const ComPtr<ID3D12GraphicsCommandList>& command
 	for (auto& arrowRain : m_arrowRains) {
 		arrowRain->RenderMagicCircle(commandList);
 	}
+
 	m_arrowRainShader->Render(commandList);
 
 	commandList->SetPipelineState(m_magicCircleShader->GetPipelineState().Get());

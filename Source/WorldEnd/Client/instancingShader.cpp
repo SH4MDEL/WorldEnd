@@ -62,18 +62,16 @@ void InstancingShader::Render(const ComPtr<ID3D12GraphicsCommandList>& commandLi
 {
 	InstancingShader::UpdateShaderVariable(commandList);
 
-	int i = 0;
-	for (const auto& elm : m_gameObjects) {
+	for (int i = 0; const auto& elm : m_gameObjects) {
 		m_instancingBufferPointer[i++].worldMatrix = Matrix::Transpose(elm->GetWorldMatrix());
 	}
 
-	m_mesh->Render(commandList, m_instancingBufferView);
+	if (m_gameObjects.size()) (*m_gameObjects.begin())->Render(commandList, m_instancingBufferView);
 }
 
 void InstancingShader::Clear()
 {
 	Shader::Clear();
-	m_mesh.reset();
 }
 
 void InstancingShader::CreateShaderVariable(const ComPtr<ID3D12Device>& device)
@@ -104,14 +102,6 @@ void InstancingShader::ReleaseShaderVariable()
 {
 	if (m_instancingBuffer) m_instancingBuffer->Unmap(0, nullptr);
 }
-
-void InstancingShader::SetMesh(const string& name)
-{
-	if (m_mesh) m_mesh.reset();
-	if (Scene::m_globalMeshs[name]) m_mesh = Scene::m_globalMeshs[name];
-	else m_mesh = Scene::m_meshs[name];
-}
-
 
 ArrowInstance::ArrowInstance(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature, UINT count)
 {
@@ -171,51 +161,17 @@ void ArrowInstance::Update(FLOAT timeElapsed) {}
 
 void ArrowInstance::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const
 {
-	ArrowInstance::UpdateShaderVariable(commandList);
+	InstancingShader::UpdateShaderVariable(commandList);
 
-	for (const auto& elm : m_gameObjects) {
+	for (int i = 0; const auto & elm : m_gameObjects) {
 		auto& arrowRain = static_pointer_cast<ArrowRain>(elm);
 		if (arrowRain->IsEnable()) {
-			arrowRain->UpdateShaderVariable(commandList);
 			for (int i = 0; const auto & arrow : arrowRain->GetArrows()) {
 				m_instancingBufferPointer[i++].worldMatrix = Matrix::Transpose(arrow.first->GetWorldMatrix());
 			}
-			m_mesh->Render(commandList, m_instancingBufferView);
+			arrowRain->Render(commandList, m_instancingBufferView);
 		}
 	}
-}
 
-void ArrowInstance::Clear()
-{
-	Shader::Clear();
-	m_mesh.reset();
-}
-
-void ArrowInstance::CreateShaderVariable(const ComPtr<ID3D12Device>& device)
-{
-	DX::ThrowIfFailed(device->CreateCommittedResource(
-		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
-		D3D12_HEAP_FLAG_NONE,
-		&CD3DX12_RESOURCE_DESC::Buffer(sizeof(InstancingData) * m_instancingCount),
-		D3D12_RESOURCE_STATE_GENERIC_READ,
-		NULL,
-		IID_PPV_ARGS(&m_instancingBuffer)));
-
-	// 인스턴스 버퍼 포인터
-	m_instancingBuffer->Map(0, NULL, reinterpret_cast<void**>(&m_instancingBufferPointer));
-
-	// 인스턴스 버퍼 뷰 생성
-	m_instancingBufferView.BufferLocation = m_instancingBuffer->GetGPUVirtualAddress();
-	m_instancingBufferView.StrideInBytes = sizeof(InstancingData);
-	m_instancingBufferView.SizeInBytes = sizeof(InstancingData) * m_instancingCount;
-}
-
-void ArrowInstance::UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& commandList) const
-{
-	commandList->SetPipelineState(m_pipelineState.Get());
-}
-
-void ArrowInstance::ReleaseShaderVariable()
-{
-	if (m_instancingBuffer) m_instancingBuffer->Unmap(0, nullptr);
+	if (m_gameObjects.size()) (*m_gameObjects.begin())->Render(commandList, m_instancingBufferView);
 }

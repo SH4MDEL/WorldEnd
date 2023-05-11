@@ -42,6 +42,25 @@ void GameObject::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList)
 	if (m_child) m_child->Render(commandList);
 }
 
+void GameObject::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, const D3D12_VERTEX_BUFFER_VIEW& instanceBufferView)
+{
+	GameObject::UpdateShaderVariable(commandList);
+
+	if (m_materials) {
+		for (size_t i = 0; const auto & material : m_materials->m_materials) {
+			material.UpdateShaderVariable(commandList);
+			m_mesh->Render(commandList, i, instanceBufferView);
+			++i;
+		}
+	}
+	else {
+		if (m_mesh) m_mesh->Render(commandList, instanceBufferView);
+	}
+
+	if (m_sibling) m_sibling->Render(commandList, instanceBufferView);
+	if (m_child) m_child->Render(commandList, instanceBufferView);
+}
+
 void GameObject::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, GameObject* rootObject)
 {
 	if (m_texture) { m_texture->UpdateShaderVariable(commandList); }

@@ -25,11 +25,7 @@ public:
 	virtual void UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& commandList) const override;
 	virtual void ReleaseShaderVariable();
 
-	virtual void SetMesh(const string& name);
-
 protected:
-	shared_ptr<Mesh>					m_mesh;
-
 	ComPtr<ID3D12Resource>				m_instancingBuffer;
 	InstancingData*						m_instancingBufferPointer;
 	D3D12_VERTEX_BUFFER_VIEW			m_instancingBufferView;
@@ -45,12 +41,5 @@ public:
 
 	virtual void Update(FLOAT timeElapsed);
 	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const override;
-
-	virtual void Clear() override;
-
-	virtual void CreateShaderVariable(const ComPtr<ID3D12Device>& device);
-	virtual void UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& commandList) const override;
-	virtual void ReleaseShaderVariable();
-
 };
 

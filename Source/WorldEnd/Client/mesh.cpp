@@ -105,6 +105,7 @@ void Mesh::Render(const ComPtr<ID3D12GraphicsCommandList>& m_commandList, const 
 }
 
 void Mesh::Render(const ComPtr<ID3D12GraphicsCommandList>& m_commandList, UINT subMeshIndex) const { }
+void Mesh::Render(const ComPtr<ID3D12GraphicsCommandList>& m_commandList, UINT subMeshIndex, const D3D12_VERTEX_BUFFER_VIEW& instanceBufferView) const { }
 
 void Mesh::ReleaseUploadBuffer()
 {
@@ -117,21 +118,40 @@ MeshFromFile::MeshFromFile()
 	m_primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 }
 
-void MeshFromFile::Render(const ComPtr<ID3D12GraphicsCommandList>& m_commandList, UINT subMeshIndex) const
+void MeshFromFile::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT subMeshIndex) const
 {
-	m_commandList->IASetPrimitiveTopology(m_primitiveTopology);
-	m_commandList->IASetVertexBuffers(0, 1, &m_vertexBufferView);
+	commandList->IASetPrimitiveTopology(m_primitiveTopology);
+	commandList->IASetVertexBuffers(0, 1, &m_vertexBufferView);
 
 	if (0 < m_nSubMeshes && subMeshIndex < m_nSubMeshes) {
-		m_commandList->IASetIndexBuffer(&m_subsetIndexBufferViews[subMeshIndex]);
-		m_commandList->DrawIndexedInstanced(m_vSubsetIndices[subMeshIndex], 1, 0, 0, 0);
+		commandList->IASetIndexBuffer(&m_subsetIndexBufferViews[subMeshIndex]);
+		commandList->DrawIndexedInstanced(m_vSubsetIndices[subMeshIndex], 1, 0, 0, 0);
 	}
 	else if (m_nIndices) {
-		m_commandList->IASetIndexBuffer(&m_indexBufferView);
-		m_commandList->DrawIndexedInstanced(m_nIndices, 1, 0, 0, 0);
+		commandList->IASetIndexBuffer(&m_indexBufferView);
+		commandList->DrawIndexedInstanced(m_nIndices, 1, 0, 0, 0);
 	}
 	else {
-		m_commandList->DrawInstanced(m_nVertices, 1, 0, 0);
+		commandList->DrawInstanced(m_nVertices, 1, 0, 0);
+	}
+}
+
+void MeshFromFile::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT subMeshIndex, const D3D12_VERTEX_BUFFER_VIEW& instanceBufferView) const
+{
+	commandList->IASetPrimitiveTopology(m_primitiveTopology);
+	commandList->IASetVertexBuffers(0, 1, &m_vertexBufferView);
+	commandList->IASetVertexBuffers(1, 1, &instanceBufferView);
+
+	if (0 < m_nSubMeshes && subMeshIndex < m_nSubMeshes) {
+		commandList->IASetIndexBuffer(&m_subsetIndexBufferViews[subMeshIndex]);
+		commandList->DrawIndexedInstanced(m_vSubsetIndices[subMeshIndex], instanceBufferView.SizeInBytes / instanceBufferView.StrideInBytes, 0, 0, 0);
+	}
+	else if (m_nIndices) {
+		commandList->IASetIndexBuffer(&m_indexBufferView);
+		commandList->DrawIndexedInstanced(m_nIndices, instanceBufferView.SizeInBytes / instanceBufferView.StrideInBytes, 0, 0, 0);
+	}
+	else {
+		commandList->DrawInstanced(m_nVertices, instanceBufferView.SizeInBytes / instanceBufferView.StrideInBytes, 0, 0);
 	}
 }
 

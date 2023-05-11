@@ -8,20 +8,18 @@ class TowerScene : public Scene
 public:
 	enum class State {
 		Unused				= 0x00,
-		InitScene			= 0x01,
-		EnterScene			= 0x02,
-		WarpGate			= 0x04,
-		OutputExitUI		= 0x08,
-		OutputResult		= 0x10,
-		Fading				= 0x20,
-		Leave				= 0x40,
+		WarpGate			= 0x01,
+		OutputExitUI		= 0x02,
+		OutputResult		= 0x04,
+		Fading				= 0x08,
+		SceneLeave			= 0x10,
 		BlurLevel1			= Unused,
 		BlurLevel2			= Unused,
 		BlurLevel3			= OutputExitUI,
 		BlurLevel4			= Unused,
 		BlurLevel5			= OutputResult,
 		Bluring				= BlurLevel1 | BlurLevel2 | BlurLevel3 | BlurLevel4 | BlurLevel5,
-		CantPlayerControl	= OutputExitUI | OutputResult | Fading | Leave
+		CantPlayerControl	= OutputExitUI | OutputResult | Fading | SceneLeave
 	};
 	enum class LightTag : INT {
 		Directional,

@@ -7,7 +7,7 @@ TowerScene::TowerScene() :
 				0.0f, -0.5f, 0.0f, 0.0f,
 				0.0f, 0.0f, 1.0f, 0.0f,
 				0.5f, 0.5f, 0.0f, 1.0f),
-	m_sceneState{ (INT)State::InitScene },
+	m_sceneState{ (INT)State::Unused },
 	m_accumulatedTime{ 0 }
 {}
 
@@ -18,7 +18,7 @@ void TowerScene::OnCreate(const ComPtr<ID3D12Device>& device,
 	const ComPtr<ID3D12RootSignature>& rootSignature, 
 	const ComPtr<ID3D12RootSignature>& postRootSignature)
 {
-	m_sceneState = (INT)State::InitScene;
+	m_sceneState = (INT)State::Unused;
 	BuildObjects(device, commandList, rootSignature, postRootSignature);
 }
 
@@ -256,7 +256,7 @@ void TowerScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 	exitButtonUI->SetClickEvent([&]() {
 		SetState(State::Fading);
 		m_fadeFilter->FadeOut([&]() {
-			SetState(State::Leave);
+			SetState(State::SceneLeave);
 		});
 	});
 	auto exitButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{10.f, 10.f}) };
@@ -478,7 +478,7 @@ void TowerScene::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 
 void TowerScene::Update(FLOAT timeElapsed)
 {
-	if (CheckState(State::Leave)) {
+	if (CheckState(State::SceneLeave)) {
 		g_GameFramework.ChangeScene(SCENETAG::VillageLoadingScene);
 		closesocket(g_socket);
 		return;
@@ -773,7 +773,7 @@ void TowerScene::CollideByStaticOBB(const shared_ptr<GameObject>& obj, const sha
 
 void TowerScene::PreProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex)
 {
-	if (CheckState(State::Leave)) return;
+	if (CheckState(State::SceneLeave)) return;
 	switch (threadIndex)
 	{
 	case 0:
@@ -795,7 +795,7 @@ void TowerScene::PreProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList
 
 void TowerScene::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) const
 {
-	if (CheckState(State::Leave)) return;
+	if (CheckState(State::SceneLeave)) return;
 	if (m_camera) m_camera->UpdateShaderVariable(commandList);
 	if (m_lightSystem) m_lightSystem->UpdateShaderVariable(commandList);
 
@@ -826,7 +826,7 @@ void TowerScene::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UI
 
 void TowerScene::PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList, const ComPtr<ID3D12Resource>& renderTarget, UINT threadIndex)
 {
-	if (CheckState(State::Leave)) return;
+	if (CheckState(State::SceneLeave)) return;
 	switch (threadIndex)
 	{
 	case 0:

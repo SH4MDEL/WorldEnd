@@ -106,6 +106,7 @@ public:
 
 	void Update(FLOAT timeElapsed) override;
 	void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) override;
+	void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, const D3D12_VERTEX_BUFFER_VIEW& instanceBufferView) override;
 
 	void Reset();
 
@@ -133,7 +134,7 @@ public:
 	~ArrowRain() override = default;
 
 	void Update(FLOAT timeElapsed) override;
-	void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) override;
+	void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, const D3D12_VERTEX_BUFFER_VIEW& instanceBufferView) override;
 	void RenderMagicCircle(const ComPtr<ID3D12GraphicsCommandList>& commandList);
 
 	void UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& commandList) override;

@@ -689,6 +689,11 @@ void Arrow::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList)
 	if (m_enable) GameObject::Render(commandList);
 }
 
+void Arrow::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, const D3D12_VERTEX_BUFFER_VIEW& instanceBufferView)
+{
+	if (m_enable) GameObject::Render(commandList, instanceBufferView);
+}
+
 void Arrow::Reset()
 {
 	XMStoreFloat4x4(&m_worldMatrix, XMMatrixIdentity());
@@ -742,11 +747,11 @@ void ArrowRain::Update(FLOAT timeElapsed)
 	}
 }
 
-void ArrowRain::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList)
+void ArrowRain::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, const D3D12_VERTEX_BUFFER_VIEW& instanceBufferView)
 {
 	if (m_enable) {
 		for (auto& arrow : m_arrows) {
-			arrow.first->Render(commandList);
+			arrow.first->Render(commandList, instanceBufferView);
 		}
 	}
 }
