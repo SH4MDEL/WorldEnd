@@ -103,7 +103,9 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 			}
 		}
 		else if (GetAsyncKeyState('W') & 0x8000) {
-			XMFLOAT3 front{ Vector3::Normalize(Vector3::Sub(GetPosition(), eye)) };
+			XMFLOAT3 pos{ GetPosition() };
+			pos.y = 0.f;
+			XMFLOAT3 front{ Vector3::Normalize(Vector3::Sub(pos, eye)) };
 			XMFLOAT3 angle{ Vector3::Angle(GetFront(), front) };
 			XMFLOAT3 clockwise{ Vector3::Cross(GetFront(), front) };
 			if (clockwise.y >= 0.f) {
@@ -125,7 +127,9 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 			}
 		}
 		else if (GetAsyncKeyState('S') & 0x8000) {
-			XMFLOAT3 back{ Vector3::Normalize(Vector3::Sub(eye, GetPosition())) };
+			XMFLOAT3 pos{ GetPosition() };
+			pos.y = 0.f;
+			XMFLOAT3 back{ Vector3::Normalize(Vector3::Sub(eye, pos)) };
 			XMFLOAT3 angle{ Vector3::Angle(GetFront(), back) };
 			XMFLOAT3 clockwise{ Vector3::Cross(GetFront(), back) };
 			if (clockwise.y >= 0.f) {

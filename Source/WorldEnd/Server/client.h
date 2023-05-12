@@ -62,8 +62,6 @@ public:
 	virtual USHORT GetCurrentAnimation() const override { return m_current_animation; }
 	virtual UINT GetLastMoveTime() const override { return m_last_move_time; }
 
-	PLAYER_DATA GetPlayerData() const override;
-
 	void ChangeStamina(FLOAT value);
 	virtual void DecreaseHp(FLOAT damage, INT id) override;
 	void RestoreCondition();

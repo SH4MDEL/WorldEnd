@@ -85,7 +85,7 @@ void Client::DoSend(void* p)
 		int error_num = WSAGetLastError();
 		if (ERROR_IO_PENDING != error_num) {
 			ErrorDisplay("Send Error");
-			
+
 			if (WSAECONNRESET == error_num) {
 				Server& server = Server::GetInstance();
 				server.Disconnect(m_id);
@@ -167,11 +167,6 @@ FLOAT Client::GetSkillRatio(ActionType type) const
 	}
 
 	return ratio;
-}
-
-PLAYER_DATA Client::GetPlayerData() const
-{
-	return PLAYER_DATA(m_id, m_position, m_velocity, m_yaw, m_hp);
 }
 
 void Client::ChangeStamina(FLOAT value)

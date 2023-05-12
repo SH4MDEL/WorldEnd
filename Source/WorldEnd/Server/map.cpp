@@ -165,10 +165,12 @@ void GameRoom::SendAddPlayer(INT sender, INT receiver)
 {
 	Server& server = Server::GetInstance();
 
-	SC_ADD_OBJECT_PACKET packet{};
+	SC_ADD_PLAYER_PACKET packet{};
 	packet.size = sizeof(packet);
-	packet.type = SC_PACKET_ADD_OBJECT;
-	packet.player_data = server.m_clients[sender]->GetPlayerData();
+	packet.type = SC_PACKET_ADD_PLAYER;
+	packet.id = sender;
+	packet.pos = server.m_clients[sender]->GetPosition();
+	packet.hp = server.m_clients[sender]->GetHp();
 	packet.player_type = server.m_clients[sender]->GetPlayerType();
 	strcpy_s(packet.name, sizeof(packet.name), server.m_clients[sender]->GetName().c_str());
 
@@ -185,12 +187,14 @@ void GameRoom::SendPlayerData()
 		if (-1 == id) {
 			packet[i].size = sizeof(SC_UPDATE_CLIENT_PACKET);
 			packet[i].type = SC_PACKET_UPDATE_CLIENT;
-			packet[i].data.id = -1;
+			packet[i].id = -1;
 		}
 		else {
 			packet[i].size = sizeof(SC_UPDATE_CLIENT_PACKET);
 			packet[i].type = SC_PACKET_UPDATE_CLIENT;
-			packet[i].data = server.m_clients[id]->GetPlayerData();
+			packet[i].id = server.m_clients[id]->GetId();
+			packet[i].pos = server.m_clients[id]->GetPosition();
+			packet[i].yaw = server.m_clients[id]->GetYaw();
 			//packet[player_count].move_time = server.m_clients[id]->GetLastMoveTime();
 		}
 		++i;
@@ -260,6 +264,7 @@ void GameRoom::SendAddMonster(INT player_id)
 		}
 		else {
 			packet[i].monster_data = server.m_clients[id]->GetMonsterData();
+			packet[i].hp = server.m_clients[id]->GetHp();
 			packet[i].monster_type = server.m_clients[id]->GetMonsterType();
 		}
 		++i;

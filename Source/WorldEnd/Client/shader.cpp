@@ -57,8 +57,9 @@ void Shader::Update(FLOAT timeElapsed)
 	for (const auto& elm : m_arrows)
 		elm.second->Update(timeElapsed);
 
-	for (const auto& elm : m_monsters) 
-		elm.second->UpdateAnimation(timeElapsed);
+	for (const auto& elm : m_monsters)
+		if (elm.second->GetEnable())
+			elm.second->UpdateAnimation(timeElapsed);
 	
 }
 
@@ -78,7 +79,8 @@ void Shader::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const
 		if (elm.second) elm.second->Render(commandList);
 
 	for (const auto& elm : m_monsters)
-		if (elm.second) elm.second->Render(commandList); 
+		if (elm.second)
+			if (elm.second->GetEnable()) elm.second->Render(commandList);
 }
 
 void Shader::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, const shared_ptr<Shader>& shader) const
@@ -97,7 +99,8 @@ void Shader::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, const 
 		if (elm.second) elm.second->Render(commandList);
 
 	for (const auto& elm : m_monsters)
-		if (elm.second) elm.second->Render(commandList);
+		if (elm.second)
+			if (elm.second->GetEnable()) elm.second->Render(commandList);
 }
 
 void Shader::Clear()

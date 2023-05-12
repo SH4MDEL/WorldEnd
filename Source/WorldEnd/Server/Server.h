@@ -52,26 +52,18 @@ public:
 	void Disconnect(int id);
 
 	void SendLoginOk(int client_id);
-	void SendMoveInGameRoom(int client_id, int room_num);
 	void SendPlayerDeath(int client_id);
 	void SendChangeAnimation(int client_id, USHORT animation);
-	void SendMonsterHit(int client_id, const std::span<int>& receiver,
-		const std::span<int>& creater);
-	void SendMonsterHit(int client_id, const std::span<int>& receiver,
-		int hit_id);
-	void SendMonsterAttack(int client_id, const std::span<int>& clients,
-		const BoundingOrientedBox& obb);
-	void SendMonsterAttack(int monster_id, int player_id);
 	void SendArrowShoot(int client_id, int arrow_id, ActionType type);
 	void SendRemoveArrow(int client_id, int arrow_id);
 	void SendMonsterShoot(int client_id);
-	void SendChangeHp(int client_id, FLOAT hp);
+	void SendChangeHp(int client_id);
 	void SendTrigger(int client_id, TriggerType type, const XMFLOAT3& pos);
 	void SendMagicCircle(int room_num, const XMFLOAT3& pos, const XMFLOAT3& extent);
 
-	bool IsPlayer(int client_id);
+	bool IsPlayer(int client_id); 
 	void GameRoomObjectCollisionCheck(const std::shared_ptr<MovementObject>& object,
-			int room_num);
+		int room_num);
 	void ProcessArrow(int client_id, int target_id, ActionType type);
 
 	void Timer();

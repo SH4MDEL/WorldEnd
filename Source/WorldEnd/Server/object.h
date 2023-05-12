@@ -214,7 +214,6 @@ public:
 	XMFLOAT3 GetFront() const;
 	bool CheckTriggerFlag(UCHAR trigger);
 
-	virtual PLAYER_DATA GetPlayerData() const { return PLAYER_DATA(); }
 	virtual PlayerType GetPlayerType() const { return PlayerType::COUNT; }
 	virtual FLOAT GetSkillRatio(ActionType type) const { return 0.f; }
 	virtual MONSTER_DATA GetMonsterData() const { return MONSTER_DATA(); }

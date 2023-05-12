@@ -493,8 +493,8 @@ void TowerScene::Update(FLOAT timeElapsed)
 	m_towerObjectManager->Update(timeElapsed);
 	m_fadeFilter->Update(timeElapsed);
 
-	//CollideWithMap();
-	//CollideWithObject();
+	CollideWithMap();
+	CollideWithObject();
 
 	UpdateLightSystem(timeElapsed);
 
@@ -627,7 +627,7 @@ void TowerScene::CollideWithObject()
 	auto& player_obb = m_player->GetBoundingBox();
 
 	for (const auto& elm : m_monsters) {
-		if (elm.second) {
+		if (elm.second && elm.second->GetEnable()) {
 			if (player_obb.Intersects(elm.second->GetBoundingBox())) {
 				CollideByStatic(m_player, elm.second);
 			}
@@ -635,7 +635,7 @@ void TowerScene::CollideWithObject()
 	}
 
 	for (const auto& elm : m_multiPlayers) {
-		if (elm.second) {
+		if (elm.second && elm.second->GetCurrentAnimation() != ObjectAnimation::DEATH) {
 			if (player_obb.Intersects(elm.second->GetBoundingBox())) {
 				CollideByStatic(m_player, elm.second);
 			}
@@ -1066,12 +1066,9 @@ INT TowerScene::SetTarget(const shared_ptr<GameObject>& object)
 	int target{ -1 };
 
 	for (const auto& elm : m_monsters) {
-		if (elm.second) {
+		if (elm.second && elm.second->GetEnable()) {
 			// 체력이 0이면(죽었다면) 건너뜀
 			if (elm.second->GetHp() <= std::numeric_limits<float>::epsilon()) continue;
-
-			// 추가는 되었으나 그려지고 있지 않다면 건너뜀
-			if (!m_globalShaders["ANIMATION"]->GetMonsters().contains(elm.first)) continue;
 
 			sub = Vector3::Sub(pos, elm.second->GetPosition());
 			length = Vector3::Length(sub);
@@ -1180,8 +1177,8 @@ void TowerScene::ProcessPacket(char* ptr)
 	case SC_PACKET_LOGIN_OK:
 		RecvLoginOk(ptr);
 		break;
-	case SC_PACKET_ADD_OBJECT:
-		RecvAddObject(ptr);
+	case SC_PACKET_ADD_PLAYER:
+		RecvAddPlayer(ptr);
 		break;
 	case SC_PACKET_REMOVE_PLAYER:
 		RecvRemovePlayer(ptr);
@@ -1213,14 +1210,11 @@ void TowerScene::ProcessPacket(char* ptr)
 	case SC_PACKET_FAIL_FLOOR:
 		RecvFailFloor(ptr);
 		break;
-	case SC_PACKET_MONSTER_HIT:
-		RecvMonsterHit(ptr);
-		break;
 	case SC_PACKET_CHANGE_STAMINA:
 		RecvChangeStamina(ptr);
 		break;
-	case SC_PACKET_MONSTER_ATTACK_COLLISION:
-		RecvMonsterAttackCollision(ptr);
+	case SC_PACKET_CHANGE_HP:
+		RecvChangeHp(ptr);
 		break;
 	case SC_PACKET_SET_INTERACTABLE:
 		RecvSetInteractable(ptr);
@@ -1239,9 +1233,6 @@ void TowerScene::ProcessPacket(char* ptr)
 		break;
 	case SC_PACKET_INTERACT_OBJECT:
 		RecvInteractObject(ptr);
-		break;
-	case SC_PACKET_CHANGE_HP:
-		RecvChangeHp(ptr);
 		break;
 	case SC_PACKET_ADD_TRIGGER:
 		RecvAddTrigger(ptr);
@@ -1283,24 +1274,24 @@ void TowerScene::PacketReassembly(char* net_buf, size_t io_byte)
 void TowerScene::RecvLoginOk(char* ptr)
 {
 	SC_LOGIN_OK_PACKET* packet = reinterpret_cast<SC_LOGIN_OK_PACKET*>(ptr);
-	m_player->SetId(packet->player_data.id);
-//	m_player->SetPosition(packet->player_data.pos);
-	m_player->SetHp(packet->player_data.hp);
+	m_player->SetId(packet->id);
+	///m_player->SetPosition(packet->pos);
+	m_player->SetHp(packet->hp);
 }
 
-void TowerScene::RecvAddObject(char* ptr)
+void TowerScene::RecvAddPlayer(char* ptr)
 {
-	SC_ADD_OBJECT_PACKET* packet = reinterpret_cast<SC_ADD_OBJECT_PACKET*>(ptr);
+	SC_ADD_PLAYER_PACKET* packet = reinterpret_cast<SC_ADD_PLAYER_PACKET*>(ptr);
 
-	INT id = packet->player_data.id;
+	INT id = packet->id;
 
 	auto multiPlayer = make_shared<Player>();
 	multiPlayer->SetType(packet->player_type);
 	LoadPlayerFromFile(multiPlayer);
 
 	// 멀티플레이어 설정
-	multiPlayer->SetPosition(packet->player_data.pos);
-	multiPlayer->SetHp(packet->player_data.hp);
+	multiPlayer->SetPosition(packet->pos);
+	multiPlayer->SetHp(packet->hp);
 
 	m_multiPlayers.insert({ id, multiPlayer });
 
@@ -1308,6 +1299,7 @@ void TowerScene::RecvAddObject(char* ptr)
 
 	m_idSet.insert({ id, (INT)m_idSet.size() });
 	m_hpUI[m_idSet[id]]->SetEnable();
+	m_hpUI[m_idSet[id]]->SetGauge(packet->hp);
 
 	m_globalShaders["ANIMATION"]->SetMultiPlayer(id, multiPlayer);
 	cout << "add player" << id << endl;
@@ -1329,30 +1321,23 @@ void TowerScene::RecvRemoveMonster(char* ptr)
 	m_monsters[packet->id]->SetPosition(XMFLOAT3(FAR_POSITION, FAR_POSITION, FAR_POSITION));
 
 	// 임시 삭제
-	m_globalShaders["ANIMATION"]->RemoveMonster(packet->id);
-	m_monsters.erase(packet->id);
+	m_monsters[packet->id]->SetEnable(false);
 }
 
 void TowerScene::RecvUpdateClient(char* ptr)
 {
 	SC_UPDATE_CLIENT_PACKET* packet = reinterpret_cast<SC_UPDATE_CLIENT_PACKET*>(ptr);
 
-	if (-1 == packet->data.id) {
+	if (-1 == packet->id) {
 		return;
 	}
 
-	if (packet->data.id == m_player->GetId()) {
-		m_player->SetPosition(packet->data.pos);
-		m_player->SetHp(packet->data.hp);
-	}
-	else {
-		auto& player = m_multiPlayers[packet->data.id];
+	if (packet->id != m_player->GetId()) {
+		auto& player = m_multiPlayers[packet->id];
 
-		player->SetPosition(packet->data.pos);
+		player->SetPosition(packet->pos);
 		//player->SetVelocity(packet->data.velocity);
-		player->Rotate(0.f, 0.f, packet->data.yaw - player->GetYaw());
-		player->SetHp(packet->data.hp);
-		m_hpUI[m_idSet[packet->data.id]]->SetGauge(packet->data.hp);
+		player->Rotate(0.f, 0.f, packet->yaw - player->GetYaw());
 	}
 }
 
@@ -1369,13 +1354,14 @@ void TowerScene::RecvAddMonster(char* ptr)
 	LoadMonsterFromFile(monster);
 	monster->ChangeAnimation(ObjectAnimation::WALK, false);
 
-	monster->SetMaxHp(packet->monster_data.hp);
-	monster->SetHp(packet->monster_data.hp);
+	monster->SetMaxHp(packet->hp);
+	monster->SetHp(packet->hp);
 	monster->SetPosition(XMFLOAT3{ packet->monster_data.pos.x,
 		packet->monster_data.pos.y, packet->monster_data.pos.z });
 	m_monsters.insert({ static_cast<INT>(packet->monster_data.id), monster });
 
 	SetHpBar(monster);
+	m_globalShaders["ANIMATION"]->SetMonster(packet->monster_data.id, monster);
 }
 
 void TowerScene::RecvUpdateMonster(char* ptr)
@@ -1389,7 +1375,6 @@ void TowerScene::RecvUpdateMonster(char* ptr)
 	auto& monster = m_monsters[packet->monster_data.id];
 
 	monster->SetPosition(packet->monster_data.pos);
-	monster->SetHp(packet->monster_data.hp);
 
 	FLOAT newYaw = packet->monster_data.yaw;
 	FLOAT oldYaw = monster->GetYaw();
@@ -1424,28 +1409,15 @@ void TowerScene::RecvClearFloor(char* ptr)
 	m_resultRewardTextUI->SetText(to_wstring(packet->reward));
 	SetState(State::OutputResult);
 	m_resultUI->SetEnable();
+
+	m_globalShaders["ANIMATION"]->GetMonsters().clear();
+	m_monsters.clear();
 }
 
 void TowerScene::RecvFailFloor(char* ptr)
 {
 	SC_FAIL_FLOOR_PACKET* packet = reinterpret_cast<SC_FAIL_FLOOR_PACKET*>(ptr);
 	
-}
-
-void TowerScene::RecvMonsterHit(char* ptr)
-{
-	SC_CREATE_MONSTER_HIT* packet = reinterpret_cast<SC_CREATE_MONSTER_HIT*>(ptr);
-
-	auto& monster = m_monsters[packet->id];
-	if (!monster)
-		return;
-
-	monster->SetHp(packet->hp);
-
-	// 파티클 생성
-	XMFLOAT3 particlePosition = monster->GetPosition();
-	particlePosition.y += 1.f;
-	g_particleSystem->CreateParticle(ParticleSystem::Type::EMITTER, particlePosition);
 }
 
 void TowerScene::RecvChangeAnimation(char* ptr)
@@ -1477,27 +1449,6 @@ void TowerScene::RecvChangeStamina(char* ptr)
 {
 	SC_CHANGE_STAMINA_PACKET* packet = reinterpret_cast<SC_CHANGE_STAMINA_PACKET*>(ptr);
 	m_player->SetStamina(packet->stamina);
-}
-
-void TowerScene::RecvMonsterAttackCollision(char* ptr)
-{
-	SC_MONSTER_ATTACK_COLLISION_PACKET* packet =
-		reinterpret_cast<SC_MONSTER_ATTACK_COLLISION_PACKET*>(ptr);
-
-	for (size_t i = 0; INT id : packet->ids) {
-		if (-1 == id) break;
-
-		if (id == m_player->GetId()) {
-			//m_player->ChangeAnimation(ObjectAnimation::HIT);
-			m_player->SetHp(packet->hps[i]);
-		}
-		else {
-			//m_multiPlayers[id]->ChangeAnimation(ObjectAnimation::HIT, true);
-			m_multiPlayers[id]->SetHp(packet->hps[i]);
-			m_hpUI[m_idSet[id]]->SetGauge(packet->hps[i]);
-		}
-		++i;
-	}
 }
 
 void TowerScene::RecvSetInteractable(char* ptr)
@@ -1564,9 +1515,13 @@ void TowerScene::RecvPlayerDeath(char* ptr)
 	
 	if (packet->id == m_player->GetId()) {
 		m_player->ChangeAnimation(ObjectAnimation::DEATH, false);
+		m_player->SetHp(0.f);
 	}
 	else {
-		m_multiPlayers[packet->id]->ChangeAnimation(ObjectAnimation::DEATH, false);
+		auto& player = m_multiPlayers[packet->id];
+		player->ChangeAnimation(ObjectAnimation::DEATH, false);
+		player->SetHp(0.f);
+		m_hpUI[m_idSet[packet->id]]->SetGauge(0.f);
 	}
 }
 
@@ -1616,7 +1571,7 @@ void TowerScene::RecvInteractObject(char* ptr)
 		m_lightSystem->m_lights[7].m_enable = true;
 
 		for (auto& monster : m_monsters) {
-			m_globalShaders["ANIMATION"]->SetMonster(monster.first, monster.second);
+			monster.second->SetEnable(true);
 		}
 
 			});
@@ -1629,16 +1584,22 @@ void TowerScene::RecvChangeHp(char* ptr)
 {
 	SC_CHANGE_HP_PACKET* packet = reinterpret_cast<SC_CHANGE_HP_PACKET*>(ptr);
 
-	if (0 <= packet->id && 0 < MAX_USER) {
+	if (0 <= packet->id && packet->id < MAX_USER) {
 		if (m_player->GetId() == packet->id) {
 			m_player->SetHp(packet->hp);
 		}
 		else {
 			m_multiPlayers[packet->id]->SetHp(packet->hp);
+			m_hpUI[m_idSet[packet->id]]->SetGauge(packet->hp);
 		}
 	}
 	else {
+		auto& monster = m_monsters[packet->id];
 		m_monsters[packet->id]->SetHp(packet->hp);
+
+		XMFLOAT3 particlePosition = monster->GetPosition();
+		particlePosition.y += 1.f;
+		g_particleSystem->CreateParticle(ParticleSystem::Type::EMITTER, particlePosition);
 	}
 }
 
@@ -1651,7 +1612,7 @@ void TowerScene::RecvAddTrigger(char* ptr)
 		m_towerObjectManager->CreateArrowRain(packet->pos);
 		break;
 	case TriggerType::UNDEAD_GRASP:
-		cout << "UNDEAD_GRASP 생성\n";
+
 		break;
 	}
 }

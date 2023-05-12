@@ -199,7 +199,7 @@ void Monster::SetBehaviorId(BYTE id)
 
 MONSTER_DATA Monster::GetMonsterData() const
 {
-	return MONSTER_DATA( m_id, m_position, m_velocity, m_yaw, m_hp );
+	return MONSTER_DATA{ m_id, m_position, m_yaw };
 }
 
 bool Monster::ChangeAnimation(BYTE animation)

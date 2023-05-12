@@ -340,6 +340,10 @@ void ArrowRain::ProcessTrigger(INT id)
 {
 	Server& server = Server::GetInstance();
 	server.m_clients[id]->DecreaseHp(m_damage, -1);
+
+	if (State::DEATH != server.m_clients[id]->GetState()) {
+		server.SendChangeHp(id);
+	}
 }
 
 bool ArrowRain::IsValid(INT id)
@@ -367,7 +371,7 @@ void UndeadGrasp::ProcessTrigger(INT id)
 	server.m_clients[id]->DecreaseHp(m_damage, m_created_id);
 
 	if (State::DEATH != server.m_clients[id]->GetState()) {
-		server.SendChangeHp(id, server.m_clients[id]->GetHp());
+		server.SendChangeHp(id);
 	}
 }
 
