@@ -12,6 +12,11 @@ LoginScene::~LoginScene()
 	//m_globalAnimationSets.clear();
 }
 
+void LoginScene::OnResize(const ComPtr<ID3D12Device>& device, UINT width, UINT height)
+{
+	if (m_fadeFilter) m_fadeFilter->OnResize(device, width, height);
+}
+
 void LoginScene::OnCreate(
 	const ComPtr<ID3D12Device>& device, 
 	const ComPtr<ID3D12GraphicsCommandList>& commandList,
@@ -19,6 +24,7 @@ void LoginScene::OnCreate(
 	const ComPtr<ID3D12RootSignature>& postRootSignature) 
 {
 	g_selectedPlayerType = PlayerType::WARRIOR;
+	m_sceneState = (INT)State::Unused;
 	BuildObjects(device, commandList, rootSignature, postRootSignature);
 }
 
@@ -49,13 +55,18 @@ void LoginScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	m_blurFilter = make_unique<BlurFilter>(device, windowWidth, windowHeight);
 	m_fadeFilter = make_unique<FadeFilter>(device, windowWidth, windowHeight);
 
+	BuildUI(device, commandlist);
+}
+
+void LoginScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist)
+{
 	m_titleUI = make_shared<BackgroundUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 1.f, 1.f });
 	m_titleUI->SetTexture("TITLE");
-	auto gameStartButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.f, -0.45f}, XMFLOAT2{0.2f, 0.08f}) };
+	auto gameStartButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.f, -0.3f}, XMFLOAT2{0.2f, 0.08f}) };
 	gameStartButtonUI->SetTexture("BUTTONUI");
 	gameStartButtonUI->SetClickEvent([&]() {
 		m_fadeFilter->FadeOut([&]() {
-				g_GameFramework.ChangeScene(SCENETAG::TowerLoadingScene);
+			g_GameFramework.ChangeScene(SCENETAG::TowerLoadingScene);
 			});
 		});
 	auto gameStartButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{40.f, 10.f}) };
@@ -64,7 +75,19 @@ void LoginScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	gameStartButtonTextUI->SetTextFormat("KOPUB18");
 	gameStartButtonUI->SetChild(gameStartButtonTextUI);
 	m_titleUI->SetChild(gameStartButtonUI);
-	m_globalShaders["UI"]->SetUI(m_titleUI);
+
+	auto optionButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.f, -0.5f}, XMFLOAT2{0.2f, 0.08f}) };
+	optionButtonUI->SetTexture("BUTTONUI");
+	optionButtonUI->SetClickEvent([&]() {
+		SetState(State::OutputOptionUI);
+		if (m_optionUI) m_optionUI->SetEnable();
+		});
+	auto optionButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{40.f, 10.f}) };
+	optionButtonTextUI->SetText(L"옵션");
+	optionButtonTextUI->SetColorBrush("WHITE");
+	optionButtonTextUI->SetTextFormat("KOPUB18");
+	optionButtonUI->SetChild(optionButtonTextUI);
+	m_titleUI->SetChild(optionButtonUI);
 
 	auto gameExitButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.f, -0.7f}, XMFLOAT2{0.2f, 0.08f}) };
 	gameExitButtonUI->SetTexture("BUTTONUI");
@@ -79,15 +102,69 @@ void LoginScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	gameExitButtonTextUI->SetTextFormat("KOPUB18");
 	gameExitButtonUI->SetChild(gameExitButtonTextUI);
 	m_titleUI->SetChild(gameExitButtonUI);
+
 	m_globalShaders["UI"]->SetUI(m_titleUI);
 
-	//auto characterSelectUI{ make_shared<StandardUI>(XMFLOAT2{ -0.7f, 0.8f }, XMFLOAT2{ 0.2f, 0.8f }) };
+	BuildOptionUI(device, commandlist);
+
 	m_characterSelectTextUI = make_shared<TextUI>(XMFLOAT2{ -0.7f, 0.8f }, XMFLOAT2{ 80.f, 15.f });
 	m_characterSelectTextUI->SetText(L"WARRIOR 선택 중");
 	m_characterSelectTextUI->SetColorBrush("WHITE");
 	m_characterSelectTextUI->SetTextFormat("KOPUB18");
-	//characterSelectUI->SetChild(m_characterSelectTextUI);
 	m_globalShaders["UI"]->SetUI(m_characterSelectTextUI);
+}
+
+void LoginScene::BuildOptionUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist)
+{
+	m_optionUI = make_shared<StandardUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 0.5f, 0.7f });
+	m_optionUI->SetTexture("FRAMEUI");
+	m_optionUI->SetDisable();
+
+	auto optionCancelButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.9f, 0.9f}, XMFLOAT2{0.06f, 0.06f}) };
+	optionCancelButtonUI->SetTexture("CANCELUI");
+	optionCancelButtonUI->SetClickEvent([&]() {
+		ResetState(State::OutputOptionUI);
+		if (m_optionUI) m_optionUI->SetDisable();
+	});
+	m_optionUI->SetChild(optionCancelButtonUI);
+
+	auto option1080x720ResolutionButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.f, 0.3f}, XMFLOAT2{0.2f, 0.08f}) };
+	option1080x720ResolutionButtonUI->SetTexture("BUTTONUI");
+	option1080x720ResolutionButtonUI->SetClickEvent([&]() {
+		g_GameFramework.ResizeWindow(1080, 720);
+		});
+	auto  option1080x720ResolutionButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{100.f, 10.f}) };
+	option1080x720ResolutionButtonTextUI->SetText(L"1080 X 720");
+	option1080x720ResolutionButtonTextUI->SetColorBrush("WHITE");
+	option1080x720ResolutionButtonTextUI->SetTextFormat("KOPUB18");
+	option1080x720ResolutionButtonUI->SetChild(option1080x720ResolutionButtonTextUI);
+	m_optionUI->SetChild(option1080x720ResolutionButtonUI);
+
+	auto option1920x1080ResolutionButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.2f, 0.08f}) };
+	option1920x1080ResolutionButtonUI->SetTexture("BUTTONUI");
+	option1920x1080ResolutionButtonUI->SetClickEvent([&]() {
+		g_GameFramework.ResizeWindow(1920, 1080);
+	});
+	auto  option1920x1080ResolutionButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{100.f, 10.f}) };
+	option1920x1080ResolutionButtonTextUI->SetText(L"1920 X 1080");
+	option1920x1080ResolutionButtonTextUI->SetColorBrush("WHITE");
+	option1920x1080ResolutionButtonTextUI->SetTextFormat("KOPUB18");
+	option1920x1080ResolutionButtonUI->SetChild(option1920x1080ResolutionButtonTextUI);
+	m_optionUI->SetChild(option1920x1080ResolutionButtonUI);
+
+	auto option2560x1440ResolutionButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.f, -0.3f}, XMFLOAT2{0.2f, 0.08f}) };
+	option2560x1440ResolutionButtonUI->SetTexture("BUTTONUI");
+	option2560x1440ResolutionButtonUI->SetClickEvent([&]() {
+		g_GameFramework.ResizeWindow(2560, 1440);
+		});
+	auto  option2560x1440ResolutionButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{100.f, 10.f}) };
+	option2560x1440ResolutionButtonTextUI->SetText(L"2560 X 1440");
+	option2560x1440ResolutionButtonTextUI->SetColorBrush("WHITE");
+	option2560x1440ResolutionButtonTextUI->SetTextFormat("KOPUB18");
+	option2560x1440ResolutionButtonUI->SetChild(option2560x1440ResolutionButtonTextUI);
+	m_optionUI->SetChild(option2560x1440ResolutionButtonUI);
+
+	m_globalShaders["UI"]->SetUI(m_optionUI);
 }
 
 void LoginScene::DestroyObjects()
@@ -101,11 +178,13 @@ void LoginScene::DestroyObjects()
 void LoginScene::OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime) 
 {
 	if (m_titleUI) m_titleUI->OnProcessingMouseMessage(hWnd, width, height, deltaTime);
+	if (m_optionUI) m_optionUI->OnProcessingMouseMessage(hWnd, width, height, deltaTime);
 }
 
 void LoginScene::OnProcessingMouseMessage(UINT message, LPARAM lParam)
 {
 	if (m_titleUI) m_titleUI->OnProcessingMouseMessage(message, lParam);
+	if (m_optionUI) m_optionUI->OnProcessingMouseMessage(message, lParam);
 	if (!g_clickEventStack.empty()) {
 		g_clickEventStack.top()();
 		while (!g_clickEventStack.empty()) {
@@ -221,7 +300,12 @@ void LoginScene::PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandLis
 
 void LoginScene::RenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext) 
 {
-	if (m_titleUI) m_titleUI->RenderText(deviceContext);
+	if (!CheckState(State::OutputOptionUI)) {
+		if (m_titleUI) m_titleUI->RenderText(deviceContext);
+	}
+	else {
+		if (m_optionUI) m_optionUI->RenderText(deviceContext);
+	}
 	if (m_characterSelectTextUI) m_characterSelectTextUI->RenderText(deviceContext);
 }
 

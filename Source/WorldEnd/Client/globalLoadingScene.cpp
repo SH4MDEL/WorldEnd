@@ -10,6 +10,10 @@ GlobalLoadingScene::~GlobalLoadingScene()
 
 }
 
+void GlobalLoadingScene::OnResize(const ComPtr<ID3D12Device>& device, UINT width, UINT height)
+{
+}
+
 void GlobalLoadingScene::OnCreate(const ComPtr<ID3D12Device>& device,
 	const ComPtr<ID3D12GraphicsCommandList>& commandList,
 	const ComPtr<ID3D12RootSignature>& rootSignature,

@@ -7,26 +7,26 @@ class LoginScene : public Scene
 public:
 	enum class State {
 		Unused = 0x00,
-		OutputExitUI = 0x01,
-		OutputResult = 0x02,
-		Fading = 0x04,
+		OutputOptionUI = 0x01,
 		BlurLevel1 = Unused,
 		BlurLevel2 = Unused,
-		BlurLevel3 = OutputExitUI,
+		BlurLevel3 = Unused,
 		BlurLevel4 = Unused,
-		BlurLevel5 = OutputResult,
-		CantPlayerControl = OutputExitUI | OutputResult | Fading
+		BlurLevel5 = Unused,
+		Bluring = BlurLevel1 | BlurLevel2 | BlurLevel3 | BlurLevel4 | BlurLevel5
 	};
 
 	LoginScene();
 	~LoginScene() override;
 
+	void OnResize(const ComPtr<ID3D12Device>& device, UINT width, UINT height) override;
+
 	void OnCreate(const ComPtr<ID3D12Device>& device,
 		const ComPtr<ID3D12GraphicsCommandList>& commandList,
 		const ComPtr<ID3D12RootSignature>& rootSignature,
 		const ComPtr<ID3D12RootSignature>& postRootSignature) override;
-
 	void OnDestroy() override;
+
 	void ReleaseUploadBuffer() override;
 
 	void CreateShaderVariable(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList) override;
@@ -41,6 +41,7 @@ public:
 	void OnProcessingKeyboardMessage(FLOAT timeElapsed) override;
 
 	void Update(FLOAT timeElapsed) override;
+
 	void PreProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) override;
 	void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) const override;
 	void PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList, const ComPtr<ID3D12Resource>& renderTarget, UINT threadIndex) override;
@@ -54,12 +55,17 @@ public:
 	void ResetState(State sceneState);
 
 private:
+	void BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist);
+	void BuildOptionUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist);
+
+private:
 	INT													m_sceneState;
 
 	unique_ptr<BlurFilter>								m_blurFilter;
 	unique_ptr<FadeFilter>								m_fadeFilter;
 
 	shared_ptr<UI>										m_titleUI;
+	shared_ptr<UI>										m_optionUI;
 	shared_ptr<TextUI>									m_characterSelectTextUI;
 };
 

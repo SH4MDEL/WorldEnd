@@ -153,6 +153,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_ACTIVATE:
         g_GameFramework.SetIsActive((BOOL)wParam);
         break;
+    case WM_SIZE:
+        g_GameFramework.OnResize(hWnd);
+        break;
     case WM_LBUTTONDOWN:
     case WM_LBUTTONUP:
     case WM_RBUTTONDOWN:

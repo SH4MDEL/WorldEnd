@@ -10,7 +10,7 @@ public:
 	FadeFilter& operator=(const FadeFilter& rhs) = delete;
 	~FadeFilter() = default;
 
-	void OnResize(UINT width, UINT height);
+	void OnResize(const ComPtr<ID3D12Device>& device, UINT width, UINT height);
 
 	void Execute(const ComPtr<ID3D12GraphicsCommandList>& commandList, const ComPtr<ID3D12Resource>& renderTarget);
 

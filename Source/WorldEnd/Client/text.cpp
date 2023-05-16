@@ -4,8 +4,8 @@
 unordered_map<string, ComPtr<ID2D1SolidColorBrush>>		Text::m_colorBrushes;
 unordered_map<string, ComPtr<IDWriteTextFormat>>		Text::m_textFormats;
 
-Text::Text() : m_position{ 0.f, 0.f }, m_width{ 1280.f }, m_height{ 720.f },
-m_layoutRect{ 0.f, 360.f, m_width , m_height }, m_enable(true)
+Text::Text() : m_position{ 0.f, 0.f }, m_width{ (FLOAT)g_GameFramework.GetWindowWidth() }, m_height{ (FLOAT)g_GameFramework.GetWindowHeight() },
+m_layoutRect{ 0.f, (FLOAT)g_GameFramework.GetWindowHeight() / 2.f, m_width , m_height }, m_enable(true)
 {
 }
 

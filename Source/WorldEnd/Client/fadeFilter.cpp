@@ -10,10 +10,15 @@ FadeFilter::FadeFilter(const ComPtr<ID3D12Device>& device, UINT width, UINT heig
 	CreateUnorderedAccessView(device);
 }
 
-void FadeFilter::OnResize(UINT width, UINT height)
+void FadeFilter::OnResize(const ComPtr<ID3D12Device>& device, UINT width, UINT height)
 {
 	if (m_width != width || m_height != height) {
+		m_width = width;
+		m_height = height;
 
+		CreateFadeMap(device);
+		CreateShaderResourceView(device);
+		CreateUnorderedAccessView(device);
 	}
 }
 

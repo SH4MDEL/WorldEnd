@@ -9,10 +9,15 @@ BlurFilter::BlurFilter(const ComPtr<ID3D12Device>& device, UINT width, UINT heig
 	CreateUnorderedAccessView(device);
 }
 
-void BlurFilter::OnResize(UINT width, UINT height)
+void BlurFilter::OnResize(const ComPtr<ID3D12Device>& device, UINT width, UINT height)
 {
 	if (m_width != width || m_height != height) {
+		m_width = width;
+		m_height = height;
 
+		CreateBlurMap(device);
+		CreateShaderResourceView(device);
+		CreateUnorderedAccessView(device);
 	}
 }
 

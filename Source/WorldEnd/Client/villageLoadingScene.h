@@ -8,6 +8,8 @@ public:
 	VillageLoadingScene();
 	~VillageLoadingScene() override;
 
+	void OnResize(const ComPtr<ID3D12Device>& device, UINT width, UINT height) override;
+
 	void OnCreate(const ComPtr<ID3D12Device>& device,
 		const ComPtr<ID3D12GraphicsCommandList>& commandList,
 		const ComPtr<ID3D12RootSignature>& rootSignature,

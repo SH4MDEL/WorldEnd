@@ -36,6 +36,8 @@ public:
 	TowerScene();
 	~TowerScene() override;
 
+	void OnResize(const ComPtr<ID3D12Device>& device, UINT width, UINT height) override;
+
 	void OnCreate(const ComPtr<ID3D12Device>& device,
 		const ComPtr<ID3D12GraphicsCommandList>& commandList,
 		const ComPtr<ID3D12RootSignature>& rootSignature, 
@@ -56,6 +58,7 @@ public:
 	void OnProcessingKeyboardMessage(FLOAT timeElapsed) override;
 	
 	void Update(FLOAT timeElapsed) override;
+
 	void PreProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) override;
 	void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) const override;
 	void PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList, const ComPtr<ID3D12Resource>& renderTarget, UINT threadIndex) override;
@@ -63,6 +66,7 @@ public:
 	void PostRenderText(const ComPtr< ID2D1DeviceContext2>& deviceContext) override;
 
 	shared_ptr<Shadow> GetShadow() override { return m_shadow; }
+
 	void LoadSceneFromFile(wstring fileName, wstring sceneName);
 	void LoadObjectFromFile(wstring fileName, const shared_ptr<GameObject>& object);
 	void LoadPlayerFromFile(const shared_ptr<Player>& player);

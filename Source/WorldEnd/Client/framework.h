@@ -22,6 +22,8 @@ public:
 	GameFramework(UINT width, UINT height);
 	~GameFramework();
 
+	void OnResize(HWND hWnd);
+
 	void OnCreate(HINSTANCE hInstance, HWND hWnd);
 	void OnDestroy();
 	void OnProcessingMouseMessage() const;
@@ -75,6 +77,7 @@ public:
 	void BuildObjects();
 	void CreateThread();
 	void ChangeScene(SCENETAG tag);
+	void ResizeWindow(UINT width, UINT height);
 
 	void FrameAdvance();
 	void Update(FLOAT timeElapsed);
@@ -156,7 +159,6 @@ private:
 	ComPtr<ID2D1Device2>										m_d2dDevice;
 	ComPtr<ID2D1DeviceContext2>									m_d2dDeviceContext;
 	ComPtr<ID3D11Resource>										m_d3d11WrappedRenderTarget[SwapChainBufferCount];
-	ComPtr<ID3D11Resource>										m_d3d11PostWrappedRenderTarget[SwapChainBufferCount];
 	ComPtr<ID2D1Bitmap1>										m_d2dRenderTarget[SwapChainBufferCount];
 
 	ComPtr<ID3D12Resource>										m_frameworkBuffer;

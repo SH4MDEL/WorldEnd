@@ -4,7 +4,7 @@
 #include "particleSystem.h"
 #include "objectManager.h"
 
-GameFramework					g_GameFramework(1280, 720);
+GameFramework					g_GameFramework(1920, 1080);
 mt19937							g_randomEngine{ random_device{}() };
 
 SOCKET							g_socket{};

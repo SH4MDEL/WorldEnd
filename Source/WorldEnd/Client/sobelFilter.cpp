@@ -10,10 +10,12 @@ SobelFilter::SobelFilter(const ComPtr<ID3D12Device>& device, UINT width, UINT he
 	CreateUnorderedAccessView(device);
 }
 
-void SobelFilter::OnResize(UINT width, UINT height)
+void SobelFilter::OnResize(const ComPtr<ID3D12Device>& device, UINT width, UINT height)
 {
 	if (m_width != width || m_height != height) {
-
+		CreateSobelMap(device);
+		CreateShaderResourceView(device);
+		CreateUnorderedAccessView(device);
 	}
 }
 

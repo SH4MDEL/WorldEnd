@@ -11,7 +11,18 @@ TowerScene::TowerScene() :
 	m_accumulatedTime{ 0 }
 {}
 
-TowerScene::~TowerScene() {  }
+TowerScene::~TowerScene() {}
+
+void TowerScene::OnResize(const ComPtr<ID3D12Device>& device, UINT width, UINT height)
+{
+	if (m_blurFilter) m_blurFilter->OnResize(device, width, height);
+	if (m_fadeFilter) m_fadeFilter->OnResize(device, width, height);
+	if (m_sobelFilter) m_sobelFilter->OnResize(device, width, height);
+
+	XMFLOAT4X4 projMatrix;
+	XMStoreFloat4x4(&projMatrix, XMMatrixPerspectiveFovLH(0.25f * XM_PI, g_GameFramework.GetAspectRatio(), 0.1f, 100.0f));
+	if (m_camera) m_camera->SetProjMatrix(projMatrix);
+}
 
 void TowerScene::OnCreate(const ComPtr<ID3D12Device>& device,
 	const ComPtr<ID3D12GraphicsCommandList>& commandList,

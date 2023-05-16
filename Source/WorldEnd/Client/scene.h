@@ -40,12 +40,14 @@ public:
 	Scene() = default;
 	virtual ~Scene() = default;
 
+	virtual void OnResize(const ComPtr<ID3D12Device>& device, UINT width, UINT height) = 0;
+
 	virtual void OnCreate(const ComPtr<ID3D12Device>& device, 
 		const ComPtr<ID3D12GraphicsCommandList>& commandList, 
 		const ComPtr<ID3D12RootSignature>& rootSignature, 
 		const ComPtr<ID3D12RootSignature>& postRootSignature) = 0;			// 해당 씬으로 변경될 때 호출
-
 	virtual void OnDestroy() = 0;			// 해당 씬에서 탈출할 때 호출
+	
 	virtual void ReleaseUploadBuffer() = 0;
 
 	virtual void CreateShaderVariable(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList) = 0;
@@ -60,6 +62,7 @@ public:
 	virtual void OnProcessingKeyboardMessage(FLOAT timeElapsed) = 0;
 
 	virtual void Update(FLOAT timeElapsed) = 0;
+
 	virtual void PreProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) = 0;
 	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) const = 0;
 	virtual void PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList, const ComPtr<ID3D12Resource>& renderTarget, UINT threadIndex) = 0;

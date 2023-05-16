@@ -30,6 +30,48 @@ GameFramework::~GameFramework()
 {
 }
 
+void GameFramework::OnResize(HWND hWnd)
+{
+	// Flush before changing any resources.
+	WaitForPreviousFrame();
+
+	// Release the previous resources we will be recreating.
+	for (int i = 0; i < SwapChainBufferCount; ++i) {
+		m_renderTargets[i].Reset();
+		m_d3d11WrappedRenderTarget[i].Reset();
+		m_d2dRenderTarget[i].Reset();
+	}
+	m_depthStencil.Reset();
+
+	m_d2dDeviceContext->SetTarget(nullptr);
+	//m_d2dDeviceContext->Flush();
+
+	m_deviceContext->OMSetRenderTargets(0, nullptr, nullptr);
+	m_deviceContext->Flush();
+
+	RECT rect; GetWindowRect(hWnd, &rect);
+	m_width = rect.right - rect.left; 
+	m_height = rect.bottom - rect.top;
+	m_viewport = { 0.0f, 0.0f, (FLOAT)m_width, (FLOAT)m_height, 0.0f, 1.0f };
+	m_scissorRect = { 0, 0, (LONG)m_width, (LONG)m_height };
+	m_aspectRatio = (FLOAT)m_width / (FLOAT)m_height;
+
+	// Resize the swap chain.
+	DX::ThrowIfFailed(m_swapChain->ResizeBuffers(
+		SwapChainBufferCount,
+		m_width, m_height,
+		DXGI_FORMAT_R8G8B8A8_UNORM,
+		DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH));
+
+	m_frameIndex = m_swapChain->GetCurrentBackBufferIndex();
+
+	CreateRenderTargetView();
+	CreateDepthStencilView();
+	CreateD2DRenderTarget();
+
+	if (m_scenes[m_sceneIndex]) m_scenes[m_sceneIndex]->OnResize(m_device, m_width, m_height);
+}
+
 void GameFramework::OnCreate(HINSTANCE hInstance, HWND hWnd)
 {
 	m_hInstance = hInstance;
@@ -615,6 +657,11 @@ void GameFramework::ChangeScene(SCENETAG tag)
 	WaitForPreviousFrame();
 }
 
+void GameFramework::ResizeWindow(UINT width, UINT height)
+{
+	SetWindowPos(m_hWnd, HWND_TOP, 0, 0, width, height, SWP_SHOWWINDOW);
+}
+
 void GameFramework::FrameAdvance()
 {
 	Timer::GetInstance().Tick();
@@ -785,6 +832,7 @@ void GameFramework::WorkerThread(UINT threadIndex)
 {
 	while (!m_isGameEnd) {
 		WaitForSingleObject(m_beginRender[threadIndex], INFINITE);
+
 		if (m_isGameEnd) return;
 
 		// Shadow pass
