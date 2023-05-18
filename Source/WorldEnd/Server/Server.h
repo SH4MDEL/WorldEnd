@@ -56,7 +56,6 @@ public:
 	void SendChangeAnimation(int client_id, USHORT animation);
 	void SendArrowShoot(int client_id, int arrow_id, ActionType type);
 	void SendRemoveArrow(int client_id, int arrow_id);
-	void SendMonsterShoot(int client_id);
 	void SendChangeHp(int client_id);
 	void SendTrigger(int client_id, TriggerType type, const XMFLOAT3& pos);
 	void SendMagicCircle(int room_num, const XMFLOAT3& pos, const XMFLOAT3& extent);
@@ -112,6 +111,7 @@ public:
 
 private:
 	std::unique_ptr<GameRoomManager> m_game_room_manager;
+	std::unique_ptr<PartyManager> m_party_manager;
 
 	SOCKET				m_server_socket;
 	HANDLE				m_handle_iocp;

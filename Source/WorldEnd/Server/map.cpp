@@ -123,7 +123,6 @@ bool GameRoom::SetPlayer(INT room_num, INT player_id)
 			break;
 		}
 	}
-	// 방에 진입한 인원이 3명인경우 INGAME 으로 전환 필요
 
 	// 방에 참여했다면 Add 전송
 	if (join) {
@@ -282,16 +281,16 @@ void GameRoom::RemovePlayer(INT player_id, INT room_num)
 	if (player_id < 0 || player_id >= MAX_USER)
 		return;
 
-	for (INT& id : m_player_ids) {
-		if (id == player_id) {
-			std::lock_guard<std::mutex> lock{ m_player_lock };
-			id = -1;
+	{
+		std::lock_guard<std::mutex> lock{ m_player_lock };
+		auto it = std::remove(m_player_ids.begin(), m_player_ids.end(), player_id);
+		if (it != m_player_ids.end()) {
+			*it = -1;
 		}
 	}
 
 	// 방이 아예 비었다면
-	INT num = count(m_player_ids.begin(), m_player_ids.end(), -1);
-	if (MAX_INGAME_USER == num) {
+	if (-1 == m_player_ids[0]) {
 		Server& server = Server::GetInstance();
 
 		TIMER_EVENT ev{ .event_time = std::chrono::system_clock::now() +
@@ -330,20 +329,11 @@ void GameRoom::RemoveMonster(INT monster_id)
 	INT monster_count{ -1 }, index{ -1 };
 	{
 		std::lock_guard<std::mutex> lock{ m_monster_lock };
-		for (size_t i = 0; INT & id : m_monster_ids) {
-			if (id == monster_id) {
-				id = -1;
-				monster_count = --m_monster_count;
-				index = i;
-			}
-			++i;
+		auto it = std::remove(m_monster_ids.begin(), m_monster_ids.end(), monster_id);
+		if (it != m_monster_ids.end()) {
+			*it = -1;
+			monster_count = --m_monster_count;
 		}
-	}
-
-	// 마지막 몬스터가 아니라면 삭제한 위치에 마지막 몬스터 id 끌고오기
-	if (index != monster_count) {
-		m_monster_ids[index] = m_monster_ids[monster_count];
-		m_monster_ids[monster_count] = -1;
 	}
 
 	// 몬스터가 없다면 층 클리어
@@ -729,19 +719,16 @@ void GameRoom::CollideWithEventObject(INT player_id, InteractionType type)
 
 INT GameRoom::GetPlayerCount()
 {
-	INT count{ 0 };
-	for (INT id : m_player_ids) {
-		if (-1 == id) continue;
-
-		++count;
-	}
+	INT count = std::count_if(m_player_ids.begin(), m_player_ids.end(), [](INT id) {
+		return id != -1;
+		});
 
 	return count;
 }
 
 GameRoomManager::GameRoomManager()
 {
-	LoadMap();
+	//LoadMap();
 	for (auto& game_room : m_game_rooms) {
 		game_room = std::make_shared<GameRoom>();
 	}
@@ -782,38 +769,6 @@ std::shared_ptr<GameRoom> GameRoomManager::GetGameRoom(INT room_num)
 		return nullptr;
 	return m_game_rooms[room_num]->GetGameRoom();
 }
-
-//std::chrono::system_clock::time_point GameRoomManager::GetStartTime(INT room_num)
-//{
-//	if (!IsValidRoomNum(room_num)) {
-//		return std::chrono::system_clock::now();
-//	}
-//	return m_game_rooms[room_num]->GetStartTime();
-//}
-//
-//EnvironmentType GameRoomManager::GetEnvironment(INT room_num)
-//{
-//	if (!IsValidRoomNum(room_num)) {
-//		return EnvironmentType::COUNT;
-//	}
-//	return m_game_rooms[room_num]->GetType();
-//}
-//
-//GameRoomState GameRoomManager::GetRoomState(INT room_num)
-//{
-//	if (!IsValidRoomNum(room_num)) {
-//		return GameRoomState::COUNT;
-//	}
-//	return m_game_rooms[room_num]->GetState();
-//}
-//
-//INT GameRoomManager::GetArrowId(INT room_num)
-//{
-//	if (!IsValidRoomNum(room_num)) {
-//		return -1;
-//	}
-//	return m_game_rooms[room_num]->GetArrowId();
-//}
 
 void GameRoomManager::InitGameRoom(INT room_num)
 {
@@ -930,11 +885,11 @@ bool GameRoomManager::EnterGameRoom(const std::shared_ptr<Party>& party)
 	Server& server = Server::GetInstance();
 
 	auto& members = party->GetMembers();
-	for (size_t i = 0; i < MAX_INGAME_USER; ++i) {
-		if (-1 == members[i]) continue;
+	for (INT id : members) {
+		if (-1 == id) continue;
 
-		auto client = dynamic_pointer_cast<Client>(server.m_clients[members[i]]);
-		m_game_rooms[room_num]->SetPlayer(room_num, members[i]);
+		auto client = dynamic_pointer_cast<Client>(server.m_clients[members[id]]);
+		m_game_rooms[room_num]->SetPlayer(room_num, id);
 	}
 	
 	return true;
@@ -1018,12 +973,11 @@ void GameRoomManager::SendAddMonster(INT room_num, INT player_id)
 INT GameRoomManager::FindEmptyRoom()
 {
 	for (size_t i = 0; const auto & game_room : m_game_rooms) {
-		std::unique_lock<std::mutex> lock{ game_room->GetStateMutex() };
+		std::lock_guard<std::mutex> lock{ game_room->GetStateMutex() };
 		if (GameRoomState::EMPTY == game_room->GetState()) {
 			game_room->SetState(GameRoomState::INGAME);
 			return i;
 		}
-		lock.unlock();
 
 		++i;
 	}
@@ -1033,13 +987,12 @@ INT GameRoomManager::FindEmptyRoom()
 INT GameRoomManager::FindCanAccessRoom()
 {
 	for (size_t i = 0; const auto & game_room : m_game_rooms) {
-		std::unique_lock<std::mutex> lock{ game_room->GetStateMutex() };
+		std::lock_guard<std::mutex> lock{ game_room->GetStateMutex() };
 		if (GameRoomState::EMPTY == game_room->GetState() ||
 			GameRoomState::ACCEPT == game_room->GetState())
 		{
 			return i;
 		}
-		lock.unlock();
 
 		++i;
 	}

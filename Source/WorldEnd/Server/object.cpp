@@ -259,16 +259,6 @@ void Trigger::SetRemoveEvent(INT id)
 
 void Trigger::Activate(INT id)
 {
-	// 트리거의 공통 처리
-	//  - 트리거 플래그 확인
-	//  - 트리거 플래그 활성화
-	//  - 타이머 이벤트 생성
-	
-	// 트리거 처리, 유효성검사만 트리거 별로 따로 처리되도록 하면 됨
-
-	/*std::string s = (m_type == ARROW_RAIN) ? "ARROW RAIN" : "UNDEAD GRASP";
-	printf("트리거 활성화, id : %d, %s\n", id, s.c_str());*/
-
 	Server& server = Server::GetInstance();
 	UCHAR trigger_type = static_cast<UCHAR>(m_type);
 	if (IsValid(id)) {

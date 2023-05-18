@@ -29,7 +29,7 @@ ExpOver::ExpOver(char* packet, INT packet_count)
 	memcpy(_send_buf, packet, static_cast<size_t>(packet[0] * packet_count));
 }
 
-Client::Client() : m_socket{}, m_ready_check{ false }, m_remain_size{ 0 },
+Client::Client() : m_socket{}, m_is_ready{ false }, m_remain_size{ 0 },
 	m_recv_over{}
 {
 	Init();
@@ -51,6 +51,7 @@ void Client::Init()
 	m_latest_id = 0;
 	m_last_move_time = 0;
 	this->SetTriggerFlag();
+	m_is_ready = false;
 
 	// 나중에 DB에서 처리될 것들
 	SetPlayerType(PlayerType::WARRIOR);
@@ -152,6 +153,16 @@ void Client::SetLastMoveTime(UINT time)
 	m_last_move_time = time;
 }
 
+void Client::SetPartyNum(SHORT party_num)
+{
+	m_party_num = party_num;
+}
+
+void Client::SetReady(bool value)
+{
+	m_is_ready = value;
+}
+
 FLOAT Client::GetSkillRatio(ActionType type) const
 {
 	FLOAT ratio{};
@@ -219,21 +230,262 @@ void Client::SetBoundingBox(PlayerType type)
 
 Party::Party()
 {
-	for (size_t i = 0; i < MAX_INGAME_USER; ++i) {
-		m_members[i] = -1;
+	Init();
+}
+
+void Party::Init()
+{
+	for (INT& id : m_members) {
+		if (-1 == id) continue;
+
+		id = -1;
 	}
+
+	m_host_id = -1;
+	m_member_count = static_cast<BYTE>(0);
+	m_state = PartyState::EMPTY;
+}
+
+void Party::Reset()
+{
+	Server& server = Server::GetInstance();
+
+	for (INT& id : m_members) {
+		if (-1 == id) continue;
+
+		auto client = dynamic_pointer_cast<Client>(server.m_clients[id]);
+		client->SetPartyNum(-1);
+		client->SetReady(false);
+		id = -1;
+	}
+
+	m_host_id = -1;
+	m_member_count = static_cast<BYTE>(0);
+	m_state = PartyState::EMPTY;
 }
 
 bool Party::Join(INT player_id)
 {
-	// 여러 쓰레드에서 접근 할수 있으니 lock이 필요해 보임
+	std::unique_lock<std::mutex> lock{ m_member_lock };
 	for (INT& id : m_members) {
 		if (-1 == id) {
 			id = player_id;
+			m_member_count += 1;
+
+			if (-1 == m_host_id) {
+				m_host_id = player_id;
+				return true;
+			}
+			else {
+				lock.unlock();
+				SendJoinOk(player_id);
+			}
+
+			if (MAX_INGAME_USER == static_cast<INT>(m_member_count)) {
+				std::lock_guard<std::mutex> l{ m_state_lock };
+				m_state = PartyState::FULL;
+			}
+
 			return true;
 		}
 	}
 	return false;
+}
+
+void Party::Exit(INT player_id)
+{
+	Server& server = Server::GetInstance();
+	auto client = dynamic_pointer_cast<Client>(server.m_clients[player_id]);
+	client->SetPartyNum(-1);
+
+	std::unique_lock<std::mutex> lock{ m_member_lock };
+
+	// 파티장이면
+	if (m_host_id == player_id) {
+		// 파티원이 있으면
+		if (m_member_count > 1) {
+			auto it = std::remove(m_members.begin(), m_members.end(), player_id);
+			
+			if (it != m_members.end()) {
+				*it = -1;
+				m_member_count -= 1;
+
+				// 파티장 위임
+				m_host_id = m_members[0];
+			}
+			lock.unlock();
+
+			// 방장임을 전달
+			SendChangeHost(*it);
+			
+			// 남아있는 파티원에게 나갔다고 전송
+			SendExitParty(player_id);
+		}
+		// 파티원이 없으면 파티 초기화
+		else {
+			Init();
+			return;
+		}
+	}
+	// 파티원이면
+	else {
+		auto it = std::remove(m_members.begin(), m_members.end(), player_id);
+		if (it != m_members.end()) {
+			*it = -1;
+		}
+		lock.unlock();
+
+		SendExitParty(player_id);
+	}
+
+	{
+		std::lock_guard<std::mutex> lock{ m_state_lock };
+		m_state = PartyState::ACCEPT;
+	}
+}
+
+void Party::SendChangeCharacter(INT player_id)
+{
+	Server& server = Server::GetInstance();
+
+	SC_CHANGE_CHARACTER_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = SC_PACKET_CHANGE_CHARACTER;
+	packet.id = player_id;
+	packet.player_type = server.m_clients[player_id]->GetPlayerType();
+
+	for (INT id : m_members) {
+		if (-1 == id) continue;
+
+		server.m_clients[id]->DoSend(&packet);
+	}
+}
+
+void Party::PlayerReady(INT player_id)
+{
+	Server& server = Server::GetInstance();
+
+	if (player_id == m_host_id) {
+		// 한명이라도 준비가 안되면 입장 X
+		for (INT id : m_members) {
+			if (-1 == id) continue;
+			if (id == player_id) continue;
+
+			auto client = dynamic_pointer_cast<Client>(server.m_clients[player_id]);
+			if (!client->GetReady()) {
+				return;
+			}
+		}
+
+		// 게임룸 진입
+		auto room_manager = server.GetGameRoomManager();
+		bool entered = room_manager->EnterGameRoom(shared_from_this());
+
+		// 진입 상태에 따른 전송
+		if (entered) {
+			SendEnterGameRoom();
+
+			// 게임룸에 진입했다면 파티 반환
+			Reset();
+		}
+		else {
+			SendEnterFail();
+		}
+	}
+	else {
+		auto client = dynamic_pointer_cast<Client>(server.m_clients[player_id]);
+		
+		client->SetReady(!client->GetReady());	// 현재 준비 상태 뒤집기
+
+		// 준비 상태 전송
+		SendReady(player_id);
+	}
+}
+
+void Party::SendJoinOk(INT receiver)
+{
+	SC_JOIN_OK_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = SC_PACKET_JOIN_OK;
+
+	Server& server = Server::GetInstance();
+	server.m_clients[receiver]->DoSend(&packet);
+}
+
+void Party::SendChangeHost(INT receiver)
+{
+	SC_CHANGE_HOST_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = SC_PACKET_CHANGE_HOST;
+
+	Server& server = Server::GetInstance();
+	server.m_clients[receiver]->DoSend(&packet);
+}
+
+void Party::SendExitParty(INT exited_id)
+{
+
+	SC_REMOVE_PARTY_MEMBER_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = SC_PACKET_REMOVE_PARTY_MEMBER;
+	packet.id = exited_id;
+
+	Server& server = Server::GetInstance();
+
+	for (INT id : m_members) {
+		if (-1 == id) continue;
+
+		server.m_clients[id]->DoSend(&packet);
+	}
+}
+
+void Party::SendReady(INT sender)
+{
+	Server& server = Server::GetInstance();
+	auto client = dynamic_pointer_cast<Client>(server.m_clients[sender]);
+
+	SC_PLAYER_READY_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = SC_PACKET_PLAYER_READY;
+	packet.id = sender;
+	packet.is_ready = client->GetReady();
+
+	for (INT id : m_members) {
+		if (-1 == id) continue;
+		if (id == sender) continue;
+
+		server.m_clients[id]->DoSend(&packet);
+	}
+}
+
+void Party::SendEnterGameRoom()
+{
+	Server& server = Server::GetInstance();
+
+	SC_ENTER_GAME_ROOM_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = SC_PACKET_ENTER_GAME_ROOM;
+
+	for (INT id : m_members) {
+		if (-1 == id) continue;
+
+		server.m_clients[id]->DoSend(&packet);
+	}
+}
+
+void Party::SendEnterFail()
+{
+	Server& server = Server::GetInstance();
+
+	SC_ENTER_FAIL_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = SC_PACKET_ENTER_FAIL;
+
+	for (INT id : m_members) {
+		if (-1 == id) continue;
+
+		server.m_clients[id]->DoSend(&packet);
+	}
 }
 
 PartyManager::PartyManager()
@@ -241,5 +493,65 @@ PartyManager::PartyManager()
 	for (auto& party : m_parties) {
 		party = std::make_shared<Party>();
 	}
-		
+}
+
+INT PartyManager::GetHostId(INT party_num)
+{
+	return m_parties[party_num]->GetHostId();
+}
+
+bool PartyManager::CreateParty(INT player_id)
+{
+	INT num{ FindEmptyParty() };
+	if (-1 == num)
+		return false;
+
+	JoinParty(num, player_id);
+	SendCreateOk(player_id);
+
+	return true;
+}
+
+bool PartyManager::JoinParty(INT party_num, INT player_id)
+{
+	return m_parties[party_num]->Join(player_id);
+}
+
+void PartyManager::ExitParty(INT party_num, INT player_id)
+{
+	m_parties[party_num]->Exit(player_id);
+}
+
+void PartyManager::ChangeCharacter(INT party_num, INT player_id)
+{
+	m_parties[party_num]->SendChangeCharacter(player_id);
+}
+
+void PartyManager::PlayerReady(INT party_num, INT player_id)
+{
+	m_parties[party_num]->PlayerReady(player_id);
+}
+
+INT PartyManager::FindEmptyParty()
+{
+	for (size_t i = 0; const auto & party : m_parties) {
+		std::lock_guard<std::mutex> lock{ party->GetStateMutex() };
+		if (PartyState::EMPTY == party->GetState()) {
+			party->SetState(PartyState::ACCEPT);
+			return i;
+		}
+		++i;
+	}
+
+	return -1;
+}
+
+void PartyManager::SendCreateOk(INT receiver)
+{
+	SC_CREATE_OK_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = SC_PACKET_CREATE_OK;
+
+	Server& server = Server::GetInstance();
+	server.m_clients[receiver]->DoSend(&packet);
 }

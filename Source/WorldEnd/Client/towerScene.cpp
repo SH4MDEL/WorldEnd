@@ -1318,8 +1318,9 @@ void TowerScene::RecvRemovePlayer(char* ptr)
 void TowerScene::RecvRemoveMonster(char* ptr)
 {
 	SC_REMOVE_MONSTER_PACKET* packet = reinterpret_cast<SC_REMOVE_MONSTER_PACKET*>(ptr);
-	m_monsters[packet->id]->SetPosition(XMFLOAT3(FAR_POSITION, FAR_POSITION, FAR_POSITION));
-
+	if (!m_monsters[packet->id])
+		return;
+	
 	// 임시 삭제
 	m_monsters[packet->id]->SetEnable(false);
 }

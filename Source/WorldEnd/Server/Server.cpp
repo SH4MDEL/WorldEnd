@@ -38,6 +38,7 @@ Server::Server()
 
 
 	m_game_room_manager = std::make_unique<GameRoomManager>();
+	m_party_manager = std::make_unique <PartyManager>();
 
 
 	printf("Complete Initialize!\n");
@@ -101,7 +102,8 @@ void Server::Network()
 		}
 	}
 
-	for (int i = 0; i < 6; ++i)
+	int worker_thread_num = std::thread::hardware_concurrency();
+	for (int i = 0; i < worker_thread_num; ++i)
 		m_worker_threads.emplace_back(&Server::WorkerThread, this);
 
 	for (auto& th : m_worker_threads)
@@ -109,6 +111,8 @@ void Server::Network()
 
 	std::thread thread1{ &Server::Timer,this };
 	thread1.detach();
+	std::thread thread2{ &Server::Timer,this };
+	thread2.detach();
 
 	constexpr int MAX_FAME = 60;
 	using frame = std::chrono::duration<int32_t, std::ratio<1, MAX_FAME>>;
@@ -558,7 +562,6 @@ void Server::WorkerThread()
 				length = MonsterSetting::ARROW_RANGE;
 			}
 
-			// 화살이 날아갈 거리, 임시값 30
 			float near_dist{std::numeric_limits<float>::max()};
 			int near_id{ -1 };
 			XMVECTOR pos{ XMLoadFloat3(position) };
@@ -571,7 +574,9 @@ void Server::WorkerThread()
 
 				auto& obb = m_clients[client_id]->GetBoundingBox();
 				if (obb.Intersects(pos, dir, length)) {
-					float dist{ Vector3::Length(Vector3::Sub(m_clients[client_id]->GetPosition(), m_clients[id]->GetPosition())) };
+					float dist{ Vector3::Length(Vector3::Sub(m_clients[client_id]->GetPosition(),
+						m_clients[id]->GetPosition())) };
+
 					if (dist < near_dist ) {
 						near_dist = dist;
 						near_id = client_id;
@@ -591,8 +596,6 @@ void Server::WorkerThread()
 			if (IsPlayer(id)) {
 				damage *= m_clients[id]->GetSkillRatio(*action_type);
 				m_clients[near_id]->DecreaseHp(damage, id);
-				auto& player_ids = game_room->GetPlayerIds();
-				//SendMonsterHit(id, player_ids, near_id);
 				SendChangeHp(near_id);
 			}
 			else {
@@ -846,6 +849,56 @@ void Server::ProcessPacket(int id, char* p)
 
 		break;
 	}
+	case CS_PACKET_JOIN_PARTY: {
+		CS_JOIN_PARTY_PACKET* packet = reinterpret_cast<CS_JOIN_PARTY_PACKET*>(p);
+
+		if (!m_party_manager->JoinParty(packet->party_num, id)) {
+			SC_JOIN_FAIL_PACKET p{};
+			p.size = sizeof(p);
+			p.type = SC_PACKET_JOIN_FAIL;
+
+			m_clients[id]->DoSend(&p);
+		}
+
+		break;
+	}
+	case CS_PACKET_CREATE_PARTY: {
+		CS_CREATE_PARTY_PACKET* packet = reinterpret_cast<CS_CREATE_PARTY_PACKET*>(p);
+
+		if (!m_party_manager->CreateParty(id)) {
+			SC_CREATE_FAIL_PACKET p{};
+			p.size = sizeof(p);
+			p.type = SC_PACKET_CREATE_FAIL;
+
+			m_clients[id]->DoSend(&p);
+		}
+
+		break;
+	}
+	case CS_PACKET_EXIT_PARTY: {
+		CS_EXIT_PARTY_PACKET* packet = reinterpret_cast<CS_EXIT_PARTY_PACKET*>(p);
+
+		auto client = dynamic_pointer_cast<Client>(m_clients[id]);
+		m_party_manager->ExitParty(client->GetPartyNum(), id);
+		break;
+	}
+	case CS_PACKET_CHANGE_CHARACTER: {
+		CS_CHANGE_CHARACTER_PACKET* packet =
+			reinterpret_cast<CS_CHANGE_CHARACTER_PACKET*>(p);
+
+		auto client = dynamic_pointer_cast<Client>(m_clients[id]);
+		client->SetPlayerType(packet->player_type);
+		m_party_manager->ChangeCharacter(client->GetPartyNum(), id);
+		break;
+	}
+	case CS_PACKET_READY: {
+		CS_READY_PACKET* packet = reinterpret_cast<CS_READY_PACKET*>(p);
+
+		auto client = dynamic_pointer_cast<Client>(m_clients[id]);
+		m_party_manager->PlayerReady(client->GetPartyNum(), id);
+		break;
+	}
+
 
 	}
 }
@@ -854,6 +907,10 @@ void Server::ProcessPacket(int id, char* p)
 void Server::Disconnect(int id)
 {
 	auto client = dynamic_pointer_cast<Client>(m_clients[id]);
+	if (client->GetPartyNum() != -1) {
+		m_party_manager->ExitParty(client->GetPartyNum(), id);
+	}
+
 	if (m_game_room_manager->IsValidRoomNum(client->GetRoomNum())) {
 		m_game_room_manager->RemovePlayer(id);
 	}
@@ -984,27 +1041,6 @@ void Server::SendRemoveArrow(int client_id, int arrow_id)
 	}
 	else {
 
-	}
-}
-
-void Server::SendMonsterShoot(int client_id)
-{
-	int room_num = m_clients[client_id]->GetRoomNum();
-	auto game_room = m_game_room_manager->GetGameRoom(room_num);
-	if (!game_room)
-		return;
-
-	SC_ARROW_SHOOT_PACKET packet{};
-	packet.size = sizeof(packet);
-	packet.type = SC_PACKET_ARROW_SHOOT;
-	packet.id = client_id;
-
-	auto& ids = game_room->GetPlayerIds();
-
-	for (int id : ids) {
-		if (-1 == id) continue;
-
-		m_clients[id]->DoSend(&packet);
 	}
 }
 

@@ -12,48 +12,6 @@ std::uniform_real_distribution<FLOAT> random_step_back_time(5.f, 7.f);
 std::uniform_int_distribution<INT> random_flee_angle(20, 45);
 
 
-// ------------------------- 디버그 용 ---------------------------------
-std::string DebugBehavior(MonsterBehavior b)
-{
-	switch (b) {
-	case MonsterBehavior::CHASE:
-		return std::string("chase");
-		break;
-	case MonsterBehavior::RETARGET:
-		return std::string("retarget");
-		break;
-	case MonsterBehavior::TAUNT:
-		return std::string("taunt");
-		break;
-	case MonsterBehavior::PREPARE_ATTACK:
-		return std::string("prepare_attack");
-		break;
-	case MonsterBehavior::AIM:
-		return std::string("aim");
-		break;
-	case MonsterBehavior::ATTACK:
-		return std::string("attack");
-		break;
-	case MonsterBehavior::STEP_BACK:
-		return std::string("stepBack");
-		break;
-	case MonsterBehavior::FLEE:
-		return std::string("flee");
-		break;
-	case MonsterBehavior::DELAY:
-		return std::string("delay");
-		break;
-	case MonsterBehavior::DEATH:
-		return std::string("death");
-		break;
-	default:	// 없는 행동이면 COUNT
-		return std::string("x");
-		break;
-	}
-}
-// ------------------------- 디버그 용 ---------------------------------
-
-
 Monster::Monster() : m_target_id{ -1 }, m_current_animation{ ObjectAnimation::IDLE },
 	m_current_behavior{ MonsterBehavior::COUNT }, m_aggro_level{ 0 },
 	m_last_behavior_id{ 1 }
