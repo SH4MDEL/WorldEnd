@@ -761,6 +761,10 @@ void Server::ProcessPacket(int id, char* p)
 
 		client->SetYaw(packet->yaw);
 		//Move(client, packet->pos);
+		
+#ifdef USER_NUM_TEST
+		client->SetLastMoveTime(packet->move_time);
+#endif	
 		break;
 	}
 	case CS_PACKET_SET_COOLDOWN: {
@@ -885,9 +889,10 @@ void Server::SendMoveInGameRoom(int client_id, int room_num)
 	packet.size = sizeof(packet);
 	packet.type = SC_PACKET_UPDATE_CLIENT;
 	packet.data = m_clients[client_id]->GetPlayerData();
-	/*packet.move_time = static_cast<unsigned>(std::chrono::duration_cast<std::chrono::milliseconds>
-		(std::chrono::high_resolution_clock::now().time_since_epoch()).count());*/
-
+#ifdef USER_NUM_TEST
+	packet.move_time = static_cast<unsigned>(std::chrono::duration_cast<std::chrono::milliseconds>
+		(std::chrono::high_resolution_clock::now().time_since_epoch()).count());
+#endif
 	auto game_room = m_game_room_manager->GetGameRoom(room_num);
 	if (!game_room)
 		return;

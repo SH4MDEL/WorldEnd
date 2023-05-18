@@ -475,6 +475,42 @@ void Monster::InitializePosition(INT mon_cnt, MonsterType mon_type, INT random_m
 		else if (mon_type == MonsterType::WIZARD)
 			SetPosition(mon_pos[(mon_cnt * 2) + 66], 0, mon_pos[(mon_cnt * 2) + 67]);
 	}
+	else if (random_map == 4)
+	{
+		if (mon_type == MonsterType::WARRIOR)
+			SetPosition(mon_pos[(mon_cnt * 2) + 82], 0, mon_pos[(mon_cnt * 2) + 83]);
+		else if (mon_type == MonsterType::ARCHER)
+			SetPosition(mon_pos[(mon_cnt * 2) + 84], 0, mon_pos[(mon_cnt * 2) + 85]);
+		else if (mon_type == MonsterType::WIZARD)
+			SetPosition(mon_pos[(mon_cnt * 2) + 86], 0, mon_pos[(mon_cnt * 2) + 87]);
+	}
+	else if (random_map == 5)
+	{
+		if (mon_type == MonsterType::WARRIOR)
+			SetPosition(mon_pos[(mon_cnt * 2) + 104], 0, mon_pos[(mon_cnt * 2) + 105]);
+		else if (mon_type == MonsterType::ARCHER)
+			SetPosition(mon_pos[(mon_cnt * 2) + 106], 0, mon_pos[(mon_cnt * 2) + 107]);
+		else if (mon_type == MonsterType::WIZARD)
+			SetPosition(mon_pos[(mon_cnt * 2) + 108], 0, mon_pos[(mon_cnt * 2) + 109]);
+	}
+	else if (random_map == 6)
+	{
+		if (mon_type == MonsterType::WARRIOR)
+			SetPosition(mon_pos[(mon_cnt * 2) + 124], 0, mon_pos[(mon_cnt * 2) + 125]);
+		else if (mon_type == MonsterType::ARCHER)
+			SetPosition(mon_pos[(mon_cnt * 2) + 126], 0, mon_pos[(mon_cnt * 2) + 127]);
+		else if (mon_type == MonsterType::WIZARD)
+			SetPosition(mon_pos[(mon_cnt * 2) + 128], 0, mon_pos[(mon_cnt * 2) + 129]);
+	}
+	else if (random_map == 7)
+	{
+		if (mon_type == MonsterType::WARRIOR)
+			SetPosition(mon_pos[(mon_cnt * 2) + 144], 0, mon_pos[(mon_cnt * 2) + 145]);
+		else if (mon_type == MonsterType::ARCHER)
+			SetPosition(mon_pos[(mon_cnt * 2) + 146], 0, mon_pos[(mon_cnt * 2) + 147]);
+		else if (mon_type == MonsterType::WIZARD)
+			SetPosition(mon_pos[(mon_cnt * 2) + 148], 0, mon_pos[(mon_cnt * 2) + 149]);
+	}
 }
 
 WarriorMonster::WarriorMonster()

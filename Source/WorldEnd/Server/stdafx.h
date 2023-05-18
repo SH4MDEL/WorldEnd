@@ -3,6 +3,7 @@
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
 #define NOMINMAX
+//#define USER_NUM_TEST
 
 #include <iostream>
 #include <fstream>

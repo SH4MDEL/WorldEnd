@@ -11,7 +11,7 @@ constexpr int MAX_INGAME_MONSTER = 10;
 constexpr int MAX_GAME_ROOM_NUM = 3000;
 constexpr int MAX_PARTY_NUM = 1000;
 constexpr int MAX_RECORD_NUM = 5;
-constexpr int MAX_MONSTER_PLACEMENT = 80;
+constexpr int MAX_MONSTER_PLACEMENT = 165;
 
 constexpr int MAX_USER = 10000;
 constexpr int MAX_WARRIOR_MONSTER = 30000;
@@ -334,6 +334,9 @@ struct CS_PLAYER_MOVE_PACKET
 	DirectX::XMFLOAT3 pos;
 	DirectX::XMFLOAT3 velocity;
 	FLOAT yaw;
+#ifdef USER_NUM_TEST
+	UINT move_time;
+#endif
 };
 
 struct CS_READY_PACKET      // 파티 준비 완료를 알려주는 패킷
@@ -463,7 +466,9 @@ struct SC_UPDATE_CLIENT_PACKET
 	UCHAR size;
 	UCHAR type;
 	PLAYER_DATA	data;
-	//UINT move_time;
+#ifdef USER_NUM_TEST
+	UINT move_time;
+#endif
 };
 
 struct SC_ADD_MONSTER_PACKET
