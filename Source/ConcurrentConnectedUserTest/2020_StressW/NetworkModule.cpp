@@ -72,31 +72,6 @@ void NetworkModule::WorkerThread()
 			}
 			m_clients[ci].GetCurrentPacketSize() = packet_size;
 			m_clients[ci].GetPrevPacketData() = pacekt_remain_size;
-		
-			/*constexpr int MAX_FAME = 60;
-			using frame = std::chrono::duration<int32_t, std::ratio<1, MAX_FAME>>;
-			using ms = std::chrono::duration<float, std::milli>;
-			std::chrono::time_point<std::chrono::steady_clock> fps_timer{ std::chrono::steady_clock::now() };
-			frame fps{}, frame_count{};
-
-			while (true) {
-			
-				fps = duration_cast<frame>(std::chrono::steady_clock::now() - fps_timer);
-
-				if (fps.count() < 1) continue;
-
-				if (frame_count.count() & 1) {
-					m_clients[ci].DoRecv();
-				}
-
-				frame_count = duration_cast<frame>(frame_count + fps);
-				if (frame_count.count() >= MAX_FAME) {
-					frame_count = frame::zero();
-				}
-				else {
-				}
-				fps_timer = std::chrono::steady_clock::now();
-			}*/
 
 			m_clients[ci].DoRecv();
 		}
@@ -138,7 +113,7 @@ void NetworkModule::ProcessPacket(int ci, unsigned char packet[])
 			}
 		}
 	}
-								break;
+	break;
 	case SC_PACKET_LOGIN_OK:
 	{
 		m_clients[ci].m_connect = true;

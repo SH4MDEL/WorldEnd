@@ -289,6 +289,18 @@ void Monster::DoBehavior(FLOAT elapsed_time)
 		UpdateRotation(player_dir);
 		break;
 	}
+       // 보스 몬스터
+	case MonsterBehavior::PREPARE_WIDE_SKILL: {
+		XMFLOAT3 player_dir = GetDirection(m_target_id);
+		UpdateRotation(player_dir);
+		break;
+	}
+	case MonsterBehavior::WIDE_SKILL: {
+		XMFLOAT3 player_dir = GetDirection(m_target_id);
+		UpdateRotation(player_dir);
+		break;
+	}
+
 	case MonsterBehavior::LAUGHING:
 		// 행동 X
 		break;
@@ -510,6 +522,11 @@ void Monster::InitializePosition(INT mon_cnt, MonsterType mon_type, INT random_m
 			SetPosition(mon_pos[(mon_cnt * 2) + 146], 0, mon_pos[(mon_cnt * 2) + 147]);
 		else if (mon_type == MonsterType::WIZARD)
 			SetPosition(mon_pos[(mon_cnt * 2) + 148], 0, mon_pos[(mon_cnt * 2) + 149]);
+	}
+	else if (random_map == 10)
+	{
+		if (mon_type == MonsterType::WIZARD)
+			SetPosition(0, 0, 35);
 	}
 }
 
@@ -953,7 +970,6 @@ WizardMonster::WizardMonster()
 void WizardMonster::Init()
 {
 	Monster::Init();
-	
 	m_hp = m_max_hp;
 }
 
@@ -1107,3 +1123,130 @@ std::chrono::milliseconds WizardMonster::SetBehaviorTime(MonsterBehavior behavio
 	}
 	return time;
 }
+
+BossMonster::BossMonster()
+{
+	m_max_hp = 1000.f;
+	m_damage = 30.f;
+	m_attack_range = 3.f;
+	m_boundary_range = 2.f;
+	m_monster_type = MonsterType::BOSS;
+}
+
+void BossMonster::Init()
+{
+	Monster::Init();
+	m_hp = m_max_hp;
+}
+
+void BossMonster::Update(FLOAT elapsed_time)
+{
+	Monster::Update(elapsed_time);
+
+	if (CanSwapAttackBehavior()) {                               // 경계 범위 내에 들어오면 일반 공격
+		if (IsInRange(m_boundary_range)) {
+			ChangeBehavior(MonsterBehavior::PREPARE_ATTACK);
+		}
+		else if (IsInRange(m_attack_range)) {                    // 공격 범위 내에 들어오면 스킬 공격
+			ChangeBehavior(MonsterBehavior::PREPARE_WIDE_SKILL);
+		}
+	}
+}
+
+bool BossMonster::CanSwapAttackBehavior()
+{
+	if (MonsterBehavior::CHASE == m_current_behavior)
+	{
+		return true;
+	}
+	return false;
+}
+
+MonsterBehavior BossMonster::SetNextBehavior(MonsterBehavior behavior)
+{
+	MonsterBehavior temp{};
+	switch (behavior) {
+	case MonsterBehavior::PREPARE_ATTACK:
+		temp = MonsterBehavior::ATTACK;
+		break;
+	case MonsterBehavior::ATTACK:
+		temp = MonsterBehavior::DELAY;
+		break;
+	case MonsterBehavior::PREPARE_WIDE_SKILL:
+		temp = MonsterBehavior::WIDE_SKILL;
+		break;
+	case MonsterBehavior::WIDE_SKILL:
+		temp = MonsterBehavior::DELAY;
+		break;
+	case MonsterBehavior::DELAY:
+		temp = MonsterBehavior::CHASE;
+		break;
+	case MonsterBehavior::DEATH:
+		temp = MonsterBehavior::REMOVE;
+		break;
+	default:	// 없는 행동이면 COUNT
+		temp = MonsterBehavior::COUNT;
+		break;
+	}
+	return temp;
+}
+
+void BossMonster::SetBehaviorAnimation(MonsterBehavior behavior)
+{
+	switch (behavior) {
+	case MonsterBehavior::CHASE:
+		m_current_animation = BossMonsterAnimation::RUN;
+		break;
+	case MonsterBehavior::PREPARE_ATTACK:
+		m_current_animation = BossMonsterAnimation::IDLE;               // 이때 Idle01 애니메이션 넣으면 될듯
+		break;
+	case MonsterBehavior::ATTACK:
+		m_current_animation = BossMonsterAnimation::ATTACK;
+		break;
+	case MonsterBehavior::PREPARE_WIDE_SKILL:
+		m_current_animation = BossMonsterAnimation::PREPARE_WIDE_SKILL; // 이때도 idle01
+		break;
+	case MonsterBehavior::WIDE_SKILL:
+		m_current_animation = BossMonsterAnimation::WIDE_SKILL;
+		break;
+	case MonsterBehavior::DEATH:
+		m_current_animation = BossMonsterAnimation::DEATH;
+		break;
+	case MonsterBehavior::DELAY:
+		m_current_animation = BossMonsterAnimation::IDLE;
+		break;
+	}
+}
+
+std::chrono::milliseconds BossMonster::SetBehaviorTime(MonsterBehavior behavior)
+{
+	using namespace std::literals;
+
+	std::chrono::milliseconds time{};
+
+	switch (behavior) {
+	case MonsterBehavior::CHASE:
+		time = 3000ms;
+		break;
+	case MonsterBehavior::PREPARE_ATTACK:
+		time = 900ms;
+		break;
+	case MonsterBehavior::ATTACK:
+		time = 900ms;
+		break;
+	case MonsterBehavior::PREPARE_WIDE_SKILL:
+		time = 1400ms;
+		break;
+	case MonsterBehavior::WIDE_SKILL:
+		time = 1466ms;
+		break;
+	case MonsterBehavior::DELAY:
+		time = 1900ms;
+		break;
+	case MonsterBehavior::DEATH:
+		time = 2233ms;
+		break;
+		return time;
+	}
+}
+

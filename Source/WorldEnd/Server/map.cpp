@@ -468,6 +468,26 @@ void GameRoom::InitMonsters(INT room_num)
 	INT new_warrior_id{};
 	INT new_archer_id{};
 	INT new_wizard_id{};
+	INT new_boss_id{};
+
+	if (m_floor_cnt == 4)
+	{
+		random_map = 10;
+
+		new_boss_id = server.GetNewMonsterId(MonsterType::WIZARD);
+
+		m_monster_ids[0] = new_boss_id;
+
+		auto monster = dynamic_pointer_cast<Monster>(server.m_clients[new_boss_id]);
+		monster->Init();
+
+		monster->SetId(new_boss_id);
+		monster->InitializePosition(0, MonsterType::WIZARD, random_map, mon_pos);
+		monster->SetRoomNum(room_num);
+		monster->SetTarget(-1);
+		monster->SetState(State::ACCEPT);
+		++m_monster_count;
+	}
 
 	if (random_map == 0)
 	{
@@ -877,7 +897,9 @@ void GameRoom::InitMonsters(INT room_num)
 			monster->SetState(State::ACCEPT);
 			++m_monster_count;
 		}
-		}
+	}
+
+	//m_floor_cnt++;
 
 	cout << random_map << "¹ø ¹æ" << endl;
 }

@@ -446,6 +446,9 @@ void Server::WorkerThread()
 				obb.Center = Vector3::Add(*pos, Vector3::Mul(temp, 0.5f));
 				obb.Extents = XMFLOAT3{ 0.2f, 0.2f, 0.2f };
 			}
+			else if (MonsterType::BOSS == monster->GetMonsterType()) {
+
+			}
 
 			SendMonsterAttack(static_cast<int>(key), player_ids, obb);
 
@@ -1304,7 +1307,12 @@ INT Server::GetNewMonsterId(MonsterType type)
 		start_num = WIZARD_MONSTER_START;
 		end_num = WIZARD_MONSTER_END;
 		break;
+	case MonsterType::BOSS:
+		start_num = BOSS_MONSTER_START;
+		end_num = BOSS_MONSTER_END;
+		break;
 	}
+
 
 	for (size_t i = start_num; i < end_num; ++i) {
 		std::lock_guard<std::mutex> lock{ m_clients[i]->GetStateMutex() };

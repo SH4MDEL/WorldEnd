@@ -17,7 +17,8 @@ constexpr int MAX_USER = 10000;
 constexpr int MAX_WARRIOR_MONSTER = 30000;
 constexpr int MAX_ARCHER_MONSTER = 30000;
 constexpr int MAX_WIZARD_MONSTER = 30000;
-constexpr int MAX_OBJECT = MAX_USER + MAX_WARRIOR_MONSTER + MAX_ARCHER_MONSTER + MAX_WIZARD_MONSTER;
+constexpr int MAX_BOSS_MONSTER = 30000;
+constexpr int MAX_OBJECT = MAX_USER + MAX_WARRIOR_MONSTER + MAX_ARCHER_MONSTER + MAX_WIZARD_MONSTER + MAX_BOSS_MONSTER;
 
 constexpr int WARRIOR_MONSTER_START = MAX_USER;
 constexpr int WARRIOR_MONSTER_END = MAX_USER + MAX_WARRIOR_MONSTER;
@@ -27,6 +28,9 @@ constexpr int ARCHER_MONSTER_END = WARRIOR_MONSTER_END + MAX_ARCHER_MONSTER;
 
 constexpr int WIZARD_MONSTER_START = ARCHER_MONSTER_END;
 constexpr int WIZARD_MONSTER_END = ARCHER_MONSTER_END + MAX_WIZARD_MONSTER;
+
+constexpr int BOSS_MONSTER_START = WIZARD_MONSTER_END;
+constexpr int BOSS_MONSTER_END = WIZARD_MONSTER_END + MAX_BOSS_MONSTER;
 
 constexpr int MAX_ARROW_RAIN = 100;
 constexpr int MAX_UNDEAD_GRASP = 100;
@@ -77,7 +81,7 @@ constexpr char SC_PACKET_ADD_TRIGGER = 25;
 constexpr char SC_PACKET_ADD_MAGIC_CIRCLE = 26;
 
 enum class PlayerType : char { WARRIOR, ARCHER, COUNT };
-enum class MonsterType : char { WARRIOR, ARCHER, WIZARD, COUNT };
+enum class MonsterType : char { WARRIOR, ARCHER, WIZARD, BOSS, COUNT};
 enum class EnvironmentType : char { RAIN, FOG, GAS, TRAP, COUNT };
 
 enum ActionType : char {
@@ -88,6 +92,10 @@ enum class MonsterBehavior : char {
 	BLOCK, BLOCKIDLE,				// 전사 몬스터
 	AIM, STEP_BACK, FLEE, DELAY,	// 궁수 몬스터
 	PREPARE_CAST, CAST,	LAUGHING,	// 마법사 몬스터
+	PREPARE_WIDE_SKILL, WIDE_SKILL, ENHANCE,                           // 보스 몬스터
+	PREPARE_ENHANCE_ATTACK, ENHANCE_ATTACK,                            // 보스 몬스터
+	PREPARE_ENHANCE_WIDE_SKILL, ENHANCE_WIDE_SKILL,                    // 보스 몬스터
+	PREPARE_LETHAL_MOVE, LETHAL_MOVE,                                  // 보스 몬스터
 	COUNT
 };
 enum InteractionType : char {
@@ -152,6 +160,16 @@ public:
 	enum USHORT {
 		PREPARE_CAST = MonsterAnimation::END - MonsterAnimation::ANIMATION_START + ANIMATION_START,
 		CAST, LAUGHING, 
+	};
+};
+
+class BossMonsterAnimation : public MonsterAnimation
+{
+public:
+	static constexpr int ANIMATION_START = 400;
+	enum USHORT {
+		PREPARE_WIDE_SKILL = MonsterAnimation::END - MonsterAnimation::ANIMATION_START + ANIMATION_START,
+		WIDE_SKILL,
 	};
 };
 

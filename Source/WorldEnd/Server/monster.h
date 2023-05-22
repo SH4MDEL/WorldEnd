@@ -127,3 +127,19 @@ private:
 	virtual std::chrono::milliseconds SetBehaviorTime(MonsterBehavior behavior) override;
 };
 
+class BossMonster : public Monster
+{
+public:
+	BossMonster();
+	virtual ~BossMonster() = default;
+
+	virtual void Init() override;
+	virtual void Update(FLOAT elapsed_time) override;
+
+private:
+	virtual bool CanSwapAttackBehavior() override;
+	virtual MonsterBehavior SetNextBehavior(MonsterBehavior behavior) override;
+	virtual void SetBehaviorAnimation(MonsterBehavior behavior) override;
+	virtual std::chrono::milliseconds SetBehaviorTime(MonsterBehavior behavior) override;
+};
+
