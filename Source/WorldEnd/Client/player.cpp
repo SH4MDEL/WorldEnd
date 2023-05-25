@@ -717,7 +717,7 @@ ArrowRain::ArrowRain() : m_enable{ false }, m_age{ 0.f },
 		arrow.first->SetMaterials("Archer_WeaponArrow");
 		arrow.first->Rotate(0.f, 90.f, 0.f);
 		arrow.first->SetEnable();
-		arrow.second = DX::GetRandomFLOAT(0.f, ARROW_LIFECYCLE);
+		arrow.second = Utiles::GetRandomFLOAT(0.f, ARROW_LIFECYCLE);
 	}
 	m_magicCircle = make_unique<GameObject>();
 	m_magicCircle->SetMesh("MAGICCIRCLE");
@@ -776,9 +776,9 @@ void ArrowRain::SetPosition(const XMFLOAT3& position)
 
 	for (auto& arrow : m_arrows) {
 		arrow.first->SetPosition(Vector3::Add(position, {
-			DX::GetRandomFLOAT(-extent.x, extent.x),
+			Utiles::GetRandomFLOAT(-extent.x, extent.x),
 			MAX_ARROW_HEIGHT - (MAX_ARROW_HEIGHT * arrow.second / ARROW_LIFECYCLE), 
-			DX::GetRandomFLOAT(-extent.z, extent.z) }));
+			Utiles::GetRandomFLOAT(-extent.z, extent.z) }));
 	}
 	m_magicCircle->SetPosition(position);
 }

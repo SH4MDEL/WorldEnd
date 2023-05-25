@@ -83,7 +83,7 @@ inline void SobelFilter::CreateSobelMap(const ComPtr<ID3D12Device>& device)
 	texDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
 	texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
 
-	DX::ThrowIfFailed(device->CreateCommittedResource(
+	Utiles::ThrowIfFailed(device->CreateCommittedResource(
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 		D3D12_HEAP_FLAG_NONE,
 		&texDesc,
@@ -91,7 +91,7 @@ inline void SobelFilter::CreateSobelMap(const ComPtr<ID3D12Device>& device)
 		nullptr,
 		IID_PPV_ARGS(&m_sobelMap)));
 
-	DX::ThrowIfFailed(device->CreateCommittedResource(
+	Utiles::ThrowIfFailed(device->CreateCommittedResource(
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 		D3D12_HEAP_FLAG_NONE,
 		&texDesc,
@@ -106,7 +106,7 @@ inline void SobelFilter::CreateSrvUavDescriptorHeap(const ComPtr<ID3D12Device>& 
 	srvHeapDesc.NumDescriptors = 4;
 	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-	DX::ThrowIfFailed(device->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&m_srvDiscriptorHeap)));
+	Utiles::ThrowIfFailed(device->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&m_srvDiscriptorHeap)));
 
 	auto descriptorSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 

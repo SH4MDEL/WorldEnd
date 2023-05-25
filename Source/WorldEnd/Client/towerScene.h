@@ -130,8 +130,6 @@ protected:
 
 	INT													m_sceneState;
 
-	XMMATRIX											m_lightView;
-	XMMATRIX											m_lightProj;
 	XMMATRIX											m_NDCspace;
 
 	shared_ptr<Player>									m_player;

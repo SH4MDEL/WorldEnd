@@ -25,8 +25,8 @@ void VillageLoadingScene::OnCreate(const ComPtr<ID3D12Device>& device,
 	m_loadingText->SetColorBrush("SKYBLUE");
 	m_loadingText->SetTextFormat("KOPUB24");
 
-	DX::ThrowIfFailed(device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_threadCommandAllocator)));
-	DX::ThrowIfFailed(device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_threadCommandAllocator.Get(), nullptr, IID_PPV_ARGS(&m_threadCommandList)));
+	Utiles::ThrowIfFailed(device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_threadCommandAllocator)));
+	Utiles::ThrowIfFailed(device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_threadCommandAllocator.Get(), nullptr, IID_PPV_ARGS(&m_threadCommandList)));
 
 	m_loadingThread = thread{ &VillageLoadingScene::BuildObjects, this, device, m_threadCommandList, rootSignature, postRootSignature };
 	m_loadingThread.detach();

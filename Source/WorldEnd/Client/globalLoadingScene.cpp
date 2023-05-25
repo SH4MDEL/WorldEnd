@@ -23,12 +23,12 @@ void GlobalLoadingScene::OnCreate(const ComPtr<ID3D12Device>& device,
 	m_loadingText = make_shared<Text>();
 
 	auto skyblueBrush = ComPtr<ID2D1SolidColorBrush>();
-	DX::ThrowIfFailed(g_GameFramework.GetD2DDeviceContext()->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::SkyBlue, 1.f), &skyblueBrush));
+	Utiles::ThrowIfFailed(g_GameFramework.GetD2DDeviceContext()->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::SkyBlue, 1.f), &skyblueBrush));
 	Text::m_colorBrushes.insert({ "SKYBLUE", skyblueBrush });
 	m_loadingText->SetColorBrush("SKYBLUE");
 
 	auto koPub24 = ComPtr<IDWriteTextFormat>();
-	DX::ThrowIfFailed(g_GameFramework.GetWriteFactory()->CreateTextFormat(
+	Utiles::ThrowIfFailed(g_GameFramework.GetWriteFactory()->CreateTextFormat(
 		TEXT("./Resource/Font/KoPub Dotum Bold.ttf"), nullptr,
 		DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, 24.f,
 		TEXT("ko-kr"), &koPub24
@@ -39,8 +39,8 @@ void GlobalLoadingScene::OnCreate(const ComPtr<ID3D12Device>& device,
 	Text::m_textFormats.insert({ "KOPUB24", koPub24 });
 	m_loadingText->SetTextFormat("KOPUB24");
 
-	DX::ThrowIfFailed(device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_threadCommandAllocator)));
-	DX::ThrowIfFailed(device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_threadCommandAllocator.Get(), nullptr, IID_PPV_ARGS(&m_threadCommandList)));
+	Utiles::ThrowIfFailed(device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_threadCommandAllocator)));
+	Utiles::ThrowIfFailed(device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_threadCommandAllocator.Get(), nullptr, IID_PPV_ARGS(&m_threadCommandList)));
 
 	m_loadingThread = thread{ &GlobalLoadingScene::BuildObjects, this, device, m_threadCommandList, rootSignature, postRootSignature };
 	m_loadingThread.detach();
@@ -64,8 +64,8 @@ void GlobalLoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const 
 	const ComPtr<ID3D12RootSignature>& rootsignature, const ComPtr<ID3D12RootSignature>& postRootSignature)
 {
 	// 셰이더 로딩
-	auto animationShader{ make_shared<AnimationShader>(device, rootsignature) };
 	auto objectShader{ make_shared<StaticObjectShader>(device, rootsignature) };
+	auto animationShader{ make_shared<AnimationShader>(device, rootsignature) };
 	auto skyboxShader{ make_shared<SkyboxShader>(device, rootsignature) };
 	auto uiShader{ make_shared<UIShader>(device, rootsignature) };
 	auto postUiShader{ make_shared<UIShader>(device, rootsignature) };
@@ -81,6 +81,7 @@ void GlobalLoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const 
 	auto sobelShader{ make_shared<SobelShader>(device, postRootSignature) };
 	auto compositeShader{ make_shared<CompositeShader>(device, postRootSignature) };
 	auto fadeShader{ make_shared<FadeShader>(device, postRootSignature) };
+	auto debugShader{ make_shared<DebugShader>(device, rootsignature) };
 
 	auto arrowInstance{ make_shared<ArrowInstance>(device, rootsignature, MAX_ARROWRAIN_ARROWS) };
 
@@ -101,6 +102,7 @@ void GlobalLoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const 
 	m_globalShaders.insert({ "SOBEL", sobelShader });
 	m_globalShaders.insert({ "COMPOSITE", compositeShader });
 	m_globalShaders.insert({ "FADE", fadeShader });
+	m_globalShaders.insert({ "DEBUG", debugShader });
 
 	m_globalShaders.insert({ "ARROW_INSTANCE", arrowInstance });
 
@@ -178,13 +180,13 @@ void GlobalLoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const 
 	LoadAnimationSetFromFile(TEXT("./Resource/Animation/ArcherAnimation.bin"), "ArcherAnimation");
 	// 텍스트 로딩
 	auto whiteBrush = ComPtr<ID2D1SolidColorBrush>();
-	DX::ThrowIfFailed(g_GameFramework.GetD2DDeviceContext()->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::White, 1.f), &whiteBrush));
+	Utiles::ThrowIfFailed(g_GameFramework.GetD2DDeviceContext()->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::White, 1.f), &whiteBrush));
 	Text::m_colorBrushes.insert({ "WHITE", whiteBrush });
 	
 	const array<INT, 4> fontSize{ 15, 18, 21, 27 };
 	for (const auto size : fontSize) {
 		auto koPub = ComPtr<IDWriteTextFormat>();
-		DX::ThrowIfFailed(g_GameFramework.GetWriteFactory()->CreateTextFormat(
+		Utiles::ThrowIfFailed(g_GameFramework.GetWriteFactory()->CreateTextFormat(
 			TEXT("./Resource/Font/KoPub Dotum Bold.ttf"), nullptr,
 			DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, (FLOAT)size,
 			TEXT("ko-kr"), &koPub
@@ -199,7 +201,7 @@ void GlobalLoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const 
 	const array<INT, 5> mapleFontSize{ 15, 18, 21, 24, 27 };
 	for (const auto size : mapleFontSize) {
 		auto maple = ComPtr<IDWriteTextFormat>();
-		DX::ThrowIfFailed(g_GameFramework.GetWriteFactory()->CreateTextFormat(
+		Utiles::ThrowIfFailed(g_GameFramework.GetWriteFactory()->CreateTextFormat(
 			TEXT("./Resource/Font/Maplestory Bold.ttf"), nullptr,
 			DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, (FLOAT)size,
 			TEXT("ko-kr"), &maple

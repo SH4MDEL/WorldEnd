@@ -49,7 +49,7 @@ void TowerScene::ReleaseUploadBuffer() {}
 
 void TowerScene::CreateShaderVariable(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList)
 {
-	DX::ThrowIfFailed(device->CreateCommittedResource(
+	Utiles::ThrowIfFailed(device->CreateCommittedResource(
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
 		D3D12_HEAP_FLAG_NONE,
 		&CD3DX12_RESOURCE_DESC::Buffer(sizeof(SceneInfo)),
@@ -62,31 +62,80 @@ void TowerScene::CreateShaderVariable(const ComPtr<ID3D12Device>& device, const 
 
 void TowerScene::UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& commandList)
 {
-	BoundingSphere sceneBounds{ XMFLOAT3{ 0.0f, 0.0f, 10.0f }, 60.f };
+	// https://scahp.tistory.com/39
 
-	// Only the first "main" light casts a shadow.
-	XMVECTOR lightDir = XMLoadFloat3(&m_lightSystem->m_lights[(INT)LightTag::Directional].m_direction);
-	XMVECTOR lightPos{ -2.0f * sceneBounds.Radius * lightDir };
-	XMVECTOR targetPos = XMLoadFloat3(&sceneBounds.Center);
-	XMVECTOR lightUp = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-	m_lightView = XMMatrixLookAtLH(lightPos, targetPos, lightUp);
+	const array<FLOAT, CASCADES_NUM + 1> cascadeBorders = { 0.f, 0.05f, 0.2f, 1.f };
 
-	XMFLOAT3 sphereCenterLS;
-	XMStoreFloat3(&sphereCenterLS, XMVector3TransformCoord(targetPos, m_lightView));
-
-	float l = sphereCenterLS.x - sceneBounds.Radius;
-	float b = sphereCenterLS.y - sceneBounds.Radius;
-	float n = sphereCenterLS.z - sceneBounds.Radius;
-	float r = sphereCenterLS.x + sceneBounds.Radius;
-	float t = sphereCenterLS.y + sceneBounds.Radius;
-	float f = sphereCenterLS.z + sceneBounds.Radius;
-
-	m_lightProj = XMMatrixOrthographicOffCenterLH(l, r, b, t, n, f);
-
-	::memcpy(&m_sceneBufferPointer->lightView, &XMMatrixTranspose(m_lightView), sizeof(XMFLOAT4X4));
-	::memcpy(&m_sceneBufferPointer->lightProj, &XMMatrixTranspose(m_lightProj), sizeof(XMFLOAT4X4));
 	::memcpy(&m_sceneBufferPointer->NDCspace, &XMMatrixTranspose(m_NDCspace), sizeof(XMFLOAT4X4));
 
+	for (UINT cascade = 0; cascade < cascadeBorders.size() - 1; ++cascade) {
+		// NDC Space에서 Unit Cube의 각 꼭지점
+		array<XMFLOAT3, 8> frustumVertices =
+		{
+			XMFLOAT3{ -1.0f,  1.0f, -1.0f },
+			XMFLOAT3{  1.0f,  1.0f, -1.0f },
+			XMFLOAT3{  1.0f, -1.0f, -1.0f },
+			XMFLOAT3{ -1.0f, -1.0f, -1.0f },
+			XMFLOAT3{ -1.0f,  1.0f, 1.0f },
+			XMFLOAT3{  1.0f,  1.0f, 1.0f },
+			XMFLOAT3{  1.0f, -1.0f, 1.0f },
+			XMFLOAT3{ -1.0f, -1.0f, 1.0f }
+		};
+
+		// NDC Space -> World Space로 변환
+		auto cameraViewProj = Matrix::Inverse(Matrix::Mul(m_camera->GetViewMatrix(), m_camera->GetProjMatrix()));
+		for (auto& frustumVertex : frustumVertices) {
+			frustumVertex = Vector3::TransformCoord(frustumVertex, cameraViewProj);
+		}
+
+		// Unit Cube의 각 코너 위치를 Slice에 맞게 설정
+		for (UINT i = 0; i < 4; ++i) {
+			XMFLOAT3 frontVector = Vector3::Sub(frustumVertices[i + 4], frustumVertices[i]);
+			XMFLOAT3 nearRay = Vector3::Mul(frontVector, cascadeBorders[cascade]);
+			XMFLOAT3 farRay = Vector3::Mul(frontVector, cascadeBorders[cascade + 1]);
+			frustumVertices[i + 4] = Vector3::Add(frustumVertices[i], farRay);
+			frustumVertices[i] = Vector3::Add(frustumVertices[i], nearRay);
+		}
+
+		// 뷰 프러스텀의 중심을 구함
+		XMFLOAT3 frustumCenter{ 0.f, 0.f, 0.f };
+		for (UINT i = 0; i < 8; ++i) frustumCenter = Vector3::Add(frustumCenter, frustumVertices[i]);
+		frustumCenter = Vector3::Mul(frustumCenter, (1.f / 8.f));
+
+		// 뷰 프러스텀을 감싸는 바운딩 스피어의 반지름을 구함
+		FLOAT sphereRadius = 0.f;
+		for (UINT i = 0; i < 8; ++i) {
+			FLOAT dist = Vector3::Length(Vector3::Sub(frustumVertices[i], frustumCenter));
+			sphereRadius = max(sphereRadius, dist);
+		}
+
+		BoundingSphere frustumBounds{ frustumCenter, sphereRadius };
+
+		// 빛의 방향으로 정렬된 섀도우 맵에 사용할 뷰 매트릭스 생성
+		XMVECTOR lightDir = XMLoadFloat3(&m_lightSystem->m_lights[(INT)LightTag::Directional].m_direction);
+		XMVECTOR lightPos{ XMLoadFloat3(&frustumBounds.Center) - frustumBounds.Radius * lightDir };
+		XMVECTOR targetPos = XMLoadFloat3(&frustumBounds.Center);
+		XMVECTOR lightUp = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+		XMMATRIX lightView = XMMatrixLookAtLH(lightPos, targetPos, lightUp);
+
+		XMFLOAT3 sphereCenterLS;
+		XMStoreFloat3(&sphereCenterLS, XMVector3TransformCoord(targetPos, lightView));
+		
+		// 빛의 위치를 뒤로 조정하기 위한 오프셋
+		const FLOAT offset = 50.f;
+
+		float l = sphereCenterLS.x - frustumBounds.Radius;
+		float b = sphereCenterLS.y - frustumBounds.Radius;
+		float n = sphereCenterLS.z - frustumBounds.Radius - offset;
+		float r = sphereCenterLS.x + frustumBounds.Radius;
+		float t = sphereCenterLS.y + frustumBounds.Radius;
+		float f = sphereCenterLS.z + frustumBounds.Radius + offset;
+		
+		XMMATRIX lightProj = XMMatrixOrthographicOffCenterLH(l, r, b, t, n, f);
+
+		memcpy(&m_sceneBufferPointer->lightView[cascade], &XMMatrixTranspose(lightView), sizeof(XMFLOAT4X4));
+		memcpy(&m_sceneBufferPointer->lightProj[cascade], &XMMatrixTranspose(lightProj), sizeof(XMFLOAT4X4));
+	}
 	D3D12_GPU_VIRTUAL_ADDRESS virtualAddress = m_sceneBuffer->GetGPUVirtualAddress();
 	commandList->SetGraphicsRootConstantBufferView((INT)ShaderRegister::Scene, virtualAddress);
 }
@@ -127,7 +176,7 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	XMStoreFloat4x4(&projMatrix, XMMatrixPerspectiveFovLH(0.25f * XM_PI, g_GameFramework.GetAspectRatio(), 0.1f, 100.0f));
 	m_camera->SetProjMatrix(projMatrix);
 
-	m_shadow = make_shared<Shadow>(device, 4096 << 1, 4096 << 1);
+	m_shadow = make_shared<Shadow>(device, 1024, 1024);
 
 	// 씬 로드
 	LoadSceneFromFile(TEXT("./Resource/Scene/TowerScene.bin"), TEXT("TowerScene"));
@@ -162,6 +211,10 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	m_blurFilter = make_unique<BlurFilter>(device, windowWidth, windowHeight);
 	m_fadeFilter = make_unique<FadeFilter>(device, windowWidth, windowHeight);
 	m_sobelFilter = make_unique<SobelFilter>(device, windowWidth, windowHeight, postRootSignature);
+
+	auto debugObject = make_shared<GameObject>();
+	debugObject->SetMesh("DEBUG");
+	m_globalShaders["DEBUG"]->SetObject(debugObject);
 
 	// 조명 생성
 	BuildLight(device, commandlist);
@@ -322,7 +375,7 @@ void TowerScene::BuildLight(const ComPtr<ID3D12Device>& device, const ComPtr<ID3
 	m_lightSystem->m_numLight = (INT)LightTag::Count;
 
 	m_directionalDiffuse = XMFLOAT4{ 0.4f, 0.4f, 0.4f, 1.f };
-	m_directionalDirection = XMFLOAT3{ -1.f, -1.f, -1.f };
+	m_directionalDirection = XMFLOAT3{ 1.f, -1.f, 1.f };
 
 	m_lightSystem->m_lights[(INT)LightTag::Directional].m_type = DIRECTIONAL_LIGHT;
 	m_lightSystem->m_lights[(INT)LightTag::Directional].m_ambient = XMFLOAT4{ 0.2f, 0.2f, 0.2f, 1.f };
@@ -830,6 +883,7 @@ void TowerScene::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UI
 		m_globalShaders.at("HORZGAUGE")->Render(commandList);
 		m_globalShaders.at("VERTGAUGE")->Render(commandList);
 		m_globalShaders.at("UI")->Render(commandList);
+		//m_globalShaders["DEBUG"]->Render(commandList);
 		break;
 	}
 	}

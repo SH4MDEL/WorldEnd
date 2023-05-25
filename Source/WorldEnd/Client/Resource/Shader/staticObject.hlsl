@@ -30,9 +30,7 @@ VS_STATICOBJECT_OUTPUT VS_STATICOBJECT_MAIN(VS_STATICOBJECT_INPUT input)
 	output.positionW = output.position.xyz;
 	output.position = mul(output.position, viewMatrix);
 	output.position = mul(output.position, projMatrix);
-	output.shadowPosition = mul(float4(output.positionW, 1.0f), lightView);
-	output.shadowPosition = mul(output.shadowPosition, lightProj);
-	output.shadowPosition = mul(output.shadowPosition, NDCspace);
+	output.shadowPosition = float4(output.positionW, 1.0f);
 	output.normal = mul(input.normal, (float3x3)worldMatrix);
 	output.tangent = mul(input.tangent, (float3x3)worldMatrix);
 	output.biTangent = mul(input.biTangent, (float3x3)worldMatrix);
@@ -61,11 +59,11 @@ float4 PS_STATICOBJECT_MAIN(VS_STATICOBJECT_OUTPUT input) : SV_TARGET
 
 	float3 normal = normalColor.rgb;
 	float4 color = material.m_diffuse + material.m_specular + emissionColor;
-	float3x3 TBN = float3x3(normalize(input.tangent), normalize(input.biTangent), normalize(normal));
-	float3 vNormal = normalize(normal * 2.0f - 1.0f); //[0, 1] ¡æ [-1, 1]
-	normal = normalize(mul(vNormal, TBN));
+	//float3x3 TBN = float3x3(normalize(input.tangent), normalize(input.biTangent), normalize(normal));
+	//float3 vNormal = normalize(normal * 2.0f - 1.0f); //[0, 1] ¡æ [-1, 1]
+	//normal = normalize(mul(vNormal, TBN));
 	float shadowFactor = CalcShadowFactor(input.shadowPosition);
-	//shadowFactor = 1.0f;
+	//float shadowFactor = 0.5f;
 	float4 light = Lighting(input.positionW, normal, material, shadowFactor);
 	color = lerp(color, light, 0.5);
 	return color;

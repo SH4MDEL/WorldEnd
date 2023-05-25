@@ -17,8 +17,8 @@ EmitterParticleMesh::EmitterParticleMesh(const ComPtr<ID3D12Device>& device, con
 
 	for (int i = 0; i < MAX_PARTICLE_MESH; ++i) {
 		vertices.emplace_back(
-			XMFLOAT3{ DX::GetRandomFLOAT(-1.f, 1.f), DX::GetRandomFLOAT(-1.f, 1.f), DX::GetRandomFLOAT(-1.f, 1.f) },
-			XMFLOAT3{ DX::GetRandomFLOAT(-3.f, 3.f), DX::GetRandomFLOAT(-3.f, 3.f), DX::GetRandomFLOAT(-3.f, 3.f) },
+			XMFLOAT3{ Utiles::GetRandomFLOAT(-1.f, 1.f), Utiles::GetRandomFLOAT(-1.f, 1.f), Utiles::GetRandomFLOAT(-1.f, 1.f) },
+			XMFLOAT3{ Utiles::GetRandomFLOAT(-3.f, 3.f), Utiles::GetRandomFLOAT(-3.f, 3.f), Utiles::GetRandomFLOAT(-3.f, 3.f) },
 			0.f, 1.5f);
 	}
 	m_nVertices = (UINT)vertices.size();
@@ -118,8 +118,8 @@ PumperParticleMesh::PumperParticleMesh(const ComPtr<ID3D12Device>& device, const
 	for (int i = 0; i < MAX_PARTICLE_MESH; ++i) {
 		vertices.emplace_back(
 			XMFLOAT3{ 0.f, 0.f, 0.f },
-			XMFLOAT3{ DX::GetRandomFLOAT(-0.5f, 0.5f), DX::GetRandomFLOAT(4.f, 5.f), DX::GetRandomFLOAT(-0.5f, 0.5f) },
-			FLOAT{ DX::GetRandomFLOAT(0.f, 1.2f)});
+			XMFLOAT3{ Utiles::GetRandomFLOAT(-0.5f, 0.5f), Utiles::GetRandomFLOAT(4.f, 5.f), Utiles::GetRandomFLOAT(-0.5f, 0.5f) },
+			FLOAT{ Utiles::GetRandomFLOAT(0.f, 1.2f)});
 	}
 	m_nVertices = (UINT)vertices.size();
 	m_vertexBuffer = CreateBufferResource(device, commandList, vertices.data(),

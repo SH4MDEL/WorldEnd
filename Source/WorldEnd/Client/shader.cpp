@@ -16,8 +16,8 @@ Shader::Shader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignat
 	UINT compileFlags = 0;
 #endif
 
-	DX::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/standard.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "VS_STANDARD_MAIN", "vs_5_1", compileFlags, 0, &mvsByteCode, nullptr));
-	DX::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/standard.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "PS_STANDARD_MAIN", "ps_5_1", compileFlags, 0, &mpsByteCode, nullptr));
+	Utiles::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/standard.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "VS_STANDARD_MAIN", "vs_5_1", compileFlags, 0, &mvsByteCode, nullptr));
+	Utiles::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/standard.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "PS_STANDARD_MAIN", "ps_5_1", compileFlags, 0, &mpsByteCode, nullptr));
 
 	m_inputLayout =
 	{
@@ -40,7 +40,7 @@ Shader::Shader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignat
 	psoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 	psoDesc.SampleDesc.Count = 1;
 	psoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
-	DX::ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
+	Utiles::ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
 
 }
 
@@ -180,8 +180,8 @@ StaticObjectShader::StaticObjectShader(const ComPtr<ID3D12Device>& device, const
 #else
 	UINT compileFlags = 0;
 #endif
-	DX::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/staticObject.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "VS_STATICOBJECT_MAIN", "vs_5_1", compileFlags, 0, &mvsByteCode, nullptr));
-	DX::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/staticObject.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "PS_STATICOBJECT_MAIN", "ps_5_1", compileFlags, 0, &mpsByteCode, nullptr));
+	Utiles::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/staticObject.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "VS_STATICOBJECT_MAIN", "vs_5_1", compileFlags, 0, &mvsByteCode, nullptr));
+	Utiles::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/staticObject.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "PS_STATICOBJECT_MAIN", "ps_5_1", compileFlags, 0, &mpsByteCode, nullptr));
 
 	m_inputLayout =
 	{
@@ -207,7 +207,7 @@ StaticObjectShader::StaticObjectShader(const ComPtr<ID3D12Device>& device, const
 	psoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 	psoDesc.SampleDesc.Count = 1;
 	psoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
-	DX::ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
+	Utiles::ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
 }
 
 AnimationShader::AnimationShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature)
@@ -225,8 +225,8 @@ AnimationShader::AnimationShader(const ComPtr<ID3D12Device>& device, const ComPt
 #else
 	UINT compileFlags = 0;
 #endif
-	DX::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/animation.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "VS_ANIMATION_MAIN", "vs_5_1", compileFlags, 0, &mvsByteCode, nullptr));
-	DX::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/animation.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "PS_ANIMATION_MAIN", "ps_5_1", compileFlags, 0, &mpsByteCode, nullptr));
+	Utiles::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/animation.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "VS_ANIMATION_MAIN", "vs_5_1", compileFlags, 0, &mvsByteCode, nullptr));
+	Utiles::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/animation.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "PS_ANIMATION_MAIN", "ps_5_1", compileFlags, 0, &mpsByteCode, nullptr));
 
 	m_inputLayout =
 	{
@@ -254,7 +254,7 @@ AnimationShader::AnimationShader(const ComPtr<ID3D12Device>& device, const ComPt
 	psoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 	psoDesc.SampleDesc.Count = 1;
 	psoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
-	DX::ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
+	Utiles::ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
 }
 
 SkyboxShader::SkyboxShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature)
@@ -273,8 +273,8 @@ SkyboxShader::SkyboxShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D
 	UINT compileFlags = 0;
 #endif
 
-	DX::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/skybox.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "VS_SKYBOX_MAIN", "vs_5_1", compileFlags, 0, &mvsByteCode, nullptr));
-	DX::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/skybox.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "PS_SKYBOX_MAIN", "ps_5_1", compileFlags, 0, &mpsByteCode, nullptr));
+	Utiles::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/skybox.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "VS_SKYBOX_MAIN", "vs_5_1", compileFlags, 0, &mvsByteCode, nullptr));
+	Utiles::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/skybox.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "PS_SKYBOX_MAIN", "ps_5_1", compileFlags, 0, &mpsByteCode, nullptr));
 
 	m_inputLayout =
 	{
@@ -300,7 +300,7 @@ SkyboxShader::SkyboxShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D
 	psoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 	psoDesc.SampleDesc.Count = 1;
 	psoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
-	DX::ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
+	Utiles::ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
 }
 
 HorzGaugeShader::HorzGaugeShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature)
@@ -320,9 +320,9 @@ HorzGaugeShader::HorzGaugeShader(const ComPtr<ID3D12Device>& device, const ComPt
 	UINT compileFlags = 0;
 #endif
 
-	DX::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/gauge.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "VS_GAUGE_MAIN", "vs_5_1", compileFlags, 0, &mvsByteCode, nullptr));
-	DX::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/gauge.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "GS_GAUGE_MAIN", "gs_5_1", compileFlags, 0, &mgsByteCode, nullptr));
-	DX::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/gauge.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "PS_HORZGAUGE_MAIN", "ps_5_1", compileFlags, 0, &mpsByteCode, nullptr));
+	Utiles::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/gauge.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "VS_GAUGE_MAIN", "vs_5_1", compileFlags, 0, &mvsByteCode, nullptr));
+	Utiles::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/gauge.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "GS_GAUGE_MAIN", "gs_5_1", compileFlags, 0, &mgsByteCode, nullptr));
+	Utiles::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/gauge.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "PS_HORZGAUGE_MAIN", "ps_5_1", compileFlags, 0, &mpsByteCode, nullptr));
 
 	m_inputLayout =
 	{
@@ -362,7 +362,7 @@ HorzGaugeShader::HorzGaugeShader(const ComPtr<ID3D12Device>& device, const ComPt
 	psoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 	psoDesc.SampleDesc.Count = 1;
 	psoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
-	DX::ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
+	Utiles::ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
 }
 
 VertGaugeShader::VertGaugeShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature)
@@ -382,9 +382,9 @@ VertGaugeShader::VertGaugeShader(const ComPtr<ID3D12Device>& device, const ComPt
 	UINT compileFlags = 0;
 #endif
 
-	DX::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/gauge.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "VS_GAUGE_MAIN", "vs_5_1", compileFlags, 0, &mvsByteCode, nullptr));
-	DX::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/gauge.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "GS_GAUGE_MAIN", "gs_5_1", compileFlags, 0, &mgsByteCode, nullptr));
-	DX::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/gauge.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "PS_VERTGAUGE_MAIN", "ps_5_1", compileFlags, 0, &mpsByteCode, nullptr));
+	Utiles::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/gauge.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "VS_GAUGE_MAIN", "vs_5_1", compileFlags, 0, &mvsByteCode, nullptr));
+	Utiles::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/gauge.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "GS_GAUGE_MAIN", "gs_5_1", compileFlags, 0, &mgsByteCode, nullptr));
+	Utiles::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/gauge.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "PS_VERTGAUGE_MAIN", "ps_5_1", compileFlags, 0, &mpsByteCode, nullptr));
 
 	m_inputLayout =
 	{
@@ -424,7 +424,7 @@ VertGaugeShader::VertGaugeShader(const ComPtr<ID3D12Device>& device, const ComPt
 	psoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 	psoDesc.SampleDesc.Count = 1;
 	psoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
-	DX::ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
+	Utiles::ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
 }
 
 ShadowShader::ShadowShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature)
@@ -435,6 +435,7 @@ ShadowShader::ShadowShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D
 	g_mutex.unlock();
 
 	ComPtr<ID3DBlob> mvsByteCode;
+	ComPtr<ID3DBlob> mgsByteCode;
 
 #if defined(_DEBUG)
 	UINT compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
@@ -442,7 +443,8 @@ ShadowShader::ShadowShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D
 	UINT compileFlags = 0;
 #endif
 
-	DX::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/Shadow.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "VS_SHADOW_MAIN", "vs_5_1", compileFlags, 0, &mvsByteCode, nullptr));
+	Utiles::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/Shadow.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "VS_SHADOW_MAIN", "vs_5_1", compileFlags, 0, &mvsByteCode, nullptr));
+	Utiles::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/Shadow.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "GS_SHADOW_MAIN", "gs_5_1", compileFlags, 0, &mgsByteCode, nullptr));
 
 	m_inputLayout =
 	{
@@ -455,13 +457,14 @@ ShadowShader::ShadowShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc{};
 	psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-	psoDesc.RasterizerState.DepthBias = 10000;
+	psoDesc.RasterizerState.DepthBias = 1000;
 	psoDesc.RasterizerState.DepthBiasClamp = 0.0f;
 	psoDesc.RasterizerState.SlopeScaledDepthBias = 1.0f;
 
 	psoDesc.InputLayout = { m_inputLayout.data(), (UINT)m_inputLayout.size() };
 	psoDesc.pRootSignature = rootSignature.Get();
 	psoDesc.VS = CD3DX12_SHADER_BYTECODE(mvsByteCode.Get());
+	psoDesc.GS = CD3DX12_SHADER_BYTECODE(mgsByteCode.Get());
 	psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
 	psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 	psoDesc.SampleMask = UINT_MAX;
@@ -471,7 +474,7 @@ ShadowShader::ShadowShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D
 	psoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 	psoDesc.SampleDesc.Count = 1;
 	psoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
-	DX::ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
+	Utiles::ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
 }
 
 AnimationShadowShader::AnimationShadowShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature)
@@ -482,6 +485,7 @@ AnimationShadowShader::AnimationShadowShader(const ComPtr<ID3D12Device>& device,
 	g_mutex.unlock();
 
 	ComPtr<ID3DBlob> mvsByteCode;
+	ComPtr<ID3DBlob> mgsByteCode;
 
 #if defined(_DEBUG)
 	UINT compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
@@ -489,7 +493,8 @@ AnimationShadowShader::AnimationShadowShader(const ComPtr<ID3D12Device>& device,
 	UINT compileFlags = 0;
 #endif
 
-	DX::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/shadow.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "VS_ANIMATION_SHADOW_MAIN", "vs_5_1", compileFlags, 0, &mvsByteCode, nullptr));
+	Utiles::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/shadow.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "VS_ANIMATION_SHADOW_MAIN", "vs_5_1", compileFlags, 0, &mvsByteCode, nullptr));
+	Utiles::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/shadow.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "GS_ANIMATION_SHADOW_MAIN", "gs_5_1", compileFlags, 0, &mgsByteCode, nullptr));
 
 	m_inputLayout =
 	{
@@ -504,13 +509,14 @@ AnimationShadowShader::AnimationShadowShader(const ComPtr<ID3D12Device>& device,
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc{};
 	psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-	psoDesc.RasterizerState.DepthBias = 10000;
+	psoDesc.RasterizerState.DepthBias = 1000;
 	psoDesc.RasterizerState.DepthBiasClamp = 0.0f;
 	psoDesc.RasterizerState.SlopeScaledDepthBias = 1.0f;
 
 	psoDesc.InputLayout = { m_inputLayout.data(), (UINT)m_inputLayout.size() };
 	psoDesc.pRootSignature = rootSignature.Get();
 	psoDesc.VS = CD3DX12_SHADER_BYTECODE(mvsByteCode.Get());
+	psoDesc.GS = CD3DX12_SHADER_BYTECODE(mgsByteCode.Get());
 	psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
 	psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 	psoDesc.SampleMask = UINT_MAX;
@@ -520,7 +526,7 @@ AnimationShadowShader::AnimationShadowShader(const ComPtr<ID3D12Device>& device,
 	psoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 	psoDesc.SampleDesc.Count = 1;
 	psoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
-	DX::ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
+	Utiles::ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
 }
 
 HorzBlurShader::HorzBlurShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature)
@@ -538,13 +544,13 @@ HorzBlurShader::HorzBlurShader(const ComPtr<ID3D12Device>& device, const ComPtr<
 	UINT compileFlags = 0;
 #endif
 
-	DX::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/blur.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "CS_HORZBLUR_MAIN", "cs_5_1", compileFlags, 0, &mcsByteCode, nullptr));
+	Utiles::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/blur.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "CS_HORZBLUR_MAIN", "cs_5_1", compileFlags, 0, &mcsByteCode, nullptr));
 
 	D3D12_COMPUTE_PIPELINE_STATE_DESC psoDesc{};
 	psoDesc.pRootSignature = rootSignature.Get();
 	psoDesc.CS = CD3DX12_SHADER_BYTECODE(mcsByteCode.Get());
 	psoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
-	DX::ThrowIfFailed(device->CreateComputePipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
+	Utiles::ThrowIfFailed(device->CreateComputePipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
 }
 
 VertBlurShader::VertBlurShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature)
@@ -562,13 +568,13 @@ VertBlurShader::VertBlurShader(const ComPtr<ID3D12Device>& device, const ComPtr<
 	UINT compileFlags = 0;
 #endif
 
-	DX::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/blur.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "CS_VERTBLUR_MAIN", "cs_5_1", compileFlags, 0, &mcsByteCode, nullptr));
+	Utiles::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/blur.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "CS_VERTBLUR_MAIN", "cs_5_1", compileFlags, 0, &mcsByteCode, nullptr));
 
 	D3D12_COMPUTE_PIPELINE_STATE_DESC psoDesc{};
 	psoDesc.pRootSignature = rootSignature.Get();
 	psoDesc.CS = CD3DX12_SHADER_BYTECODE(mcsByteCode.Get());
 	psoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
-	DX::ThrowIfFailed(device->CreateComputePipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
+	Utiles::ThrowIfFailed(device->CreateComputePipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
 }
 
 FadeShader::FadeShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature)
@@ -586,13 +592,13 @@ FadeShader::FadeShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12Ro
 	UINT compileFlags = 0;
 #endif
 
-	DX::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/fade.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "CS_FADE_MAIN", "cs_5_1", compileFlags, 0, &mcsByteCode, nullptr));
+	Utiles::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/fade.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "CS_FADE_MAIN", "cs_5_1", compileFlags, 0, &mcsByteCode, nullptr));
 
 	D3D12_COMPUTE_PIPELINE_STATE_DESC psoDesc{};
 	psoDesc.pRootSignature = rootSignature.Get();
 	psoDesc.CS = CD3DX12_SHADER_BYTECODE(mcsByteCode.Get());
 	psoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
-	DX::ThrowIfFailed(device->CreateComputePipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
+	Utiles::ThrowIfFailed(device->CreateComputePipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
 }
 
 SobelShader::SobelShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature)
@@ -610,13 +616,13 @@ SobelShader::SobelShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 	UINT compileFlags = 0;
 #endif
 
-	DX::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/sobel.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "CS_SOBEL_MAIN", "cs_5_1", compileFlags, 0, &mcsByteCode, nullptr));
+	Utiles::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/sobel.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "CS_SOBEL_MAIN", "cs_5_1", compileFlags, 0, &mcsByteCode, nullptr));
 
 	D3D12_COMPUTE_PIPELINE_STATE_DESC psoDesc{};
 	psoDesc.pRootSignature = rootSignature.Get();
 	psoDesc.CS = CD3DX12_SHADER_BYTECODE(mcsByteCode.Get());
 	psoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
-	DX::ThrowIfFailed(device->CreateComputePipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
+	Utiles::ThrowIfFailed(device->CreateComputePipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
 }
 
 CompositeShader::CompositeShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature)
@@ -635,8 +641,8 @@ CompositeShader::CompositeShader(const ComPtr<ID3D12Device>& device, const ComPt
 	UINT compileFlags = 0;
 #endif
 
-	DX::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/composite.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "VS_COMPOSITE_MAIN", "vs_5_1", compileFlags, 0, &mvsByteCode, nullptr));
-	DX::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/composite.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "PS_COMPOSITE_MAIN", "ps_5_1", compileFlags, 0, &mpsByteCode, nullptr));
+	Utiles::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/composite.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "VS_COMPOSITE_MAIN", "vs_5_1", compileFlags, 0, &mvsByteCode, nullptr));
+	Utiles::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/composite.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "PS_COMPOSITE_MAIN", "ps_5_1", compileFlags, 0, &mpsByteCode, nullptr));
 
 	CD3DX12_DEPTH_STENCIL_DESC depthStencilState{ D3D12_DEFAULT };
 	// Disable depth test.
@@ -659,7 +665,7 @@ CompositeShader::CompositeShader(const ComPtr<ID3D12Device>& device, const ComPt
 	psoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 	psoDesc.SampleDesc.Count = 1;
 	psoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
-	DX::ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
+	Utiles::ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
 }
 
 void CompositeShader::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const
@@ -691,9 +697,9 @@ TriggerEffectShader::TriggerEffectShader(const ComPtr<ID3D12Device>& device, con
 	UINT compileFlags = 0;
 #endif
 
-	DX::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/circle.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "VS_CIRCLE_MAIN", "vs_5_1", compileFlags, 0, &mvsByteCode, nullptr));
-	DX::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/circle.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "GS_CIRCLE_MAIN", "gs_5_1", compileFlags, 0, &mgsByteCode, nullptr));
-	DX::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/circle.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "PS_CIRCLE_MAIN", "ps_5_1", compileFlags, 0, &mpsByteCode, nullptr));
+	Utiles::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/circle.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "VS_CIRCLE_MAIN", "vs_5_1", compileFlags, 0, &mvsByteCode, nullptr));
+	Utiles::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/circle.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "GS_CIRCLE_MAIN", "gs_5_1", compileFlags, 0, &mgsByteCode, nullptr));
+	Utiles::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/circle.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "PS_CIRCLE_MAIN", "ps_5_1", compileFlags, 0, &mpsByteCode, nullptr));
 
 	m_inputLayout =
 	{
@@ -728,7 +734,7 @@ TriggerEffectShader::TriggerEffectShader(const ComPtr<ID3D12Device>& device, con
 	psoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 	psoDesc.SampleDesc.Count = 1;
 	psoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
-	DX::ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
+	Utiles::ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
 }
 
 EmitterParticleShader::EmitterParticleShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature)
@@ -749,10 +755,10 @@ EmitterParticleShader::EmitterParticleShader(const ComPtr<ID3D12Device>& device,
 	UINT compileFlags = 0;
 #endif
 
-	DX::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/particle.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "VS_EMITTERPARTICLE_MAIN", "vs_5_1", compileFlags, 0, &mvsByteCode, nullptr));
-	DX::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/particle.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "GS_EMITTERPARTICLE_DRAW", "gs_5_1", compileFlags, 0, &mgsdByteCode, nullptr));
-	DX::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/particle.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "GS_EMITTERPARTICLE_STREAMOUTPUT", "gs_5_1", compileFlags, 0, &mgssoByteCode, nullptr));
-	DX::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/particle.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "PS_EMITTERPARTICLE_MAIN", "ps_5_1", compileFlags, 0, &mpsByteCode, nullptr));
+	Utiles::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/particle.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "VS_EMITTERPARTICLE_MAIN", "vs_5_1", compileFlags, 0, &mvsByteCode, nullptr));
+	Utiles::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/particle.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "GS_EMITTERPARTICLE_DRAW", "gs_5_1", compileFlags, 0, &mgsdByteCode, nullptr));
+	Utiles::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/particle.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "GS_EMITTERPARTICLE_STREAMOUTPUT", "gs_5_1", compileFlags, 0, &mgssoByteCode, nullptr));
+	Utiles::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/particle.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "PS_EMITTERPARTICLE_MAIN", "ps_5_1", compileFlags, 0, &mpsByteCode, nullptr));
 
 	m_inputLayout =
 	{
@@ -802,7 +808,7 @@ EmitterParticleShader::EmitterParticleShader(const ComPtr<ID3D12Device>& device,
 	streamPsoDesc.RTVFormats[0] = DXGI_FORMAT_UNKNOWN;
 	streamPsoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 	streamPsoDesc.SampleDesc.Count = 1;
-	DX::ThrowIfFailed(device->CreateGraphicsPipelineState(&streamPsoDesc, IID_PPV_ARGS(&m_streamPipelineState)));
+	Utiles::ThrowIfFailed(device->CreateGraphicsPipelineState(&streamPsoDesc, IID_PPV_ARGS(&m_streamPipelineState)));
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc{};
 	psoDesc.InputLayout = { m_inputLayout.data(), (UINT)m_inputLayout.size() };
@@ -819,7 +825,7 @@ EmitterParticleShader::EmitterParticleShader(const ComPtr<ID3D12Device>& device,
 	psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 	psoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 	psoDesc.SampleDesc.Count = 1;
-	DX::ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
+	Utiles::ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
 }
 
 PumperParticleShader::PumperParticleShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature)
@@ -840,10 +846,10 @@ PumperParticleShader::PumperParticleShader(const ComPtr<ID3D12Device>& device, c
 	UINT compileFlags = 0;
 #endif
 
-	DX::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/particle.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "VS_PUMPERPARTICLE_MAIN", "vs_5_1", compileFlags, 0, &mvsByteCode, nullptr));
-	DX::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/particle.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "GS_PUMPERPARTICLE_DRAW", "gs_5_1", compileFlags, 0, &mgsdByteCode, nullptr));
-	DX::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/particle.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "GS_PUMPERPARTICLE_STREAMOUTPUT", "gs_5_1", compileFlags, 0, &mgssoByteCode, nullptr));
-	DX::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/particle.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "PS_PUMPERPARTICLE_MAIN", "ps_5_1", compileFlags, 0, &mpsByteCode, nullptr));
+	Utiles::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/particle.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "VS_PUMPERPARTICLE_MAIN", "vs_5_1", compileFlags, 0, &mvsByteCode, nullptr));
+	Utiles::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/particle.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "GS_PUMPERPARTICLE_DRAW", "gs_5_1", compileFlags, 0, &mgsdByteCode, nullptr));
+	Utiles::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/particle.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "GS_PUMPERPARTICLE_STREAMOUTPUT", "gs_5_1", compileFlags, 0, &mgssoByteCode, nullptr));
+	Utiles::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/particle.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "PS_PUMPERPARTICLE_MAIN", "ps_5_1", compileFlags, 0, &mpsByteCode, nullptr));
 
 	m_inputLayout =
 	{
@@ -891,7 +897,7 @@ PumperParticleShader::PumperParticleShader(const ComPtr<ID3D12Device>& device, c
 	streamPsoDesc.RTVFormats[0] = DXGI_FORMAT_UNKNOWN;
 	streamPsoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 	streamPsoDesc.SampleDesc.Count = 1;
-	DX::ThrowIfFailed(device->CreateGraphicsPipelineState(&streamPsoDesc, IID_PPV_ARGS(&m_streamPipelineState)));
+	Utiles::ThrowIfFailed(device->CreateGraphicsPipelineState(&streamPsoDesc, IID_PPV_ARGS(&m_streamPipelineState)));
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc{};
 	psoDesc.InputLayout = { m_inputLayout.data(), (UINT)m_inputLayout.size() };
@@ -908,7 +914,7 @@ PumperParticleShader::PumperParticleShader(const ComPtr<ID3D12Device>& device, c
 	psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 	psoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 	psoDesc.SampleDesc.Count = 1;
-	DX::ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
+	Utiles::ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
 }
 
 UIShader::UIShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature)
@@ -928,9 +934,9 @@ UIShader::UIShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSi
 	UINT compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
 #endif
 
-	DX::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/ui.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "VS_UI_MAIN", "vs_5_1", compileFlags, 0, &mvsByteCode, nullptr));
-	DX::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/ui.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "GS_UI_MAIN", "gs_5_1", compileFlags, 0, &mgsByteCode, nullptr));
-	DX::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/ui.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "PS_UI_MAIN", "ps_5_1", compileFlags, 0, &mpsByteCode, nullptr));
+	Utiles::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/ui.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "VS_UI_MAIN", "vs_5_1", compileFlags, 0, &mvsByteCode, nullptr));
+	Utiles::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/ui.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "GS_UI_MAIN", "gs_5_1", compileFlags, 0, &mgsByteCode, nullptr));
+	Utiles::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/ui.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "PS_UI_MAIN", "ps_5_1", compileFlags, 0, &mpsByteCode, nullptr));
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc{};
 	psoDesc.InputLayout = { m_inputLayout.data(), (UINT)m_inputLayout.size() };
@@ -959,7 +965,7 @@ UIShader::UIShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSi
 	psoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 	psoDesc.SampleDesc.Count = 1;
 	psoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
-	DX::ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
+	Utiles::ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
 }
 
 void UIShader::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const
@@ -975,4 +981,66 @@ void UIShader::Clear()
 {
 	Shader::Clear();
 	m_ui.clear();
+}
+
+DebugShader::DebugShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature)
+{
+	g_mutex.lock();
+	g_loadingText = L"DebugShader";
+	++g_loadingIndex;
+	g_mutex.unlock();
+
+	ComPtr<ID3DBlob> mvsByteCode;
+	ComPtr<ID3DBlob> mgsByteCode;
+	ComPtr<ID3DBlob> mpsByteCode;
+
+#if defined(_DEBUG)
+	UINT compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+#else
+	UINT compileFlags = 0;
+#endif
+
+	Utiles::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/debug.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "VS_DEBUG_MAIN", "vs_5_1", compileFlags, 0, &mvsByteCode, nullptr));
+	Utiles::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/debug.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "GS_DEBUG_MAIN", "gs_5_1", compileFlags, 0, &mgsByteCode, nullptr));
+	Utiles::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/debug.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "PS_DEBUG_MAIN", "ps_5_1", compileFlags, 0, &mpsByteCode, nullptr));
+
+	m_inputLayout =
+	{
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+		{ "SIZE", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+	};
+
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc{};
+	psoDesc.InputLayout = { m_inputLayout.data(), (UINT)m_inputLayout.size() };
+	psoDesc.pRootSignature = rootSignature.Get();
+	psoDesc.VS = CD3DX12_SHADER_BYTECODE(mvsByteCode.Get());
+	psoDesc.GS = CD3DX12_SHADER_BYTECODE(mgsByteCode.Get());
+	psoDesc.PS = CD3DX12_SHADER_BYTECODE(mpsByteCode.Get());
+	psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+
+	psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+	psoDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+
+	psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+	psoDesc.BlendState.AlphaToCoverageEnable = TRUE;
+	psoDesc.BlendState.IndependentBlendEnable = FALSE;
+	psoDesc.BlendState.RenderTarget[0].BlendEnable = TRUE;
+	psoDesc.BlendState.RenderTarget[0].LogicOpEnable = FALSE;
+	psoDesc.BlendState.RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA;
+	psoDesc.BlendState.RenderTarget[0].DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
+	psoDesc.BlendState.RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD;
+	psoDesc.BlendState.RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE;
+	psoDesc.BlendState.RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO;
+	psoDesc.BlendState.RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD;
+	psoDesc.BlendState.RenderTarget[0].LogicOp = D3D12_LOGIC_OP_NOOP;
+	psoDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+
+	psoDesc.SampleMask = UINT_MAX;
+	psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
+	psoDesc.NumRenderTargets = 1;
+	psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+	psoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	psoDesc.SampleDesc.Count = 1;
+	psoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
+	Utiles::ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
 }

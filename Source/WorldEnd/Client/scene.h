@@ -20,8 +20,8 @@
 
 struct SceneInfo
 {
-	XMFLOAT4X4			lightView;	// 뷰변환 행렬
-	XMFLOAT4X4			lightProj;	// 투영변환 행렬
+	XMFLOAT4X4			lightView[CASCADES_NUM];	// 뷰변환 행렬
+	XMFLOAT4X4			lightProj[CASCADES_NUM];	// 투영변환 행렬
 	XMFLOAT4X4			NDCspace;	// 카메라 위치
 };
 

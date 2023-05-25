@@ -10,7 +10,7 @@ Mesh::Mesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsComman
 	m_nVertices = (UINT)vertices.size();
 	const UINT vertexBufferSize = (UINT)sizeof(TextureVertex) * (UINT)vertices.size();
 
-	DX::ThrowIfFailed(device->CreateCommittedResource(
+	Utiles::ThrowIfFailed(device->CreateCommittedResource(
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 		D3D12_HEAP_FLAG_NONE,
 		&CD3DX12_RESOURCE_DESC::Buffer(vertexBufferSize),
@@ -18,7 +18,7 @@ Mesh::Mesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsComman
 		NULL,
 		IID_PPV_ARGS(&m_vertexBuffer)));
 
-	DX::ThrowIfFailed(device->CreateCommittedResource(
+	Utiles::ThrowIfFailed(device->CreateCommittedResource(
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
 		D3D12_HEAP_FLAG_NONE,
 		&CD3DX12_RESOURCE_DESC::Buffer(vertexBufferSize),
@@ -47,7 +47,7 @@ Mesh::Mesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsComman
 	if (m_nIndices) {
 		const UINT indexBufferSize = (UINT)sizeof(UINT) * (UINT)indices.size();
 
-		DX::ThrowIfFailed(device->CreateCommittedResource(
+		Utiles::ThrowIfFailed(device->CreateCommittedResource(
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 			D3D12_HEAP_FLAG_NONE,
 			&CD3DX12_RESOURCE_DESC::Buffer(indexBufferSize),
@@ -55,7 +55,7 @@ Mesh::Mesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsComman
 			NULL,
 			IID_PPV_ARGS(&m_indexBuffer)));
 
-		DX::ThrowIfFailed(device->CreateCommittedResource(
+		Utiles::ThrowIfFailed(device->CreateCommittedResource(
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
 			D3D12_HEAP_FLAG_NONE,
 			&CD3DX12_RESOURCE_DESC::Buffer(indexBufferSize),
@@ -619,7 +619,7 @@ void AnimationMesh::LoadAnimationMesh(const ComPtr<ID3D12Device>& device, const 
 	if (m_nIndices) {
 		const UINT indexBufferSize = (UINT)sizeof(UINT) * (UINT)indices.size();
 
-		DX::ThrowIfFailed(device->CreateCommittedResource(
+		Utiles::ThrowIfFailed(device->CreateCommittedResource(
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 			D3D12_HEAP_FLAG_NONE,
 			&CD3DX12_RESOURCE_DESC::Buffer(indexBufferSize),
@@ -627,7 +627,7 @@ void AnimationMesh::LoadAnimationMesh(const ComPtr<ID3D12Device>& device, const 
 			NULL,
 			IID_PPV_ARGS(&m_indexBuffer)));
 
-		DX::ThrowIfFailed(device->CreateCommittedResource(
+		Utiles::ThrowIfFailed(device->CreateCommittedResource(
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
 			D3D12_HEAP_FLAG_NONE,
 			&CD3DX12_RESOURCE_DESC::Buffer(indexBufferSize),

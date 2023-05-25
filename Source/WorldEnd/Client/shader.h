@@ -187,3 +187,10 @@ public:
 private:
 	vector<shared_ptr<UI>>	m_ui;
 };
+
+class DebugShader : public Shader
+{
+public:
+	DebugShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature);
+	~DebugShader() = default;
+};
