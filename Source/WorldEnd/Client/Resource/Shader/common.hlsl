@@ -42,11 +42,12 @@ cbuffer cbBoneTransforms : register(b4)
 
 #include "lighting.hlsl"
 
+#define CASCADES_NUM 3
 cbuffer cbScene : register(b6)
 {
-    matrix lightView : packoffset(c0);
-    matrix lightProj : packoffset(c4);
-    matrix NDCspace : packoffset(c8);
+    matrix lightView[CASCADES_NUM];
+    matrix lightProj[CASCADES_NUM];
+    matrix NDCspace;
 }
 
 cbuffer cbFramework : register(b7)
@@ -60,7 +61,7 @@ SamplerComparisonState g_samplerShadow : register(s1);
 Texture2D g_baseTexture : register(t0);
 Texture2D g_subTexture : register(t1);
 TextureCube g_skyboxTexture : register(t2);
-Texture2D g_shadowMap : register(t3);
+Texture2DArray g_shadowMap : register(t3);
 
 Texture2D g_albedoTexture : register(t4);
 Texture2D g_specularTexture : register(t5);
@@ -78,36 +79,51 @@ Texture2D g_detailNormalTexture : register(t10);
 #define MATERIAL_DETAIL_ALBEDO_MAP	0x20
 #define MATERIAL_DETAIL_NORMAL_MAP	0x40
 
+bool IsTextureRange(float4 position)
+{
+    return (position.x >= 0.f && position.x <= 1.f & position.y >= 0.f && position.y <= 1.f);
+}
 
+#define CASCADEMAP_BIAS 0.003
 float CalcShadowFactor(float4 shadowPosH)
 {
-    // Complete projection by doing division by w.
-    shadowPosH.xyz /= shadowPosH.w;
+    uint width, height, elements, numMips;
+    g_shadowMap.GetDimensions(0, width, height, elements, numMips);
 
-    // Depth in NDC space.
-    float depth = shadowPosH.z;
+    for (int cascade = 0; cascade < CASCADES_NUM; ++cascade) {
+        float4 shadowPos = mul(shadowPosH, lightView[cascade]);
+        shadowPos = mul(shadowPos, lightProj[cascade]);
 
+        // Complete projection by doing division by w.
+        shadowPos.xyz /= shadowPos.w;
 
-    uint width, height, numMips;
-    g_shadowMap.GetDimensions(0, width, height, numMips);
+        shadowPos = mul(shadowPos, NDCspace);
 
-    // Texel size.
-    float dx = 1.0f / (float)width;
+        if (!IsTextureRange(shadowPos)) continue;
 
-    float percentLit = 0.f;
-    const float2 offsets[9] =
-    {
-        float2(-dx,  -dx), float2(0.0f,  -dx), float2(dx,  -dx),
-        float2(-dx, 0.0f), float2(0.0f, 0.0f), float2(dx, 0.0f),
-        float2(-dx,  +dx), float2(0.0f,  +dx), float2(dx,  +dx)
-    };
+        // Depth in NDC space.
+        float depth = shadowPos.z - CASCADEMAP_BIAS;
+        if (depth < 0.f || depth > 1.f) continue;
 
-    [unroll]
-    for (int i = 0; i < 9; ++i)
-    {
-        percentLit += g_shadowMap.SampleCmpLevelZero(g_samplerShadow,
-            shadowPosH.xy + offsets[i], depth).r;
+        // Texel size.
+        float dx = 1.0f / (float)width;
+
+        float percentLit = 0.f;
+        const float2 offsets[9] =
+        {
+            float2(-dx,  -dx), float2(0.0f,  -dx), float2(dx,  -dx),
+            float2(-dx, 0.0f), float2(0.0f, 0.0f), float2(dx, 0.0f),
+            float2(-dx,  +dx), float2(0.0f,  +dx), float2(dx,  +dx)
+        };
+
+        [unroll]
+        for (int i = 0; i < 9; ++i)
+        {
+            percentLit += g_shadowMap.SampleCmpLevelZero(g_samplerShadow,
+                float3(shadowPos.xy + offsets[i], cascade), depth).r;
+        }
+   
+        return percentLit / 9.0f;
     }
-
-    return percentLit / 9.0f;
+    return 1.f;
 }

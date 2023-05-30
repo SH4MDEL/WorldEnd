@@ -16,7 +16,7 @@ public:
 
 	ComPtr<ID3D12DescriptorHeap> GetSrvDescriptorHeap() const { return m_srvDescriptorHeap; }
 
-	bool LoadTextureFileHierarchy(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, ifstream& in, UINT rootParameterIndex);
+	bool LoadTextureFileHierarchy(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, const wstring& textureName, UINT rootParameterIndex);
 
 private:
 	UINT m_cbvsrvDescriptorSize;

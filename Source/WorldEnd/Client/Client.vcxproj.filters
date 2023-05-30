@@ -189,6 +189,9 @@
     <ClInclude Include="instancingShader.h">
       <Filter>헤더 파일\Shader</Filter>
     </ClInclude>
+    <ClInclude Include="villageScene.h">
+      <Filter>헤더 파일\Scene\GameScene</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Client.cpp">
@@ -286,6 +289,9 @@
     </ClCompile>
     <ClCompile Include="instancingShader.cpp">
       <Filter>소스 파일\Shader</Filter>
+    </ClCompile>
+    <ClCompile Include="villageScene.cpp">
+      <Filter>소스 파일\Scene\GameScene</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

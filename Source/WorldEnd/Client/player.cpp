@@ -23,6 +23,13 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 	if (ObjectAnimation::DEATH == m_currentAnimation)
 		return;
 
+	if (GetAsyncKeyState('1') & 0x8000) {
+		SetPosition(Vector3::Add(GetPosition(), { 0.f, 0.1f, 0.f }));
+	}
+	if (GetAsyncKeyState('2') & 0x8000) {
+		SetPosition(Vector3::Add(GetPosition(), { 0.f, -0.1f, 0.f }));
+	}
+
 	if (GetAsyncKeyState('Q') & 0x8000) {
 		if (!m_cooldownList[ActionType::ULTIMATE]) {
 			m_ultimateCool = 0.f;
@@ -400,7 +407,8 @@ void Player::Update(FLOAT timeElapsed)
 //#ifndef USE_NETWORK
 	Move(m_velocity);
 //#endif // !USE_NETWORK
-	MoveOnStairs();
+
+	//MoveOnStairs();
 
 	ApplyFriction(timeElapsed);
 }
@@ -717,7 +725,7 @@ ArrowRain::ArrowRain() : m_enable{ false }, m_age{ 0.f },
 		arrow.first->SetMaterials("Archer_WeaponArrow");
 		arrow.first->Rotate(0.f, 90.f, 0.f);
 		arrow.first->SetEnable();
-		arrow.second = DX::GetRandomFLOAT(0.f, ARROW_LIFECYCLE);
+		arrow.second = Utiles::GetRandomFLOAT(0.f, ARROW_LIFECYCLE);
 	}
 	m_magicCircle = make_unique<GameObject>();
 	m_magicCircle->SetMesh("MAGICCIRCLE");
@@ -776,9 +784,9 @@ void ArrowRain::SetPosition(const XMFLOAT3& position)
 
 	for (auto& arrow : m_arrows) {
 		arrow.first->SetPosition(Vector3::Add(position, {
-			DX::GetRandomFLOAT(-extent.x, extent.x),
+			Utiles::GetRandomFLOAT(-extent.x, extent.x),
 			MAX_ARROW_HEIGHT - (MAX_ARROW_HEIGHT * arrow.second / ARROW_LIFECYCLE), 
-			DX::GetRandomFLOAT(-extent.z, extent.z) }));
+			Utiles::GetRandomFLOAT(-extent.z, extent.z) }));
 	}
 	m_magicCircle->SetPosition(position);
 }

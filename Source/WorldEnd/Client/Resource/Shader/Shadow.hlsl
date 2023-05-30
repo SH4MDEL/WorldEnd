@@ -14,15 +14,37 @@ struct VS_SHADOW_OUTPUT
 	float4 position : SV_POSITION;
 };
 
+struct GS_SHADOW_OUTPUT
+{
+	float4 position : SV_POSITION;
+	uint index : SV_RenderTargetArrayIndex;
+};
+
 VS_SHADOW_OUTPUT VS_SHADOW_MAIN(VS_SHADOW_INPUT input)
 {
 	VS_SHADOW_OUTPUT output;
 
 	output.position = mul(float4(input.position, 1.0f), worldMatrix);
-	output.position = mul(output.position, lightView);
-	output.position = mul(output.position, lightProj);
+	//output.position = mul(output.position, lightView);
+	//output.position = mul(output.position, lightProj);
 
 	return output;
+}
+
+[maxvertexcount(3 * CASCADES_NUM)]
+void GS_SHADOW_MAIN(triangle VS_SHADOW_OUTPUT input[3], inout TriangleStream<GS_SHADOW_OUTPUT> outStream)
+{
+	for (int i = 0; i < CASCADES_NUM; ++i) {
+		GS_SHADOW_OUTPUT output;
+		output.index = i;
+		for (int j = 0; j < 3; ++j) {
+			output.position = mul(input[j].position, lightView[i]);
+			output.position = mul(output.position, lightProj[i]);
+
+			outStream.Append(output);
+		}
+		outStream.RestartStrip();
+	}
 }
 
 // 이 픽셀 셰이더는 알파 값 기반 투명 패턴이 적용되는 기하구조에만
@@ -60,6 +82,12 @@ struct VS_ANIMATION_SHADOW_OUTPUT
 	float4 position : SV_POSITION;
 };
 
+struct GS_ANIMATION_SHADOW_OUTPUT
+{
+	float4 position : SV_POSITION;
+	uint index : SV_RenderTargetArrayIndex;
+};
+
 VS_ANIMATION_SHADOW_OUTPUT VS_ANIMATION_SHADOW_MAIN(VS_ANIMATION_SHADOW_INPUT input)
 {
 	VS_ANIMATION_SHADOW_OUTPUT output;
@@ -72,15 +100,31 @@ VS_ANIMATION_SHADOW_OUTPUT VS_ANIMATION_SHADOW_MAIN(VS_ANIMATION_SHADOW_INPUT in
 		}
 
 		output.position = mul(mul(float4(input.position, 1.0f), mat), worldMatrix);
-		output.position = mul(output.position, lightView);
-		output.position = mul(output.position, lightProj);
+		//output.position = mul(output.position, lightView);
+		//output.position = mul(output.position, lightProj);
 	}
 	else {
 		mat = boneTransforms[0];
 		output.position = mul(mul(float4(input.position, 1.0f), mat), worldMatrix);
-		output.position = mul(output.position, lightView);
-		output.position = mul(output.position, lightProj);
+		//output.position = mul(output.position, lightView);
+		//output.position = mul(output.position, lightProj);
 	}
 
 	return output;
+}
+
+[maxvertexcount(3 * CASCADES_NUM)]
+void GS_ANIMATION_SHADOW_MAIN(triangle VS_ANIMATION_SHADOW_OUTPUT input[3], inout TriangleStream<GS_ANIMATION_SHADOW_OUTPUT> outStream)
+{
+	for (int i = 0; i < CASCADES_NUM; ++i) {
+		GS_ANIMATION_SHADOW_OUTPUT output;
+		output.index = i;
+		for (int j = 0; j < 3; ++j) {
+			output.position = mul(input[j].position, lightView[i]);
+			output.position = mul(output.position, lightProj[i]);
+
+			outStream.Append(output);
+		}
+		outStream.RestartStrip();
+	}
 }

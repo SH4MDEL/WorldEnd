@@ -25,8 +25,8 @@ void TowerLoadingScene::OnCreate(const ComPtr<ID3D12Device>& device,
 	m_loadingText->SetColorBrush("SKYBLUE");
 	m_loadingText->SetTextFormat("KOPUB24");
 
-	DX::ThrowIfFailed(device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_threadCommandAllocator)));
-	DX::ThrowIfFailed(device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_threadCommandAllocator.Get(), nullptr, IID_PPV_ARGS(&m_threadCommandList)));
+	Utiles::ThrowIfFailed(device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_threadCommandAllocator)));
+	Utiles::ThrowIfFailed(device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_threadCommandAllocator.Get(), nullptr, IID_PPV_ARGS(&m_threadCommandList)));
 
 	m_loadingThread = thread{ &TowerLoadingScene::BuildObjects, this, device, m_threadCommandList, rootSignature, postRootSignature };
 	m_loadingThread.detach();
@@ -92,12 +92,13 @@ void TowerLoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const C
 	auto magicCircleMesh{ make_shared<PlaneMesh>(device, commandlist, XMFLOAT3{ 0.f, 0.f, 0.f }, XMFLOAT2{ magicCircleExtent.x * 2, magicCircleExtent.z * 2 }) };
 	auto monsterMagicCircleExtent = TriggerSetting::EXTENT[static_cast<INT>(TriggerType::UNDEAD_GRASP)];
 	auto monsterMagicCircleMesh{ make_shared<PlaneMesh>(device, commandlist, XMFLOAT3{ 0.f, 0.f, 0.f }, XMFLOAT2{ monsterMagicCircleExtent.x * 2, monsterMagicCircleExtent.z * 2 }) };
-
+	auto debugMesh{ make_shared<PlaneMesh>(device, commandlist, XMFLOAT3{ 0.f, 0.f, 0.f }, XMFLOAT2{ 0.3f, 0.5f }) };
 
 	m_meshs.insert({ "SKYBOX", skyboxMesh });
 	m_meshs.insert({ "HPBAR", hpBarMesh });
 	m_meshs.insert({ "MAGICCIRCLE", magicCircleMesh });
 	m_meshs.insert({ "MONSTERMAGICCIRCLE", monsterMagicCircleMesh });
+	m_meshs.insert({ "DEBUG", debugMesh });
 
 	// 텍스처 로딩
 	auto hpBarTexture{ make_shared<Texture>() };
@@ -107,7 +108,7 @@ void TowerLoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const C
 	hpBarTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
 
 	auto skyboxTexture{ make_shared<Texture>() };
-	skyboxTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/SkyBox.dds"), (INT)ShaderRegister::SkyboxTexture);	// Skybox
+	skyboxTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/Skybox/TowerSkyBox.dds"), (INT)ShaderRegister::SkyboxTexture);	// Skybox
 	skyboxTexture->CreateSrvDescriptorHeap(device);
 	skyboxTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURECUBE);
 
@@ -164,7 +165,6 @@ void TowerLoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const C
 	LoadAnimationSetFromFile(TEXT("./Resource/Animation/Undead_WarriorAnimation.bin"), "Undead_WarriorAnimation");
 	LoadAnimationSetFromFile(TEXT("./Resource/Animation/Undead_ArcherAnimation.bin"), "Undead_ArcherAnimation");
 	LoadAnimationSetFromFile(TEXT("./Resource/Animation/Undead_WizardAnimation.bin"), "Undead_WizardAnimation");
-
 
 	commandlist->Close();
 	ID3D12CommandList* ppCommandList[]{ commandlist.Get() };
@@ -294,7 +294,7 @@ void TowerLoadingScene::LoadMaterialFromFile(const ComPtr<ID3D12Device>& device,
 			materials->m_materialName.resize(strLength);
 			in.read((&materials->m_materialName[0]), sizeof(char) * strLength);
 
-			materials->LoadMaterials(device, commandList, in);
+			materials->LoadMaterials(device, commandList, in, false);
 			
 			m_materials.insert({ materials->m_materialName, materials });
 			m_materials.insert({ "@" + materials->m_materialName, materials});

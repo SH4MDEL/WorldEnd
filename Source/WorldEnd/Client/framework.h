@@ -7,6 +7,7 @@
 #include "globalLoadingScene.h"
 #include "villageLoadingScene.h"
 #include "loginScene.h"
+#include "villageScene.h"
 #include "towerLoadingScene.h"
 #include "towerScene.h"
 

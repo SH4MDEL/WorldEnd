@@ -11,7 +11,7 @@
 #define WIN32_LEAN_AND_MEAN             // 거의 사용되지 않는 내용을 Windows 헤더에서 제외합니다.
 #define NOMINMAX
 
-#define USE_NETWORK
+//#define USE_NETWORK
 
 // Windows 헤더 파일
 #include <Windows.h>
@@ -96,6 +96,7 @@ constexpr int COMMANDLIST_POST = 2;
 constexpr int COMMANDLIST_END = 3;
 
 constexpr int THREAD_NUM = 3;
+constexpr int CASCADES_NUM = 3;
 
 enum class ShaderRegister : INT { 
     GameObject, 
@@ -151,7 +152,7 @@ enum class PostDescriptorRange : INT {
     Count
 };
 
-namespace DX
+namespace Utiles
 {
     inline void ThrowIfFailed(HRESULT hr)
     {
@@ -216,6 +217,12 @@ namespace Vector3
         XMVECTOR v{ XMVector3Length(XMLoadFloat3(&a)) };
         XMStoreFloat3(&result, v);
         return result.x;
+    }
+    inline XMFLOAT3 TransformCoord(const XMFLOAT3& a, const XMFLOAT4X4& b)
+    {
+        XMFLOAT3 result;
+        XMStoreFloat3(&result, XMVector3TransformCoord(XMLoadFloat3(&a), XMLoadFloat4x4(&b)));
+        return result;
     }
 }
 
@@ -333,6 +340,25 @@ namespace Matrix
 
 ComPtr<ID3D12Resource> CreateBufferResource(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList,
     const void* data, UINT byte, D3D12_HEAP_TYPE heapType, D3D12_RESOURCE_STATES resourceState, ComPtr<ID3D12Resource>& uploadBuffer);
+
+ostream& operator<<(ostream& os, const XMFLOAT3& data)
+{
+    os << "(" << data.x << ", " << data.y << ", " << data.z << ")\n";
+    return os;
+}
+ostream& operator<<(ostream& os, const XMFLOAT4& data)
+{
+    os << "(" << data.x << ", " << data.y << ", " << data.z << ", " << data.w << ")\n";
+    return os;
+}
+ostream& operator<<(ostream& os, const XMFLOAT4X4& data)
+{
+    os << "|" << data._11 << ", " << data._12 << ", " << data._13 << ", " << data._14 << "|\n";
+    os << "|" << data._21 << ", " << data._22 << ", " << data._23 << ", " << data._24 << "|\n";
+    os << "|" << data._31 << ", " << data._32 << ", " << data._33 << ", " << data._34 << "|\n";
+    os << "|" << data._41 << ", " << data._42 << ", " << data._43 << ", " << data._44 << "|\n";
+    return os;
+}
 
 // 서버 관련
 

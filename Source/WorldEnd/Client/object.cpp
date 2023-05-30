@@ -47,7 +47,7 @@ void GameObject::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, co
 	GameObject::UpdateShaderVariable(commandList);
 
 	if (m_materials) {
-		for (size_t i = 0; const auto & material : m_materials->m_materials) {
+		for (size_t i = 0; const auto& material : m_materials->m_materials) {
 			material.UpdateShaderVariable(commandList);
 			m_mesh->Render(commandList, i, instanceBufferView);
 			++i;
@@ -65,7 +65,7 @@ void GameObject::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, Ga
 {
 	if (m_texture) { m_texture->UpdateShaderVariable(commandList); }
 	if (m_materials) {
-		for (size_t i = 0; const auto & material : m_materials->m_materials) {
+		for (size_t i = 0; const auto& material : m_materials->m_materials) {
 			material.UpdateShaderVariable(commandList);
 			m_mesh->Render(commandList, i, rootObject, this);
 			++i;

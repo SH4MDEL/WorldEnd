@@ -18,8 +18,8 @@ InstancingShader::InstancingShader(const ComPtr<ID3D12Device>& device, const Com
 	UINT compileFlags = 0;
 #endif
 
-	DX::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/instance.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "VS_INSTANCE_MAIN", "vs_5_1", compileFlags, 0, &mvsByteCode, nullptr));
-	DX::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/instance.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "PS_INSTANCE_MAIN", "ps_5_1", compileFlags, 0, &mpsByteCode, nullptr));
+	Utiles::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/instance.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "VS_INSTANCE_MAIN", "vs_5_1", compileFlags, 0, &mvsByteCode, nullptr));
+	Utiles::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/instance.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "PS_INSTANCE_MAIN", "ps_5_1", compileFlags, 0, &mpsByteCode, nullptr));
 
 	m_inputLayout =
 	{
@@ -46,7 +46,7 @@ InstancingShader::InstancingShader(const ComPtr<ID3D12Device>& device, const Com
 	psoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 	psoDesc.SampleDesc.Count = 1;
 	psoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
-	DX::ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
+	Utiles::ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
 
 	CreateShaderVariable(device);
 }
@@ -76,7 +76,7 @@ void InstancingShader::Clear()
 
 void InstancingShader::CreateShaderVariable(const ComPtr<ID3D12Device>& device)
 {
-	DX::ThrowIfFailed(device->CreateCommittedResource(
+	Utiles::ThrowIfFailed(device->CreateCommittedResource(
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
 		D3D12_HEAP_FLAG_NONE,
 		&CD3DX12_RESOURCE_DESC::Buffer(sizeof(InstancingData) * m_instancingCount),
@@ -121,8 +121,8 @@ ArrowInstance::ArrowInstance(const ComPtr<ID3D12Device>& device, const ComPtr<ID
 	UINT compileFlags = 0;
 #endif
 
-	DX::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/arrowInstance.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "VS_ARROW_INSTANCE_MAIN", "vs_5_1", compileFlags, 0, &mvsByteCode, nullptr));
-	DX::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/arrowInstance.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "PS_ARROW_INSTANCE_MAIN", "ps_5_1", compileFlags, 0, &mpsByteCode, nullptr));
+	Utiles::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/arrowInstance.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "VS_ARROW_INSTANCE_MAIN", "vs_5_1", compileFlags, 0, &mvsByteCode, nullptr));
+	Utiles::ThrowIfFailed(D3DCompileFromFile(TEXT("Resource/Shader/arrowInstance.hlsl"), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "PS_ARROW_INSTANCE_MAIN", "ps_5_1", compileFlags, 0, &mpsByteCode, nullptr));
 
 	m_inputLayout =
 	{
@@ -152,7 +152,7 @@ ArrowInstance::ArrowInstance(const ComPtr<ID3D12Device>& device, const ComPtr<ID
 	psoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 	psoDesc.SampleDesc.Count = 1;
 	psoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
-	DX::ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
+	Utiles::ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
 
 	CreateShaderVariable(device);
 }

@@ -9,14 +9,14 @@ void Texture::LoadTextureFile(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	unique_ptr<uint8_t[]> ddsData;
 	vector<D3D12_SUBRESOURCE_DATA> subresources;
 	DDS_ALPHA_MODE ddsAlphaMode{ DDS_ALPHA_MODE_UNKNOWN };
-	DX::ThrowIfFailed(DirectX::LoadDDSTextureFromFileEx(device.Get(), fileName.c_str(), 0,
+	Utiles::ThrowIfFailed(DirectX::LoadDDSTextureFromFileEx(device.Get(), fileName.c_str(), 0,
 		D3D12_RESOURCE_FLAG_NONE, DDS_LOADER_DEFAULT, &textureBuffer, ddsData, subresources, &ddsAlphaMode));
 
 	UINT nSubresources{ (UINT)subresources.size() };
 	const UINT64 nBytes{ GetRequiredIntermediateSize(textureBuffer.Get(), 0, nSubresources) };
 
 	// Create the GPU upload buffer.
-	DX::ThrowIfFailed(device->CreateCommittedResource(
+	Utiles::ThrowIfFailed(device->CreateCommittedResource(
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
 		D3D12_HEAP_FLAG_NONE,
 		&CD3DX12_RESOURCE_DESC::Buffer(nBytes),
@@ -40,7 +40,7 @@ void Texture::CreateSrvDescriptorHeap(const ComPtr<ID3D12Device>& device)
 	srvHeapDesc.NumDescriptors = (UINT)m_textures.size();
 	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-	DX::ThrowIfFailed(device->CreateDescriptorHeap(
+	Utiles::ThrowIfFailed(device->CreateDescriptorHeap(
 		&srvHeapDesc, IID_PPV_ARGS(&m_srvDescriptorHeap)));
 }
 
@@ -98,25 +98,15 @@ void Texture::ReleaseUploadBuffer()
 	}
 }
 
-bool Texture::LoadTextureFileHierarchy(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, ifstream& in, UINT rootParameterIndex)
+bool Texture::LoadTextureFileHierarchy(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, const wstring& textureName, UINT rootParameterIndex)
 {
-	BYTE strLength;
-	in.read((char*)(&strLength), sizeof(BYTE));
-	string strToken(strLength, '\0');
-	in.read((&strToken[0]), sizeof(char) * strLength);
-
-	if (strToken != "null") {
-		wstring wstrToken = L"";
-		wstrToken.assign(strToken.begin(), strToken.end());
-		wstring strPath = L"./Resource/Texture/" + wstrToken + L".dds";
-		if (strToken[0] != '@') {
-			LoadTextureFile(device, commandList, strPath, rootParameterIndex);
-		}
-		else {
-			strPath.erase(find(strPath.begin(), strPath.end(), '@'));
-			LoadTextureFile(device, commandList, strPath, rootParameterIndex);
-		}
-		return true;
+	wstring strPath = L"./Resource/Texture/" + textureName + L".dds";
+	if (textureName[0] != '@') {
+		LoadTextureFile(device, commandList, strPath, rootParameterIndex);
 	}
-	return false;
+	else {
+		strPath.erase(find(strPath.begin(), strPath.end(), '@'));
+		LoadTextureFile(device, commandList, strPath, rootParameterIndex);
+	}
+	return true;
 }

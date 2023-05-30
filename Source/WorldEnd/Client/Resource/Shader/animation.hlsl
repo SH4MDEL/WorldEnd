@@ -41,9 +41,7 @@ VS_ANIMATION_OUTPUT VS_ANIMATION_MAIN(VS_ANIMATION_INPUT input)
 		output.positionW = output.position.xyz;
 		output.position = mul(output.position, viewMatrix);
 		output.position = mul(output.position, projMatrix);
-		output.shadowPosition = mul(float4(output.positionW, 1.0f), lightView);
-		output.shadowPosition = mul(output.shadowPosition, lightProj);
-		output.shadowPosition = mul(output.shadowPosition, NDCspace);
+		output.shadowPosition = float4(output.positionW, 1.0f);
 		output.normal = mul(mul(input.normal, (float3x3)mat), (float3x3)worldMatrix);
 		output.tangent = mul(mul(input.tangent, (float3x3)mat), (float3x3)worldMatrix);
 		output.biTangent = mul(mul(input.biTangent, (float3x3)mat), (float3x3)worldMatrix);
@@ -57,15 +55,12 @@ VS_ANIMATION_OUTPUT VS_ANIMATION_MAIN(VS_ANIMATION_INPUT input)
 		output.positionW = output.position.xyz;
 		output.position = mul(output.position, viewMatrix);
 		output.position = mul(output.position, projMatrix);
-		output.shadowPosition = mul(float4(output.positionW, 1.0f), lightView);
-		output.shadowPosition = mul(output.shadowPosition, lightProj);
-		output.shadowPosition = mul(output.shadowPosition, NDCspace);
+		output.shadowPosition = float4(output.positionW, 1.0f);
 		output.normal = mul(mul(input.normal, (float3x3)mat), (float3x3)worldMatrix);
 		output.tangent = mul(mul(input.tangent, (float3x3)mat), (float3x3)worldMatrix);
 		output.biTangent = mul(mul(input.biTangent, (float3x3)mat), (float3x3)worldMatrix);
 		output.uv = input.uv;
 	}
-
 	return output;
 }
 
@@ -94,7 +89,7 @@ float4 PS_ANIMATION_MAIN(VS_ANIMATION_OUTPUT input) : SV_TARGET
 	//float3 vNormal = normalize(normal * 2.0f - 1.0f); //[0, 1] ¡æ [-1, 1]
 	//normal = normalize(mul(vNormal, TBN));
 	float shadowFactor = CalcShadowFactor(input.shadowPosition);
-	shadowFactor = 0.5f;
+	//float shadowFactor = 0.5f;
 	float4 light = Lighting(input.positionW, normal, material, shadowFactor);
 	color = lerp(color, light, 0.5);
 	return color;
