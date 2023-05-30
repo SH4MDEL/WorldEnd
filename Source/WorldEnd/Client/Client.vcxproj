@@ -180,6 +180,7 @@
     <ClInclude Include="timer.h" />
     <ClInclude Include="ui.h" />
     <ClInclude Include="villageLoadingScene.h" />
+    <ClInclude Include="villageScene.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="blurFilter.cpp" />
@@ -214,6 +215,7 @@
     <ClCompile Include="timer.cpp" />
     <ClCompile Include="ui.cpp" />
     <ClCompile Include="villageLoadingScene.cpp" />
+    <ClCompile Include="villageScene.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Client.rc" />

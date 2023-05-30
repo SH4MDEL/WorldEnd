@@ -98,25 +98,15 @@ void Texture::ReleaseUploadBuffer()
 	}
 }
 
-bool Texture::LoadTextureFileHierarchy(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, ifstream& in, UINT rootParameterIndex)
+bool Texture::LoadTextureFileHierarchy(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, const wstring& textureName, UINT rootParameterIndex)
 {
-	BYTE strLength;
-	in.read((char*)(&strLength), sizeof(BYTE));
-	string strToken(strLength, '\0');
-	in.read((&strToken[0]), sizeof(char) * strLength);
-
-	if (strToken != "null") {
-		wstring wstrToken = L"";
-		wstrToken.assign(strToken.begin(), strToken.end());
-		wstring strPath = L"./Resource/Texture/" + wstrToken + L".dds";
-		if (strToken[0] != '@') {
-			LoadTextureFile(device, commandList, strPath, rootParameterIndex);
-		}
-		else {
-			strPath.erase(find(strPath.begin(), strPath.end(), '@'));
-			LoadTextureFile(device, commandList, strPath, rootParameterIndex);
-		}
-		return true;
+	wstring strPath = L"./Resource/Texture/" + textureName + L".dds";
+	if (textureName[0] != '@') {
+		LoadTextureFile(device, commandList, strPath, rootParameterIndex);
 	}
-	return false;
+	else {
+		strPath.erase(find(strPath.begin(), strPath.end(), '@'));
+		LoadTextureFile(device, commandList, strPath, rootParameterIndex);
+	}
+	return true;
 }

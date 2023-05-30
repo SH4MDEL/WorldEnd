@@ -68,7 +68,7 @@ struct Material
 
 struct Materials 
 {
-	void LoadMaterials(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, ifstream& in);
+	void LoadMaterials(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, ifstream& in, BOOL IsGlobal);
 	void ReleaseUploadBuffer();
 
 	string					m_materialName;

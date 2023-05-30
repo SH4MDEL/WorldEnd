@@ -108,7 +108,7 @@ void TowerLoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const C
 	hpBarTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
 
 	auto skyboxTexture{ make_shared<Texture>() };
-	skyboxTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/SkyBox.dds"), (INT)ShaderRegister::SkyboxTexture);	// Skybox
+	skyboxTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/Skybox/TowerSkyBox.dds"), (INT)ShaderRegister::SkyboxTexture);	// Skybox
 	skyboxTexture->CreateSrvDescriptorHeap(device);
 	skyboxTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURECUBE);
 
@@ -165,7 +165,6 @@ void TowerLoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const C
 	LoadAnimationSetFromFile(TEXT("./Resource/Animation/Undead_WarriorAnimation.bin"), "Undead_WarriorAnimation");
 	LoadAnimationSetFromFile(TEXT("./Resource/Animation/Undead_ArcherAnimation.bin"), "Undead_ArcherAnimation");
 	LoadAnimationSetFromFile(TEXT("./Resource/Animation/Undead_WizardAnimation.bin"), "Undead_WizardAnimation");
-
 
 	commandlist->Close();
 	ID3D12CommandList* ppCommandList[]{ commandlist.Get() };
@@ -295,7 +294,7 @@ void TowerLoadingScene::LoadMaterialFromFile(const ComPtr<ID3D12Device>& device,
 			materials->m_materialName.resize(strLength);
 			in.read((&materials->m_materialName[0]), sizeof(char) * strLength);
 
-			materials->LoadMaterials(device, commandList, in);
+			materials->LoadMaterials(device, commandList, in, false);
 			
 			m_materials.insert({ materials->m_materialName, materials });
 			m_materials.insert({ "@" + materials->m_materialName, materials});

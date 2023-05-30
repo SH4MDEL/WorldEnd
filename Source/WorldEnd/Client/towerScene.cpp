@@ -212,9 +212,9 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	m_fadeFilter = make_unique<FadeFilter>(device, windowWidth, windowHeight);
 	m_sobelFilter = make_unique<SobelFilter>(device, windowWidth, windowHeight, postRootSignature);
 
-	auto debugObject = make_shared<GameObject>();
-	debugObject->SetMesh("DEBUG");
-	m_globalShaders["DEBUG"]->SetObject(debugObject);
+	//auto debugObject = make_shared<GameObject>();
+	//debugObject->SetMesh("DEBUG");
+	//m_globalShaders["DEBUG"]->SetObject(debugObject);
 
 	// 조명 생성
 	BuildLight(device, commandlist);
@@ -601,238 +601,6 @@ void TowerScene::UpdateLightSystem(FLOAT timeElapsed)
 			}
 		}();
 	}
-}
-
-void TowerScene::LoadMap()
-{
-	std::unordered_map<std::string, BoundingOrientedBox> bounding_box_data;
-
-	std::ifstream in{ "./Resource/GameRoom/GameRoomObject.bin", std::ios::binary };
-
-	BYTE strLength{};
-	std::string objectName;
-	BoundingOrientedBox bounding_box{};
-
-	while (in.read((char*)(&strLength), sizeof(BYTE))) {
-		objectName.resize(strLength, '\0');
-		in.read((char*)(&objectName[0]), strLength);
-
-		in.read((char*)(&bounding_box.Extents), sizeof(XMFLOAT3));
-
-		bounding_box_data.insert({ objectName, bounding_box });
-	}
-	in.close();
-
-
-	in.open("./Resource/GameRoom/GameRoomMap.bin", std::ios::binary);
-
-	XMFLOAT3 position{};
-	FLOAT yaw{};
-
-	while (in.read((char*)(&strLength), sizeof(BYTE))) {
-		objectName.resize(strLength, '\0');
-		in.read(&objectName[0], strLength);
-
-		in.read((char*)(&position), sizeof(XMFLOAT3));
-		in.read((char*)(&yaw), sizeof(FLOAT));
-		// 라디안 값
-
-		if (!bounding_box_data.contains(objectName))
-			continue;
-
-		auto object = std::make_shared<GameObject>();
-		object->SetPosition(position);
-		//object->SetYaw(XMConvertToDegrees(yaw));
-		object->Rotate(0, 0, yaw);
-
-		XMVECTOR vec = XMQuaternionRotationRollPitchYaw(0.f, yaw, 0.f);
-		XMFLOAT4 q{};
-		XMStoreFloat4(&q, vec);
-
-		bounding_box = bounding_box_data[objectName];
-		bounding_box.Center = position;
-		bounding_box.Orientation = XMFLOAT4{ q.x, q.y, q.z, q.w };
-
-		object->SetBoundingBox(bounding_box);
-
-		if (objectName == "Invisible_Wall")
-			m_invisibleWalls.push_back(object);
-		else
-			m_structures.push_back(object);
-	}
-}
-
-void TowerScene::CollideWithMap()
-{
-	auto& player_obb = m_player->GetBoundingBox();
-
-	for (const auto& obj : m_structures) {
-		auto& obb = obj->GetBoundingBox();
-		if (player_obb.Intersects(obb)) {
-			CollideByStaticOBB(m_player, obj);
-		}
-	}
-
-	auto& v = m_globalShaders["OBJECT"]->GetObjects();
-	if (!m_monsters.empty() && 
-		find(v.begin(), v.end(), m_gate) == v.end())
-	{
-		for (const auto& obj : m_invisibleWalls) {
-			auto& obb = obj->GetBoundingBox();
-			if (player_obb.Intersects(obb)) {
-				CollideByStaticOBB(m_player, obj);
-			}
-		}
-	}
-}
-
-void TowerScene::CollideWithObject()
-{
-	auto& player_obb = m_player->GetBoundingBox();
-
-	for (const auto& elm : m_monsters) {
-		if (elm.second) {
-			if (player_obb.Intersects(elm.second->GetBoundingBox())) {
-				CollideByStatic(m_player, elm.second);
-			}
-		}
-	}
-
-	for (const auto& elm : m_multiPlayers) {
-		if (elm.second) {
-			if (player_obb.Intersects(elm.second->GetBoundingBox())) {
-				CollideByStatic(m_player, elm.second);
-			}
-		}
-	}
-}
-
-void TowerScene::CollideByStatic(const shared_ptr<GameObject>& obj, const shared_ptr<GameObject>& static_obj)
-{
-	BoundingOrientedBox& static_obb = static_obj->GetBoundingBox();
-	BoundingOrientedBox& obb = obj->GetBoundingBox();
-
-	FLOAT obb_left = obb.Center.x - obb.Extents.x;
-	FLOAT obb_right = obb.Center.x + obb.Extents.x;
-	FLOAT obb_front = obb.Center.z + obb.Extents.z;
-	FLOAT obb_back = obb.Center.z - obb.Extents.z;
-
-	FLOAT static_obb_left = static_obb.Center.x - static_obb.Extents.x;
-	FLOAT static_obb_right = static_obb.Center.x + static_obb.Extents.x;
-	FLOAT static_obb_front = static_obb.Center.z + static_obb.Extents.z;
-	FLOAT static_obb_back = static_obb.Center.z - static_obb.Extents.z;
-
-	FLOAT x_bias{}, z_bias{};
-	bool push_out_x_plus{ false }, push_out_z_plus{ false };
-
-	// 충돌한 물체의 중심이 x가 더 크면
-	if (obb.Center.x - static_obb.Center.x <= std::numeric_limits<FLOAT>::epsilon()) {
-		x_bias = obb_right - static_obb_left;
-	}
-	else {
-		x_bias = static_obb_right - obb_left;
-		push_out_x_plus = true;
-	}
-
-	// 충돌한 물체의 중심이 z가 더 크면
-	if (obb.Center.z - static_obb.Center.z <= std::numeric_limits<FLOAT>::epsilon()) {
-		z_bias = obb_front - static_obb_back;
-	}
-	else {
-		z_bias = static_obb_front - obb_back;
-		push_out_z_plus = true;
-	}
-
-	XMFLOAT3 pos = obj->GetPosition();
-
-	// z 방향으로 밀어내기
-	if (x_bias - z_bias >= std::numeric_limits<FLOAT>::epsilon()) {
-		// object가 +z 방향으로
-		if (push_out_z_plus) {
-			pos.z += z_bias;
-		}
-		// object가 -z 방향으로
-		else {
-			pos.z -= z_bias;
-		}
-	}
-
-	// x 방향으로 밀어내기
-	else {
-		// object가 +x 방향으로
-		if (push_out_x_plus) {
-			pos.x += x_bias;
-		}
-		// object가 -x 방향으로
-		else {
-			pos.x -= x_bias;
-		}
-	}
-
-	obj->SetPosition(pos);
-	obb.Center = pos;
-}
-
-void TowerScene::CollideByStaticOBB(const shared_ptr<GameObject>& obj, const shared_ptr<GameObject>& static_obj)
-{
-	XMFLOAT3 corners[8]{};
-
-	BoundingOrientedBox static_obb = static_obj->GetBoundingBox();
-	static_obb.Center.y = 0.f;
-	static_obb.GetCorners(corners);
-
-	// 꼭짓점 시계방향 0,1,5,4
-	XMFLOAT3 o_square[4] = {
-		{corners[0].x, 0.f, corners[0].z},
-		{corners[1].x, 0.f, corners[1].z} ,
-		{corners[5].x, 0.f, corners[5].z} ,
-		{corners[4].x, 0.f, corners[4].z} };
-
-	BoundingOrientedBox object_obb = obj->GetBoundingBox();
-	object_obb.Center.y = 0.f;
-	object_obb.GetCorners(corners);
-
-	XMFLOAT3 p_square[4] = {
-		{corners[0].x, 0.f, corners[0].z},
-		{corners[1].x, 0.f, corners[1].z} ,
-		{corners[5].x, 0.f, corners[5].z} ,
-		{corners[4].x, 0.f, corners[4].z} };
-
-
-
-	for (const XMFLOAT3& point : p_square) {
-		if (!static_obb.Contains(XMLoadFloat3(&point))) continue;
-
-		std::array<float, 4> dist{};
-		dist[0] = XMVectorGetX(XMVector3LinePointDistance(XMLoadFloat3(&o_square[0]), XMLoadFloat3(&o_square[1]), XMLoadFloat3(&point)));
-		dist[1] = XMVectorGetX(XMVector3LinePointDistance(XMLoadFloat3(&o_square[1]), XMLoadFloat3(&o_square[2]), XMLoadFloat3(&point)));
-		dist[2] = XMVectorGetX(XMVector3LinePointDistance(XMLoadFloat3(&o_square[2]), XMLoadFloat3(&o_square[3]), XMLoadFloat3(&point)));
-		dist[3] = XMVectorGetX(XMVector3LinePointDistance(XMLoadFloat3(&o_square[3]), XMLoadFloat3(&o_square[0]), XMLoadFloat3(&point)));
-
-		auto min = min_element(dist.begin(), dist.end());
-
-		XMFLOAT3 v{};
-		if (*min == dist[0])
-		{
-			v = Vector3::Normalize(Vector3::Sub(o_square[1], o_square[2]));
-		}
-		else if (*min == dist[1])
-		{
-			v = Vector3::Normalize(Vector3::Sub(o_square[1], o_square[0]));
-		}
-		else if (*min == dist[2])
-		{
-			v = Vector3::Normalize(Vector3::Sub(o_square[2], o_square[1]));
-		}
-		else if (*min == dist[3])
-		{
-			v = Vector3::Normalize(Vector3::Sub(o_square[0], o_square[1]));
-		}
-		v = Vector3::Mul(v, *min);
-		obj->SetPosition(Vector3::Add(obj->GetPosition(), v));
-		break;
-	}
-
 }
 
 void TowerScene::PreProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex)
@@ -1725,4 +1493,236 @@ void TowerScene::RecvAddMagicCircle(char* ptr)
 {
 	SC_ADD_MAGIC_CIRCLE_PACKET* packet = reinterpret_cast<SC_ADD_MAGIC_CIRCLE_PACKET*>(ptr);
 	m_towerObjectManager->CreateMonsterMagicCircle(packet->pos);
+}
+
+void TowerScene::LoadMap()
+{
+	std::unordered_map<std::string, BoundingOrientedBox> bounding_box_data;
+
+	std::ifstream in{ "./Resource/GameRoom/GameRoomObject.bin", std::ios::binary };
+
+	BYTE strLength{};
+	std::string objectName;
+	BoundingOrientedBox boundingBox{};
+
+	while (in.read((char*)(&strLength), sizeof(BYTE))) {
+		objectName.resize(strLength, '\0');
+		in.read((char*)(&objectName[0]), strLength);
+
+		in.read((char*)(&boundingBox.Extents), sizeof(XMFLOAT3));
+
+		bounding_box_data.insert({ objectName, boundingBox });
+	}
+	in.close();
+
+
+	in.open("./Resource/GameRoom/GameRoomMap.bin", std::ios::binary);
+
+	XMFLOAT3 position{};
+	FLOAT yaw{};
+
+	while (in.read((char*)(&strLength), sizeof(BYTE))) {
+		objectName.resize(strLength, '\0');
+		in.read(&objectName[0], strLength);
+
+		in.read((char*)(&position), sizeof(XMFLOAT3));
+		in.read((char*)(&yaw), sizeof(FLOAT));
+		// 라디안 값
+
+		if (!bounding_box_data.contains(objectName))
+			continue;
+
+		auto object = std::make_shared<GameObject>();
+		object->SetPosition(position);
+		//object->SetYaw(XMConvertToDegrees(yaw));
+		object->Rotate(0, 0, yaw);
+
+		XMVECTOR vec = XMQuaternionRotationRollPitchYaw(0.f, yaw, 0.f);
+		XMFLOAT4 q{};
+		XMStoreFloat4(&q, vec);
+
+		boundingBox = bounding_box_data[objectName];
+		boundingBox.Center = position;
+		boundingBox.Orientation = XMFLOAT4{ q.x, q.y, q.z, q.w };
+
+		object->SetBoundingBox(boundingBox);
+
+		if (objectName == "Invisible_Wall")
+			m_invisibleWalls.push_back(object);
+		else
+			m_structures.push_back(object);
+	}
+}
+
+void TowerScene::CollideWithMap()
+{
+	auto& player_obb = m_player->GetBoundingBox();
+
+	for (const auto& obj : m_structures) {
+		auto& obb = obj->GetBoundingBox();
+		if (player_obb.Intersects(obb)) {
+			CollideByStaticOBB(m_player, obj);
+		}
+	}
+
+	auto& v = m_globalShaders["OBJECT"]->GetObjects();
+	if (!m_monsters.empty() &&
+		find(v.begin(), v.end(), m_gate) == v.end())
+	{
+		for (const auto& obj : m_invisibleWalls) {
+			auto& obb = obj->GetBoundingBox();
+			if (player_obb.Intersects(obb)) {
+				CollideByStaticOBB(m_player, obj);
+			}
+		}
+	}
+}
+
+void TowerScene::CollideWithObject()
+{
+	auto& player_obb = m_player->GetBoundingBox();
+
+	for (const auto& elm : m_monsters) {
+		if (elm.second) {
+			if (player_obb.Intersects(elm.second->GetBoundingBox())) {
+				CollideByStatic(m_player, elm.second);
+			}
+		}
+	}
+
+	for (const auto& elm : m_multiPlayers) {
+		if (elm.second) {
+			if (player_obb.Intersects(elm.second->GetBoundingBox())) {
+				CollideByStatic(m_player, elm.second);
+			}
+		}
+	}
+}
+
+void TowerScene::CollideByStatic(const shared_ptr<GameObject>& obj, const shared_ptr<GameObject>& static_obj)
+{
+	BoundingOrientedBox& static_obb = static_obj->GetBoundingBox();
+	BoundingOrientedBox& obb = obj->GetBoundingBox();
+
+	FLOAT obb_left = obb.Center.x - obb.Extents.x;
+	FLOAT obb_right = obb.Center.x + obb.Extents.x;
+	FLOAT obb_front = obb.Center.z + obb.Extents.z;
+	FLOAT obb_back = obb.Center.z - obb.Extents.z;
+
+	FLOAT static_obb_left = static_obb.Center.x - static_obb.Extents.x;
+	FLOAT static_obb_right = static_obb.Center.x + static_obb.Extents.x;
+	FLOAT static_obb_front = static_obb.Center.z + static_obb.Extents.z;
+	FLOAT static_obb_back = static_obb.Center.z - static_obb.Extents.z;
+
+	FLOAT x_bias{}, z_bias{};
+	bool push_out_x_plus{ false }, push_out_z_plus{ false };
+
+	// 충돌한 물체의 중심이 x가 더 크면
+	if (obb.Center.x - static_obb.Center.x <= std::numeric_limits<FLOAT>::epsilon()) {
+		x_bias = obb_right - static_obb_left;
+	}
+	else {
+		x_bias = static_obb_right - obb_left;
+		push_out_x_plus = true;
+	}
+
+	// 충돌한 물체의 중심이 z가 더 크면
+	if (obb.Center.z - static_obb.Center.z <= std::numeric_limits<FLOAT>::epsilon()) {
+		z_bias = obb_front - static_obb_back;
+	}
+	else {
+		z_bias = static_obb_front - obb_back;
+		push_out_z_plus = true;
+	}
+
+	XMFLOAT3 pos = obj->GetPosition();
+
+	// z 방향으로 밀어내기
+	if (x_bias - z_bias >= std::numeric_limits<FLOAT>::epsilon()) {
+		// object가 +z 방향으로
+		if (push_out_z_plus) {
+			pos.z += z_bias;
+		}
+		// object가 -z 방향으로
+		else {
+			pos.z -= z_bias;
+		}
+	}
+
+	// x 방향으로 밀어내기
+	else {
+		// object가 +x 방향으로
+		if (push_out_x_plus) {
+			pos.x += x_bias;
+		}
+		// object가 -x 방향으로
+		else {
+			pos.x -= x_bias;
+		}
+	}
+
+	obj->SetPosition(pos);
+	obb.Center = pos;
+}
+
+void TowerScene::CollideByStaticOBB(const shared_ptr<GameObject>& obj, const shared_ptr<GameObject>& static_obj)
+{
+	XMFLOAT3 corners[8]{};
+
+	BoundingOrientedBox static_obb = static_obj->GetBoundingBox();
+	static_obb.Center.y = 0.f;
+	static_obb.GetCorners(corners);
+
+	// 꼭짓점 시계방향 0,1,5,4
+	XMFLOAT3 o_square[4] = {
+		{corners[0].x, 0.f, corners[0].z},
+		{corners[1].x, 0.f, corners[1].z} ,
+		{corners[5].x, 0.f, corners[5].z} ,
+		{corners[4].x, 0.f, corners[4].z} };
+
+	BoundingOrientedBox object_obb = obj->GetBoundingBox();
+	object_obb.Center.y = 0.f;
+	object_obb.GetCorners(corners);
+
+	XMFLOAT3 p_square[4] = {
+		{corners[0].x, 0.f, corners[0].z},
+		{corners[1].x, 0.f, corners[1].z} ,
+		{corners[5].x, 0.f, corners[5].z} ,
+		{corners[4].x, 0.f, corners[4].z} };
+
+
+
+	for (const XMFLOAT3& point : p_square) {
+		if (!static_obb.Contains(XMLoadFloat3(&point))) continue;
+
+		std::array<float, 4> dist{};
+		dist[0] = XMVectorGetX(XMVector3LinePointDistance(XMLoadFloat3(&o_square[0]), XMLoadFloat3(&o_square[1]), XMLoadFloat3(&point)));
+		dist[1] = XMVectorGetX(XMVector3LinePointDistance(XMLoadFloat3(&o_square[1]), XMLoadFloat3(&o_square[2]), XMLoadFloat3(&point)));
+		dist[2] = XMVectorGetX(XMVector3LinePointDistance(XMLoadFloat3(&o_square[2]), XMLoadFloat3(&o_square[3]), XMLoadFloat3(&point)));
+		dist[3] = XMVectorGetX(XMVector3LinePointDistance(XMLoadFloat3(&o_square[3]), XMLoadFloat3(&o_square[0]), XMLoadFloat3(&point)));
+
+		auto min = min_element(dist.begin(), dist.end());
+
+		XMFLOAT3 v{};
+		if (*min == dist[0])
+		{
+			v = Vector3::Normalize(Vector3::Sub(o_square[1], o_square[2]));
+		}
+		else if (*min == dist[1])
+		{
+			v = Vector3::Normalize(Vector3::Sub(o_square[1], o_square[0]));
+		}
+		else if (*min == dist[2])
+		{
+			v = Vector3::Normalize(Vector3::Sub(o_square[2], o_square[1]));
+		}
+		else if (*min == dist[3])
+		{
+			v = Vector3::Normalize(Vector3::Sub(o_square[0], o_square[1]));
+		}
+		v = Vector3::Mul(v, *min);
+		obj->SetPosition(Vector3::Add(obj->GetPosition(), v));
+		break;
+	}
+
 }

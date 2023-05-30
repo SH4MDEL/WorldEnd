@@ -5,11 +5,7 @@ LoginScene::LoginScene() :
 {}
 LoginScene::~LoginScene() 
 { 
-	//OnDestroy();
-	//m_globalMeshs.clear();
-	//m_globalTextures.clear();
-	//m_globalMaterials.clear();
-	//m_globalAnimationSets.clear();
+
 }
 
 void LoginScene::OnResize(const ComPtr<ID3D12Device>& device, UINT width, UINT height)
@@ -30,11 +26,6 @@ void LoginScene::OnCreate(
 
 void LoginScene::OnDestroy() 
 {
-	m_meshs.clear();
-	m_textures.clear();
-	m_materials.clear();
-	m_animationSets.clear();
-
 	for (auto& shader : m_globalShaders) shader.second->Clear();
 
 	DestroyObjects();
@@ -66,7 +57,7 @@ void LoginScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 	gameStartButtonUI->SetTexture("BUTTONUI");
 	gameStartButtonUI->SetClickEvent([&]() {
 		m_fadeFilter->FadeOut([&]() {
-			g_GameFramework.ChangeScene(SCENETAG::TowerLoadingScene);
+			g_GameFramework.ChangeScene(SCENETAG::VillageScene);
 			});
 		});
 	auto gameStartButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{40.f, 10.f}) };
@@ -173,6 +164,8 @@ void LoginScene::DestroyObjects()
 	m_fadeFilter.reset();
 
 	m_titleUI.reset();
+	m_optionUI.reset();
+	m_characterSelectTextUI.reset();
 }
 
 void LoginScene::OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime) 

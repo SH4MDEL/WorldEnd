@@ -1,4 +1,5 @@
 #include "material.h"
+#include "scene.h"
 
 void Material::CreateShaderVariable(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList)
 {
@@ -48,7 +49,7 @@ void Material::ReleaseUploadBuffer()
 	if (m_detailNormalMap) m_detailNormalMap->ReleaseUploadBuffer();
 }
 
-void Materials::LoadMaterials(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, ifstream& in)
+void Materials::LoadMaterials(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, ifstream& in, BOOL IsGlobal)
 {
 	BYTE strLength;
 	INT materialCount, materialIndex;
@@ -91,65 +92,247 @@ void Materials::LoadMaterials(const ComPtr<ID3D12Device>& device, const ComPtr<I
 			in.read((char*)(&m_materials[materialIndex].m_glossyReflection), sizeof(FLOAT));
 		}
 		else if (strToken == "<AlbedoMap>:") {
-			m_materials[materialIndex].m_albedoMap = make_shared<Texture>();
-			if (m_materials[materialIndex].m_albedoMap->LoadTextureFileHierarchy(device, commandList, in, (INT)ShaderRegister::AlbedoTexture)) {
+			BYTE strLength;
+			in.read((char*)(&strLength), sizeof(BYTE));
+			string strToken(strLength, '\0');
+			in.read((&strToken[0]), sizeof(char) * strLength);
+			if (strToken[0] == '@') {
+				strToken.erase(find(strToken.begin(), strToken.end(), '@'));
+			}
+			if (strToken != "null") {
+				wstring wstrToken = L"";
+				wstrToken.assign(strToken.begin(), strToken.end());
+
 				m_materials[materialIndex].m_type |= MATERIAL_ALBEDO_MAP;
-				m_materials[materialIndex].m_albedoMap->CreateSrvDescriptorHeap(device);
-				m_materials[materialIndex].m_albedoMap->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+				if (!Scene::m_globalTextures.count(strToken) && !Scene::m_textures.count(strToken)) { // 해시맵에 존재 x
+					m_materials[materialIndex].m_albedoMap = make_shared<Texture>();
+					m_materials[materialIndex].m_albedoMap->LoadTextureFileHierarchy(device, commandList, wstrToken, (INT)ShaderRegister::AlbedoTexture);
+					m_materials[materialIndex].m_albedoMap->CreateSrvDescriptorHeap(device);
+					m_materials[materialIndex].m_albedoMap->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+
+					if (IsGlobal) {
+						Scene::m_globalTextures.insert({ strToken, m_materials[materialIndex].m_albedoMap });
+					}
+					else {
+						Scene::m_textures.insert({ strToken, m_materials[materialIndex].m_albedoMap });
+					}
+				}
+				else {
+					if (Scene::m_globalTextures.count(strToken)) {
+						m_materials[materialIndex].m_albedoMap = Scene::m_globalTextures[strToken];
+					}
+					else m_materials[materialIndex].m_albedoMap = Scene::m_textures[strToken];
+				}
 			}
 			else m_materials[materialIndex].m_albedoMap = nullptr;
 		}
 		else if (strToken == "<SpecularMap>:") {
-			m_materials[materialIndex].m_specularMap = make_shared<Texture>();
-			if (m_materials[materialIndex].m_specularMap->LoadTextureFileHierarchy(device, commandList, in, (INT)ShaderRegister::SpecularTexture)) {
+			BYTE strLength;
+			in.read((char*)(&strLength), sizeof(BYTE));
+			string strToken(strLength, '\0');
+			in.read((&strToken[0]), sizeof(char) * strLength);
+			if (strToken[0] == '@') {
+				strToken.erase(find(strToken.begin(), strToken.end(), '@'));
+			}
+			if (strToken != "null") {
+				wstring wstrToken = L"";
+				wstrToken.assign(strToken.begin(), strToken.end());
+
 				m_materials[materialIndex].m_type |= MATERIAL_SPECULAR_MAP;
-				m_materials[materialIndex].m_specularMap->CreateSrvDescriptorHeap(device);
-				m_materials[materialIndex].m_specularMap->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+				if (!Scene::m_globalTextures.count(strToken) && !Scene::m_textures.count(strToken)) { // 해시맵에 존재 x
+					m_materials[materialIndex].m_specularMap = make_shared<Texture>();
+					m_materials[materialIndex].m_specularMap->LoadTextureFileHierarchy(device, commandList, wstrToken, (INT)ShaderRegister::SpecularTexture);
+					m_materials[materialIndex].m_specularMap->CreateSrvDescriptorHeap(device);
+					m_materials[materialIndex].m_specularMap->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+
+					if (IsGlobal) {
+						Scene::m_globalTextures.insert({ strToken, m_materials[materialIndex].m_specularMap });
+					}
+					else {
+						Scene::m_textures.insert({ strToken, m_materials[materialIndex].m_specularMap });
+					}
+				}
+				else {
+					if (Scene::m_globalTextures.count(strToken)) {
+						m_materials[materialIndex].m_specularMap = Scene::m_globalTextures[strToken];
+					}
+					else m_materials[materialIndex].m_specularMap = Scene::m_textures[strToken];
+				}
 			}
 			else m_materials[materialIndex].m_specularMap = nullptr;
 		}
 		else if (strToken == "<NormalMap>:") {
-			m_materials[materialIndex].m_normalMap = make_shared<Texture>();
-			if (m_materials[materialIndex].m_normalMap->LoadTextureFileHierarchy(device, commandList, in, (INT)ShaderRegister::NormalTexture)) {
+			BYTE strLength;
+			in.read((char*)(&strLength), sizeof(BYTE));
+			string strToken(strLength, '\0');
+			in.read((&strToken[0]), sizeof(char) * strLength);
+			if (strToken[0] == '@') {
+				strToken.erase(find(strToken.begin(), strToken.end(), '@'));
+			}
+			if (strToken != "null") {
+				wstring wstrToken = L"";
+				wstrToken.assign(strToken.begin(), strToken.end());
+
 				m_materials[materialIndex].m_type |= MATERIAL_NORMAL_MAP;
-				m_materials[materialIndex].m_normalMap->CreateSrvDescriptorHeap(device);
-				m_materials[materialIndex].m_normalMap->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+				if (!Scene::m_globalTextures.count(strToken) && !Scene::m_textures.count(strToken)) { // 해시맵에 존재 x
+					m_materials[materialIndex].m_normalMap = make_shared<Texture>();
+					m_materials[materialIndex].m_normalMap->LoadTextureFileHierarchy(device, commandList, wstrToken, (INT)ShaderRegister::NormalTexture);
+					m_materials[materialIndex].m_normalMap->CreateSrvDescriptorHeap(device);
+					m_materials[materialIndex].m_normalMap->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+
+					if (IsGlobal) {
+						Scene::m_globalTextures.insert({ strToken, m_materials[materialIndex].m_normalMap });
+					}
+					else {
+						Scene::m_textures.insert({ strToken, m_materials[materialIndex].m_normalMap });
+					}
+				}
+				else {
+					if (Scene::m_globalTextures.count(strToken)) {
+						m_materials[materialIndex].m_normalMap = Scene::m_globalTextures[strToken];
+					}
+					else m_materials[materialIndex].m_normalMap = Scene::m_textures[strToken];
+				}
 			}
 			else m_materials[materialIndex].m_normalMap = nullptr;
 		}
 		else if (strToken == "<MetallicMap>:") {
-			m_materials[materialIndex].m_metallicMap = make_shared<Texture>();
-			if (m_materials[materialIndex].m_metallicMap->LoadTextureFileHierarchy(device, commandList, in, (INT)ShaderRegister::MetallicTexture)) {
+			BYTE strLength;
+			in.read((char*)(&strLength), sizeof(BYTE));
+			string strToken(strLength, '\0');
+			in.read((&strToken[0]), sizeof(char) * strLength);
+			if (strToken[0] == '@') {
+				strToken.erase(find(strToken.begin(), strToken.end(), '@'));
+			}
+			if (strToken != "null") {
+				wstring wstrToken = L"";
+				wstrToken.assign(strToken.begin(), strToken.end());
+
 				m_materials[materialIndex].m_type |= MATERIAL_METALLIC_MAP;
-				m_materials[materialIndex].m_metallicMap->CreateSrvDescriptorHeap(device);
-				m_materials[materialIndex].m_metallicMap->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+				if (!Scene::m_globalTextures.count(strToken) && !Scene::m_textures.count(strToken)) { // 해시맵에 존재 x
+					m_materials[materialIndex].m_metallicMap = make_shared<Texture>();
+					m_materials[materialIndex].m_metallicMap->LoadTextureFileHierarchy(device, commandList, wstrToken, (INT)ShaderRegister::MetallicTexture);
+					m_materials[materialIndex].m_metallicMap->CreateSrvDescriptorHeap(device);
+					m_materials[materialIndex].m_metallicMap->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+
+					if (IsGlobal) {
+						Scene::m_globalTextures.insert({ strToken, m_materials[materialIndex].m_metallicMap });
+					}
+					else {
+						Scene::m_textures.insert({ strToken, m_materials[materialIndex].m_metallicMap });
+					}
+				}
+				else {
+					if (Scene::m_globalTextures.count(strToken)) {
+						m_materials[materialIndex].m_metallicMap = Scene::m_globalTextures[strToken];
+					}
+					else m_materials[materialIndex].m_metallicMap = Scene::m_textures[strToken];
+				}
 			}
 			else m_materials[materialIndex].m_metallicMap = nullptr;
 		}
 		else if (strToken == "<EmissionMap>:") {
-			m_materials[materialIndex].m_emissionMap = make_shared<Texture>();
-			if (m_materials[materialIndex].m_emissionMap->LoadTextureFileHierarchy(device, commandList, in, (INT)ShaderRegister::EmissionTexture)) {
+			BYTE strLength;
+			in.read((char*)(&strLength), sizeof(BYTE));
+			string strToken(strLength, '\0');
+			in.read((&strToken[0]), sizeof(char)* strLength);
+			if (strToken[0] == '@') {
+				strToken.erase(find(strToken.begin(), strToken.end(), '@'));
+			}
+			if (strToken != "null") {
+				wstring wstrToken = L"";
+				wstrToken.assign(strToken.begin(), strToken.end());
+
 				m_materials[materialIndex].m_type |= MATERIAL_EMISSION_MAP;
-				m_materials[materialIndex].m_emissionMap->CreateSrvDescriptorHeap(device);
-				m_materials[materialIndex].m_emissionMap->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+				if (!Scene::m_globalTextures.count(strToken) && !Scene::m_textures.count(strToken)) { // 해시맵에 존재 x
+					m_materials[materialIndex].m_emissionMap = make_shared<Texture>();
+					m_materials[materialIndex].m_emissionMap->LoadTextureFileHierarchy(device, commandList, wstrToken, (INT)ShaderRegister::EmissionTexture);
+					m_materials[materialIndex].m_emissionMap->CreateSrvDescriptorHeap(device);
+					m_materials[materialIndex].m_emissionMap->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+
+					if (IsGlobal) {
+						Scene::m_globalTextures.insert({ strToken, m_materials[materialIndex].m_emissionMap });
+					}
+					else {
+						Scene::m_textures.insert({ strToken, m_materials[materialIndex].m_emissionMap });
+					}
+				}
+				else {
+					if (Scene::m_globalTextures.count(strToken)) {
+						m_materials[materialIndex].m_emissionMap = Scene::m_globalTextures[strToken];
+					}
+					else m_materials[materialIndex].m_emissionMap = Scene::m_textures[strToken];
+				}
 			}
 			else m_materials[materialIndex].m_emissionMap = nullptr;
 		}
 		else if (strToken == "<DetailAlbedoMap>:") {
-			m_materials[materialIndex].m_detailAlbedoMap = make_shared<Texture>();
-			if (m_materials[materialIndex].m_detailAlbedoMap->LoadTextureFileHierarchy(device, commandList, in, (INT)ShaderRegister::DetailAlbedoTexture)) {
+			BYTE strLength;
+			in.read((char*)(&strLength), sizeof(BYTE));
+			string strToken(strLength, '\0');
+			in.read((&strToken[0]), sizeof(char)* strLength);
+			if (strToken[0] == '@') {
+				strToken.erase(find(strToken.begin(), strToken.end(), '@'));
+			}
+			if (strToken != "null") {
+				wstring wstrToken = L"";
+				wstrToken.assign(strToken.begin(), strToken.end());
+
 				m_materials[materialIndex].m_type |= MATERIAL_DETAIL_ALBEDO_MAP;
-				m_materials[materialIndex].m_detailAlbedoMap->CreateSrvDescriptorHeap(device);
-				m_materials[materialIndex].m_detailAlbedoMap->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+				if (!Scene::m_globalTextures.count(strToken) && !Scene::m_textures.count(strToken)) { // 해시맵에 존재 x
+					m_materials[materialIndex].m_detailAlbedoMap = make_shared<Texture>();
+					m_materials[materialIndex].m_detailAlbedoMap->LoadTextureFileHierarchy(device, commandList, wstrToken, (INT)ShaderRegister::DetailAlbedoTexture);
+					m_materials[materialIndex].m_detailAlbedoMap->CreateSrvDescriptorHeap(device);
+					m_materials[materialIndex].m_detailAlbedoMap->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+
+					if (IsGlobal) {
+						Scene::m_globalTextures.insert({ strToken, m_materials[materialIndex].m_detailAlbedoMap });
+					}
+					else {
+						Scene::m_textures.insert({ strToken, m_materials[materialIndex].m_detailAlbedoMap });
+					}
+				}
+				else {
+					if (Scene::m_globalTextures.count(strToken)) {
+						m_materials[materialIndex].m_detailAlbedoMap = Scene::m_globalTextures[strToken];
+					}
+					else m_materials[materialIndex].m_detailAlbedoMap = Scene::m_textures[strToken];
+				}
 			}
 			else m_materials[materialIndex].m_detailAlbedoMap = nullptr;
 		}
 		else if (strToken == "<DetailNormalMap>:") {
-			m_materials[materialIndex].m_detailNormalMap = make_shared<Texture>();
-			if (m_materials[materialIndex].m_detailNormalMap->LoadTextureFileHierarchy(device, commandList, in, (INT)ShaderRegister::DetailNormalTexture)) {
+			BYTE strLength;
+			in.read((char*)(&strLength), sizeof(BYTE));
+			string strToken(strLength, '\0');
+			in.read((&strToken[0]), sizeof(char)* strLength);
+			if (strToken[0] == '@') {
+				strToken.erase(find(strToken.begin(), strToken.end(), '@'));
+			}
+			if (strToken != "null") {
+				wstring wstrToken = L"";
+				wstrToken.assign(strToken.begin(), strToken.end());
+
 				m_materials[materialIndex].m_type |= MATERIAL_DETAIL_NORMAL_MAP;
-				m_materials[materialIndex].m_detailNormalMap->CreateSrvDescriptorHeap(device);
-				m_materials[materialIndex].m_detailNormalMap->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+				if (!Scene::m_globalTextures.count(strToken) && !Scene::m_textures.count(strToken)) { // 해시맵에 존재 x
+					m_materials[materialIndex].m_detailNormalMap = make_shared<Texture>();
+					m_materials[materialIndex].m_detailNormalMap->LoadTextureFileHierarchy(device, commandList, wstrToken, (INT)ShaderRegister::DetailNormalTexture);
+					m_materials[materialIndex].m_detailNormalMap->CreateSrvDescriptorHeap(device);
+					m_materials[materialIndex].m_detailNormalMap->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+
+					if (IsGlobal) {
+						Scene::m_globalTextures.insert({ strToken, m_materials[materialIndex].m_detailNormalMap });
+					}
+					else {
+						Scene::m_textures.insert({ strToken, m_materials[materialIndex].m_detailNormalMap });
+					}
+				}
+				else {
+					if (Scene::m_globalTextures.count(strToken)) {
+						m_materials[materialIndex].m_detailNormalMap = Scene::m_globalTextures[strToken];
+					}
+					else m_materials[materialIndex].m_detailNormalMap = Scene::m_textures[strToken];
+				}
 			}
 			else m_materials[materialIndex].m_detailNormalMap = nullptr;
 		}

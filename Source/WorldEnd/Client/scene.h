@@ -29,6 +29,7 @@ enum class SCENETAG : INT {
 	GlobalLoadingScene,
 	VillageLoadingScene,
 	LoginScene,
+	VillageScene,
 	TowerLoadingScene,
 	TowerScene,
 	Count

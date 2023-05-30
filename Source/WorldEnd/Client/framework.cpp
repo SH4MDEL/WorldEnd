@@ -623,6 +623,7 @@ void GameFramework::BuildObjects()
 	m_scenes[static_cast<INT>(SCENETAG::GlobalLoadingScene)] = make_unique<GlobalLoadingScene>();
 	m_scenes[static_cast<INT>(SCENETAG::VillageLoadingScene)] = make_unique<VillageLoadingScene>();
 	m_scenes[static_cast<INT>(SCENETAG::LoginScene)] = make_unique<LoginScene>();
+	m_scenes[static_cast<INT>(SCENETAG::VillageScene)] = make_unique<VillageScene>();
 	m_scenes[static_cast<INT>(SCENETAG::TowerLoadingScene)] = make_unique<TowerLoadingScene>();
 	m_scenes[static_cast<INT>(SCENETAG::TowerScene)] = make_unique<TowerScene>();
 

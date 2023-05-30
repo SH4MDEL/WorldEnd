@@ -23,6 +23,13 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 	if (ObjectAnimation::DEATH == m_currentAnimation)
 		return;
 
+	if (GetAsyncKeyState('1') & 0x8000) {
+		SetPosition(Vector3::Add(GetPosition(), { 0.f, 0.1f, 0.f }));
+	}
+	if (GetAsyncKeyState('2') & 0x8000) {
+		SetPosition(Vector3::Add(GetPosition(), { 0.f, -0.1f, 0.f }));
+	}
+
 	if (GetAsyncKeyState('Q') & 0x8000) {
 		if (!m_cooldownList[ActionType::ULTIMATE]) {
 			m_ultimateCool = 0.f;
@@ -400,7 +407,8 @@ void Player::Update(FLOAT timeElapsed)
 //#ifndef USE_NETWORK
 	Move(m_velocity);
 //#endif // !USE_NETWORK
-	MoveOnStairs();
+
+	//MoveOnStairs();
 
 	ApplyFriction(timeElapsed);
 }

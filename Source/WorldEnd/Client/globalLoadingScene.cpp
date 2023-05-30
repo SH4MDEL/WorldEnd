@@ -81,7 +81,7 @@ void GlobalLoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const 
 	auto sobelShader{ make_shared<SobelShader>(device, postRootSignature) };
 	auto compositeShader{ make_shared<CompositeShader>(device, postRootSignature) };
 	auto fadeShader{ make_shared<FadeShader>(device, postRootSignature) };
-	auto debugShader{ make_shared<DebugShader>(device, rootsignature) };
+	//auto debugShader{ make_shared<DebugShader>(device, rootsignature) };
 
 	auto arrowInstance{ make_shared<ArrowInstance>(device, rootsignature, MAX_ARROWRAIN_ARROWS) };
 
@@ -102,7 +102,7 @@ void GlobalLoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const 
 	m_globalShaders.insert({ "SOBEL", sobelShader });
 	m_globalShaders.insert({ "COMPOSITE", compositeShader });
 	m_globalShaders.insert({ "FADE", fadeShader });
-	m_globalShaders.insert({ "DEBUG", debugShader });
+	//m_globalShaders.insert({ "DEBUG", debugShader });
 
 	m_globalShaders.insert({ "ARROW_INSTANCE", arrowInstance });
 
@@ -358,7 +358,7 @@ void GlobalLoadingScene::LoadMaterialFromFile(const ComPtr<ID3D12Device>& device
 			materials->m_materialName.resize(strLength);
 			in.read((&materials->m_materialName[0]), sizeof(char) * strLength);
 
-			materials->LoadMaterials(device, commandList, in);
+			materials->LoadMaterials(device, commandList, in, true);
 
 			m_globalMaterials.insert({ materials->m_materialName, materials });
 			m_globalMaterials.insert({ "@" + materials->m_materialName, materials });
