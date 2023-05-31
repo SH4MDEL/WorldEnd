@@ -4,6 +4,7 @@
 #include "monster.h"
 #include "object.h"
 #include "map.h"
+#include "database.h"
 
 
 enum class EventType : char 
@@ -112,6 +113,7 @@ public:
 private:
 	std::unique_ptr<GameRoomManager> m_game_room_manager;
 	std::unique_ptr<PartyManager> m_party_manager;
+	std::unique_ptr<DataBase> m_database;
 
 	SOCKET				m_server_socket;
 	HANDLE				m_handle_iocp;

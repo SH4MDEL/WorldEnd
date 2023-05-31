@@ -40,7 +40,12 @@ Server::Server()
 	m_game_room_manager = std::make_unique<GameRoomManager>();
 	m_party_manager = std::make_unique <PartyManager>();
 
+	m_database = std::make_unique<DataBase>();
 
+	USER_INFO a{L"ldh5112", L"123456", L"TEST"};
+	PLAYER_DATA p{};
+
+	m_database->TryLogin(a, p);
 	printf("Complete Initialize!\n");
 	// ----------------------- //
 }

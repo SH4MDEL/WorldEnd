@@ -97,7 +97,7 @@ constexpr char SC_PACKET_ENTER_FAIL = 35;
 // -----------------------------------------------------------
 
 enum class PlayerType : char { WARRIOR, ARCHER, COUNT };
-enum class MonsterType : char { WARRIOR, ARCHER, WIZARD, COUNT };
+enum class MonsterType : char { WARRIOR, ARCHER, WIZARD, CENTAUR, COUNT };
 enum class EnvironmentType : char { RAIN, FOG, GAS, TRAP, COUNT };
 
 enum ActionType : char {
