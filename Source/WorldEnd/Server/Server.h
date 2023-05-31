@@ -117,6 +117,7 @@ public:
 
 	std::array<std::shared_ptr<MovementObject>, MAX_OBJECT> m_clients;
 	std::array<std::shared_ptr<Trigger>, MAX_TRIGGER> m_triggers;
+	std::unordered_map<INT, Client> m_player_damage_compare;
 
 private:
 	std::unique_ptr<GameRoomManager> m_game_room_manager;

@@ -112,7 +112,6 @@ bool GameRoom::SetPlayer(INT room_num, INT player_id)
 					m_state = GameRoomState::INGAME;
 				}
 			}
-
 			l.unlock();
 			server.m_clients[id]->SetPosition(RoomSetting::START_POSITION);
 			join = true;
@@ -138,7 +137,6 @@ bool GameRoom::SetPlayer(INT room_num, INT player_id)
 			SendAddPlayer(id, player_id);
 		}
 	}
-
 	return join;
 }
 
@@ -452,8 +450,8 @@ void GameRoom::InitMonsters(INT room_num)
 	using namespace std;
 
 	Server& server = Server::GetInstance();
-	// 파일을 읽어서 몬스터를 생성할 예정
 
+	// 파일을 읽어서 몬스터를 생성
 	ifstream in{ "MonsterPos.txt" };
 
 	FLOAT mon_pos[MAX_MONSTER_PLACEMENT]{};
@@ -470,7 +468,7 @@ void GameRoom::InitMonsters(INT room_num)
 	INT new_wizard_id{};
 	INT new_boss_id{};
 
-	if (m_floor_cnt == 4)
+	if (m_floor_cnt == 4)         // 보스방 진입
 	{
 		random_map = 10;
 

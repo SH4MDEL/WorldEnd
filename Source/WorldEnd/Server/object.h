@@ -198,6 +198,7 @@ public:
 	void SetRoomNum(SHORT room_num) { m_room_num = room_num; }
 	void SetTriggerFlag() { m_trigger_flag = 0; }
 	void SetTriggerFlag(UCHAR trigger, bool val);
+	void SetSaveDamage(FLOAT save_damage) { m_save_damage = save_damage; }
 
 	XMFLOAT3 GetVelocity() const { return m_velocity; }
 	std::mutex& GetStateMutex() { return m_state_lock; }
@@ -208,6 +209,7 @@ public:
 	FLOAT GetDamage() const { return m_damage; }
 	SHORT GetRoomNum() const { return m_room_num; }
 	UCHAR GetTriggerFlag() const { return m_trigger_flag; }
+	FLOAT GetSaveDamage() { return m_save_damage; }
 
 	virtual void Update(FLOAT elapsed_time) {}
 	virtual void DecreaseHp(FLOAT damage, INT id) {}
@@ -238,5 +240,7 @@ protected:
 
 	SHORT		m_room_num;
 	UCHAR		m_trigger_flag;
+
+	FLOAT       m_save_damage;      // 누적 데미지
 };
 

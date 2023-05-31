@@ -310,12 +310,22 @@ void Monster::DoBehavior(FLOAT elapsed_time)
 	}
 }
 
+INT Monster::GetPlayerHighestDamage()
+{
+	std::sort(m_pl_save_damage.begin(), m_pl_save_damage.end(), [](const m_save_damage_pair& a, const m_save_damage_pair& b) {
+		return a.second > b.second;
+		});
+
+	return m_pl_save_damage[0].first;
+}
+
 void Monster::DecreaseHp(FLOAT damage, INT id)
 {
 	if (m_hp <= 0)
 		return;
 
 	m_hp -= damage;
+
 	if (m_hp <= 0) {
 		m_hp = 0.f;
 		{
@@ -327,6 +337,34 @@ void Monster::DecreaseHp(FLOAT damage, INT id)
 		return;
 	}
 
+	// 보스 광폭화 상태 타겟팅 부분을 일반 몬스터에서 확인하기 위한 코드
+	//---------------------------------------------------------------------------------------------------------------------------------
+	//Server& server = Server::GetInstance();
+    //INT pl_highest_damage_id{};
+	//server.m_clients[id]->SetSaveDamage(0);
+	//m_pl_save_damage.push_back(std::make_pair(id, server.m_clients[id]->GetSaveDamage()));
+
+	//auto pl_save_data = std::find_if(m_pl_save_damage.begin(), m_pl_save_damage.end(), [id](const m_save_damage_pair& pair) {
+	//	return pair.first == id;
+	//	});
+
+	//if (pl_save_data != m_pl_save_damage.end()) {
+	//	// 이미 저장된 경우, 해당 플레이어의 누적 데미지를 업데이트
+	//	pl_save_data->second += damage;
+	//}
+	//else {
+	//	// 저장되어 있지 않은 경우, 새로운 플레이어 정보를 추가
+	//	m_pl_save_damage.push_back(std::make_pair(id, server.m_clients[id]->GetSaveDamage()));
+	//}
+
+	//std::cout << id << "플레이어의 누적 데미지 - " << (FLOAT)pl_save_data->second << std::endl;
+
+	//if (m_hp < 800) {
+	//	pl_highest_damage_id = GetPlayerHighestDamage();
+	//	SetTarget(pl_highest_damage_id);
+	//	std::cout << "변경된 플레이어 id - " << pl_highest_damage_id << std::endl;
+	//}
+	// ---------------------------------------------------------------------------------------------------------------------------------------------
 	if (AggroLevel::HIT_AGGRO < m_aggro_level)
 		return;
 
@@ -335,7 +373,9 @@ void Monster::DecreaseHp(FLOAT damage, INT id)
 		SetTarget(id);
 		//SetAggroLevel(AggroLevel::HIT_AGGRO);
 	}
-}
+
+}	
+
 
 void Monster::DecreaseAggroLevel()
 {
@@ -383,12 +423,28 @@ void Monster::UpdateTarget()
 
 void Monster::ChasePlayer(FLOAT elapsed_time)
 {
+	//if (!CheckPlayer()) {
+	//	UpdateTarget();
+	//}
+
+	//// 타게팅한 플레이어 추격
+	//XMFLOAT3 player_dir = GetDirection(m_target_id);
+
+	Server& server = Server::GetInstance();
+	auto game_room = server.GetGameRoomManager()->GetGameRoom(m_room_num);
+	XMFLOAT3 player_dir{};
+
 	if (!CheckPlayer()) {
 		UpdateTarget();
 	}
 
-	// 타게팅한 플레이어 추격
-	XMFLOAT3 player_dir = GetDirection(m_target_id);
+	std::mt19937 random_engine{ std::random_device{}() };
+	std::uniform_int_distribution<INT> dist(0, 3000);
+	INT random_id = dist(random_engine) % 1;
+	
+	player_dir = GetDirection(server.m_clients[random_id]->GetId());
+
+	//std::cout << "추격당하는 플레이어 - " << random_id << std::endl;
 
 	if (Vector3::Equal(player_dir, XMFLOAT3(0.f, 0.f, 0.f)))
 		return;
@@ -532,8 +588,8 @@ void Monster::InitializePosition(INT mon_cnt, MonsterType mon_type, INT random_m
 
 WarriorMonster::WarriorMonster()
 {
-	m_max_hp = 200.f;
-	m_damage = 20;
+	m_max_hp = 1000.f;
+	m_damage = 2;
 	m_attack_range = 1.5f;
 	m_boundary_range = 3.f;
 	m_monster_type = MonsterType::WARRIOR;
@@ -960,7 +1016,7 @@ void ArcherMonster::SetFleeDirection()
 
 WizardMonster::WizardMonster()
 {
-	m_max_hp = 170.f;
+	m_max_hp = 1000.f;
 	m_damage = 10.f;
 	m_attack_range = 8.f;
 	m_boundary_range = 2.5f;
@@ -1143,12 +1199,43 @@ void BossMonster::Update(FLOAT elapsed_time)
 {
 	Monster::Update(elapsed_time);
 
-	if (CanSwapAttackBehavior()) {                               // 경계 범위 내에 들어오면 일반 공격
-		if (IsInRange(m_boundary_range)) {
-			ChangeBehavior(MonsterBehavior::PREPARE_ATTACK);
+	if (!(m_hp <= m_max_hp / 2.5)) {                                                        // 일반 상태
+		if (CanSwapAttackBehavior()) {                                                      // 경계 범위 내에 들어오면 일반 공격
+			if (IsInRange(m_boundary_range) && m_behavior_cnt == 0) {
+				ChangeBehavior(MonsterBehavior::PREPARE_ATTACK);
+				m_behavior_cnt++;
+			}
+			else if (IsInRange(m_attack_range) && m_behavior_cnt == 1) {                    // 공격 범위 내에 들어오면 스킬 공격
+				ChangeBehavior(MonsterBehavior::PREPARE_WIDE_SKILL);
+				m_behavior_cnt = 0;
+			}
 		}
-		else if (IsInRange(m_attack_range)) {                    // 공격 범위 내에 들어오면 스킬 공격
-			ChangeBehavior(MonsterBehavior::PREPARE_WIDE_SKILL);
+	}     
+	else {                                                                                  // 광폭화 상태
+		m_behavior_cnt = 0;
+		if (CanSwapAttackBehavior()) {                                                      // 경계 범위 내에 들어오면 강화된 일반 공격
+			if (IsInRange(m_boundary_range) && m_behavior_cnt == 0) {
+				ChangeBehavior(MonsterBehavior::PREPARE_ENHANCE_ATTACK);
+				PlayerHighestDamageTarget();
+				m_behavior_cnt++;
+			}
+			else if (IsInRange(m_attack_range) && m_behavior_cnt == 1) {                    // 공격 범위 내에 들어오면 강화된 스킬 공격
+				ChangeBehavior(MonsterBehavior::PREPARE_ENHANCE_WIDE_SKILL);
+				PlayerHighestDamageTarget();
+				m_attack_range += 2.f;
+				m_behavior_cnt++;
+			}
+			else if (IsInRange(m_attack_range) && m_behavior_cnt == 2) {                    // 공격 범위 내에 들어오면 돌진 스킬 공격
+				ChangeBehavior(MonsterBehavior::PREPARE_RUCH_SKILL);
+				PlayerHighestDamageTarget();
+				m_attack_range -= 4.f;
+				m_behavior_cnt++;
+			}
+			else if (IsInRange(m_attack_range) && m_behavior_cnt == 3) {                    // 공격 범위 내에 들어오면 필살기 스킬 공격
+				ChangeBehavior(MonsterBehavior::PREPARE_ULTIMATE_SKILL);
+				PlayerHighestDamageTarget();
+				m_behavior_cnt = 0;
+			}
 		}
 	}
 }
@@ -1176,6 +1263,30 @@ MonsterBehavior BossMonster::SetNextBehavior(MonsterBehavior behavior)
 		temp = MonsterBehavior::WIDE_SKILL;
 		break;
 	case MonsterBehavior::WIDE_SKILL:
+		temp = MonsterBehavior::DELAY;
+		break;
+	case MonsterBehavior::PREPARE_ENHANCE_ATTACK:
+		temp = MonsterBehavior::ENHANCE_ATTACK;
+		break;
+	case MonsterBehavior::ENHANCE_ATTACK:
+		temp = MonsterBehavior::DELAY;
+		break;
+	case MonsterBehavior::PREPARE_ENHANCE_WIDE_SKILL:
+		temp = MonsterBehavior::ENHANCE_WIDE_SKILL;
+		break;
+	case MonsterBehavior::ENHANCE_WIDE_SKILL:
+		temp = MonsterBehavior::DELAY;
+		break;
+	case MonsterBehavior::PREPARE_RUCH_SKILL:
+		temp = MonsterBehavior::RUCH_SKILL;
+		break;
+	case MonsterBehavior::RUCH_SKILL:
+		temp = MonsterBehavior::DELAY;
+		break;
+	case MonsterBehavior::PREPARE_ULTIMATE_SKILL:
+		temp = MonsterBehavior::ULTIMATE_SKILL;
+		break;
+	case MonsterBehavior::ULTIMATE_SKILL:
 		temp = MonsterBehavior::DELAY;
 		break;
 	case MonsterBehavior::DELAY:
@@ -1209,11 +1320,35 @@ void BossMonster::SetBehaviorAnimation(MonsterBehavior behavior)
 	case MonsterBehavior::WIDE_SKILL:
 		m_current_animation = BossMonsterAnimation::WIDE_SKILL;
 		break;
+	case MonsterBehavior::PREPARE_ENHANCE_ATTACK:
+		m_current_animation = BossMonsterAnimation::PREPARE_ENHANCE_ATTACK;
+		break;
+	case MonsterBehavior::ENHANCE_ATTACK:
+		m_current_animation = BossMonsterAnimation::ENHANCE_ATTACK;
+		break;
+	case MonsterBehavior::PREPARE_ENHANCE_WIDE_SKILL:
+		m_current_animation = BossMonsterAnimation::PREPARE_ENHANCE_WIDE_SKILL;
+		break;
+	case MonsterBehavior::ENHANCE_WIDE_SKILL:
+		m_current_animation = BossMonsterAnimation::ENHANCE_WIDE_SKILL;
+		break;
+	case MonsterBehavior::PREPARE_RUCH_SKILL:
+		m_current_animation = BossMonsterAnimation::PREPARE_RUCH_SKILL;
+		break;
+	case MonsterBehavior::RUCH_SKILL:
+		m_current_animation = BossMonsterAnimation::RUCH_SKILL;
+		break;
+	case MonsterBehavior::PREPARE_ULTIMATE_SKILL:
+		m_current_animation = BossMonsterAnimation::PREPARE_ULTIMATE_SKILL;
+		break;
+	case MonsterBehavior::ULTIMATE_SKILL:
+		m_current_animation = BossMonsterAnimation::ULTIMATE_SKILL;
+		break;
 	case MonsterBehavior::DEATH:
 		m_current_animation = BossMonsterAnimation::DEATH;
 		break;
 	case MonsterBehavior::DELAY:
-		m_current_animation = BossMonsterAnimation::IDLE;
+		m_current_animation = BossMonsterAnimation::IDLE;               // 이때도 idle01
 		break;
 	}
 }
@@ -1247,6 +1382,87 @@ std::chrono::milliseconds BossMonster::SetBehaviorTime(MonsterBehavior behavior)
 		time = 2233ms;
 		break;
 		return time;
+	}
+}
+
+void BossMonster::DecreaseHp(FLOAT damage, INT id)
+{
+	Server& server = Server::GetInstance();
+
+	if (m_hp <= 0)
+		return;
+
+	m_hp -= damage;
+	server.m_clients[id]->SetSaveDamage(0);
+
+	if (m_hp <= 0) {
+		m_hp = 0.f;
+		{
+			std::lock_guard<std::mutex> l{ m_state_lock };
+			m_state = State::DEATH;
+		}
+		// 죽은것 전송
+		ChangeBehavior(MonsterBehavior::DEATH);
+		return;
+	}
+
+	m_pl_save_damage.push_back(std::make_pair(id, server.m_clients[id]->GetSaveDamage()));
+
+	auto pl_save_data = std::find_if(m_pl_save_damage.begin(), m_pl_save_damage.end(), [id](const m_save_damage_pair& pair) {
+		return pair.first == id;
+		});
+
+	if (pl_save_data != m_pl_save_damage.end()) {
+		// 이미 저장된 경우, 해당 플레이어의 누적 데미지를 업데이트
+		pl_save_data->second += damage;
+	}
+	else {
+		// 저장되어 있지 않은 경우, 새로운 플레이어 정보를 추가
+		m_pl_save_damage.push_back(std::make_pair(id, server.m_clients[id]->GetSaveDamage()));
+	}
+
+	std::cout << id << "플레이어의 누적 데미지 - " << (FLOAT)pl_save_data->second << std::endl;
+
+	if (AggroLevel::HIT_AGGRO < m_aggro_level)
+		return;
+}
+
+void BossMonster::RandomTarget(FLOAT elapsed_time)
+{
+	Server& server = Server::GetInstance();
+	auto game_room = server.GetGameRoomManager()->GetGameRoom(m_room_num);
+	XMFLOAT3 player_dir{};
+
+	if (!CheckPlayer()) {
+		UpdateTarget();
+	}
+
+	std::mt19937 random_engine{ std::random_device{}() };
+	std::uniform_int_distribution<INT> dist(0, 3000);
+
+	for (int id : game_room->GetPlayerIds()) {
+		if (-1 == id) continue;
+		std::cout << id << std::endl;
+		INT random_id = dist(random_engine) % server.m_clients[id]->GetId();
+		player_dir = GetDirection(server.m_clients[id]->GetId());
+	}
+
+	if (Vector3::Equal(player_dir, XMFLOAT3(0.f, 0.f, 0.f)))
+		return;
+
+	UpdatePosition(player_dir, elapsed_time, MonsterSetting::WALK_SPEED);
+	UpdateRotation(player_dir);
+	CollisionCheck();
+}
+
+void BossMonster::PlayerHighestDamageTarget()
+{
+	INT pl_highest_damage_id{};
+
+	if (m_hp <= m_max_hp / 2.5) {
+		pl_highest_damage_id = GetPlayerHighestDamage();
+		SetTarget(pl_highest_damage_id);
+		std::cout << "변경된 플레이어 id - " << pl_highest_damage_id << std::endl;
 	}
 }
 

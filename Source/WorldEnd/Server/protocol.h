@@ -95,7 +95,8 @@ enum class MonsterBehavior : char {
 	PREPARE_WIDE_SKILL, WIDE_SKILL, ENHANCE,                           // 보스 몬스터
 	PREPARE_ENHANCE_ATTACK, ENHANCE_ATTACK,                            // 보스 몬스터
 	PREPARE_ENHANCE_WIDE_SKILL, ENHANCE_WIDE_SKILL,                    // 보스 몬스터
-	PREPARE_LETHAL_MOVE, LETHAL_MOVE,                                  // 보스 몬스터
+	PREPARE_RUCH_SKILL, RUCH_SKILL,                                    // 보스 몬스터
+	PREPARE_ULTIMATE_SKILL, ULTIMATE_SKILL,                            // 보스 몬스터
 	COUNT
 };
 enum InteractionType : char {
@@ -166,10 +167,11 @@ public:
 class BossMonsterAnimation : public MonsterAnimation
 {
 public:
-	static constexpr int ANIMATION_START = 400;
+	static constexpr int ANIMATION_START = 600;
 	enum USHORT {
 		PREPARE_WIDE_SKILL = MonsterAnimation::END - MonsterAnimation::ANIMATION_START + ANIMATION_START,
-		WIDE_SKILL,
+		WIDE_SKILL, PREPARE_ENHANCE_ATTACK, ENHANCE_ATTACK, PREPARE_ENHANCE_WIDE_SKILL, ENHANCE_WIDE_SKILL,
+		PREPARE_RUCH_SKILL, RUCH_SKILL, PREPARE_ULTIMATE_SKILL, ULTIMATE_SKILL,
 	};
 };
 
