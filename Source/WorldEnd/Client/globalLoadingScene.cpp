@@ -64,7 +64,9 @@ void GlobalLoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const 
 	const ComPtr<ID3D12RootSignature>& rootsignature, const ComPtr<ID3D12RootSignature>& postRootSignature)
 {
 	// ¼ÎÀÌ´õ ·Îµù
-	auto objectShader{ make_shared<StaticObjectShader>(device, rootsignature) };
+	auto objectShader1{ make_shared<StaticObjectShader>(device, rootsignature) };
+	auto objectShader2{ make_shared<StaticObjectShader>(device, rootsignature) };
+	auto objectBlendShader{ make_shared<StaticObjectBlendShader>(device, rootsignature) };
 	auto animationShader{ make_shared<AnimationShader>(device, rootsignature) };
 	auto skyboxShader{ make_shared<SkyboxShader>(device, rootsignature) };
 	auto uiShader{ make_shared<UIShader>(device, rootsignature) };
@@ -86,7 +88,9 @@ void GlobalLoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const 
 	auto arrowInstance{ make_shared<ArrowInstance>(device, rootsignature, MAX_ARROWRAIN_ARROWS) };
 
 	m_globalShaders.insert({ "ANIMATION", animationShader });
-	m_globalShaders.insert({ "OBJECT", objectShader });
+	m_globalShaders.insert({ "OBJECT1", objectShader1 });
+	m_globalShaders.insert({ "OBJECT2", objectShader2 });
+	m_globalShaders.insert({ "OBJECTBLEND", objectBlendShader });
 	m_globalShaders.insert({ "SKYBOX", skyboxShader });
 	m_globalShaders.insert({ "TRIGGEREFFECT", triggerEffectShader });
 	m_globalShaders.insert({ "HORZGAUGE", horzGaugeShader });

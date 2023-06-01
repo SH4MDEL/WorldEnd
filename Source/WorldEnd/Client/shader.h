@@ -61,6 +61,15 @@ public:
 	~StaticObjectShader() = default;
 };
 
+class StaticObjectBlendShader : public Shader
+{
+public:
+	StaticObjectBlendShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature);
+	~StaticObjectBlendShader() = default;
+
+	void Update(FLOAT timeElapsed) override;
+};
+
 class AnimationShader : public Shader
 {
 public:

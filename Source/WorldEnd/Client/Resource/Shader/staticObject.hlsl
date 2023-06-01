@@ -38,19 +38,19 @@ VS_STATICOBJECT_OUTPUT VS_STATICOBJECT_MAIN(VS_STATICOBJECT_INPUT input)
 	return output;
 }
 
-[earlydepthstencil]
+//[earlydepthstencil]
 float4 PS_STATICOBJECT_MAIN(VS_STATICOBJECT_OUTPUT input) : SV_TARGET
 {
 	PhongMaterial material;
 	material.m_ambient = float4(0.1f, 0.1f, 0.1f, 1.0f);
-	material.m_diffuse = float4(0.5f, 0.5f, 0.5f, 1.0f);
+	material.m_diffuse = albedoColor;
 	material.m_specular = float4(0.1f, 0.1f, 0.1f, 0.0f);
 
 	float4 normalColor = float4(0.0f, 0.0f, 0.0f, 1.0f);		// ³ë¸»
 	float4 metallicColor = float4(0.0f, 0.0f, 0.0f, 0.0f);		// 
 	float4 emissionColor = float4(0.0f, 0.0f, 0.0f, 0.0f);		// ¹ß»ê±¤
 
-	if (textureMask & MATERIAL_ALBEDO_MAP) material.m_diffuse = g_albedoTexture.Sample(g_samplerWrap, input.uv);
+	if (textureMask & MATERIAL_ALBEDO_MAP) material.m_diffuse *= g_albedoTexture.Sample(g_samplerWrap, input.uv);
 	if (textureMask & MATERIAL_SPECULAR_MAP) material.m_specular = g_specularTexture.Sample(g_samplerWrap, input.uv);
 	if (textureMask & MATERIAL_NORMAL_MAP) normalColor = g_normalTexture.Sample(g_samplerWrap, input.uv);
 	else normalColor = float4(input.normal, 1.f);
@@ -66,5 +66,6 @@ float4 PS_STATICOBJECT_MAIN(VS_STATICOBJECT_OUTPUT input) : SV_TARGET
 	//float shadowFactor = 0.5f;
 	float4 light = Lighting(input.positionW, normal, material, shadowFactor);
 	color = lerp(color, light, 0.5);
+	//clip(color.a - 0.1f);
 	return color;
 }

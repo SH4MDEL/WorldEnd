@@ -161,6 +161,7 @@ void VillageScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	XMFLOAT4X4 projMatrix;
 	XMStoreFloat4x4(&projMatrix, XMMatrixPerspectiveFovLH(0.25f * XM_PI, g_GameFramework.GetAspectRatio(), 0.1f, 200.0f));
 	m_camera->SetProjMatrix(projMatrix);
+	m_globalShaders["OBJECTBLEND"]->SetCamera(m_camera);
 
 	m_shadow = make_shared<Shadow>(device, 1024, 1024);
 
@@ -271,16 +272,18 @@ void VillageScene::PreProcess(const ComPtr<ID3D12GraphicsCommandList>& commandLi
 	{
 	case 0:
 	{
-		m_globalShaders["OBJECT"]->Render(commandList, m_globalShaders["SHADOW"]);
+		m_globalShaders["OBJECT1"]->Render(commandList, m_globalShaders["SHADOW"]);
 		break;
 	}
 	case 1:
 	{
-		m_globalShaders["ANIMATION"]->Render(commandList, m_globalShaders["ANIMATIONSHADOW"]);
+		m_globalShaders["OBJECT2"]->Render(commandList, m_globalShaders["SHADOW"]);
 		break;
 	}
 	case 2:
 	{
+		m_globalShaders["OBJECTBLEND"]->Render(commandList, m_globalShaders["SHADOW"]);
+		m_globalShaders["ANIMATION"]->Render(commandList, m_globalShaders["ANIMATIONSHADOW"]);
 		break;
 	}
 	}
@@ -295,17 +298,19 @@ void VillageScene::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, 
 	{
 	case 0:
 	{
-		m_globalShaders.at("OBJECT")->Render(commandList);
+		m_globalShaders.at("SKYBOX")->Render(commandList);
+		m_globalShaders.at("OBJECT1")->Render(commandList);
 		break;
 	}
 	case 1:
 	{
-		m_globalShaders.at("ANIMATION")->Render(commandList);
+		m_globalShaders.at("OBJECT2")->Render(commandList);
 		break;
 	}
 	case 2:
 	{
-		m_globalShaders.at("SKYBOX")->Render(commandList);
+		m_globalShaders.at("ANIMATION")->Render(commandList);
+		m_globalShaders.at("OBJECTBLEND")->Render(commandList);
 		m_globalShaders.at("UI")->Render(commandList);
 		break;
 	}
@@ -426,15 +431,25 @@ void VillageScene::LoadSceneFromFile(wstring fileName, wstring sceneName)
 		wstring wstrToken = L"";
 		wstrToken.assign(objectName.begin(), objectName.end());
 		wstring strPath = L"./Resource/Model/" + sceneName + L"/" + wstrToken + L".bin";
-		//cout << objectName << endl;
-		if (objectName != "Trunk_A_01" && objectName != "Trunk" && objectName != "Trunk_A_02") {
-			LoadObjectFromFile(strPath, object);
-		}
+
+
+		LoadObjectFromFile(strPath, object);
+
 		XMFLOAT4X4 worldMatrix;
 		in.read((CHAR*)(&worldMatrix), sizeof(XMFLOAT4X4));
 		object->SetWorldMatrix(worldMatrix);
-		if (objectName != "Trunk_A_01" && objectName != "Trunk" && objectName != "Trunk_A_02") {
-			m_globalShaders["OBJECT"]->SetObject(object);
+
+		static int threadNum = 0;
+		if (IsBlendObject(objectName)) {
+			m_globalShaders["OBJECTBLEND"]->SetObject(object);
+		}
+		else if (threadNum == 0) {
+			m_globalShaders["OBJECT1"]->SetObject(object);
+			threadNum = 1;
+		}
+		else {
+			m_globalShaders["OBJECT2"]->SetObject(object);
+			threadNum = 0;
 		}
 	}
 }
@@ -487,4 +502,27 @@ void VillageScene::LoadPlayerFromFile(const shared_ptr<Player>& player)
 	player->SetAnimationOnTrack(0, ObjectAnimation::IDLE);
 	player->GetAnimationController()->SetTrackEnable(1, false);
 	player->GetAnimationController()->SetTrackEnable(2, false);
+}
+
+bool VillageScene::IsBlendObject(const string& objectName)
+{
+	if (objectName == "Flower_E_01") return true;
+	if (objectName == "Flower_F_01") return true;
+	if (objectName == "Flower_G_01") return true;
+	if (objectName == "MV_Tree_A_01") return true;
+	if (objectName == "MV_Tree_A_02") return true;
+	if (objectName == "MV_Tree_A_03") return true;
+	if (objectName == "MV_Tree_A_04") return true;
+	if (objectName == "MV_Tree_B_01") return true;
+	if (objectName == "MV_Tree_B_02") return true;
+	if (objectName == "MV_Tree_B_03") return true;
+	if (objectName == "MV_Tree_B_04") return true;
+	if (objectName == "Ivy_A_01") return true;
+	if (objectName == "Ivy_A_02") return true;
+	if (objectName == "Ivy_A_03") return true;
+	if (objectName == "Ivy_B_01") return true;
+	if (objectName == "Ivy_B_02") return true;
+	if (objectName == "Ivy_B_03") return true;
+	if (objectName == "Decal_A") return true;
+	return false;
 }

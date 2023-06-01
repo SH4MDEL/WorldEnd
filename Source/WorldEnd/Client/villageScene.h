@@ -68,6 +68,8 @@ private:
 
 	void UpdateLightSystem(FLOAT timeElapsed);
 
+	bool IsBlendObject(const string& objectName);
+
 protected:
 	ComPtr<ID3D12Resource>								m_sceneBuffer;
 	SceneInfo*											m_sceneBufferPointer;

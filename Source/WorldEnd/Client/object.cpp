@@ -8,6 +8,7 @@ GameObject::GameObject() : m_right{ 1.0f, 0.0f, 0.0f }, m_up{ 0.0f, 1.0f, 0.0f }
 {
 	XMStoreFloat4x4(&m_worldMatrix, XMMatrixIdentity());
 	XMStoreFloat4x4(&m_transformMatrix, XMMatrixIdentity());
+	XMStoreFloat4x4(&m_animationMatrix, XMMatrixIdentity());
 }
 
 GameObject::~GameObject()
@@ -130,6 +131,7 @@ void GameObject::SetPosition(const XMFLOAT3& position)
 	m_transformMatrix._42 = position.y;
 	m_transformMatrix._43 = position.z;
 	m_boundingBox.Center = position;
+
 	UpdateTransform(nullptr);
 }
 
@@ -143,7 +145,11 @@ void GameObject::SetScale(FLOAT x, FLOAT y, FLOAT z)
 
 void GameObject::SetWorldMatrix(const XMFLOAT4X4& worldMatrix)
 {
-	m_worldMatrix = worldMatrix;
+	// 먼저 Transform Matrix를 설정해준다.
+	m_transformMatrix = worldMatrix;
+	
+	// Transform Matrix의 정보를 통해 World Matrix를 업데이트한다.
+	UpdateTransform(nullptr);
 }
 
 void GameObject::UpdateTransform(XMFLOAT4X4* parentMatrix)

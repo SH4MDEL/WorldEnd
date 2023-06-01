@@ -157,6 +157,7 @@
     <ClInclude Include="light.h" />
     <ClInclude Include="loginScene.h" />
     <ClInclude Include="objectManager.h" />
+    <ClInclude Include="QuadtreeFrustum.h" />
     <ClInclude Include="towerLoadingScene.h" />
     <ClInclude Include="monster.h" />
     <ClInclude Include="particle.h" />
@@ -194,6 +195,7 @@
     <ClCompile Include="light.cpp" />
     <ClCompile Include="loginScene.cpp" />
     <ClCompile Include="objectManager.cpp" />
+    <ClCompile Include="QuadtreeFrustum.cpp" />
     <ClCompile Include="towerLoadingScene.cpp" />
     <ClCompile Include="monster.cpp" />
     <ClCompile Include="particle.cpp" />
