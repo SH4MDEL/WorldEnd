@@ -42,10 +42,27 @@ Server::Server()
 
 	m_database = std::make_unique<DataBase>();
 
-	USER_INFO a{L"ldh5112", L"123456", L"TEST"};
+	/*USER_INFO a{L"ldh5112", L"123456", L"TEST"};
 	PLAYER_DATA p{};
 
-	m_database->TryLogin(a, p);
+	m_database->TryLogin(a, p);*/
+
+
+	std::wstring test_id{L"abc11"};
+	USER_INFO test{ test_id, L"123456", L"이동현" };
+	//m_database->CreateAccount(test);
+
+	PLAYER_INFO p{ .user_id = test_id, .gold = 500, .player_type = 1,
+			.x = 10.f, .y = 5.f, .z = -3.1f };
+	m_database->UpdatePlayer(p);
+
+	SKILL_INFO s{ .user_id = test_id, .player_type = 1,
+		.normal_skill = L"멀티샷", .ultimate = L"폭풍의 시" };
+	m_database->UpdateSkill(s);
+
+	UPGRADE_INFO u{ .user_id = test_id, .hp = 5, .def = 7, .atk = 10, .crit_rate = 3, .crit_damage = 1 };
+	m_database->UpdateUpgrade(u);
+
 	printf("Complete Initialize!\n");
 	// ----------------------- //
 }

@@ -10,6 +10,28 @@ struct USER_INFO
 	std::wstring name;
 };
 
+struct PLAYER_INFO
+{
+	std::wstring user_id;
+	INT gold;
+	INT player_type;
+	FLOAT x, y, z;
+};
+
+struct SKILL_INFO
+{
+	std::wstring user_id;
+	INT player_type;
+	std::wstring normal_skill;
+	std::wstring ultimate;
+};
+
+struct UPGRADE_INFO
+{
+	std::wstring user_id;
+	BYTE hp, def, atk, crit_rate, crit_damage;
+};
+
 struct PLAYER_DATA
 {
 	std::wstring user_id;
@@ -32,7 +54,7 @@ struct PLAYER_DATA
 struct PLAYER_TABLE
 {
 	SQLWCHAR user_id[20];
-	SQLWCHAR name[20];
+	SQLWCHAR name[30];
 	
 	SQLINTEGER gold;
 	SQLINTEGER player_type;
@@ -44,8 +66,8 @@ struct PLAYER_TABLE
 	SQLINTEGER crit_rate_level;
 	SQLINTEGER crit_damage_level;
 
-	SQLWCHAR normal_skill_name;
-	SQLWCHAR ultimate_name;
+	SQLWCHAR normal_skill_name[30];
+	SQLWCHAR ultimate_name[30];
 	SQLCHAR logged_in;
 
 
@@ -60,7 +82,12 @@ public:
 	DataBase();
 	~DataBase();
 
-	bool TryLogin(USER_INFO& user_info, PLAYER_DATA& player_data);
+	bool TryLogin(const USER_INFO& user_info, PLAYER_DATA& player_data);
+	bool CreateAccount(const USER_INFO& user_info);
+	bool DeleteAccount(const USER_INFO& user_info);
+	bool UpdatePlayer(const PLAYER_INFO& player_info);
+	bool UpdateSkill(const SKILL_INFO& skill_info);
+	bool UpdateUpgrade(const UPGRADE_INFO& upgrade_info);
 
 private:
 	SQLHENV m_henv;
