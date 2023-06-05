@@ -130,7 +130,6 @@ void GameObject::SetPosition(const XMFLOAT3& position)
 	m_transformMatrix._41 = position.x;
 	m_transformMatrix._42 = position.y;
 	m_transformMatrix._43 = position.z;
-	m_boundingBox.Center = position;
 
 	UpdateTransform(nullptr);
 }
@@ -155,6 +154,7 @@ void GameObject::SetWorldMatrix(const XMFLOAT4X4& worldMatrix)
 void GameObject::UpdateTransform(XMFLOAT4X4* parentMatrix)
 {
 	m_worldMatrix = (parentMatrix) ? Matrix::Mul(m_transformMatrix, *parentMatrix) : m_transformMatrix;
+	m_boundingBox.Center = GetPosition();
 
 	if (m_sibling) m_sibling->UpdateTransform(parentMatrix);
 	if (m_child) m_child->UpdateTransform(&m_worldMatrix);

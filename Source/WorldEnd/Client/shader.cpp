@@ -209,7 +209,39 @@ StaticObjectShader::StaticObjectShader(const ComPtr<ID3D12Device>& device, const
 	psoDesc.SampleDesc.Count = 1;
 	psoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
 	Utiles::ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
+
+	// 프러스텀 컬링을 위한 쿼드트리 생성
+	m_quadtreeFrustum = make_shared<QuadtreeFrustum>(XMFLOAT3{ -100.f, 0, 100 }, XMFLOAT3{ 200.f, 50.f, 200.f }, 4);
 }
+
+void StaticObjectShader::SetObject(const shared_ptr<GameObject>& object)
+{
+	object->SetBoundingBox(object->GetBoundingBox());
+	m_quadtreeFrustum->SetGameObject(object);
+	Shader::SetObject(object);
+}
+
+void StaticObjectShader::SetBoundingFrustum(const BoundingFrustum& boundingFrustum)
+{
+	m_boundingFrustum = boundingFrustum;
+}
+
+void StaticObjectShader::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const
+{
+	Shader::UpdateShaderVariable(commandList);
+
+	for (const auto& elm : m_quadtreeFrustum->GetGameObjects(m_boundingFrustum)) {
+		if (elm) elm->Render(commandList);
+	}
+}
+
+//void StaticObjectShader::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, const shared_ptr<Shader>& shader) const
+//{
+//	shader->UpdateShaderVariable(commandList);
+//
+//	for (const auto& elm : m_quadtreeFrustum->GetGameObjects(m_boundingFrustum))
+//		if (elm) elm->Render(commandList);
+//}
 
 StaticObjectBlendShader::StaticObjectBlendShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature)
 {
@@ -263,6 +295,21 @@ StaticObjectBlendShader::StaticObjectBlendShader(const ComPtr<ID3D12Device>& dev
 	psoDesc.SampleDesc.Count = 1;
 	psoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
 	Utiles::ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
+
+	// 프러스텀 컬링을 위한 쿼드트리 생성
+	m_quadtreeFrustum = make_shared<QuadtreeFrustum>(XMFLOAT3{ -100.f, 0, 100 }, XMFLOAT3{ 200.f, 50.f, 200.f }, 4);
+}
+
+void StaticObjectBlendShader::SetObject(const shared_ptr<GameObject>& object)
+{
+	object->SetBoundingBox(object->GetBoundingBox());
+	m_quadtreeFrustum->SetGameObject(object);
+	Shader::SetObject(object);
+}
+
+void StaticObjectBlendShader::SetBoundingFrustum(const BoundingFrustum& boundingFrustum)
+{
+	m_boundingFrustum = boundingFrustum;
 }
 
 void StaticObjectBlendShader::Update(FLOAT timeElapsed)
@@ -275,6 +322,23 @@ void StaticObjectBlendShader::Update(FLOAT timeElapsed)
 	}
 	Shader::Update(timeElapsed);
 }
+
+void StaticObjectBlendShader::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const
+{
+	Shader::UpdateShaderVariable(commandList);
+
+	for (const auto& elm : m_quadtreeFrustum->GetGameObjects(m_boundingFrustum)) {
+		if (elm) elm->Render(commandList);
+	}
+}
+
+//void StaticObjectBlendShader::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, const shared_ptr<Shader>& shader) const
+//{
+//	shader->UpdateShaderVariable(commandList);
+//
+//	for (const auto& elm : m_quadtreeFrustum->GetGameObjects(m_boundingFrustum))
+//		if (elm) elm->Render(commandList);
+//}
 
 AnimationShader::AnimationShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature)
 {

@@ -20,6 +20,7 @@
 #include <iostream>
 #include <mutex>
 #include <fstream>
+#include <unordered_set>
 #include <unordered_map>
 #include <vector>
 #include <stack>
@@ -83,7 +84,6 @@ extern unique_ptr<ParticleSystem>       g_particleSystem;
 extern stack<function<void()>>          g_clickEventStack;
 
 extern POINT                            g_mousePosition;
-
 
 constexpr int MAX_PLAYERS = 2;
 constexpr int MAX_PARTICLE_COUNT = 10;

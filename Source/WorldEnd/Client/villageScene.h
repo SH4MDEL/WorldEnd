@@ -67,27 +67,30 @@ private:
 	void BuildLight(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist);
 
 	void UpdateLightSystem(FLOAT timeElapsed);
+	void UpdateBoundingFrustum();
 
 	bool IsBlendObject(const string& objectName);
 
 protected:
-	ComPtr<ID3D12Resource>								m_sceneBuffer;
-	SceneInfo*											m_sceneBufferPointer;
+	ComPtr<ID3D12Resource>		m_sceneBuffer;
+	SceneInfo*					m_sceneBufferPointer;
 
-	INT													m_sceneState;
+	INT							m_sceneState;
 
-	XMMATRIX											m_NDCspace;
+	XMMATRIX					m_NDCspace;
 
-	shared_ptr<Player>									m_player;
-	shared_ptr<Camera>									m_camera;
+	shared_ptr<Player>			m_player;
+	shared_ptr<Camera>			m_camera;
 
-	shared_ptr<LightSystem>								m_lightSystem;
-	shared_ptr<Shadow>									m_shadow;
+	shared_ptr<LightSystem>		m_lightSystem;
+	shared_ptr<Shadow>			m_shadow;
 
-	unique_ptr<BlurFilter>								m_blurFilter;
-	unique_ptr<FadeFilter>								m_fadeFilter;
+	unique_ptr<BlurFilter>		m_blurFilter;
+	unique_ptr<FadeFilter>		m_fadeFilter;
 
-	XMFLOAT4											m_directionalDiffuse;
-	XMFLOAT3											m_directionalDirection;
+	XMFLOAT4					m_directionalDiffuse;
+	XMFLOAT3					m_directionalDirection;
+
+	BoundingFrustum				m_boundingFrustum;
 };
 

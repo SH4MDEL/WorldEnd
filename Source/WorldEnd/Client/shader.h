@@ -6,6 +6,7 @@
 #include "monster.h"
 #include "ui.h"
 #include "particleMesh.h"
+#include "QuadtreeFrustum.h"
 
 class Shader
 {
@@ -30,7 +31,7 @@ public:
 
 	void SetPlayer(const shared_ptr<Player>& player);
 	void SetCamera(const shared_ptr<Camera>& camera);
-	void SetObject(const shared_ptr<GameObject>& object);
+	virtual void SetObject(const shared_ptr<GameObject>& object);
 	void SetMultiPlayer(INT id, const shared_ptr<Player>& player);
 	void SetMonster(INT id, const shared_ptr<Monster>& monster);
 	virtual void SetUI(const shared_ptr<UI>& ui) {};
@@ -59,6 +60,16 @@ class StaticObjectShader : public Shader
 public:
 	StaticObjectShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature);
 	~StaticObjectShader() = default;
+
+	void SetObject(const shared_ptr<GameObject>& object) override;
+	void SetBoundingFrustum(const BoundingFrustum& boundingFrustum);
+
+	void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const override;
+	//void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, const shared_ptr<Shader>& shader) const override;
+
+private:
+	shared_ptr<QuadtreeFrustum>	m_quadtreeFrustum;
+	BoundingFrustum				m_boundingFrustum;
 };
 
 class StaticObjectBlendShader : public Shader
@@ -67,7 +78,16 @@ public:
 	StaticObjectBlendShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature);
 	~StaticObjectBlendShader() = default;
 
+	void SetObject(const shared_ptr<GameObject>& object) override;
+	void SetBoundingFrustum(const BoundingFrustum& boundingFrustum);
+
 	void Update(FLOAT timeElapsed) override;
+	void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const override;
+	//void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, const shared_ptr<Shader>& shader) const override;
+
+private:
+	shared_ptr<QuadtreeFrustum>	m_quadtreeFrustum;
+	BoundingFrustum				m_boundingFrustum;
 };
 
 class AnimationShader : public Shader
