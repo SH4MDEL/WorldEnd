@@ -69,6 +69,8 @@ protected:
 	BYTE				m_last_behavior_id;
 	FLOAT               m_highest_damage;
 
+	std::vector<INT>    m_pl_random_id;
+
 	typedef std::pair<INT, FLOAT> m_save_damage_pair;
 	std::vector<m_save_damage_pair> m_pl_save_damage;
 };
@@ -151,6 +153,6 @@ private:
 	void RandomTarget(FLOAT elapsed_time);
 	void PlayerHighestDamageTarget();
 
-	INT    m_behavior_cnt = 0;
+	INT    m_behavior_cnt = 0;                  
 };
 

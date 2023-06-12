@@ -395,13 +395,13 @@ void Server::WorkerThread()
 			FLOAT damage{ client->GetDamage() };
 			damage *= client->GetSkillRatio(attack_type);
 
+
 			for (int id : monster_ids) {
 				if (-1 == id) continue;
 				if (State::INGAME != m_clients[id]->GetState()) continue;
-				
+
 				if (m_clients[id]->GetBoundingBox().Intersects(obb)) {
 					auto monster = dynamic_pointer_cast<Monster>(m_clients[id]);
-
 					monster->DecreaseHp(damage, client->GetId());
 					v.push_back(id);
 
@@ -447,7 +447,34 @@ void Server::WorkerThread()
 				obb.Extents = XMFLOAT3{ 0.2f, 0.2f, 0.2f };
 			}
 			else if (MonsterType::BOSS == monster->GetMonsterType()) {
-
+				if (monster->GetBehavior() == MonsterBehavior::ATTACK) {
+					XMFLOAT3 temp = Vector3::Normalize(Vector3::Sub(*pos, monster->GetPosition()));
+					obb.Center = Vector3::Add(*pos, Vector3::Mul(temp, 1.5f));
+					obb.Extents = XMFLOAT3{ 0.4f, 0.4f, 0.4f };
+				}
+				else if (monster->GetBehavior() == MonsterBehavior::WIDE_SKILL) {
+					XMFLOAT3 temp = Vector3::Normalize(Vector3::Sub(*pos, monster->GetPosition()));
+					obb.Center = Vector3::Add(*pos, Vector3::Mul(temp, 2.0f));
+					obb.Extents = XMFLOAT3{ 0.5f, 0.5f, 0.5f };
+				}
+				else if (monster->GetBehavior() == MonsterBehavior::ENHANCE_ATTACK) {
+					XMFLOAT3 temp = Vector3::Normalize(Vector3::Sub(*pos, monster->GetPosition()));
+					obb.Center = Vector3::Add(*pos, Vector3::Mul(temp, 1.5f));
+					obb.Extents = XMFLOAT3{ 0.4f, 0.4f, 0.4f };
+				}
+				else if (monster->GetBehavior() == MonsterBehavior::ENHANCE_WIDE_SKILL) {
+					XMFLOAT3 temp = Vector3::Normalize(Vector3::Sub(*pos, monster->GetPosition()));
+					obb.Center = Vector3::Add(*pos, Vector3::Mul(temp, 2.0f));
+					obb.Extents = XMFLOAT3{ 0.6f, 0.6f, 0.6f };
+				}
+				else if (monster->GetBehavior() == MonsterBehavior::RUCH_SKILL) {
+					// 돌진 스킬로 몸 전체랑 충돌해야 하므로 나중에 추가할 예정
+				}
+				else if (monster->GetBehavior() == MonsterBehavior::ULTIMATE_SKILL) {
+					XMFLOAT3 temp = Vector3::Normalize(Vector3::Sub(*pos, monster->GetPosition()));
+					obb.Center = Vector3::Add(*pos, Vector3::Mul(temp, 1.5f));
+					obb.Extents = XMFLOAT3{ 0.4f, 0.4f, 0.4f };
+				}
 			}
 
 			SendMonsterAttack(static_cast<int>(key), player_ids, obb);
@@ -716,10 +743,10 @@ void Server::WorkerThread()
 
 			delete exp_over;
 			break;
-		}
+		  }
 
-		}
-	}
+	    }
+    }
 }
 
 void Server::ProcessPacket(int id, char* p) 

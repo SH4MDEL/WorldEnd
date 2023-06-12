@@ -423,12 +423,6 @@ void Monster::UpdateTarget()
 
 void Monster::ChasePlayer(FLOAT elapsed_time)
 {
-	//if (!CheckPlayer()) {
-	//	UpdateTarget();
-	//}
-
-	//// 타게팅한 플레이어 추격
-	//XMFLOAT3 player_dir = GetDirection(m_target_id);
 
 	Server& server = Server::GetInstance();
 	auto game_room = server.GetGameRoomManager()->GetGameRoom(m_room_num);
@@ -438,13 +432,16 @@ void Monster::ChasePlayer(FLOAT elapsed_time)
 		UpdateTarget();
 	}
 
-	std::mt19937 random_engine{ std::random_device{}() };
-	std::uniform_int_distribution<INT> dist(0, 3000);
-	INT random_id = dist(random_engine) % 1;
-	
-	player_dir = GetDirection(server.m_clients[random_id]->GetId());
+	m_pl_random_id.push_back(m_target_id);
 
-	//std::cout << "추격당하는 플레이어 - " << random_id << std::endl;
+	std::random_device rd;
+	std::mt19937 gen(rd());
+
+	std::shuffle(m_pl_random_id.begin(), m_pl_random_id.end(), gen);
+	
+	player_dir = GetDirection(m_target_id);
+
+	std::cout << "랜덤으로 추격당하는 플레이어 - " << m_target_id << std::endl;
 
 	if (Vector3::Equal(player_dir, XMFLOAT3(0.f, 0.f, 0.f)))
 		return;
@@ -452,6 +449,21 @@ void Monster::ChasePlayer(FLOAT elapsed_time)
 	UpdatePosition(player_dir, elapsed_time, MonsterSetting::WALK_SPEED);
 	UpdateRotation(player_dir);
 	CollisionCheck();	
+
+
+	//if (!CheckPlayer()) {
+	//	UpdateTarget();
+	//}
+
+	//// 타게팅한 플레이어 추격
+	//XMFLOAT3 player_dir = GetDirection(m_target_id);
+
+	//if (Vector3::Equal(player_dir, XMFLOAT3(0.f, 0.f, 0.f)))
+	//	return;
+
+	//UpdatePosition(player_dir, elapsed_time, MonsterSetting::WALK_SPEED);
+	//UpdateRotation(player_dir);
+	//CollisionCheck();
 }
 
 void Monster::Retarget()
@@ -588,7 +600,7 @@ void Monster::InitializePosition(INT mon_cnt, MonsterType mon_type, INT random_m
 
 WarriorMonster::WarriorMonster()
 {
-	m_max_hp = 1000.f;
+	m_max_hp = 200.f;
 	m_damage = 2;
 	m_attack_range = 1.5f;
 	m_boundary_range = 3.f;
@@ -1421,7 +1433,7 @@ void BossMonster::DecreaseHp(FLOAT damage, INT id)
 		m_pl_save_damage.push_back(std::make_pair(id, server.m_clients[id]->GetSaveDamage()));
 	}
 
-	std::cout << id << "플레이어의 누적 데미지 - " << (FLOAT)pl_save_data->second << std::endl;
+	//std::cout << id << "플레이어의 누적 데미지 - " << (FLOAT)pl_save_data->second << std::endl;
 
 	if (AggroLevel::HIT_AGGRO < m_aggro_level)
 		return;
@@ -1462,7 +1474,7 @@ void BossMonster::PlayerHighestDamageTarget()
 	if (m_hp <= m_max_hp / 2.5) {
 		pl_highest_damage_id = GetPlayerHighestDamage();
 		SetTarget(pl_highest_damage_id);
-		std::cout << "변경된 플레이어 id - " << pl_highest_damage_id << std::endl;
+		//std::cout << "변경된 플레이어 id - " << pl_highest_damage_id << std::endl;
 	}
 }
 
