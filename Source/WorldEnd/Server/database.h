@@ -83,6 +83,7 @@ public:
 	~DataBase();
 
 	bool TryLogin(const USER_INFO& user_info, PLAYER_DATA& player_data);
+	bool Logout(const std::wstring_view& ws);
 	bool CreateAccount(const USER_INFO& user_info);
 	bool DeleteAccount(const USER_INFO& user_info);
 	bool UpdatePlayer(const PLAYER_INFO& player_info);

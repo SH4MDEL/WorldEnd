@@ -37,6 +37,25 @@ struct TIMER_EVENT {
 	}
 };
 
+enum class DBEventType : char {
+	TRY_LOGIN, LOGOUT, CREATE_ACCOUNT, DELETE_ACCOUNT,
+	UPDATE_PLAYER_INFO, UPDATE_SKILL_INFO, UPDATE_UPGRADE_INFO,
+	UPDATE_GOLD, UPDATE_POSITION
+};
+
+struct DB_EVENT {
+	std::chrono::system_clock::time_point event_time;
+	std::wstring user_id;
+	std::wstring data;
+	INT client_id;
+	DBEventType event_type;
+
+	constexpr bool operator <(const DB_EVENT& left)const
+	{
+		return (event_time > left.event_time);
+	}
+};
+
 class Server
 {
 public:
@@ -47,11 +66,13 @@ public:
 
 	~Server();
 
+	// Network
 	void Network();
 	void WorkerThread();
 	void ProcessPacket(int id, char* p);
 	void Disconnect(int id);
 
+	// Send
 	void SendLoginOk(int client_id);
 	void SendPlayerDeath(int client_id);
 	void SendChangeAnimation(int client_id, USHORT animation);
@@ -61,14 +82,20 @@ public:
 	void SendTrigger(int client_id, TriggerType type, const XMFLOAT3& pos);
 	void SendMagicCircle(int room_num, const XMFLOAT3& pos, const XMFLOAT3& extent);
 
+	// 기타 처리
 	bool IsPlayer(int client_id); 
 	void GameRoomObjectCollisionCheck(const std::shared_ptr<MovementObject>& object,
 		int room_num);
 	void ProcessArrow(int client_id, int target_id, ActionType type);
 
-	void Timer();
-	void ProcessEvent(const TIMER_EVENT& ev);
+	// 타이머 쓰레드 및 처리
+	void TimerThread();
+	void ProcessTimerEvent(const TIMER_EVENT& ev);
 
+	// DB 쓰레드
+	void DBThread();
+
+	// 타이머 이벤트 Set
 	void SetTimerEvent(const TIMER_EVENT& ev);
 	void SetAttackTimerEvent(int id, ActionType attack_type,
 		std::chrono::system_clock::time_point attack_time);
@@ -83,6 +110,7 @@ public:
 	void SetTrigger(int client_id, TriggerType type, const XMFLOAT3& pos);
 	void SetTrigger(int client_id, TriggerType type, int target_id);
 
+	// Getter
 	INT GetNewId();
 	INT GetNewMonsterId(MonsterType type);
 	INT GetNewTriggerId(TriggerType type);
@@ -107,6 +135,7 @@ public:
 	static void CollideByStaticOBB(const std::shared_ptr<GameObject>& object,
 		const std::shared_ptr<GameObject>& static_object);
 
+public:
 	std::array<std::shared_ptr<MovementObject>, MAX_OBJECT> m_clients;
 	std::array<std::shared_ptr<Trigger>, MAX_TRIGGER> m_triggers;
 
@@ -122,6 +151,7 @@ private:
 	bool						m_accept;
 
 	concurrency::concurrent_priority_queue<TIMER_EVENT> m_timer_queue;
+	concurrency::concurrent_priority_queue<DB_EVENT> m_db_queue;
 
 	Server();
 };

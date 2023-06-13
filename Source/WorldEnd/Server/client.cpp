@@ -52,6 +52,7 @@ void Client::Init()
 	m_last_move_time = 0;
 	this->SetTriggerFlag();
 	m_is_ready = false;
+	m_user_id.clear();
 
 	// 나중에 DB에서 처리될 것들
 	SetPlayerType(PlayerType::WARRIOR);
@@ -161,6 +162,11 @@ void Client::SetPartyNum(SHORT party_num)
 void Client::SetReady(bool value)
 {
 	m_is_ready = value;
+}
+
+void Client::SetUserId(const std::wstring_view& ws)
+{
+	m_user_id = ws.data();
 }
 
 FLOAT Client::GetSkillRatio(ActionType type) const

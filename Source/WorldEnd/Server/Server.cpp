@@ -48,7 +48,7 @@ Server::Server()
 	m_database->TryLogin(a, p);*/
 
 
-	std::wstring test_id{L"abc11"};
+	std::wstring test_id{L"ldh5112"};
 	USER_INFO test{ test_id, L"123456", L"이동현" };
 	//m_database->CreateAccount(test);
 
@@ -131,9 +131,9 @@ void Server::Network()
 	for (auto& th : m_worker_threads)
 		th.detach();
 
-	std::thread thread1{ &Server::Timer,this };
+	std::thread thread1{ &Server::TimerThread,this };
 	thread1.detach();
-	std::thread thread2{ &Server::Timer,this };
+	std::thread thread2{ &Server::TimerThread,this };
 	thread2.detach();
 
 	constexpr int MAX_FAME = 60;
@@ -1344,7 +1344,7 @@ void Server::SetPositionOnStairs(const std::shared_ptr<GameObject>& object)
 	MoveObject(object, pos);
 }
 
-void Server::Timer()
+void Server::TimerThread()
 {
 	using namespace std::chrono;
 	TIMER_EVENT ev{};
@@ -1360,7 +1360,7 @@ void Server::Timer()
 			if (timer_queue.top().event_time <= current_time) {
 				ev = timer_queue.top();
 				timer_queue.pop();
-				ProcessEvent(ev);
+				ProcessTimerEvent(ev);
 			}
 		}
 
@@ -1373,7 +1373,7 @@ void Server::Timer()
 				continue;
 			}
 			else {
-				ProcessEvent(ev);
+				ProcessTimerEvent(ev);
 				continue;
 			}
 		}
@@ -1383,7 +1383,7 @@ void Server::Timer()
 	}
 }
 
-void Server::ProcessEvent(const TIMER_EVENT& ev)
+void Server::ProcessTimerEvent(const TIMER_EVENT& ev)
 {
 	using namespace std::chrono;
 
@@ -1610,6 +1610,130 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 	}
 
 	
+	}
+}
+
+void Server::DBThread()
+{
+	using namespace std::chrono;
+	DB_EVENT ev{};
+
+	while (true) {
+		auto current_time = system_clock::now();
+
+		if (m_db_queue.try_pop(ev)) {
+			if (ev.event_time > current_time) {
+				m_db_queue.push(ev);
+				std::this_thread::sleep_for(5ms);
+				continue;
+			}
+			else{
+				switch (ev.event_type) {
+				case DBEventType::TRY_LOGIN: {
+					USER_INFO user_info{};
+					user_info.user_id = ev.user_id;
+					user_info.password = ev.data;
+
+					PLAYER_DATA data{};
+
+					if (m_database->TryLogin(user_info, data)) {
+						auto client = dynamic_pointer_cast<Client>(m_clients[ev.client_id]);
+
+						client->SetUserId(ev.user_id);
+						std::string name{};
+						name.assign(data.name.begin(), data.name.end());
+						client->SetName(name);
+						client->SetPlayerType(static_cast<PlayerType>(data.player_type));
+						client->SetPosition(data.x, data.y, data.z);
+						// 강화정보 Set
+						// 스킬 정보 Set
+					}
+					else {
+						// LOGIN FAIL
+					}
+					break;
+				}
+				case DBEventType::LOGOUT:
+					if (m_database->Logout(ev.user_id)) {
+						// Logout
+					}
+					else {
+						// logout 실패
+					}
+					break;
+				case DBEventType::CREATE_ACCOUNT: {
+					USER_INFO user_info{};
+					user_info.user_id = ev.user_id;
+					// data를 password 와 name 으로 split
+
+					if (m_database->CreateAccount(user_info)) {
+
+					}
+					else {
+
+					}
+					break;
+				}
+				case DBEventType::DELETE_ACCOUNT: {
+					USER_INFO user_info{};
+					user_info.user_id = ev.user_id;
+					user_info.password = ev.data;
+
+					if (m_database->DeleteAccount(user_info)) {
+
+					}
+					else {
+
+					}
+					break; 
+				}
+				case DBEventType::UPDATE_PLAYER_INFO: {
+					PLAYER_INFO player_info{};
+
+					if (m_database->UpdatePlayer(player_info)) {
+
+					}
+					else {
+
+					}
+					break;
+				}
+				case DBEventType::UPDATE_SKILL_INFO: {
+					SKILL_INFO skill_info{};
+
+					if (m_database->UpdateSkill(skill_info)) {
+
+					}
+					else {
+
+					}
+					break;
+				}
+				case DBEventType::UPDATE_UPGRADE_INFO: {
+					UPGRADE_INFO upgrade_info{};
+
+					if (m_database->UpdateUpgrade(upgrade_info)) {
+
+					}
+					else {
+
+					}
+					break;
+				}
+				case DBEventType::UPDATE_GOLD:
+					
+
+					break;
+				case DBEventType::UPDATE_POSITION:
+
+					break;
+				}
+
+				continue;
+			}
+		}
+		
+		std::this_thread::sleep_for(5ms);
 	}
 }
 

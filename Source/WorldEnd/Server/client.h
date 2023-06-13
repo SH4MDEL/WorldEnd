@@ -49,6 +49,7 @@ public:
 	void SetLastMoveTime(UINT time);
 	void SetPartyNum(SHORT party_num);
 	void SetReady(bool value);
+	void SetUserId(const std::wstring_view& ws);
 
 	const SOCKET& GetSocket() const override { return m_socket; }
 	ExpOver& GetExpOver() { return m_recv_over; }
@@ -63,6 +64,7 @@ public:
 	virtual UINT GetLastMoveTime() const override { return m_last_move_time; }
 	SHORT GetPartyNum() const { return m_party_num; }
 	bool GetReady() const { return m_is_ready; }
+	std::wstring GetUserId() const { return m_user_id; }
 
 	void ChangeStamina(FLOAT value);
 	virtual void DecreaseHp(FLOAT damage, INT id) override;
@@ -85,6 +87,8 @@ private:
 	BYTE					m_latest_id;
 	bool					m_interactable;
 	USHORT					m_current_animation;
+
+	std::wstring			m_user_id;
 
 	void SetBoundingBox(PlayerType type);
 };

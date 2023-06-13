@@ -166,6 +166,31 @@ bool DataBase::TryLogin(const USER_INFO& user_info, PLAYER_DATA& player_data)
 	return false;
 }
 
+bool DataBase::Logout(const std::wstring_view& ws)
+{
+	// 상태 핸들 할당
+	SQLRETURN ret = SQLAllocHandle(SQL_HANDLE_STMT, m_hdbc, &m_hstmt);
+	if (!(SQL_SUCCESS == ret || SQL_SUCCESS_WITH_INFO == ret)) {
+		std::cout << "Statement Handle 할당 실패" << std::endl;
+		return false;
+	}
+
+	std::wstring query = std::format(L"EXEC [WorldEnd].[dbo].[logout] '{}'",
+		ws.data());
+
+	ret = SQLExecDirect(m_hstmt, (SQLWCHAR*)query.c_str(), SQL_NTS);
+	if (!(SQL_SUCCESS == ret || SQL_SUCCESS_WITH_INFO == ret)) {
+		HandleDiagnosticRecord(m_hstmt, SQL_HANDLE_STMT, ret);
+		SQLCancel(m_hstmt);
+		SQLFreeHandle(SQL_HANDLE_STMT, m_hstmt);
+		return false;
+	}
+
+	SQLCancel(m_hstmt);
+	SQLFreeHandle(SQL_HANDLE_STMT, m_hstmt);
+	return true;
+}
+
 bool DataBase::CreateAccount(const USER_INFO& user_info)
 {
 	// 상태 핸들 할당
