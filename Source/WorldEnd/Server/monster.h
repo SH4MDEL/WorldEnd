@@ -41,6 +41,8 @@ public:
 	virtual void Flee(FLOAT elapsed_time) {}
 	void CollisionCheck();
 
+	void RandomTarget();
+
 	
 
 	// 나중에 던전 매니저로 옮겨야 할 함수

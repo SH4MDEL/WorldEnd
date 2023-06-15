@@ -423,47 +423,19 @@ void Monster::UpdateTarget()
 
 void Monster::ChasePlayer(FLOAT elapsed_time)
 {
-
-	Server& server = Server::GetInstance();
-	auto game_room = server.GetGameRoomManager()->GetGameRoom(m_room_num);
-	XMFLOAT3 player_dir{};
-
 	if (!CheckPlayer()) {
 		UpdateTarget();
 	}
 
-	m_pl_random_id.push_back(m_target_id);
-
-	std::random_device rd;
-	std::mt19937 gen(rd());
-
-	std::shuffle(m_pl_random_id.begin(), m_pl_random_id.end(), gen);
-	
-	player_dir = GetDirection(m_target_id);
-
-	std::cout << "랜덤으로 추격당하는 플레이어 - " << m_target_id << std::endl;
+	// 타게팅한 플레이어 추격
+	XMFLOAT3 player_dir = GetDirection(m_target_id);
 
 	if (Vector3::Equal(player_dir, XMFLOAT3(0.f, 0.f, 0.f)))
 		return;
 
 	UpdatePosition(player_dir, elapsed_time, MonsterSetting::WALK_SPEED);
 	UpdateRotation(player_dir);
-	CollisionCheck();	
-
-
-	//if (!CheckPlayer()) {
-	//	UpdateTarget();
-	//}
-
-	//// 타게팅한 플레이어 추격
-	//XMFLOAT3 player_dir = GetDirection(m_target_id);
-
-	//if (Vector3::Equal(player_dir, XMFLOAT3(0.f, 0.f, 0.f)))
-	//	return;
-
-	//UpdatePosition(player_dir, elapsed_time, MonsterSetting::WALK_SPEED);
-	//UpdateRotation(player_dir);
-	//CollisionCheck();
+	CollisionCheck();
 }
 
 void Monster::Retarget()
@@ -509,6 +481,21 @@ void Monster::CollisionCheck()
 	Server& server = Server::GetInstance(); 
 	
 	server.GameRoomObjectCollisionCheck(shared_from_this(), m_room_num);
+}
+
+void Monster::RandomTarget()
+{
+	m_pl_random_id.push_back(m_target_id);
+
+	std::random_device rd;
+	std::mt19937 gen(rd());
+
+	std::shuffle(m_pl_random_id.begin(), m_pl_random_id.end(), gen);
+
+	INT random_id = *m_pl_random_id.begin();
+
+	SetTarget(random_id);
+	std::cout << "랜덤으로 추격당하는 플레이어 - " << random_id << std::endl;
 }
 
 void Monster::InitializePosition(INT mon_cnt, MonsterType mon_type, INT random_map, FLOAT mon_pos[])
@@ -1050,9 +1037,11 @@ void WizardMonster::Update(FLOAT elapsed_time)
 	if (CanSwapAttackBehavior()) {
 		if (IsInRange(m_boundary_range)) {
 			ChangeBehavior(MonsterBehavior::PREPARE_ATTACK);
+			RandomTarget();
 		}
 		else if (IsInRange(m_attack_range)) {
 			ChangeBehavior(MonsterBehavior::PREPARE_CAST);
+			RandomTarget();
 		}
 	}
 }
