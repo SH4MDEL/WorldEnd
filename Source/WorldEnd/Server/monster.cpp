@@ -1204,10 +1204,12 @@ void BossMonster::Update(FLOAT elapsed_time)
 		if (CanSwapAttackBehavior()) {                                                      // 경계 범위 내에 들어오면 일반 공격
 			if (IsInRange(m_boundary_range) && m_behavior_cnt == 0) {
 				ChangeBehavior(MonsterBehavior::PREPARE_ATTACK);
+				RandomTarget(elapsed_time);
 				m_behavior_cnt++;
 			}
 			else if (IsInRange(m_attack_range) && m_behavior_cnt == 1) {                    // 공격 범위 내에 들어오면 스킬 공격
 				ChangeBehavior(MonsterBehavior::PREPARE_WIDE_SKILL);
+				RandomTarget(elapsed_time);
 				m_behavior_cnt = 0;
 			}
 		}
@@ -1430,30 +1432,17 @@ void BossMonster::DecreaseHp(FLOAT damage, INT id)
 
 void BossMonster::RandomTarget(FLOAT elapsed_time)
 {
-	Server& server = Server::GetInstance();
-	auto game_room = server.GetGameRoomManager()->GetGameRoom(m_room_num);
-	XMFLOAT3 player_dir{};
+	m_pl_random_id.push_back(m_target_id);
 
-	if (!CheckPlayer()) {
-		UpdateTarget();
-	}
+	std::random_device rd;
+	std::mt19937 gen(rd());
 
-	std::mt19937 random_engine{ std::random_device{}() };
-	std::uniform_int_distribution<INT> dist(0, 3000);
+	std::shuffle(m_pl_random_id.begin(), m_pl_random_id.end(), gen);
 
-	for (int id : game_room->GetPlayerIds()) {
-		if (-1 == id) continue;
-		std::cout << id << std::endl;
-		INT random_id = dist(random_engine) % server.m_clients[id]->GetId();
-		player_dir = GetDirection(server.m_clients[id]->GetId());
-	}
+	INT random_id = *m_pl_random_id.begin();
 
-	if (Vector3::Equal(player_dir, XMFLOAT3(0.f, 0.f, 0.f)))
-		return;
-
-	UpdatePosition(player_dir, elapsed_time, MonsterSetting::WALK_SPEED);
-	UpdateRotation(player_dir);
-	CollisionCheck();
+	SetTarget(random_id);
+	std::cout << "랜덤으로 추격당하는 플레이어 - " << random_id << std::endl;
 }
 
 void BossMonster::PlayerHighestDamageTarget()
