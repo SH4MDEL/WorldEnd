@@ -33,6 +33,7 @@ public:
 	std::shared_ptr<BattleStarter> GetBattleStarter() const;
 	std::shared_ptr<WarpPortal> GetWarpPortal() const;
 	INT GetArrowId();
+	INT GetFloorCount() { return m_floor_cnt; }
 
 	void SendAddPlayer(INT sender, INT receiver);
 	void SendPlayerData();
@@ -79,8 +80,8 @@ private:
 	std::mutex				m_state_lock;
 	INT						m_arrow_id;
 	std::mutex				m_arrow_lock;
-	//INT                     m_floor_cnt;
-	INT                     m_floor_cnt = 4;                       // 보스 방 치트
+	INT                     m_floor_cnt;
+	//INT                     m_floor_cnt = 4;                       // 보스 방 치트
 };
 
 class Town

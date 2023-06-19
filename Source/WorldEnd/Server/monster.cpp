@@ -485,8 +485,6 @@ void Monster::CollisionCheck()
 
 void Monster::RandomTarget()
 {
-	m_pl_random_id.push_back(m_target_id);
-
 	std::random_device rd;
 	std::mt19937 gen(rd());
 
@@ -1015,7 +1013,7 @@ void ArcherMonster::SetFleeDirection()
 
 WizardMonster::WizardMonster()
 {
-	m_max_hp = 1000.f;
+	m_max_hp = 170.f;
 	m_damage = 10.f;
 	m_attack_range = 8.f;
 	m_boundary_range = 2.5f;
@@ -1032,16 +1030,26 @@ void WizardMonster::Update(FLOAT elapsed_time)
 {
 	Monster::Update(elapsed_time);
 
+	// 보스 몬스터 확인용 코드
+	/*Server& server = Server::GetInstance();
+	auto game_room = server.GetGameRoomManager()->GetGameRoom(m_room_num);
+	auto& ids = game_room->GetPlayerIds();
+
+	for (INT id : ids) {
+		if (-1 == id) continue;
+		m_pl_random_id.push_back(id);
+	}*/
+
 	// 경계범위 내에 들어오면 근접공격
 	// 공격범위 내에 들어오면 마법 공격
 	if (CanSwapAttackBehavior()) {
 		if (IsInRange(m_boundary_range)) {
 			ChangeBehavior(MonsterBehavior::PREPARE_ATTACK);
-			RandomTarget();
+			//RandomTarget();
 		}
 		else if (IsInRange(m_attack_range)) {
 			ChangeBehavior(MonsterBehavior::PREPARE_CAST);
-			RandomTarget();
+			//RandomTarget();
 		}
 	}
 }
@@ -1200,6 +1208,15 @@ void BossMonster::Update(FLOAT elapsed_time)
 {
 	Monster::Update(elapsed_time);
 
+	Server& server = Server::GetInstance();
+	auto game_room = server.GetGameRoomManager()->GetGameRoom(m_room_num);
+	auto& ids = game_room->GetPlayerIds();
+
+	for (INT id : ids) {
+		if (-1 == id) continue;
+		m_pl_random_id.push_back(id);
+	}
+
 	if (!(m_hp <= m_max_hp / 2.5)) {                                                        // 일반 상태
 		if (CanSwapAttackBehavior()) {                                                      // 경계 범위 내에 들어오면 일반 공격
 			if (IsInRange(m_boundary_range) && m_behavior_cnt == 0) {
@@ -1256,6 +1273,10 @@ MonsterBehavior BossMonster::SetNextBehavior(MonsterBehavior behavior)
 {
 	MonsterBehavior temp{};
 	switch (behavior) {
+	case MonsterBehavior::CHASE:
+		if(m_hp == m_max_hp / 2.5)
+			temp = MonsterBehavior::ENHANCE;
+		break;
 	case MonsterBehavior::PREPARE_ATTACK:
 		temp = MonsterBehavior::ATTACK;
 		break;
@@ -1323,6 +1344,9 @@ void BossMonster::SetBehaviorAnimation(MonsterBehavior behavior)
 	case MonsterBehavior::WIDE_SKILL:
 		m_current_animation = BossMonsterAnimation::WIDE_SKILL;
 		break;
+	case MonsterBehavior::ENHANCE:
+		m_current_animation = BossMonsterAnimation::ENHANCE;
+		break;
 	case MonsterBehavior::PREPARE_ENHANCE_ATTACK:
 		m_current_animation = BossMonsterAnimation::PREPARE_ENHANCE_ATTACK;
 		break;
@@ -1364,19 +1388,46 @@ std::chrono::milliseconds BossMonster::SetBehaviorTime(MonsterBehavior behavior)
 
 	switch (behavior) {
 	case MonsterBehavior::CHASE:
-		time = 3000ms;
+		time = 700ms;
 		break;
 	case MonsterBehavior::PREPARE_ATTACK:
-		time = 900ms;
+		time = 700ms;
 		break;
 	case MonsterBehavior::ATTACK:
 		time = 900ms;
 		break;
 	case MonsterBehavior::PREPARE_WIDE_SKILL:
-		time = 1400ms;
+		time = 700ms;
 		break;
 	case MonsterBehavior::WIDE_SKILL:
 		time = 1466ms;
+		break;
+	case MonsterBehavior::ENHANCE:
+		time = 4233ms;
+		break;
+	case MonsterBehavior::PREPARE_ENHANCE_ATTACK:
+		time = 400ms;
+		break;
+	case MonsterBehavior::ENHANCE_ATTACK:
+		time = 900ms;
+		break;
+	case MonsterBehavior::PREPARE_ENHANCE_WIDE_SKILL:
+		time = 400ms;
+		break;
+	case MonsterBehavior::ENHANCE_WIDE_SKILL:
+		time = 1066ms;
+		break;
+	case MonsterBehavior::PREPARE_RUCH_SKILL:
+		time = 400ms;
+		break;
+	case MonsterBehavior::RUCH_SKILL:
+		time = 700ms;
+		break;
+	case MonsterBehavior::PREPARE_ULTIMATE_SKILL:
+		time = 400ms;
+		break;
+	case MonsterBehavior::ULTIMATE_SKILL:
+		time = 2066ms;
 		break;
 	case MonsterBehavior::DELAY:
 		time = 1900ms;
@@ -1432,8 +1483,6 @@ void BossMonster::DecreaseHp(FLOAT damage, INT id)
 
 void BossMonster::RandomTarget(FLOAT elapsed_time)
 {
-	m_pl_random_id.push_back(m_target_id);
-
 	std::random_device rd;
 	std::mt19937 gen(rd());
 

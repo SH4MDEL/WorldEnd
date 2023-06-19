@@ -395,16 +395,28 @@ void Server::WorkerThread()
 			FLOAT damage{ client->GetDamage() };
 			damage *= client->GetSkillRatio(attack_type);
 
+			if (game_room->GetFloorCount() != 4) {
+				for (int id : monster_ids) {
+					if (-1 == id) continue;
+					if (State::INGAME != m_clients[id]->GetState()) continue;
 
-			for (int id : monster_ids) {
-				if (-1 == id) continue;
-				if (State::INGAME != m_clients[id]->GetState()) continue;
+					if (m_clients[id]->GetBoundingBox().Intersects(obb)) {
+						auto monster = dynamic_pointer_cast<Monster>(m_clients[id]);
+						monster->DecreaseHp(damage, client->GetId());
+						v.push_back(id);
+					}
+				}
+			}
+			else {
+				for (int id : monster_ids) {
+					if (-1 == id) continue;
+					if (State::INGAME != m_clients[id]->GetState()) continue;
 
-				if (m_clients[id]->GetBoundingBox().Intersects(obb)) {
-					auto monster = dynamic_pointer_cast<Monster>(m_clients[id]);
-					monster->DecreaseHp(damage, client->GetId());
-					v.push_back(id);
-
+					if (m_clients[id]->GetBoundingBox().Intersects(obb)) {
+						auto monster = dynamic_pointer_cast<BossMonster>(m_clients[id]);
+						monster->DecreaseHp(damage, client->GetId());
+						v.push_back(id);
+					}
 				}
 			}
 
