@@ -53,6 +53,7 @@ void TowerLoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const C
 	LoadAnimationMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/Undead_WarriorMesh.bin"));
 	LoadAnimationMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/Undead_ArcherMesh.bin"));
 	LoadAnimationMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/Undead_WizardMesh.bin"));
+	LoadAnimationMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/CentaurMesh.bin"));
 
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/MeshArrowMesh.bin"));
 
@@ -129,6 +130,7 @@ void TowerLoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const C
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/Undead_WarriorTexture.bin"));
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/Undead_ArcherTexture.bin"));
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/Undead_WizardTexture.bin"));
+	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/CentaurTexture.bin"));
 
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/Archer_WeaponArrowTexture.bin"));
 
@@ -164,6 +166,7 @@ void TowerLoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const C
 	LoadAnimationSetFromFile(TEXT("./Resource/Animation/Undead_WarriorAnimation.bin"), "Undead_WarriorAnimation");
 	LoadAnimationSetFromFile(TEXT("./Resource/Animation/Undead_ArcherAnimation.bin"), "Undead_ArcherAnimation");
 	LoadAnimationSetFromFile(TEXT("./Resource/Animation/Undead_WizardAnimation.bin"), "Undead_WizardAnimation");
+	LoadAnimationSetFromFile(TEXT("./Resource/Animation/CentaurAnimation.bin"), "CentaurAnimation");
 
 
 	commandlist->Close();
