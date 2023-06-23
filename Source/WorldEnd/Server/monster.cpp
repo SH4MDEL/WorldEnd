@@ -433,6 +433,7 @@ void Monster::ChasePlayer(FLOAT elapsed_time)
 	if (Vector3::Equal(player_dir, XMFLOAT3(0.f, 0.f, 0.f)))
 		return;
 
+
 	UpdatePosition(player_dir, elapsed_time, MonsterSetting::WALK_SPEED);
 	UpdateRotation(player_dir);
 	CollisionCheck();
@@ -578,7 +579,7 @@ void Monster::InitializePosition(INT mon_cnt, MonsterType mon_type, INT random_m
 	}
 	else if (random_map == 10)
 	{
-		if (mon_type == MonsterType::WIZARD)
+		if (mon_type == MonsterType::BOSS)
 			SetPosition(0, 0, 35);
 	}
 }
@@ -1208,6 +1209,7 @@ void BossMonster::Update(FLOAT elapsed_time)
 {
 	Monster::Update(elapsed_time);
 
+
 	Server& server = Server::GetInstance();
 	auto game_room = server.GetGameRoomManager()->GetGameRoom(m_room_num);
 	auto& ids = game_room->GetPlayerIds();
@@ -1220,7 +1222,7 @@ void BossMonster::Update(FLOAT elapsed_time)
 	if (!(m_hp <= m_max_hp / 2.5)) {                                                        // 일반 상태
 		if (CanSwapAttackBehavior()) {                                                      // 경계 범위 내에 들어오면 일반 공격
 			if (IsInRange(m_boundary_range) && m_behavior_cnt == 0) {
-				ChangeBehavior(MonsterBehavior::PREPARE_ATTACK);
+				ChangeBehavior(MonsterBehavior::PREPARE_NORMAL_ATTACK);
 				RandomTarget(elapsed_time);
 				m_behavior_cnt++;
 			}
@@ -1232,29 +1234,29 @@ void BossMonster::Update(FLOAT elapsed_time)
 		}
 	}     
 	else {                                                                                  // 광폭화 상태
-		m_behavior_cnt = 0;
+		//m_behavior_cnt = 0;
 		if (CanSwapAttackBehavior()) {                                                      // 경계 범위 내에 들어오면 강화된 일반 공격
-			if (IsInRange(m_boundary_range) && m_behavior_cnt == 0) {
-				ChangeBehavior(MonsterBehavior::PREPARE_ENHANCE_ATTACK);
+			if (IsInRange(m_boundary_range) && m_enhance_behavior_cnt == 0) {
+				ChangeBehavior(MonsterBehavior::PREPARE_ATTACK);
 				PlayerHighestDamageTarget();
-				m_behavior_cnt++;
+				m_enhance_behavior_cnt++;
 			}
-			else if (IsInRange(m_attack_range) && m_behavior_cnt == 1) {                    // 공격 범위 내에 들어오면 강화된 스킬 공격
+			else if (IsInRange(m_attack_range) && m_enhance_behavior_cnt == 1) {                    // 공격 범위 내에 들어오면 강화된 스킬 공격
 				ChangeBehavior(MonsterBehavior::PREPARE_ENHANCE_WIDE_SKILL);
 				PlayerHighestDamageTarget();
 				m_attack_range += 2.f;
-				m_behavior_cnt++;
+				m_enhance_behavior_cnt++;
 			}
-			else if (IsInRange(m_attack_range) && m_behavior_cnt == 2) {                    // 공격 범위 내에 들어오면 돌진 스킬 공격
+			else if (IsInRange(m_attack_range) && m_enhance_behavior_cnt == 2) {                    // 공격 범위 내에 들어오면 돌진 스킬 공격
 				ChangeBehavior(MonsterBehavior::PREPARE_RUCH_SKILL);
 				PlayerHighestDamageTarget();
 				m_attack_range -= 4.f;
-				m_behavior_cnt++;
+				m_enhance_behavior_cnt++;
 			}
-			else if (IsInRange(m_attack_range) && m_behavior_cnt == 3) {                    // 공격 범위 내에 들어오면 필살기 스킬 공격
+			else if (IsInRange(m_attack_range) && m_enhance_behavior_cnt == 3) {                    // 공격 범위 내에 들어오면 필살기 스킬 공격
 				ChangeBehavior(MonsterBehavior::PREPARE_ULTIMATE_SKILL);
 				PlayerHighestDamageTarget();
-				m_behavior_cnt = 0;
+				m_enhance_behavior_cnt = 0;
 			}
 		}
 	}
@@ -1273,10 +1275,13 @@ MonsterBehavior BossMonster::SetNextBehavior(MonsterBehavior behavior)
 {
 	MonsterBehavior temp{};
 	switch (behavior) {
-	case MonsterBehavior::CHASE:
-		if(m_hp == m_max_hp / 2.5)
+	case MonsterBehavior::CHASE:{
+		if (m_hp == m_max_hp / 2.5)
 			temp = MonsterBehavior::ENHANCE;
+		/*else
+			temp = MonsterBehavior::DELAY;*/
 		break;
+	}
 	case MonsterBehavior::PREPARE_ATTACK:
 		temp = MonsterBehavior::ATTACK;
 		break;
@@ -1289,10 +1294,10 @@ MonsterBehavior BossMonster::SetNextBehavior(MonsterBehavior behavior)
 	case MonsterBehavior::WIDE_SKILL:
 		temp = MonsterBehavior::DELAY;
 		break;
-	case MonsterBehavior::PREPARE_ENHANCE_ATTACK:
-		temp = MonsterBehavior::ENHANCE_ATTACK;
+	case MonsterBehavior::PREPARE_NORMAL_ATTACK:
+		temp = MonsterBehavior::NORMAL_ATTACK;
 		break;
-	case MonsterBehavior::ENHANCE_ATTACK:
+	case MonsterBehavior::NORMAL_ATTACK:
 		temp = MonsterBehavior::DELAY;
 		break;
 	case MonsterBehavior::PREPARE_ENHANCE_WIDE_SKILL:
@@ -1339,7 +1344,7 @@ void BossMonster::SetBehaviorAnimation(MonsterBehavior behavior)
 		m_current_animation = BossMonsterAnimation::ATTACK;
 		break;
 	case MonsterBehavior::PREPARE_WIDE_SKILL:
-		m_current_animation = BossMonsterAnimation::PREPARE_WIDE_SKILL; // 이때도 idle01
+		m_current_animation = BossMonsterAnimation::IDLE; // 이때도 idle01
 		break;
 	case MonsterBehavior::WIDE_SKILL:
 		m_current_animation = BossMonsterAnimation::WIDE_SKILL;
@@ -1347,26 +1352,26 @@ void BossMonster::SetBehaviorAnimation(MonsterBehavior behavior)
 	case MonsterBehavior::ENHANCE:
 		m_current_animation = BossMonsterAnimation::ENHANCE;
 		break;
-	case MonsterBehavior::PREPARE_ENHANCE_ATTACK:
-		m_current_animation = BossMonsterAnimation::PREPARE_ENHANCE_ATTACK;
+	case MonsterBehavior::PREPARE_NORMAL_ATTACK:
+		m_current_animation = BossMonsterAnimation::IDLE;
 		break;
-	case MonsterBehavior::ENHANCE_ATTACK:
-		m_current_animation = BossMonsterAnimation::ENHANCE_ATTACK;
+	case MonsterBehavior::NORMAL_ATTACK:
+		m_current_animation = BossMonsterAnimation::NORMAL_ATTACK;
 		break;
 	case MonsterBehavior::PREPARE_ENHANCE_WIDE_SKILL:
-		m_current_animation = BossMonsterAnimation::PREPARE_ENHANCE_WIDE_SKILL;
+		m_current_animation = BossMonsterAnimation::IDLE;
 		break;
 	case MonsterBehavior::ENHANCE_WIDE_SKILL:
 		m_current_animation = BossMonsterAnimation::ENHANCE_WIDE_SKILL;
 		break;
 	case MonsterBehavior::PREPARE_RUCH_SKILL:
-		m_current_animation = BossMonsterAnimation::PREPARE_RUCH_SKILL;
+		m_current_animation = BossMonsterAnimation::IDLE;
 		break;
 	case MonsterBehavior::RUCH_SKILL:
 		m_current_animation = BossMonsterAnimation::RUCH_SKILL;
 		break;
 	case MonsterBehavior::PREPARE_ULTIMATE_SKILL:
-		m_current_animation = BossMonsterAnimation::PREPARE_ULTIMATE_SKILL;
+		m_current_animation = BossMonsterAnimation::IDLE;
 		break;
 	case MonsterBehavior::ULTIMATE_SKILL:
 		m_current_animation = BossMonsterAnimation::ULTIMATE_SKILL;
@@ -1405,10 +1410,10 @@ std::chrono::milliseconds BossMonster::SetBehaviorTime(MonsterBehavior behavior)
 	case MonsterBehavior::ENHANCE:
 		time = 4233ms;
 		break;
-	case MonsterBehavior::PREPARE_ENHANCE_ATTACK:
+	case MonsterBehavior::PREPARE_NORMAL_ATTACK:
 		time = 400ms;
 		break;
-	case MonsterBehavior::ENHANCE_ATTACK:
+	case MonsterBehavior::NORMAL_ATTACK:
 		time = 900ms;
 		break;
 	case MonsterBehavior::PREPARE_ENHANCE_WIDE_SKILL:
@@ -1435,8 +1440,8 @@ std::chrono::milliseconds BossMonster::SetBehaviorTime(MonsterBehavior behavior)
 	case MonsterBehavior::DEATH:
 		time = 2233ms;
 		break;
-		return time;
 	}
+	return time;
 }
 
 void BossMonster::DecreaseHp(FLOAT damage, INT id)

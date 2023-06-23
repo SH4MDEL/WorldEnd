@@ -36,6 +36,10 @@ Server::Server()
 		m_triggers[i]->SetId(i);
 	}
 
+	for (size_t i = BOSS_MONSTER_START; i < BOSS_MONSTER_END; ++i) {
+		m_clients[i] = std::make_shared<BossMonster>();
+	}
+
 
 	m_game_room_manager = std::make_unique<GameRoomManager>();
 
@@ -469,7 +473,7 @@ void Server::WorkerThread()
 					obb.Center = Vector3::Add(*pos, Vector3::Mul(temp, 2.0f));
 					obb.Extents = XMFLOAT3{ 0.5f, 0.5f, 0.5f };
 				}
-				else if (monster->GetBehavior() == MonsterBehavior::ENHANCE_ATTACK) {
+				else if (monster->GetBehavior() == MonsterBehavior::NORMAL_ATTACK) {
 					XMFLOAT3 temp = Vector3::Normalize(Vector3::Sub(*pos, monster->GetPosition()));
 					obb.Center = Vector3::Add(*pos, Vector3::Mul(temp, 1.5f));
 					obb.Extents = XMFLOAT3{ 0.4f, 0.4f, 0.4f };

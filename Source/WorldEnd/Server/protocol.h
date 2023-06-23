@@ -92,8 +92,8 @@ enum class MonsterBehavior : char {
 	BLOCK, BLOCKIDLE,				// 전사 몬스터
 	AIM, STEP_BACK, FLEE, DELAY,	// 궁수 몬스터
 	PREPARE_CAST, CAST,	LAUGHING,	// 마법사 몬스터
-	PREPARE_WIDE_SKILL, WIDE_SKILL, ENHANCE,                           // 보스 몬스터
-	PREPARE_ENHANCE_ATTACK, ENHANCE_ATTACK,                            // 보스 몬스터
+	DASH, PREPARE_WIDE_SKILL, WIDE_SKILL, ENHANCE,                           // 보스 몬스터
+	PREPARE_NORMAL_ATTACK, NORMAL_ATTACK,                              // 보스 몬스터
 	PREPARE_ENHANCE_WIDE_SKILL, ENHANCE_WIDE_SKILL,                    // 보스 몬스터
 	PREPARE_RUCH_SKILL, RUCH_SKILL,                                    // 보스 몬스터
 	PREPARE_ULTIMATE_SKILL, ULTIMATE_SKILL,                            // 보스 몬스터
@@ -164,14 +164,13 @@ public:
 	};
 };
 
-class BossMonsterAnimation : public MonsterAnimation
+class BossMonsterAnimation : public ObjectAnimation
 {
 public:
 	static constexpr int ANIMATION_START = 600;
 	enum USHORT {
-		PREPARE_WIDE_SKILL = MonsterAnimation::END - MonsterAnimation::ANIMATION_START + ANIMATION_START,
-		WIDE_SKILL, ENHANCE, PREPARE_ENHANCE_ATTACK, ENHANCE_ATTACK, PREPARE_ENHANCE_WIDE_SKILL, ENHANCE_WIDE_SKILL,
-		PREPARE_RUCH_SKILL, RUCH_SKILL, PREPARE_ULTIMATE_SKILL, ULTIMATE_SKILL,
+		PREPARE_WIDE_SKILL = ObjectAnimation::END + ANIMATION_START,
+		NORMAL_ATTACK, RUCH_SKILL, WIDE_SKILL, ENHANCE_WIDE_SKILL, ULTIMATE_SKILL, ENHANCE
 	};
 };
 

@@ -155,6 +155,7 @@ private:
 	void RandomTarget(FLOAT elapsed_time);
 	void PlayerHighestDamageTarget();
 
-	INT    m_behavior_cnt = 0;                  
+	INT    m_behavior_cnt = 0;   
+	INT    m_enhance_behavior_cnt = 0;
 };
 

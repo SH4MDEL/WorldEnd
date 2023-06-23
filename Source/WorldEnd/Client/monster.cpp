@@ -141,7 +141,24 @@ void Monster::ChangeAnimation(USHORT animation, bool doSend)
 		ChangeAnimationSettings(AnimationBlending::BLENDING, ANIMATION_TYPE_ONCE,
 			ANIMATION_TYPE_LOOP, m_currentAnimation);
 		break;
+	case BossMonsterAnimation::PREPARE_WIDE_SKILL:
+	case BossMonsterAnimation::WIDE_SKILL:
+	case BossMonsterAnimation::NORMAL_ATTACK:
+	case BossMonsterAnimation::RUCH_SKILL:
+	case BossMonsterAnimation::ENHANCE_WIDE_SKILL:
+	case BossMonsterAnimation::ULTIMATE_SKILL:
+	case BossMonsterAnimation::ENHANCE:
+		start_num = BossMonsterAnimation::ANIMATION_START;
+		ChangeAnimationSettings(AnimationBlending::BLENDING, ANIMATION_TYPE_ONCE,
+			ANIMATION_TYPE_LOOP, m_currentAnimation);
+		break;
+	/*case BossMonsterAnimation::DASH:
+		start_num = BossMonsterAnimation::ANIMATION_START;
+		ChangeAnimationSettings(AnimationBlending::BLENDING, ANIMATION_TYPE_LOOP,
+			ANIMATION_TYPE_LOOP, m_currentAnimation);
+		break;*/
 	}
+
 	m_prevAnimation = m_currentAnimation;
 	m_currentAnimation = animation;
 	m_animationController->SetTrackAnimation(0, animation - start_num);

@@ -472,7 +472,7 @@ void GameRoom::InitMonsters(INT room_num)
 	{
 		random_map = 10;
 
-		new_boss_id = server.GetNewMonsterId(MonsterType::WIZARD);
+		new_boss_id = server.GetNewMonsterId(MonsterType::BOSS);
 
 		m_monster_ids[0] = new_boss_id;
 
@@ -480,7 +480,7 @@ void GameRoom::InitMonsters(INT room_num)
 		monster->Init();
 
 		monster->SetId(new_boss_id);
-		monster->InitializePosition(0, MonsterType::WIZARD, random_map, mon_pos);
+		monster->InitializePosition(0, MonsterType::BOSS, random_map, mon_pos);
 		monster->SetRoomNum(room_num);
 		monster->SetTarget(-1);
 		monster->SetState(State::ACCEPT);
