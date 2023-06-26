@@ -433,8 +433,10 @@ void Monster::ChasePlayer(FLOAT elapsed_time)
 	if (Vector3::Equal(player_dir, XMFLOAT3(0.f, 0.f, 0.f)))
 		return;
 
-
-	UpdatePosition(player_dir, elapsed_time, MonsterSetting::WALK_SPEED);
+	if(m_monster_type == MonsterType::BOSS)
+		UpdatePosition(player_dir, elapsed_time, MonsterSetting::BOSD_RUN_SPEED);
+	else
+		UpdatePosition(player_dir, elapsed_time, MonsterSetting::WALK_SPEED);
 	UpdateRotation(player_dir);
 	CollisionCheck();
 }
@@ -1230,6 +1232,7 @@ void BossMonster::Update(FLOAT elapsed_time)
 				ChangeBehavior(MonsterBehavior::PREPARE_WIDE_SKILL);
 				RandomTarget(elapsed_time);
 				m_behavior_cnt = 0;
+				m_damage += 10.f;
 			}
 		}
 	}     

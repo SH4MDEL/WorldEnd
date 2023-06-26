@@ -448,10 +448,10 @@ void Server::WorkerThread()
 			damage = monster->GetDamage();
 
 			// 공격 충돌 검사시 행동이 공격 중이 아니면
-			if (monster->GetBehavior() != MonsterBehavior::ATTACK) {
+			/*if (monster->GetBehavior() != MonsterBehavior::ATTACK) {
 				delete exp_over;
 				break;
-			}
+			}*/
 
 			if (MonsterType::WARRIOR == monster->GetMonsterType()) {
 				obb.Center = *pos;
@@ -467,29 +467,34 @@ void Server::WorkerThread()
 					XMFLOAT3 temp = Vector3::Normalize(Vector3::Sub(*pos, monster->GetPosition()));
 					obb.Center = Vector3::Add(*pos, Vector3::Mul(temp, 1.5f));
 					obb.Extents = XMFLOAT3{ 0.4f, 0.4f, 0.4f };
+					std::cout << "보스 공격 충돌" << std::endl;
 				}
 				else if (monster->GetBehavior() == MonsterBehavior::WIDE_SKILL) {
 					XMFLOAT3 temp = Vector3::Normalize(Vector3::Sub(*pos, monster->GetPosition()));
 					obb.Center = Vector3::Add(*pos, Vector3::Mul(temp, 2.0f));
 					obb.Extents = XMFLOAT3{ 0.5f, 0.5f, 0.5f };
+					std::cout << "보스 공격 충돌" << std::endl;
 				}
 				else if (monster->GetBehavior() == MonsterBehavior::NORMAL_ATTACK) {
-					XMFLOAT3 temp = Vector3::Normalize(Vector3::Sub(*pos, monster->GetPosition()));
-					obb.Center = Vector3::Add(*pos, Vector3::Mul(temp, 1.5f));
-					obb.Extents = XMFLOAT3{ 0.4f, 0.4f, 0.4f };
+					obb.Center = *pos;
+					obb.Extents = XMFLOAT3{ 1.0f, 1.0f, 1.0f };
+					std::cout << "보스 공격 충돌" << std::endl;
 				}
 				else if (monster->GetBehavior() == MonsterBehavior::ENHANCE_WIDE_SKILL) {
 					XMFLOAT3 temp = Vector3::Normalize(Vector3::Sub(*pos, monster->GetPosition()));
 					obb.Center = Vector3::Add(*pos, Vector3::Mul(temp, 2.0f));
 					obb.Extents = XMFLOAT3{ 0.6f, 0.6f, 0.6f };
+					std::cout << "보스 공격 충돌" << std::endl;
 				}
 				else if (monster->GetBehavior() == MonsterBehavior::RUCH_SKILL) {
 					// 돌진 스킬로 몸 전체랑 충돌해야 하므로 나중에 추가할 예정
+					std::cout << "보스 공격 충돌" << std::endl;
 				}
 				else if (monster->GetBehavior() == MonsterBehavior::ULTIMATE_SKILL) {
 					XMFLOAT3 temp = Vector3::Normalize(Vector3::Sub(*pos, monster->GetPosition()));
 					obb.Center = Vector3::Add(*pos, Vector3::Mul(temp, 1.5f));
 					obb.Extents = XMFLOAT3{ 0.4f, 0.4f, 0.4f };
+					std::cout << "보스 공격 충돌" << std::endl;
 				}
 			}
 
@@ -1588,6 +1593,16 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 				m_timer_queue.push(attack_ev);
 				break;
 			}
+			case MonsterType::BOSS: {
+				TIMER_EVENT attack_ev{ .event_time = system_clock::now() + MonsterSetting::ATK_COLLISION_TIME[static_cast<int>(monster->GetMonsterType())],
+					.obj_id = ev.obj_id, .target_id = monster->GetRoomNum(),
+					.position = Vector3::Add(monster->GetPosition(), monster->GetFront()),
+					.event_type = EventType::MONSTER_ATTACK_COLLISION, .action_type = ActionType::NORMAL_ATTACK,
+				};
+
+				m_timer_queue.push(attack_ev);
+				break;
+			}
 			}
 		}
 		else if (MonsterBehavior::CAST == ev.next_behavior_type) {
@@ -1604,6 +1619,51 @@ void Server::ProcessEvent(const TIMER_EVENT& ev)
 			.latest_id = 0, .aggro_level = 3, .is_valid = false };
 
 			m_timer_queue.push(trigger_ev);
+		}
+		else if (MonsterBehavior::WIDE_SKILL == ev.next_behavior_type) {
+			TIMER_EVENT attack_ev{ .event_time = system_clock::now() + MonsterSetting::ATK_COLLISION_TIME[static_cast<int>(monster->GetMonsterType())],
+					.obj_id = ev.obj_id, .target_id = monster->GetRoomNum(),
+					.position = Vector3::Add(monster->GetPosition(), monster->GetFront()),
+					.event_type = EventType::MONSTER_ATTACK_COLLISION, .action_type = ActionType::NORMAL_ATTACK,
+			};
+
+			m_timer_queue.push(attack_ev);
+		}
+		else if (MonsterBehavior::NORMAL_ATTACK == ev.next_behavior_type) {
+			TIMER_EVENT attack_ev{ .event_time = system_clock::now() + MonsterSetting::ATK_COLLISION_TIME[static_cast<int>(monster->GetMonsterType())],
+					.obj_id = ev.obj_id, .target_id = monster->GetRoomNum(),
+					.position = Vector3::Add(monster->GetPosition(), monster->GetFront()),
+					.event_type = EventType::MONSTER_ATTACK_COLLISION, .action_type = ActionType::NORMAL_ATTACK,
+			};
+
+			m_timer_queue.push(attack_ev);
+		}
+		else if (MonsterBehavior::ENHANCE_WIDE_SKILL == ev.next_behavior_type) {
+			TIMER_EVENT attack_ev{ .event_time = system_clock::now() + MonsterSetting::ATK_COLLISION_TIME[static_cast<int>(monster->GetMonsterType())],
+					.obj_id = ev.obj_id, .target_id = monster->GetRoomNum(),
+					.position = Vector3::Add(monster->GetPosition(), monster->GetFront()),
+					.event_type = EventType::MONSTER_ATTACK_COLLISION, .action_type = ActionType::NORMAL_ATTACK,
+			};
+
+			m_timer_queue.push(attack_ev);
+		}
+		else if (MonsterBehavior::RUCH_SKILL == ev.next_behavior_type) {
+			TIMER_EVENT attack_ev{ .event_time = system_clock::now() + MonsterSetting::ATK_COLLISION_TIME[static_cast<int>(monster->GetMonsterType())],
+					.obj_id = ev.obj_id, .target_id = monster->GetRoomNum(),
+					.position = Vector3::Add(monster->GetPosition(), monster->GetFront()),
+					.event_type = EventType::MONSTER_ATTACK_COLLISION, .action_type = ActionType::NORMAL_ATTACK,
+			};
+
+			m_timer_queue.push(attack_ev);
+		}
+		else if (MonsterBehavior::ULTIMATE_SKILL == ev.next_behavior_type) {
+			TIMER_EVENT attack_ev{ .event_time = system_clock::now() + MonsterSetting::ATK_COLLISION_TIME[static_cast<int>(monster->GetMonsterType())],
+					.obj_id = ev.obj_id, .target_id = monster->GetRoomNum(),
+					.position = Vector3::Add(monster->GetPosition(), monster->GetFront()),
+					.event_type = EventType::MONSTER_ATTACK_COLLISION, .action_type = ActionType::NORMAL_ATTACK,
+			};
+
+			m_timer_queue.push(attack_ev);
 		}
 
 		ExpOver* over = new ExpOver;

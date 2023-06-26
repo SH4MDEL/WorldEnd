@@ -263,6 +263,8 @@ namespace MonsterSetting
 	constexpr float ARROW_SPEED = 18.f;
 	constexpr float RECOGNIZE_RANGE = 26.f;
 	constexpr float ARROW_RANGE = 15.f;
+	constexpr float BOSD_RUN_SPEED = 4.5f;
+	constexpr float BOSD_DASH_SPEED = 4.5f;
 
 	constexpr auto DECREASE_AGRO_LEVEL_TIME = 10s;
 

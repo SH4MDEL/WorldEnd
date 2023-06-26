@@ -113,7 +113,7 @@ bool GameRoom::SetPlayer(INT room_num, INT player_id)
 				}
 			}
 			l.unlock();
-			server.m_clients[id]->SetPosition(RoomSetting::START_POSITION);
+			server.m_clients[id]->SetPosition(RoomSetting::BATTLE_STARTER_POSITION);
 			join = true;
 
 			if (GameRoomState::ONBATTLE == m_state) {
