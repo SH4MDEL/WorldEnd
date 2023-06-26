@@ -11,6 +11,7 @@ public:
 
 	virtual void SetGameObject(const shared_ptr<GameObject>& gameObject);
 	virtual unordered_set<shared_ptr<GameObject>> GetGameObjects(const BoundingFrustum& viewFrustum);
+	virtual unordered_set<shared_ptr<GameObject>> GetGameObjects(const BoundingOrientedBox& boundingBox);
 
 protected:
 	BoundingBox								m_boundingBox;
@@ -27,6 +28,7 @@ public:
 
 	void SetGameObject(const shared_ptr<GameObject>& gameObject) override;
 	unordered_set<shared_ptr<GameObject>> GetGameObjects(const BoundingFrustum& viewFrustum) override;
+	unordered_set<shared_ptr<GameObject>> GetGameObjects(const BoundingOrientedBox& boundingBox) override;
 
 private:
 	vector<shared_ptr<GameObject>> m_objects;

@@ -219,6 +219,8 @@ void VillageLoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/VillageSceneTexture/WoodFrame_C_01Texture.bin"));
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/VillageSceneTexture/WoodFrame_D_01Texture.bin"));
 	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/VillageSceneTexture/WoodFrame_E_01Texture.bin"));
+	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/VillageSceneTexture/BlockingTexture.bin"));
+	LoadMaterialFromFile(device, commandlist, TEXT("./Resource/Texture/VillageSceneTexture/NonblockingTexture.bin"));
 
 	// 마을 씬 메쉬 로딩
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/VillageSceneMesh/Barrel_A_01Mesh.bin"));
@@ -372,6 +374,41 @@ void VillageLoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/VillageSceneMesh/WoodFrame_C_01Mesh.bin"));
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/VillageSceneMesh/WoodFrame_D_01Mesh.bin"));
 	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/VillageSceneMesh/WoodFrame_E_01Mesh.bin"));
+	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/VillageSceneMesh/BlockingMesh.bin"));
+	LoadMeshFromFile(device, commandlist, TEXT("./Resource/Mesh/VillageSceneMesh/NonblockingMesh.bin"));
+
+	vector<Vertex> vertices;
+	vertices.emplace_back(XMFLOAT3{ -1.f, +1.f, +1.f });
+	vertices.emplace_back(XMFLOAT3{ +1.f, +1.f, +1.f });
+	vertices.emplace_back(XMFLOAT3{ +1.f, +1.f, -1.f });
+	vertices.emplace_back(XMFLOAT3{ -1.f, +1.f, -1.f });
+
+	vertices.emplace_back(XMFLOAT3{ -1.f, -1.f, +1.f });
+	vertices.emplace_back(XMFLOAT3{ +1.f, -1.f, +1.f });
+	vertices.emplace_back(XMFLOAT3{ +1.f, -1.f, -1.f });
+	vertices.emplace_back(XMFLOAT3{ -1.f, -1.f, -1.f });
+
+	vector<UINT> indices;
+	indices.push_back(0); indices.push_back(1); indices.push_back(2);
+	indices.push_back(0); indices.push_back(2); indices.push_back(3);
+
+	indices.push_back(3); indices.push_back(2); indices.push_back(6);
+	indices.push_back(3); indices.push_back(6); indices.push_back(7);
+
+	indices.push_back(7); indices.push_back(6); indices.push_back(5);
+	indices.push_back(7); indices.push_back(5); indices.push_back(4);
+
+	indices.push_back(1); indices.push_back(0); indices.push_back(4);
+	indices.push_back(1); indices.push_back(4); indices.push_back(5);
+
+	indices.push_back(0); indices.push_back(3); indices.push_back(7);
+	indices.push_back(0); indices.push_back(7); indices.push_back(4);
+
+	indices.push_back(2); indices.push_back(1); indices.push_back(5);
+	indices.push_back(2); indices.push_back(5); indices.push_back(6);
+
+	shared_ptr<Mesh> wireFrame{ make_shared<Mesh>(device, commandlist, vertices ,indices) };
+	m_meshs.insert({ "WIREFRAME", wireFrame });
 
 	auto skyboxMesh{ make_shared <SkyboxMesh>(device, commandlist, 20.0f, 20.0f, 20.0f) };
 

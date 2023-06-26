@@ -14,11 +14,10 @@ namespace AnimationSetting {
 
 struct Vertex
 {
-	Vertex(const XMFLOAT3& p, const XMFLOAT4& c) : position{ p }, color{ c } { }
+	Vertex(const XMFLOAT3& p) : position{ p } { }
 	~Vertex() = default;
 
 	XMFLOAT3 position;
-	XMFLOAT4 color;
 };
 
 struct NormalVertex
@@ -96,7 +95,7 @@ class Mesh
 {
 public:
 	Mesh() = default;
-	Mesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, const vector<TextureVertex>& vertices, const vector<UINT>& indices);
+	Mesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, const vector<Vertex>& vertices, const vector<UINT>& indices);
 	virtual ~Mesh() = default;
 
 	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const;

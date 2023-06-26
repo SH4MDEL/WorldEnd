@@ -69,7 +69,15 @@ private:
 	void UpdateLightSystem(FLOAT timeElapsed);
 	void UpdateBoundingFrustum();
 
+	void DrawBoundingBox(BoundingOrientedBox boundingBox, FLOAT roll, FLOAT pitch, FLOAT yaw);
+
 	bool IsBlendObject(const string& objectName);
+	bool IsCollideExceptObject(const string& objectName);
+
+	void CollideWithMap();
+	void CollideByStaticOBB(const shared_ptr<GameObject>& object, const shared_ptr<GameObject>& staticObject);
+
+	void MoveOnStairs();
 
 protected:
 	ComPtr<ID3D12Resource>		m_sceneBuffer;
@@ -92,5 +100,8 @@ protected:
 	XMFLOAT3					m_directionalDirection;
 
 	BoundingFrustum				m_boundingFrustum;
+
+	// 플레이어의 충돌을 검사하기 위한 쿼드트리
+	unique_ptr<QuadtreeFrustum>	m_quadtree;
 };
 

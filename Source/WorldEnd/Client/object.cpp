@@ -4,7 +4,9 @@
 constexpr int DEFAULT_TRACK_NUM = 3;
 constexpr float DEFAULT_WEIGHT_RATIO = 3.f;
 
-GameObject::GameObject() : m_right{ 1.0f, 0.0f, 0.0f }, m_up{ 0.0f, 1.0f, 0.0f }, m_front{ 0.0f, 0.0f, 1.0f }, m_roll{ 0.0f }, m_pitch{ 0.0f }, m_yaw{ 0.0f }
+GameObject::GameObject() : 
+	m_right{ 1.0f, 0.0f, 0.0f }, m_up{ 0.0f, 1.0f, 0.0f }, m_front{ 0.0f, 0.0f, 1.0f }, 
+	m_roll{ 0.0f }, m_pitch{ 0.0f }, m_yaw{ 0.0f }
 {
 	XMStoreFloat4x4(&m_worldMatrix, XMMatrixIdentity());
 	XMStoreFloat4x4(&m_transformMatrix, XMMatrixIdentity());
@@ -83,7 +85,7 @@ void GameObject::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, Ga
 void GameObject::Move(const XMFLOAT3& shift)
 {
 	SetPosition(Vector3::Add(GetPosition(), shift));
-	m_boundingBox.Center = GetPosition();
+	UpdateBoundingBox();
 }
 
 void GameObject::Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw)
@@ -146,7 +148,7 @@ void GameObject::SetWorldMatrix(const XMFLOAT4X4& worldMatrix)
 {
 	// 먼저 Transform Matrix를 설정해준다.
 	m_transformMatrix = worldMatrix;
-	
+
 	// Transform Matrix의 정보를 통해 World Matrix를 업데이트한다.
 	UpdateTransform(nullptr);
 }
@@ -154,7 +156,8 @@ void GameObject::SetWorldMatrix(const XMFLOAT4X4& worldMatrix)
 void GameObject::UpdateTransform(XMFLOAT4X4* parentMatrix)
 {
 	m_worldMatrix = (parentMatrix) ? Matrix::Mul(m_transformMatrix, *parentMatrix) : m_transformMatrix;
-	m_boundingBox.Center = GetPosition();
+	UpdateBoundingBox();
+	XMStoreFloat4(&m_boundingBox.Orientation, XMQuaternionRotationMatrix(XMLoadFloat4x4(&m_transformMatrix)));
 
 	if (m_sibling) m_sibling->UpdateTransform(parentMatrix);
 	if (m_child) m_child->UpdateTransform(&m_worldMatrix);
@@ -392,7 +395,9 @@ void GameObject::LoadObject(ifstream& in, const shared_ptr<GameObject>& rootObje
 
 void GameObject::UpdateBoundingBox()
 {
-	m_boundingBox.Center = GetPosition();
+	if (m_mesh) m_boundingBox.Center = Vector3::Add(m_mesh->GetBoundingBox().Center, GetPosition());
+	else m_boundingBox.Center = GetPosition();
+	//m_boundingBox.Center = GetPosition();
 }
 
 void GameObject::SetBoundingBox(const BoundingOrientedBox& boundingBox)

@@ -59,7 +59,7 @@ void Camera::SetPlayer(const shared_ptr<Player>& player)
 	SetEye(m_player->GetPosition());
 }
 
-ThirdPersonCamera::ThirdPersonCamera() : Camera{}, m_offset{ 0.0f, 1.0f, -6.0f }, m_delay{ 0.1f }
+ThirdPersonCamera::ThirdPersonCamera() : Camera{}, m_offset{ 0.0f, 1.0f, -8.0f }, m_delay{ 0.1f }
 {
 
 }

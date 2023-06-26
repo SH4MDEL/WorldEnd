@@ -148,9 +148,10 @@ void VillageScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	m_player->SetType(g_selectedPlayerType);
 	LoadPlayerFromFile(m_player);
 
+
 	m_globalShaders["ANIMATION"]->SetPlayer(m_player);
 	// 데이터베이스에서 플레이어의 시작 위치로 수정
-	m_player->SetPosition(XMFLOAT3{0.f, 10.f, 0.f});
+	m_player->SetPosition(XMFLOAT3{25.f, 5.65f, 66.f});
 
 	// 카메라 생성
 	m_camera = make_shared<ThirdPersonCamera>();
@@ -164,6 +165,9 @@ void VillageScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	m_globalShaders["OBJECTBLEND"]->SetCamera(m_camera);
 
 	m_shadow = make_shared<Shadow>(device, 1024, 1024);
+
+	// 쿼드트리 생성
+	m_quadtree = make_unique<QuadtreeFrustum>(XMFLOAT3{ -100.f, 0, 100 }, XMFLOAT3{ 200.f, 50.f, 200.f }, 4);
 
 	// 씬 로드
 	LoadSceneFromFile(TEXT("./Resource/Scene/VillageScene.bin"), TEXT("VillageScene"));
@@ -263,6 +267,8 @@ void VillageScene::Update(FLOAT timeElapsed)
 		shader.second->Update(timeElapsed);
 	m_fadeFilter->Update(timeElapsed);
 
+	CollideWithMap();
+
 	//UpdateLightSystem(timeElapsed);
 	UpdateBoundingFrustum();
 }
@@ -322,7 +328,6 @@ void VillageScene::UpdateBoundingFrustum()
 	static_pointer_cast<StaticObjectBlendShader>(m_globalShaders["OBJECTBLEND"])->SetBoundingFrustum(m_boundingFrustum);
 }
 
-
 void VillageScene::PreProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) 
 {
 	switch (threadIndex)
@@ -367,6 +372,7 @@ void VillageScene::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, 
 	{
 		m_globalShaders.at("ANIMATION")->Render(commandList);
 		m_globalShaders.at("OBJECTBLEND")->Render(commandList);
+		m_globalShaders["WIREFRAME"]->Render(commandList);
 		m_globalShaders.at("UI")->Render(commandList);
 		break;
 	}
@@ -489,16 +495,38 @@ void VillageScene::LoadSceneFromFile(wstring fileName, wstring sceneName)
 		wstrToken.assign(objectName.begin(), objectName.end());
 		wstring strPath = L"./Resource/Model/" + sceneName + L"/" + wstrToken + L".bin";
 
-
 		LoadObjectFromFile(strPath, object);
-
+		
 		XMFLOAT4X4 worldMatrix;
 		in.read((CHAR*)(&worldMatrix), sizeof(XMFLOAT4X4));
 		object->SetWorldMatrix(worldMatrix);
 
+		FLOAT pitch;
+		in.read((CHAR*)(&pitch), sizeof(FLOAT));
+		FLOAT yaw;
+		in.read((CHAR*)(&yaw), sizeof(FLOAT));
+		FLOAT roll;
+		in.read((CHAR*)(&roll), sizeof(FLOAT));
+		XMVECTOR quarternion = XMQuaternionRotationRollPitchYaw(pitch, yaw, roll);
+
+		XMFLOAT3 scale;
+		in.read((CHAR*)(&scale), sizeof(XMFLOAT3));
+
+		m_quadtree->SetGameObject(object);
+		auto boundingBox = object->GetBoundingBox();
+		boundingBox.Extents.x *= scale.x;
+		boundingBox.Extents.y *= scale.y;
+		boundingBox.Extents.z *= scale.z;
+		object->SetBoundingBox(boundingBox);
+
+		XMStoreFloat4(&boundingBox.Orientation, quarternion);
+		DrawBoundingBox(boundingBox, roll, pitch, yaw);
+
 		static int threadNum = 0;
-		if (IsBlendObject(objectName)) {
+		if (objectName == "Nonblocking" || objectName == "Blocking") continue;
+		else if (IsBlendObject(objectName)) {
 			m_globalShaders["OBJECTBLEND"]->SetObject(object);
+
 		}
 		else if (threadNum == 0) {
 			m_globalShaders["OBJECT1"]->SetObject(object);
@@ -582,4 +610,161 @@ bool VillageScene::IsBlendObject(const string& objectName)
 	if (objectName == "Ivy_B_03") return true;
 	if (objectName == "Decal_A") return true;
 	return false;
+}
+
+bool VillageScene::IsCollideExceptObject(const string& objectName)
+{
+	// 충돌에서 예외 처리할 오브젝트들이다.
+	if (objectName == "TownGroundTile_A") return true;
+	if (objectName == "TownGroundTile_B") return true;
+	if (objectName == "TownGroundTile_C") return true;
+	if (objectName == "TownGroundTile_D") return true;
+	if (objectName == "TownGroundTile_E") return true;
+	if (objectName == "TownGroundTile_F") return true;
+	if (objectName == "TownGroundTile_G") return true;
+	if (objectName == "TownGroundTile_H") return true;
+	if (objectName == "TownGroundTile_I") return true;
+	if (objectName == "TownGroundTile_J") return true;
+	if (objectName == "TownGroundTile_K") return true;
+	if (objectName == "TownGroundTile_M") return true;
+	if (objectName == "TownGroundTile_N") return true;
+	if (objectName == "TownGroundTile_O") return true;
+	if (objectName == "TownGroundTile_P") return true;
+	if (objectName == "TownGroundTile_Q") return true;
+	if (objectName == "TownGroundTile_R") return true;
+	if (objectName == "TownGroundTile_S") return true;
+	if (objectName == "TownGroundTile_T") return true;
+	if (objectName == "TownGroundTile_U") return true;
+	if (objectName == "TownGroundTile_V") return true;
+	if (objectName == "TownGroundTile_W") return true;
+	if (objectName == "BilldingStair_A") return true;
+	if (objectName == "BilldingStair_B") return true;
+	if (objectName == "BilldingStair_C") return true;
+	if (objectName == "BilldingStair_D") return true;
+	if (objectName == "BilldingStair_E") return true;
+	if (objectName == "BilldingStair_F") return true;
+	if (objectName == "BilldingStair_G") return true;
+	if (objectName == "BilldingStair_H") return true;
+	if (objectName == "Flower_A") return true;
+	if (objectName == "Flower_B") return true;
+	if (objectName == "Flower_C") return true;
+	if (objectName == "Flower_D") return true;
+	if (objectName == "Decal_A") return true;
+	if (objectName == "Bridge_A") return true;
+
+	return false;
+}
+
+void VillageScene::DrawBoundingBox(BoundingOrientedBox boundingBox, FLOAT roll, FLOAT pitch, FLOAT yaw)
+{
+	auto wireFrame = make_shared<GameObject>();
+
+	wireFrame->Rotate(roll, pitch, yaw);
+	wireFrame->SetScale(boundingBox.Extents.x, boundingBox.Extents.y, boundingBox.Extents.z);
+	wireFrame->SetPosition(boundingBox.Center);
+
+	wireFrame->SetMesh("WIREFRAME");
+	m_globalShaders["WIREFRAME"]->SetObject(wireFrame);
+}
+
+void VillageScene::CollideWithMap()
+{
+	MoveOnStairs();
+	for (auto& object : m_quadtree->GetGameObjects(m_player->GetBoundingBox())) {
+		CollideByStaticOBB(m_player, object);
+	}
+}
+
+void VillageScene::CollideByStaticOBB(const shared_ptr<GameObject>& object, const shared_ptr<GameObject>& staticObject)
+{
+	if (IsCollideExceptObject(staticObject->GetFrameName())) return;
+	if (!object->GetBoundingBox().Intersects(staticObject->GetBoundingBox())) return;
+
+	// GetCorners()
+	// (-, -, +), (+, -, +), (+, +, +), (-, +, +)
+	// (-, -, -), (+, -, -), (+, +, -), (-, +, -)
+
+	XMFLOAT3 corners[8]{};
+
+	BoundingOrientedBox playerBoundingBox = object->GetBoundingBox();
+	playerBoundingBox.GetCorners(corners);
+
+	XMFLOAT3 playerPoints[4] = {
+		{corners[0].x, 0.f, corners[0].z},
+		{corners[1].x, 0.f, corners[1].z},
+		{corners[5].x, 0.f, corners[5].z},
+		{corners[4].x, 0.f, corners[4].z} 
+	};
+
+	BoundingOrientedBox staticBoundingBox = staticObject->GetBoundingBox();
+	staticBoundingBox.Center.y = 0.f;
+	staticBoundingBox.GetCorners(corners);
+
+	// 꼭짓점 시계방향 0,1,5,4
+	XMFLOAT3 objectPoints[4] = {
+		{corners[0].x, 0.f, corners[0].z}, // (-, -, +)
+		{corners[1].x, 0.f, corners[1].z}, // (+, -, +)
+		{corners[5].x, 0.f, corners[5].z}, // (+, -, -)
+		{corners[4].x, 0.f, corners[4].z}	// (-, -, -)
+	};
+
+	for (const XMFLOAT3& playerPoint : playerPoints) {
+		if (!staticBoundingBox.Contains(XMLoadFloat3(&playerPoint))) continue;
+		cout << staticObject->GetFrameName() << " 충돌" << endl;
+
+		std::array<float, 4> dist{};
+		dist[0] = XMVectorGetX(XMVector3LinePointDistance(XMLoadFloat3(&objectPoints[0]), 
+			XMLoadFloat3(&objectPoints[1]), XMLoadFloat3(&playerPoint)));
+		dist[1] = XMVectorGetX(XMVector3LinePointDistance(XMLoadFloat3(&objectPoints[1]), 
+			XMLoadFloat3(&objectPoints[2]), XMLoadFloat3(&playerPoint)));
+		dist[2] = XMVectorGetX(XMVector3LinePointDistance(XMLoadFloat3(&objectPoints[2]), 
+			XMLoadFloat3(&objectPoints[3]), XMLoadFloat3(&playerPoint)));
+		dist[3] = XMVectorGetX(XMVector3LinePointDistance(XMLoadFloat3(&objectPoints[3]), 
+			XMLoadFloat3(&objectPoints[0]), XMLoadFloat3(&playerPoint)));
+
+		auto min = min_element(dist.begin(), dist.end());
+
+		XMFLOAT3 v{};
+		if (*min == dist[0]) v = Vector3::Normalize(Vector3::Sub(objectPoints[1], objectPoints[2]));
+		else if (*min == dist[1]) v = Vector3::Normalize(Vector3::Sub(objectPoints[1], objectPoints[0]));
+		else if (*min == dist[2]) v = Vector3::Normalize(Vector3::Sub(objectPoints[2], objectPoints[1]));
+		else if (*min == dist[3]) v = Vector3::Normalize(Vector3::Sub(objectPoints[0], objectPoints[1]));
+		v = Vector3::Mul(v, *min);
+		object->SetPosition(Vector3::Add(object->GetPosition(), v));
+		break;
+	}
+}
+
+void VillageScene::MoveOnStairs()
+{
+	XMFLOAT3 pos = m_player->GetPosition();
+	float ratio{};
+	if (pos.z >= VillageSetting::STAIRS1_LEFT &&
+		pos.z <= VillageSetting::STAIRS1_RIGHT &&
+		pos.x <= VillageSetting::STAIRS1_FRONT &&
+		pos.x >= VillageSetting::STAIRS1_BACK) {
+		ratio = (VillageSetting::STAIRS1_FRONT - pos.x) /
+			(VillageSetting::STAIRS1_FRONT - VillageSetting::STAIRS1_BACK);
+		pos.y = VillageSetting::STAIRS1_BOTTOM +
+			(VillageSetting::STAIRS1_TOP - VillageSetting::STAIRS1_BOTTOM) * ratio;
+	}
+	if (pos.z >= VillageSetting::STAIRS2_LEFT &&
+		pos.z <= VillageSetting::STAIRS2_RIGHT &&
+		pos.x <= VillageSetting::STAIRS2_FRONT &&
+		pos.x >= VillageSetting::STAIRS2_BACK) {
+		ratio = (VillageSetting::STAIRS2_FRONT - pos.x) /
+			(VillageSetting::STAIRS2_FRONT - VillageSetting::STAIRS2_BACK);
+		pos.y = VillageSetting::STAIRS2_BOTTOM +
+			(VillageSetting::STAIRS2_TOP - VillageSetting::STAIRS2_BOTTOM) * ratio;
+	}
+	//if (pos.z <= VillageSetting::STAIRS3_LEFT &&
+	//	pos.z >= VillageSetting::STAIRS3_RIGHT &&
+	//	pos.x >= VillageSetting::STAIRS3_FRONT &&
+	//	pos.x <= VillageSetting::STAIRS3_BACK) {
+	//	ratio = (pos.x - VillageSetting::STAIRS3_FRONT) /
+	//		(VillageSetting::STAIRS3_BACK - VillageSetting::STAIRS3_FRONT);
+	//	pos.y = VillageSetting::STAIRS3_BOTTOM +
+	//		(VillageSetting::STAIRS3_TOP - VillageSetting::STAIRS3_BOTTOM) * ratio;
+	//}
+	m_player->SetPosition(pos);
 }

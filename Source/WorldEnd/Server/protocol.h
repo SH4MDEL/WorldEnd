@@ -256,6 +256,41 @@ namespace MonsterSetting
 	constexpr std::chrono::milliseconds CAST_COLLISION_TIME = 430ms;
 }
 
+namespace VillageSetting
+{
+	//constexpr XMFLOAT3 BilldingStair_A_SIZE = { 6.004f, 5.747f };
+	constexpr XMFLOAT3 BilldingStair_B_SIZE = { 12.42f, 2.385, 5.99f };
+	//constexpr XMFLOAT3 BilldingStair_C_SIZE = { 3.38f, 15.99f };
+	//constexpr XMFLOAT3 BilldingStair_D_SIZE = { 6.829f, 17.21f };
+	//constexpr XMFLOAT3 BilldingStair_E_SIZE = { 0.f, 0.f };
+	//constexpr XMFLOAT3 BilldingStair_F_SIZE = { 6.926f, 8.227f };
+	//constexpr XMFLOAT3 BilldingStair_G_SIZE = { 6.742f, 11.27f };
+	constexpr XMFLOAT3 BilldingStair_H_SIZE = { 13.35f, 5.536f, 11.76f };
+
+	// 270도 회전된 상태
+	constexpr float STAIRS1_LEFT = 66.17 - BilldingStair_H_SIZE.x / 2.f;
+	constexpr float STAIRS1_RIGHT = STAIRS1_LEFT + BilldingStair_H_SIZE.x;
+	constexpr float STAIRS1_BACK = 36.68f - BilldingStair_H_SIZE.z / 2.f;
+	constexpr float STAIRS1_FRONT = STAIRS1_BACK + BilldingStair_H_SIZE.z;
+	constexpr float STAIRS1_TOP = 5.65f;
+	constexpr float STAIRS1_BOTTOM = STAIRS1_TOP - BilldingStair_H_SIZE.y;
+
+	constexpr float STAIRS2_LEFT = 58.92f - BilldingStair_B_SIZE.x / 2.f;
+	constexpr float STAIRS2_RIGHT = STAIRS2_LEFT + BilldingStair_B_SIZE.x;
+	constexpr float STAIRS2_BACK = -67.002f - BilldingStair_B_SIZE.z / 2.f;
+	constexpr float STAIRS2_FRONT = STAIRS2_BACK + BilldingStair_B_SIZE.z;
+	constexpr float STAIRS2_BOTTOM = 5.65;
+	constexpr float STAIRS2_TOP = STAIRS2_BOTTOM + BilldingStair_B_SIZE.y;
+
+	//constexpr float STAIRS3_RIGHT = 58.92f - BilldingStair_B_SIZE.x / 2.f;
+	//constexpr float STAIRS3_LEFT = STAIRS3_RIGHT + BilldingStair_B_SIZE.x;
+	//constexpr float STAIRS3_FRONT = -67.002f - BilldingStair_B_SIZE.z / 2.f;
+	//constexpr float STAIRS3_BACK = STAIRS3_FRONT + BilldingStair_B_SIZE.z;
+	//constexpr float STAIRS3_BOTTOM = 5.65;
+	//constexpr float STAIRS3_TOP = STAIRS3_BOTTOM + BilldingStair_B_SIZE.y;
+
+}
+
 namespace RoomSetting
 {
 	using namespace std::literals;

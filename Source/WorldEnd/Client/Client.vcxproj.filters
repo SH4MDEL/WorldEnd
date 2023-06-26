@@ -82,6 +82,12 @@
     <Filter Include="셰이더 파일\Instancing">
       <UniqueIdentifier>{ce74b543-0474-482a-8e5d-d1675d2ca5f3}</UniqueIdentifier>
     </Filter>
+    <Filter Include="소스 파일\System">
+      <UniqueIdentifier>{7ca2e967-acf5-4c2a-a0da-09dcb1f3a05c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\System">
+      <UniqueIdentifier>{5a5a6a68-7716-4eda-9c0e-a5bc5d26875d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Client.h">
@@ -193,7 +199,7 @@
       <Filter>헤더 파일\Scene\GameScene</Filter>
     </ClInclude>
     <ClInclude Include="QuadtreeFrustum.h">
-      <Filter>헤더 파일</Filter>
+      <Filter>헤더 파일\System</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -297,7 +303,7 @@
       <Filter>소스 파일\Scene\GameScene</Filter>
     </ClCompile>
     <ClCompile Include="QuadtreeFrustum.cpp">
-      <Filter>소스 파일\Object</Filter>
+      <Filter>소스 파일\System</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

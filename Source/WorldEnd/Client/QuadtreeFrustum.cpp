@@ -53,6 +53,19 @@ unordered_set<shared_ptr<GameObject>> QuadtreeFrustum::GetGameObjects(const Boun
 	return objectList;
 }
 
+unordered_set<shared_ptr<GameObject>> QuadtreeFrustum::GetGameObjects(const BoundingOrientedBox& boundingBox)
+{
+	unordered_set<shared_ptr<GameObject>> objectList;
+	if (m_boundingBox.Contains(boundingBox) != DISJOINT) {
+		for (auto& child : m_children) {
+			for (const auto& object : child->GetGameObjects(boundingBox)) {
+				objectList.insert(object);
+			}
+		}
+	}
+	return objectList;
+}
+
 
 LeafQuadtree::LeafQuadtree(XMFLOAT3 position, XMFLOAT3 extent, INT depth) : QuadtreeFrustum()
 {
@@ -73,6 +86,17 @@ unordered_set<shared_ptr<GameObject>> LeafQuadtree::GetGameObjects(const Boundin
 	unordered_set<shared_ptr<GameObject>> objectList;
 	for (const auto& object : m_objects) {
 		if (viewFrustum.Contains(object->GetBoundingBox()) != DISJOINT) {
+			objectList.insert(object);
+		}
+	}
+	return objectList;
+}
+
+unordered_set<shared_ptr<GameObject>> LeafQuadtree::GetGameObjects(const BoundingOrientedBox& boundingBox)
+{
+	unordered_set<shared_ptr<GameObject>> objectList;
+	for (const auto& object : m_objects) {
+		if (boundingBox.Contains(object->GetBoundingBox()) != DISJOINT) {
 			objectList.insert(object);
 		}
 	}

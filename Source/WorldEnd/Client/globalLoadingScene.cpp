@@ -78,6 +78,7 @@ void GlobalLoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const 
 	auto animationShadowShader{ make_shared<AnimationShadowShader>(device, rootsignature) };
 	auto emitterParticleShader{ make_shared<EmitterParticleShader>(device, rootsignature) };
 	auto pumperParticleShader{ make_shared<PumperParticleShader>(device, rootsignature) };
+	auto wireFrameShader{ make_shared<Shader>(device, rootsignature) };
 	auto horzBlurShader{ make_shared<HorzBlurShader>(device, postRootSignature) };
 	auto vertBlurShader{ make_shared<VertBlurShader>(device, postRootSignature) };
 	auto sobelShader{ make_shared<SobelShader>(device, postRootSignature) };
@@ -99,6 +100,7 @@ void GlobalLoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const 
 	m_globalShaders.insert({ "ANIMATIONSHADOW", animationShadowShader });
 	m_globalShaders.insert({ "EMITTERPARTICLE", emitterParticleShader });
 	m_globalShaders.insert({ "PUMPERPARTICLE", pumperParticleShader });
+	m_globalShaders.insert({ "WIREFRAME", wireFrameShader });
 	m_globalShaders.insert({ "UI", uiShader });
 	m_globalShaders.insert({ "POSTUI", postUiShader });
 	m_globalShaders.insert({ "HORZBLUR", horzBlurShader });

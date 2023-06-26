@@ -2,13 +2,13 @@
 #include "object.h"
 #include "framework.h"
 
-Mesh::Mesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, const vector<TextureVertex>& vertices, const vector<UINT>& indices)
+Mesh::Mesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, const vector<Vertex>& vertices, const vector<UINT>& indices)
 {
-	m_primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	m_primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_LINESTRIP;
 
 	// 정점 버퍼 생성
 	m_nVertices = (UINT)vertices.size();
-	const UINT vertexBufferSize = (UINT)sizeof(TextureVertex) * (UINT)vertices.size();
+	const UINT vertexBufferSize = (UINT)sizeof(Vertex) * (UINT)vertices.size();
 
 	Utiles::ThrowIfFailed(device->CreateCommittedResource(
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
@@ -39,7 +39,7 @@ Mesh::Mesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsComman
 	// 정점 버퍼 뷰 설정
 	m_vertexBufferView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
 	m_vertexBufferView.SizeInBytes = vertexBufferSize;
-	m_vertexBufferView.StrideInBytes = sizeof(TextureVertex);
+	m_vertexBufferView.StrideInBytes = sizeof(Vertex);
 
 	//--------------------------------------------------------------------
 
