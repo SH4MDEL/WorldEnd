@@ -512,6 +512,8 @@ void VillageScene::LoadSceneFromFile(wstring fileName, wstring sceneName)
 		XMFLOAT3 scale;
 		in.read((CHAR*)(&scale), sizeof(XMFLOAT3));
 
+		if (objectName == "Nonblocking") continue;
+
 		m_quadtree->SetGameObject(object);
 		auto boundingBox = object->GetBoundingBox();
 		boundingBox.Extents.x *= scale.x;
@@ -628,6 +630,7 @@ bool VillageScene::IsCollideExceptObject(const string& objectName)
 	if (objectName == "TownGroundTile_K") return true;
 	if (objectName == "TownGroundTile_M") return true;
 	if (objectName == "TownGroundTile_N") return true;
+	if (objectName == "TownGroundTile_L") return true;
 	if (objectName == "TownGroundTile_O") return true;
 	if (objectName == "TownGroundTile_P") return true;
 	if (objectName == "TownGroundTile_Q") return true;
@@ -757,14 +760,240 @@ void VillageScene::MoveOnStairs()
 		pos.y = VillageSetting::STAIRS2_BOTTOM +
 			(VillageSetting::STAIRS2_TOP - VillageSetting::STAIRS2_BOTTOM) * ratio;
 	}
-	//if (pos.z <= VillageSetting::STAIRS3_LEFT &&
-	//	pos.z >= VillageSetting::STAIRS3_RIGHT &&
-	//	pos.x >= VillageSetting::STAIRS3_FRONT &&
-	//	pos.x <= VillageSetting::STAIRS3_BACK) {
-	//	ratio = (pos.x - VillageSetting::STAIRS3_FRONT) /
-	//		(VillageSetting::STAIRS3_BACK - VillageSetting::STAIRS3_FRONT);
-	//	pos.y = VillageSetting::STAIRS3_BOTTOM +
-	//		(VillageSetting::STAIRS3_TOP - VillageSetting::STAIRS3_BOTTOM) * ratio;
-	//}
+	if (pos.z <= VillageSetting::STAIRS3_LEFT &&
+		pos.z >= VillageSetting::STAIRS3_RIGHT &&
+		pos.x <= VillageSetting::STAIRS3_FRONT &&
+		pos.x >= VillageSetting::STAIRS3_BACK) {
+		ratio = (VillageSetting::STAIRS3_BACK - pos.x) /
+			(VillageSetting::STAIRS3_BACK - VillageSetting::STAIRS3_FRONT);
+		pos.y = VillageSetting::STAIRS3_BOTTOM +
+			(VillageSetting::STAIRS3_TOP - VillageSetting::STAIRS3_BOTTOM) * ratio;
+		cout << ratio << endl;
+	}
+	if (pos.z >= VillageSetting::STAIRS4_LEFT &&
+		pos.z <= VillageSetting::STAIRS4_RIGHT &&
+		pos.x <= VillageSetting::STAIRS4_FRONT &&
+		pos.x >= VillageSetting::STAIRS4_BACK) {
+		ratio = (VillageSetting::STAIRS4_FRONT - pos.x) /
+			(VillageSetting::STAIRS4_FRONT - VillageSetting::STAIRS4_BACK);
+		pos.y = VillageSetting::STAIRS4_BOTTOM +
+			(VillageSetting::STAIRS4_TOP - VillageSetting::STAIRS4_BOTTOM) * ratio;
+	}
+	if (pos.z >= VillageSetting::STAIRS5_LEFT &&
+		pos.z <= VillageSetting::STAIRS5_RIGHT &&
+		pos.x <= VillageSetting::STAIRS5_FRONT &&
+		pos.x >= VillageSetting::STAIRS5_BACK) {
+		ratio = (VillageSetting::STAIRS5_FRONT - pos.x) /
+			(VillageSetting::STAIRS5_FRONT - VillageSetting::STAIRS5_BACK);
+		pos.y = VillageSetting::STAIRS5_BOTTOM +
+			(VillageSetting::STAIRS5_TOP - VillageSetting::STAIRS5_BOTTOM) * ratio;
+	}
+	if (pos.z >= VillageSetting::STAIRS6_LEFT &&
+		pos.z <= VillageSetting::STAIRS6_RIGHT &&
+		pos.x <= VillageSetting::STAIRS6_FRONT &&
+		pos.x >= VillageSetting::STAIRS6_BACK) {
+		ratio = (VillageSetting::STAIRS6_FRONT - pos.x) /
+			(VillageSetting::STAIRS6_FRONT - VillageSetting::STAIRS6_BACK);
+		pos.y = VillageSetting::STAIRS6_BOTTOM +
+			(VillageSetting::STAIRS6_TOP - VillageSetting::STAIRS6_BOTTOM) * ratio;
+	}
+	if (pos.x <= VillageSetting::STAIRS7_LEFT &&
+		pos.x >= VillageSetting::STAIRS7_RIGHT &&
+		pos.z <= VillageSetting::STAIRS7_FRONT &&
+		pos.z >= VillageSetting::STAIRS7_BACK) {
+		ratio = (VillageSetting::STAIRS7_FRONT - pos.z) /
+			(VillageSetting::STAIRS7_FRONT - VillageSetting::STAIRS7_BACK);
+		pos.y = VillageSetting::STAIRS7_BOTTOM +
+			(VillageSetting::STAIRS7_TOP - VillageSetting::STAIRS7_BOTTOM) * ratio;
+	}
+	if (pos.x <= VillageSetting::STAIRS8_LEFT &&
+		pos.x >= VillageSetting::STAIRS8_RIGHT &&
+		pos.z >= VillageSetting::STAIRS8_FRONT &&
+		pos.z <= VillageSetting::STAIRS8_BACK) {
+		ratio = (VillageSetting::STAIRS8_FRONT - pos.z) /
+			(VillageSetting::STAIRS8_FRONT - VillageSetting::STAIRS8_BACK);
+		pos.y = VillageSetting::STAIRS8_BOTTOM +
+			(VillageSetting::STAIRS8_TOP - VillageSetting::STAIRS8_BOTTOM) * ratio;
+	}
+	if (pos.x <= VillageSetting::STAIRS9_LEFT &&
+		pos.x >= VillageSetting::STAIRS9_RIGHT &&
+		pos.z >= VillageSetting::STAIRS9_FRONT &&
+		pos.z <= VillageSetting::STAIRS9_BACK) {
+		ratio = (VillageSetting::STAIRS9_FRONT - pos.z) /
+			(VillageSetting::STAIRS9_FRONT - VillageSetting::STAIRS9_BACK);
+		pos.y = VillageSetting::STAIRS9_BOTTOM +
+			(VillageSetting::STAIRS9_TOP - VillageSetting::STAIRS9_BOTTOM) * ratio;
+	}
+	if (pos.x <= VillageSetting::STAIRS10_LEFT &&
+		pos.x >= VillageSetting::STAIRS10_RIGHT &&
+		pos.z >= VillageSetting::STAIRS10_FRONT &&
+		pos.z <= VillageSetting::STAIRS10_BACK) {
+		ratio = (VillageSetting::STAIRS10_FRONT - pos.z) /
+			(VillageSetting::STAIRS10_FRONT - VillageSetting::STAIRS10_BACK);
+		pos.y = VillageSetting::STAIRS10_BOTTOM +
+			(VillageSetting::STAIRS10_TOP - VillageSetting::STAIRS10_BOTTOM) * ratio;
+	}
+	if (pos.x <= VillageSetting::STAIRS11_LEFT &&
+		pos.x >= VillageSetting::STAIRS11_RIGHT &&
+		pos.z <= VillageSetting::STAIRS11_FRONT &&
+		pos.z >= VillageSetting::STAIRS11_BACK) {
+		ratio = (VillageSetting::STAIRS11_FRONT - pos.z) /
+			(VillageSetting::STAIRS11_FRONT - VillageSetting::STAIRS11_BACK);
+		pos.y = VillageSetting::STAIRS11_BOTTOM +
+			(VillageSetting::STAIRS11_TOP - VillageSetting::STAIRS11_BOTTOM) * ratio;
+	}
+	if (pos.z >= VillageSetting::STAIRS12_LEFT &&
+		pos.z <= VillageSetting::STAIRS12_RIGHT &&
+		pos.x <= VillageSetting::STAIRS12_FRONT &&
+		pos.x >= VillageSetting::STAIRS12_BACK) {
+		ratio = (VillageSetting::STAIRS12_FRONT - pos.x) /
+			(VillageSetting::STAIRS12_FRONT - VillageSetting::STAIRS12_BACK);
+		pos.y = VillageSetting::STAIRS12_BOTTOM +
+			(VillageSetting::STAIRS12_TOP - VillageSetting::STAIRS12_BOTTOM) * ratio;
+	}
+	if (pos.x >= VillageSetting::STAIRS13_LEFT &&
+		pos.x <= VillageSetting::STAIRS13_RIGHT &&
+		pos.z >= VillageSetting::STAIRS13_FRONT &&
+		pos.z <= VillageSetting::STAIRS13_BACK) {
+		ratio = (VillageSetting::STAIRS13_FRONT - pos.z) /
+			(VillageSetting::STAIRS13_FRONT - VillageSetting::STAIRS13_BACK);
+		pos.y = VillageSetting::STAIRS13_BOTTOM +
+			(VillageSetting::STAIRS13_TOP - VillageSetting::STAIRS13_BOTTOM) * ratio;
+	}
+	if (pos.z <= VillageSetting::STAIRS14_LEFT &&
+		pos.z >= VillageSetting::STAIRS14_RIGHT &&
+		pos.x >= VillageSetting::STAIRS14_FRONT &&
+		pos.x <= VillageSetting::STAIRS14_BACK) {
+		ratio = (VillageSetting::STAIRS14_FRONT - pos.x) /
+			(VillageSetting::STAIRS14_FRONT - VillageSetting::STAIRS14_BACK);
+		pos.y = VillageSetting::STAIRS14_BOTTOM +
+			(VillageSetting::STAIRS14_TOP - VillageSetting::STAIRS14_BOTTOM) * ratio;
+	}
+	if (pos.x <= VillageSetting::STAIRS15_LEFT &&
+		pos.x >= VillageSetting::STAIRS15_RIGHT &&
+		pos.z >= VillageSetting::STAIRS15_FRONT &&
+		pos.z <= VillageSetting::STAIRS15_BACK) {
+		ratio = (VillageSetting::STAIRS15_FRONT - pos.z) /
+			(VillageSetting::STAIRS15_FRONT - VillageSetting::STAIRS15_BACK);
+		pos.y = VillageSetting::STAIRS15_BOTTOM +
+			(VillageSetting::STAIRS15_TOP - VillageSetting::STAIRS15_BOTTOM) * ratio;
+	}
+	if (pos.x >= VillageSetting::STAIRS16_LEFT &&
+		pos.x <= VillageSetting::STAIRS16_RIGHT &&
+		pos.z >= VillageSetting::STAIRS16_FRONT &&
+		pos.z <= VillageSetting::STAIRS16_BACK) {
+		ratio = (VillageSetting::STAIRS16_FRONT - pos.z) /
+			(VillageSetting::STAIRS16_FRONT - VillageSetting::STAIRS16_BACK);
+		pos.y = VillageSetting::STAIRS16_BOTTOM +
+			(VillageSetting::STAIRS16_TOP - VillageSetting::STAIRS16_BOTTOM) * ratio;
+	}
+	if (pos.x >= VillageSetting::STAIRS17_LEFT &&
+		pos.x <= VillageSetting::STAIRS17_RIGHT &&
+		pos.z >= VillageSetting::STAIRS17_FRONT &&
+		pos.z <= VillageSetting::STAIRS17_BACK) {
+		ratio = (VillageSetting::STAIRS17_FRONT - pos.z) /
+			(VillageSetting::STAIRS17_FRONT - VillageSetting::STAIRS17_BACK);
+		pos.y = VillageSetting::STAIRS17_BOTTOM +
+			(VillageSetting::STAIRS17_TOP - VillageSetting::STAIRS17_BOTTOM) * ratio;
+	}
+	if (pos.x <= VillageSetting::STAIRS18_LEFT &&
+		pos.x >= VillageSetting::STAIRS18_RIGHT &&
+		pos.z <= VillageSetting::STAIRS18_FRONT &&
+		pos.z >= VillageSetting::STAIRS18_BACK) {
+		ratio = (VillageSetting::STAIRS18_FRONT - pos.z) /
+			(VillageSetting::STAIRS18_FRONT - VillageSetting::STAIRS18_BACK);
+		pos.y = VillageSetting::STAIRS18_BOTTOM +
+			(VillageSetting::STAIRS18_TOP - VillageSetting::STAIRS18_BOTTOM) * ratio;
+	}
+	if (pos.x >= VillageSetting::STAIRS19_LEFT &&
+		pos.x <= VillageSetting::STAIRS19_RIGHT &&
+		pos.z >= VillageSetting::STAIRS19_FRONT &&
+		pos.z <= VillageSetting::STAIRS19_BACK) {
+		ratio = (VillageSetting::STAIRS19_FRONT - pos.z) /
+			(VillageSetting::STAIRS19_FRONT - VillageSetting::STAIRS19_BACK);
+		pos.y = VillageSetting::STAIRS19_BOTTOM +
+			(VillageSetting::STAIRS19_TOP - VillageSetting::STAIRS19_BOTTOM) * ratio;
+	}
+	if (pos.x <= VillageSetting::STAIRS20_LEFT &&
+		pos.x >= VillageSetting::STAIRS20_RIGHT &&
+		pos.z <= VillageSetting::STAIRS20_FRONT &&
+		pos.z >= VillageSetting::STAIRS20_BACK) {
+		ratio = (VillageSetting::STAIRS20_FRONT - pos.z) /
+			(VillageSetting::STAIRS20_FRONT - VillageSetting::STAIRS20_BACK);
+		pos.y = VillageSetting::STAIRS20_BOTTOM +
+			(VillageSetting::STAIRS20_TOP - VillageSetting::STAIRS20_BOTTOM) * ratio;
+	}
+	if (pos.x <= VillageSetting::STAIRS21_LEFT &&
+		pos.x >= VillageSetting::STAIRS21_RIGHT &&
+		pos.z <= VillageSetting::STAIRS21_FRONT &&
+		pos.z >= VillageSetting::STAIRS21_BACK) {
+		ratio = (VillageSetting::STAIRS21_FRONT - pos.z) /
+			(VillageSetting::STAIRS21_FRONT - VillageSetting::STAIRS21_BACK);
+		pos.y = VillageSetting::STAIRS21_BOTTOM +
+			(VillageSetting::STAIRS21_TOP - VillageSetting::STAIRS21_BOTTOM) * ratio;
+	}
+	if (pos.x >= VillageSetting::STAIRS22_LEFT &&
+		pos.x <= VillageSetting::STAIRS22_RIGHT &&
+		pos.z >= VillageSetting::STAIRS22_FRONT &&
+		pos.z <= VillageSetting::STAIRS22_BACK) {
+		ratio = (VillageSetting::STAIRS22_FRONT - pos.z) /
+			(VillageSetting::STAIRS22_FRONT - VillageSetting::STAIRS22_BACK);
+		pos.y = VillageSetting::STAIRS22_BOTTOM +
+			(VillageSetting::STAIRS22_TOP - VillageSetting::STAIRS22_BOTTOM) * ratio;
+	}
+	if (pos.x >= VillageSetting::STAIRS23_LEFT &&
+		pos.x <= VillageSetting::STAIRS23_RIGHT &&
+		pos.z >= VillageSetting::STAIRS23_FRONT &&
+		pos.z <= VillageSetting::STAIRS23_BACK) {
+		ratio = (VillageSetting::STAIRS23_FRONT - pos.z) /
+			(VillageSetting::STAIRS23_FRONT - VillageSetting::STAIRS23_BACK);
+		pos.y = VillageSetting::STAIRS23_BOTTOM +
+			(VillageSetting::STAIRS23_TOP - VillageSetting::STAIRS23_BOTTOM) * ratio;
+	}
+	if (pos.x <= VillageSetting::STAIRS24_LEFT &&
+		pos.x >= VillageSetting::STAIRS24_RIGHT &&
+		pos.z <= VillageSetting::STAIRS24_FRONT &&
+		pos.z >= VillageSetting::STAIRS24_BACK) {
+		ratio = (VillageSetting::STAIRS24_FRONT - pos.z) /
+			(VillageSetting::STAIRS24_FRONT - VillageSetting::STAIRS24_BACK);
+		pos.y = VillageSetting::STAIRS24_BOTTOM +
+			(VillageSetting::STAIRS24_TOP - VillageSetting::STAIRS24_BOTTOM) * ratio;
+	}
+	if (pos.z >= VillageSetting::STAIRS25_LEFT &&
+		pos.z <= VillageSetting::STAIRS25_RIGHT &&
+		pos.x <= VillageSetting::STAIRS25_FRONT &&
+		pos.x >= VillageSetting::STAIRS25_BACK) {
+		ratio = (VillageSetting::STAIRS25_FRONT - pos.x) /
+			(VillageSetting::STAIRS25_FRONT - VillageSetting::STAIRS25_BACK);
+		pos.y = VillageSetting::STAIRS25_BOTTOM +
+			(VillageSetting::STAIRS25_TOP - VillageSetting::STAIRS25_BOTTOM) * ratio;
+	}
+	if (pos.z <= VillageSetting::STAIRS26_LEFT &&
+		pos.z >= VillageSetting::STAIRS26_RIGHT &&
+		pos.x >= VillageSetting::STAIRS26_FRONT &&
+		pos.x <= VillageSetting::STAIRS26_BACK) {
+		ratio = (VillageSetting::STAIRS26_FRONT - pos.x) /
+			(VillageSetting::STAIRS26_FRONT - VillageSetting::STAIRS26_BACK);
+		pos.y = VillageSetting::STAIRS26_BOTTOM +
+			(VillageSetting::STAIRS26_TOP - VillageSetting::STAIRS26_BOTTOM) * ratio;
+	}
+	if (pos.z >= VillageSetting::STAIRS27_LEFT &&
+		pos.z <= VillageSetting::STAIRS27_RIGHT &&
+		pos.x <= VillageSetting::STAIRS27_FRONT &&
+		pos.x >= VillageSetting::STAIRS27_BACK) {
+		ratio = (VillageSetting::STAIRS27_FRONT - pos.x) /
+			(VillageSetting::STAIRS27_FRONT - VillageSetting::STAIRS27_BACK);
+		pos.y = VillageSetting::STAIRS27_BOTTOM +
+			(VillageSetting::STAIRS27_TOP - VillageSetting::STAIRS27_BOTTOM) * ratio;
+	}
+	if (pos.z <= VillageSetting::STAIRS28_LEFT &&
+		pos.z >= VillageSetting::STAIRS28_RIGHT &&
+		pos.x >= VillageSetting::STAIRS28_FRONT &&
+		pos.x <= VillageSetting::STAIRS28_BACK) {
+		ratio = (VillageSetting::STAIRS28_FRONT - pos.x) /
+			(VillageSetting::STAIRS28_FRONT - VillageSetting::STAIRS28_BACK);
+		pos.y = VillageSetting::STAIRS28_BOTTOM +
+			(VillageSetting::STAIRS28_TOP - VillageSetting::STAIRS28_BOTTOM) * ratio;
+	}
 	m_player->SetPosition(pos);
 }
