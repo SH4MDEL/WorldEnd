@@ -377,5 +377,8 @@
     <FxCompile Include="Resource\Shader\arrowInstance.hlsl">
       <Filter>셰이더 파일\Instancing</Filter>
     </FxCompile>
+    <FxCompile Include="Resource\Shader\terrain.hlsl">
+      <Filter>셰이더 파일\Shader</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

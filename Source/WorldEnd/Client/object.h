@@ -31,6 +31,7 @@ public:
 	virtual void UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& commandList);
 
 	void SetMesh(const string& name);
+	void SetMesh(const shared_ptr<Mesh>& mesh);
 	void SetTexture(const string& name);
 	void SetMaterials(const string& name);
 
@@ -96,6 +97,37 @@ protected:
 
 	BoundingOrientedBox			m_boundingBox;	
 };
+
+class HeightMapTerrain : public GameObject
+{
+public:
+	HeightMapTerrain(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList,
+		const wstring& fileName, INT width, INT length, INT blockWidth, INT blockLength, XMFLOAT3 scale);
+	~HeightMapTerrain() = default;
+
+	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) override;
+	virtual void Move(const XMFLOAT3& shift);
+	virtual void Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw);
+
+	void SetPosition(const XMFLOAT3& position);
+
+	XMFLOAT3 GetPosition() const { return m_blocks.front()->GetPosition(); }
+	FLOAT GetHeight(FLOAT x, FLOAT z) const;
+	XMFLOAT3 GetNormal(FLOAT x, FLOAT z) const;
+	INT GetWidth() const { return m_width; }
+	INT GetLength() const { return m_length; }
+	XMFLOAT3 GetScale() const { return m_scale; }
+
+	void ReleaseUploadBuffer() const override;
+
+private:
+	unique_ptr<HeightMapImage>		m_heightMapImage;	// 높이맵 이미지
+	vector<unique_ptr<GameObject>>	m_blocks;			// 블록들
+	INT								m_width;			// 이미지의 가로 길이
+	INT								m_length;			// 이미지의 세로 길이
+	XMFLOAT3						m_scale;			// 확대 비율
+};
+
 
 class Skybox : public GameObject
 {

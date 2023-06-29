@@ -258,6 +258,8 @@ namespace MonsterSetting
 
 namespace VillageSetting
 {
+	constexpr FLOAT TERRAIN_HEIGHT_OFFSET = 2.34f;
+
 	constexpr XMFLOAT3 BilldingStair_A_SIZE = { 6.004f, 2.152f, 5.747f };
 	constexpr XMFLOAT3 BilldingStair_B_SIZE = { 12.42f, 2.385f, 5.99f };
 	constexpr XMFLOAT3 BilldingStair_C_SIZE = { 3.38f, 2.226f, 5.25f };

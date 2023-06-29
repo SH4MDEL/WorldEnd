@@ -97,6 +97,13 @@ public:
 	~AnimationShader() = default;
 };
 
+class TerrainShader : public Shader
+{
+public:
+	TerrainShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature);
+	~TerrainShader() = default;
+};
+
 class SkyboxShader : public Shader
 {
 public:

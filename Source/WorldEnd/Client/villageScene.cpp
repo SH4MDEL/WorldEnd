@@ -160,7 +160,7 @@ void VillageScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	m_player->SetCamera(m_camera);
 
 	XMFLOAT4X4 projMatrix;
-	XMStoreFloat4x4(&projMatrix, XMMatrixPerspectiveFovLH(0.25f * XM_PI, g_GameFramework.GetAspectRatio(), 0.1f, 100.0f));
+	XMStoreFloat4x4(&projMatrix, XMMatrixPerspectiveFovLH(0.25f * XM_PI, g_GameFramework.GetAspectRatio(), 0.1f, 300.0f));
 	m_camera->SetProjMatrix(projMatrix);
 	m_globalShaders["OBJECTBLEND"]->SetCamera(m_camera);
 
@@ -170,7 +170,15 @@ void VillageScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	m_quadtree = make_unique<QuadtreeFrustum>(XMFLOAT3{ -100.f, 0, 100 }, XMFLOAT3{ 200.f, 50.f, 200.f }, 4);
 
 	// 씬 로드
-	LoadSceneFromFile(TEXT("./Resource/Scene/VillageScene.bin"), TEXT("VillageScene"));
+	LoadSceneFromFile(TEXT("Resource/Scene/VillageScene.bin"), TEXT("VillageScene"));
+
+	// 터레인 로드
+	m_terrain = make_shared<HeightMapTerrain>(device, commandlist,
+		TEXT("Resource/HeightMap/Terrain.raw"), 1025, 1025, 1025, 1025, XMFLOAT3{ 1.f, 1.f, 1.f });
+	m_terrain->Rotate(0.f, 0.f, 180.f);
+	m_terrain->SetPosition(XMFLOAT3{ 418.3, -2.11f, 697.f });
+	m_terrain->SetTexture("TERRAIN");
+	m_globalShaders["TERRAIN"]->SetObject(m_terrain);
 
 	// 스카이 박스 생성
 	auto skybox{ make_shared<GameObject>() };
@@ -257,6 +265,31 @@ void VillageScene::OnProcessingMouseMessage(UINT message, LPARAM lParam)
 void VillageScene::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 {
 	if (m_player) m_player->OnProcessingKeyboardMessage(timeElapsed);
+
+	if (GetAsyncKeyState('3') & 0x8000) {
+		m_terrain->SetPosition(Vector3::Add(m_terrain->GetPosition(), { 0.1f, 0.f, 0.f }));
+		cout << m_terrain->GetPosition();
+	}
+	if (GetAsyncKeyState('4') & 0x8000) {
+		m_terrain->SetPosition(Vector3::Add(m_terrain->GetPosition(), { -0.1f, 0.f, 0.f }));
+		cout << m_terrain->GetPosition();
+	}
+	if (GetAsyncKeyState('5') & 0x8000) {
+		m_terrain->SetPosition(Vector3::Add(m_terrain->GetPosition(), { 0.f, 0.f, 0.1f }));
+		cout << m_terrain->GetPosition();
+	}
+	if (GetAsyncKeyState('6') & 0x8000) {
+		m_terrain->SetPosition(Vector3::Add(m_terrain->GetPosition(), { 0.f, 0.f, -0.1f }));
+		cout << m_terrain->GetPosition();
+	}
+	if (GetAsyncKeyState('7') & 0x8000) {
+		m_terrain->SetPosition(Vector3::Add(m_terrain->GetPosition(), { 0.f, 0.01f, 0.f }));
+		cout << m_terrain->GetPosition();
+	}
+	if (GetAsyncKeyState('8') & 0x8000) {
+		m_terrain->SetPosition(Vector3::Add(m_terrain->GetPosition(), { 0.f, -0.01f, 0.f }));
+		cout << m_terrain->GetPosition();
+	}
 }
 
 void VillageScene::Update(FLOAT timeElapsed)
@@ -360,6 +393,7 @@ void VillageScene::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, 
 	case 0:
 	{
 		m_globalShaders.at("SKYBOX")->Render(commandList);
+		m_globalShaders.at("TERRAIN")->Render(commandList);
 		m_globalShaders.at("OBJECT1")->Render(commandList);
 		break;
 	}
@@ -672,7 +706,8 @@ void VillageScene::DrawBoundingBox(BoundingOrientedBox boundingBox, FLOAT roll, 
 
 void VillageScene::CollideWithMap()
 {
-	MoveOnStairs();
+	if (MoveOnTerrain()) {}
+	else if (MoveOnStairs()) {}
 	for (auto& object : m_quadtree->GetGameObjects(m_player->GetBoundingBox())) {
 		CollideByStaticOBB(m_player, object);
 	}
@@ -738,9 +773,42 @@ void VillageScene::CollideByStaticOBB(const shared_ptr<GameObject>& object, cons
 	}
 }
 
-void VillageScene::MoveOnStairs()
+bool VillageScene::MoveOnTerrain()
 {
 	XMFLOAT3 pos = m_player->GetPosition();
+
+	if (pos.x >= 42.44f) m_onTerrain = true;
+	if (pos.x <= -184.8f) m_onTerrain = true;
+	if (pos.z >= 241.7f) m_onTerrain = true;
+	if (pos.z <= -19.f) m_onTerrain = true;
+
+	if (pos.x < 42.44f && VillageSetting::STAIRS1_BACK <= pos.x &&
+		pos.z >= VillageSetting::STAIRS1_LEFT && 
+		pos.z <= VillageSetting::STAIRS1_RIGHT) m_onTerrain = false;
+	if (pos.x > -184.8f && VillageSetting::STAIRS14_BACK >= pos.x &&
+		pos.z <= VillageSetting::STAIRS14_LEFT && 
+		pos.z >= VillageSetting::STAIRS14_RIGHT) m_onTerrain = false;
+	if (pos.z < 241.7f && VillageSetting::STAIRS11_BACK <= pos.z &&
+		pos.x <= VillageSetting::STAIRS11_LEFT && 
+		pos.x >= VillageSetting::STAIRS11_RIGHT) m_onTerrain = false;
+	if (pos.z > -19.f && VillageSetting::STAIRS15_BACK >= pos.z &&
+		pos.x <= VillageSetting::STAIRS15_LEFT &&
+		pos.x >= VillageSetting::STAIRS15_RIGHT) m_onTerrain = false;
+
+	if (m_onTerrain) {
+		pos.y = m_terrain->GetHeight(pos.x, pos.z);
+		pos.y += 0.1f;
+		cout << pos.y << endl;
+		m_player->SetPosition(pos);
+		return true;
+	}
+	return false;
+}
+
+bool VillageScene::MoveOnStairs()
+{
+	XMFLOAT3 pos = m_player->GetPosition();
+	cout << pos;
 	float ratio{};
 	if (pos.z >= VillageSetting::STAIRS1_LEFT &&
 		pos.z <= VillageSetting::STAIRS1_RIGHT &&
@@ -750,6 +818,8 @@ void VillageScene::MoveOnStairs()
 			(VillageSetting::STAIRS1_FRONT - VillageSetting::STAIRS1_BACK);
 		pos.y = VillageSetting::STAIRS1_BOTTOM +
 			(VillageSetting::STAIRS1_TOP - VillageSetting::STAIRS1_BOTTOM) * ratio;
+		m_player->SetPosition(pos);
+		return true;
 	}
 	if (pos.z >= VillageSetting::STAIRS2_LEFT &&
 		pos.z <= VillageSetting::STAIRS2_RIGHT &&
@@ -759,6 +829,8 @@ void VillageScene::MoveOnStairs()
 			(VillageSetting::STAIRS2_FRONT - VillageSetting::STAIRS2_BACK);
 		pos.y = VillageSetting::STAIRS2_BOTTOM +
 			(VillageSetting::STAIRS2_TOP - VillageSetting::STAIRS2_BOTTOM) * ratio;
+		m_player->SetPosition(pos);
+		return true;
 	}
 	if (pos.z <= VillageSetting::STAIRS3_LEFT &&
 		pos.z >= VillageSetting::STAIRS3_RIGHT &&
@@ -768,7 +840,8 @@ void VillageScene::MoveOnStairs()
 			(VillageSetting::STAIRS3_BACK - VillageSetting::STAIRS3_FRONT);
 		pos.y = VillageSetting::STAIRS3_BOTTOM +
 			(VillageSetting::STAIRS3_TOP - VillageSetting::STAIRS3_BOTTOM) * ratio;
-		cout << ratio << endl;
+		m_player->SetPosition(pos);
+		return true;
 	}
 	if (pos.z >= VillageSetting::STAIRS4_LEFT &&
 		pos.z <= VillageSetting::STAIRS4_RIGHT &&
@@ -778,6 +851,8 @@ void VillageScene::MoveOnStairs()
 			(VillageSetting::STAIRS4_FRONT - VillageSetting::STAIRS4_BACK);
 		pos.y = VillageSetting::STAIRS4_BOTTOM +
 			(VillageSetting::STAIRS4_TOP - VillageSetting::STAIRS4_BOTTOM) * ratio;
+		m_player->SetPosition(pos);
+		return true;
 	}
 	if (pos.z >= VillageSetting::STAIRS5_LEFT &&
 		pos.z <= VillageSetting::STAIRS5_RIGHT &&
@@ -787,6 +862,8 @@ void VillageScene::MoveOnStairs()
 			(VillageSetting::STAIRS5_FRONT - VillageSetting::STAIRS5_BACK);
 		pos.y = VillageSetting::STAIRS5_BOTTOM +
 			(VillageSetting::STAIRS5_TOP - VillageSetting::STAIRS5_BOTTOM) * ratio;
+		m_player->SetPosition(pos);
+		return true;
 	}
 	if (pos.z >= VillageSetting::STAIRS6_LEFT &&
 		pos.z <= VillageSetting::STAIRS6_RIGHT &&
@@ -796,6 +873,8 @@ void VillageScene::MoveOnStairs()
 			(VillageSetting::STAIRS6_FRONT - VillageSetting::STAIRS6_BACK);
 		pos.y = VillageSetting::STAIRS6_BOTTOM +
 			(VillageSetting::STAIRS6_TOP - VillageSetting::STAIRS6_BOTTOM) * ratio;
+		m_player->SetPosition(pos);
+		return true;
 	}
 	if (pos.x <= VillageSetting::STAIRS7_LEFT &&
 		pos.x >= VillageSetting::STAIRS7_RIGHT &&
@@ -805,6 +884,8 @@ void VillageScene::MoveOnStairs()
 			(VillageSetting::STAIRS7_FRONT - VillageSetting::STAIRS7_BACK);
 		pos.y = VillageSetting::STAIRS7_BOTTOM +
 			(VillageSetting::STAIRS7_TOP - VillageSetting::STAIRS7_BOTTOM) * ratio;
+		m_player->SetPosition(pos);
+		return true;
 	}
 	if (pos.x <= VillageSetting::STAIRS8_LEFT &&
 		pos.x >= VillageSetting::STAIRS8_RIGHT &&
@@ -814,6 +895,8 @@ void VillageScene::MoveOnStairs()
 			(VillageSetting::STAIRS8_FRONT - VillageSetting::STAIRS8_BACK);
 		pos.y = VillageSetting::STAIRS8_BOTTOM +
 			(VillageSetting::STAIRS8_TOP - VillageSetting::STAIRS8_BOTTOM) * ratio;
+		m_player->SetPosition(pos);
+		return true;
 	}
 	if (pos.x <= VillageSetting::STAIRS9_LEFT &&
 		pos.x >= VillageSetting::STAIRS9_RIGHT &&
@@ -823,6 +906,8 @@ void VillageScene::MoveOnStairs()
 			(VillageSetting::STAIRS9_FRONT - VillageSetting::STAIRS9_BACK);
 		pos.y = VillageSetting::STAIRS9_BOTTOM +
 			(VillageSetting::STAIRS9_TOP - VillageSetting::STAIRS9_BOTTOM) * ratio;
+		m_player->SetPosition(pos);
+		return true;
 	}
 	if (pos.x <= VillageSetting::STAIRS10_LEFT &&
 		pos.x >= VillageSetting::STAIRS10_RIGHT &&
@@ -832,6 +917,8 @@ void VillageScene::MoveOnStairs()
 			(VillageSetting::STAIRS10_FRONT - VillageSetting::STAIRS10_BACK);
 		pos.y = VillageSetting::STAIRS10_BOTTOM +
 			(VillageSetting::STAIRS10_TOP - VillageSetting::STAIRS10_BOTTOM) * ratio;
+		m_player->SetPosition(pos);
+		return true;
 	}
 	if (pos.x <= VillageSetting::STAIRS11_LEFT &&
 		pos.x >= VillageSetting::STAIRS11_RIGHT &&
@@ -841,6 +928,8 @@ void VillageScene::MoveOnStairs()
 			(VillageSetting::STAIRS11_FRONT - VillageSetting::STAIRS11_BACK);
 		pos.y = VillageSetting::STAIRS11_BOTTOM +
 			(VillageSetting::STAIRS11_TOP - VillageSetting::STAIRS11_BOTTOM) * ratio;
+		m_player->SetPosition(pos);
+		return true;
 	}
 	if (pos.z >= VillageSetting::STAIRS12_LEFT &&
 		pos.z <= VillageSetting::STAIRS12_RIGHT &&
@@ -850,6 +939,8 @@ void VillageScene::MoveOnStairs()
 			(VillageSetting::STAIRS12_FRONT - VillageSetting::STAIRS12_BACK);
 		pos.y = VillageSetting::STAIRS12_BOTTOM +
 			(VillageSetting::STAIRS12_TOP - VillageSetting::STAIRS12_BOTTOM) * ratio;
+		m_player->SetPosition(pos);
+		return true;
 	}
 	if (pos.x >= VillageSetting::STAIRS13_LEFT &&
 		pos.x <= VillageSetting::STAIRS13_RIGHT &&
@@ -859,6 +950,8 @@ void VillageScene::MoveOnStairs()
 			(VillageSetting::STAIRS13_FRONT - VillageSetting::STAIRS13_BACK);
 		pos.y = VillageSetting::STAIRS13_BOTTOM +
 			(VillageSetting::STAIRS13_TOP - VillageSetting::STAIRS13_BOTTOM) * ratio;
+		m_player->SetPosition(pos);
+		return true;
 	}
 	if (pos.z <= VillageSetting::STAIRS14_LEFT &&
 		pos.z >= VillageSetting::STAIRS14_RIGHT &&
@@ -868,6 +961,8 @@ void VillageScene::MoveOnStairs()
 			(VillageSetting::STAIRS14_FRONT - VillageSetting::STAIRS14_BACK);
 		pos.y = VillageSetting::STAIRS14_BOTTOM +
 			(VillageSetting::STAIRS14_TOP - VillageSetting::STAIRS14_BOTTOM) * ratio;
+		m_player->SetPosition(pos);
+		return true;
 	}
 	if (pos.x <= VillageSetting::STAIRS15_LEFT &&
 		pos.x >= VillageSetting::STAIRS15_RIGHT &&
@@ -877,6 +972,8 @@ void VillageScene::MoveOnStairs()
 			(VillageSetting::STAIRS15_FRONT - VillageSetting::STAIRS15_BACK);
 		pos.y = VillageSetting::STAIRS15_BOTTOM +
 			(VillageSetting::STAIRS15_TOP - VillageSetting::STAIRS15_BOTTOM) * ratio;
+		m_player->SetPosition(pos);
+		return true;
 	}
 	if (pos.x >= VillageSetting::STAIRS16_LEFT &&
 		pos.x <= VillageSetting::STAIRS16_RIGHT &&
@@ -886,6 +983,8 @@ void VillageScene::MoveOnStairs()
 			(VillageSetting::STAIRS16_FRONT - VillageSetting::STAIRS16_BACK);
 		pos.y = VillageSetting::STAIRS16_BOTTOM +
 			(VillageSetting::STAIRS16_TOP - VillageSetting::STAIRS16_BOTTOM) * ratio;
+		m_player->SetPosition(pos);
+		return true;
 	}
 	if (pos.x >= VillageSetting::STAIRS17_LEFT &&
 		pos.x <= VillageSetting::STAIRS17_RIGHT &&
@@ -895,6 +994,8 @@ void VillageScene::MoveOnStairs()
 			(VillageSetting::STAIRS17_FRONT - VillageSetting::STAIRS17_BACK);
 		pos.y = VillageSetting::STAIRS17_BOTTOM +
 			(VillageSetting::STAIRS17_TOP - VillageSetting::STAIRS17_BOTTOM) * ratio;
+		m_player->SetPosition(pos);
+		return true;
 	}
 	if (pos.x <= VillageSetting::STAIRS18_LEFT &&
 		pos.x >= VillageSetting::STAIRS18_RIGHT &&
@@ -904,6 +1005,8 @@ void VillageScene::MoveOnStairs()
 			(VillageSetting::STAIRS18_FRONT - VillageSetting::STAIRS18_BACK);
 		pos.y = VillageSetting::STAIRS18_BOTTOM +
 			(VillageSetting::STAIRS18_TOP - VillageSetting::STAIRS18_BOTTOM) * ratio;
+		m_player->SetPosition(pos);
+		return true;
 	}
 	if (pos.x >= VillageSetting::STAIRS19_LEFT &&
 		pos.x <= VillageSetting::STAIRS19_RIGHT &&
@@ -913,6 +1016,8 @@ void VillageScene::MoveOnStairs()
 			(VillageSetting::STAIRS19_FRONT - VillageSetting::STAIRS19_BACK);
 		pos.y = VillageSetting::STAIRS19_BOTTOM +
 			(VillageSetting::STAIRS19_TOP - VillageSetting::STAIRS19_BOTTOM) * ratio;
+		m_player->SetPosition(pos);
+		return true;
 	}
 	if (pos.x <= VillageSetting::STAIRS20_LEFT &&
 		pos.x >= VillageSetting::STAIRS20_RIGHT &&
@@ -922,6 +1027,8 @@ void VillageScene::MoveOnStairs()
 			(VillageSetting::STAIRS20_FRONT - VillageSetting::STAIRS20_BACK);
 		pos.y = VillageSetting::STAIRS20_BOTTOM +
 			(VillageSetting::STAIRS20_TOP - VillageSetting::STAIRS20_BOTTOM) * ratio;
+		m_player->SetPosition(pos);
+		return true;
 	}
 	if (pos.x <= VillageSetting::STAIRS21_LEFT &&
 		pos.x >= VillageSetting::STAIRS21_RIGHT &&
@@ -931,6 +1038,8 @@ void VillageScene::MoveOnStairs()
 			(VillageSetting::STAIRS21_FRONT - VillageSetting::STAIRS21_BACK);
 		pos.y = VillageSetting::STAIRS21_BOTTOM +
 			(VillageSetting::STAIRS21_TOP - VillageSetting::STAIRS21_BOTTOM) * ratio;
+		m_player->SetPosition(pos);
+		return true;
 	}
 	if (pos.x >= VillageSetting::STAIRS22_LEFT &&
 		pos.x <= VillageSetting::STAIRS22_RIGHT &&
@@ -940,6 +1049,8 @@ void VillageScene::MoveOnStairs()
 			(VillageSetting::STAIRS22_FRONT - VillageSetting::STAIRS22_BACK);
 		pos.y = VillageSetting::STAIRS22_BOTTOM +
 			(VillageSetting::STAIRS22_TOP - VillageSetting::STAIRS22_BOTTOM) * ratio;
+		m_player->SetPosition(pos);
+		return true;
 	}
 	if (pos.x >= VillageSetting::STAIRS23_LEFT &&
 		pos.x <= VillageSetting::STAIRS23_RIGHT &&
@@ -949,6 +1060,8 @@ void VillageScene::MoveOnStairs()
 			(VillageSetting::STAIRS23_FRONT - VillageSetting::STAIRS23_BACK);
 		pos.y = VillageSetting::STAIRS23_BOTTOM +
 			(VillageSetting::STAIRS23_TOP - VillageSetting::STAIRS23_BOTTOM) * ratio;
+		m_player->SetPosition(pos);
+		return true;
 	}
 	if (pos.x <= VillageSetting::STAIRS24_LEFT &&
 		pos.x >= VillageSetting::STAIRS24_RIGHT &&
@@ -958,6 +1071,8 @@ void VillageScene::MoveOnStairs()
 			(VillageSetting::STAIRS24_FRONT - VillageSetting::STAIRS24_BACK);
 		pos.y = VillageSetting::STAIRS24_BOTTOM +
 			(VillageSetting::STAIRS24_TOP - VillageSetting::STAIRS24_BOTTOM) * ratio;
+		m_player->SetPosition(pos);
+		return true;
 	}
 	if (pos.z >= VillageSetting::STAIRS25_LEFT &&
 		pos.z <= VillageSetting::STAIRS25_RIGHT &&
@@ -967,6 +1082,8 @@ void VillageScene::MoveOnStairs()
 			(VillageSetting::STAIRS25_FRONT - VillageSetting::STAIRS25_BACK);
 		pos.y = VillageSetting::STAIRS25_BOTTOM +
 			(VillageSetting::STAIRS25_TOP - VillageSetting::STAIRS25_BOTTOM) * ratio;
+		m_player->SetPosition(pos);
+		return true;
 	}
 	if (pos.z <= VillageSetting::STAIRS26_LEFT &&
 		pos.z >= VillageSetting::STAIRS26_RIGHT &&
@@ -976,6 +1093,8 @@ void VillageScene::MoveOnStairs()
 			(VillageSetting::STAIRS26_FRONT - VillageSetting::STAIRS26_BACK);
 		pos.y = VillageSetting::STAIRS26_BOTTOM +
 			(VillageSetting::STAIRS26_TOP - VillageSetting::STAIRS26_BOTTOM) * ratio;
+		m_player->SetPosition(pos);
+		return true;
 	}
 	if (pos.z >= VillageSetting::STAIRS27_LEFT &&
 		pos.z <= VillageSetting::STAIRS27_RIGHT &&
@@ -985,6 +1104,8 @@ void VillageScene::MoveOnStairs()
 			(VillageSetting::STAIRS27_FRONT - VillageSetting::STAIRS27_BACK);
 		pos.y = VillageSetting::STAIRS27_BOTTOM +
 			(VillageSetting::STAIRS27_TOP - VillageSetting::STAIRS27_BOTTOM) * ratio;
+		m_player->SetPosition(pos);
+		return true;
 	}
 	if (pos.z <= VillageSetting::STAIRS28_LEFT &&
 		pos.z >= VillageSetting::STAIRS28_RIGHT &&
@@ -994,6 +1115,8 @@ void VillageScene::MoveOnStairs()
 			(VillageSetting::STAIRS28_FRONT - VillageSetting::STAIRS28_BACK);
 		pos.y = VillageSetting::STAIRS28_BOTTOM +
 			(VillageSetting::STAIRS28_TOP - VillageSetting::STAIRS28_BOTTOM) * ratio;
+		m_player->SetPosition(pos);
+		return true;
 	}
-	m_player->SetPosition(pos);
+	return false;
 }

@@ -68,6 +68,7 @@ void GlobalLoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const 
 	auto objectShader2{ make_shared<StaticObjectShader>(device, rootsignature) };
 	auto objectBlendShader{ make_shared<StaticObjectBlendShader>(device, rootsignature) };
 	auto animationShader{ make_shared<AnimationShader>(device, rootsignature) };
+	auto terrainShader{ make_shared<TerrainShader>(device, rootsignature) };
 	auto skyboxShader{ make_shared<SkyboxShader>(device, rootsignature) };
 	auto uiShader{ make_shared<UIShader>(device, rootsignature) };
 	auto postUiShader{ make_shared<UIShader>(device, rootsignature) };
@@ -92,6 +93,7 @@ void GlobalLoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const 
 	m_globalShaders.insert({ "OBJECT1", objectShader1 });
 	m_globalShaders.insert({ "OBJECT2", objectShader2 });
 	m_globalShaders.insert({ "OBJECTBLEND", objectBlendShader });
+	m_globalShaders.insert({ "TERRAIN", terrainShader });
 	m_globalShaders.insert({ "SKYBOX", skyboxShader });
 	m_globalShaders.insert({ "TRIGGEREFFECT", triggerEffectShader });
 	m_globalShaders.insert({ "HORZGAUGE", horzGaugeShader });

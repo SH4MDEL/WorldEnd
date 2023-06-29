@@ -410,6 +410,14 @@ void VillageLoadingScene::BuildObjects(const ComPtr<ID3D12Device>& device, const
 	shared_ptr<Mesh> wireFrame{ make_shared<Mesh>(device, commandlist, vertices ,indices) };
 	m_meshs.insert({ "WIREFRAME", wireFrame });
 
+	auto terrainTexture{ make_shared<Texture>() };
+	terrainTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/Terrain/Base_Texture.dds"), (INT)ShaderRegister::BaseTexture); // BaseTexture
+	terrainTexture->LoadTextureFile(device, commandlist, TEXT("Resource/Texture/Terrain/Detail_Texture.dds"), (INT)ShaderRegister::SubTexture); // DetailTexture
+	terrainTexture->CreateSrvDescriptorHeap(device);
+	terrainTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+
+	m_textures.insert({ "TERRAIN", terrainTexture });
+
 	auto skyboxMesh{ make_shared <SkyboxMesh>(device, commandlist, 20.0f, 20.0f, 20.0f) };
 
 	m_meshs.insert({ "SKYBOX", skyboxMesh });
