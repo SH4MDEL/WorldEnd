@@ -914,7 +914,6 @@ INT TowerScene::SetTarget(const shared_ptr<GameObject>& object)
 			}
 		}
 	}
-
 	return target;
 }
 

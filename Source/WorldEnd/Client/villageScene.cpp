@@ -265,31 +265,6 @@ void VillageScene::OnProcessingMouseMessage(UINT message, LPARAM lParam)
 void VillageScene::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 {
 	if (m_player) m_player->OnProcessingKeyboardMessage(timeElapsed);
-
-	if (GetAsyncKeyState('3') & 0x8000) {
-		m_terrain->SetPosition(Vector3::Add(m_terrain->GetPosition(), { 0.1f, 0.f, 0.f }));
-		cout << m_terrain->GetPosition();
-	}
-	if (GetAsyncKeyState('4') & 0x8000) {
-		m_terrain->SetPosition(Vector3::Add(m_terrain->GetPosition(), { -0.1f, 0.f, 0.f }));
-		cout << m_terrain->GetPosition();
-	}
-	if (GetAsyncKeyState('5') & 0x8000) {
-		m_terrain->SetPosition(Vector3::Add(m_terrain->GetPosition(), { 0.f, 0.f, 0.1f }));
-		cout << m_terrain->GetPosition();
-	}
-	if (GetAsyncKeyState('6') & 0x8000) {
-		m_terrain->SetPosition(Vector3::Add(m_terrain->GetPosition(), { 0.f, 0.f, -0.1f }));
-		cout << m_terrain->GetPosition();
-	}
-	if (GetAsyncKeyState('7') & 0x8000) {
-		m_terrain->SetPosition(Vector3::Add(m_terrain->GetPosition(), { 0.f, 0.01f, 0.f }));
-		cout << m_terrain->GetPosition();
-	}
-	if (GetAsyncKeyState('8') & 0x8000) {
-		m_terrain->SetPosition(Vector3::Add(m_terrain->GetPosition(), { 0.f, -0.01f, 0.f }));
-		cout << m_terrain->GetPosition();
-	}
 }
 
 void VillageScene::Update(FLOAT timeElapsed)
@@ -301,64 +276,13 @@ void VillageScene::Update(FLOAT timeElapsed)
 	m_fadeFilter->Update(timeElapsed);
 
 	CollideWithMap();
-
 	//UpdateLightSystem(timeElapsed);
-	UpdateBoundingFrustum();
-}
-
-void VillageScene::UpdateBoundingFrustum()
-{
-	// 동차 공간에서의 투영 절두체 꼭짓점들
-	static XMVECTORF32 HomogenousPoints[6] =
-	{
-		{  1.0f,  0.0f, 1.0f, 1.0f },   // 오른쪽 (먼 평면의)
-		{ -1.0f,  0.0f, 1.0f, 1.0f },   // 왼쪽
-		{  0.0f,  1.0f, 1.0f, 1.0f },   // 위
-		{  0.0f, -1.0f, 1.0f, 1.0f },   // 아래
-
-		{ 0.0f, 0.0f, 0.0f, 1.0f },     // 가까운
-		{ 0.0f, 0.0f, 1.0f, 1.0f }      // 먼
-	};
-
-	XMVECTOR Determinant;
-	XMMATRIX matInverse = XMMatrixInverse(&Determinant, XMLoadFloat4x4(&m_camera->GetProjMatrix()));
-
-	// World Space에서의 절두체 꼭짓점들을 구한다.
-	XMVECTOR Points[6];
-
-	for (size_t i = 0; i < 6; ++i)
-	{
-		// 점을 변환한다.
-		Points[i] = XMVector4Transform(HomogenousPoints[i], matInverse);
-	}
-
-	m_boundingFrustum.Origin = XMFLOAT3{ 0.f, 0.f, 0.f };
-	m_boundingFrustum.Orientation = XMFLOAT4{ 0.f, 0.f, 0.f, 1.f };
-
-	// 기울기들을 계산한다.
-	Points[0] = XMVectorMultiply(Points[0], XMVectorReciprocal(XMVectorSplatZ(Points[0])));
-	Points[1] = XMVectorMultiply(Points[1], XMVectorReciprocal(XMVectorSplatZ(Points[1])));
-	Points[2] = XMVectorMultiply(Points[2], XMVectorReciprocal(XMVectorSplatZ(Points[2])));
-	Points[3] = XMVectorMultiply(Points[3], XMVectorReciprocal(XMVectorSplatZ(Points[3])));
-	// 가까운 평면 거리와 먼 평면 거리를 계산한다.
-	Points[4] = XMVectorMultiply(Points[4], XMVectorReciprocal(XMVectorSplatW(Points[4])));
-	Points[5] = XMVectorMultiply(Points[5], XMVectorReciprocal(XMVectorSplatW(Points[5])));
-
-	m_boundingFrustum.RightSlope = XMVectorGetX(Points[0]);		// 양의 x 기울기
-	m_boundingFrustum.LeftSlope = XMVectorGetX(Points[1]);		// 음의 x 기울기
-	m_boundingFrustum.TopSlope = XMVectorGetY(Points[2]);		// 양의 y 기울기
-	m_boundingFrustum.BottomSlope = XMVectorGetY(Points[3]);	// 음의 y 기울기
-
-	m_boundingFrustum.Near = XMVectorGetZ(Points[4]);			// 원평면 z
-	m_boundingFrustum.Far = XMVectorGetZ(Points[5]);			// 근평면 z
-
-
-	m_boundingFrustum.Transform(m_boundingFrustum, XMMatrixInverse(nullptr, XMLoadFloat4x4(&m_camera->GetViewMatrix())));
 
 	// 프러스텀 컬링을 진행하는 셰이더에 바운딩 프러스텀 전달
-	static_pointer_cast<StaticObjectShader>(m_globalShaders["OBJECT1"])->SetBoundingFrustum(m_boundingFrustum);
-	static_pointer_cast<StaticObjectShader>(m_globalShaders["OBJECT2"])->SetBoundingFrustum(m_boundingFrustum);
-	static_pointer_cast<StaticObjectBlendShader>(m_globalShaders["OBJECTBLEND"])->SetBoundingFrustum(m_boundingFrustum);
+	auto viewFrustum = m_camera->GetViewFrustum();
+	static_pointer_cast<StaticObjectShader>(m_globalShaders["OBJECT1"])->SetBoundingFrustum(viewFrustum);
+	static_pointer_cast<StaticObjectShader>(m_globalShaders["OBJECT2"])->SetBoundingFrustum(viewFrustum);
+	static_pointer_cast<StaticObjectBlendShader>(m_globalShaders["OBJECTBLEND"])->SetBoundingFrustum(viewFrustum);
 }
 
 void VillageScene::PreProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) 
@@ -455,11 +379,6 @@ void VillageScene::PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandL
 			commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_COPY_SOURCE));
 			m_blurFilter->ResetResourceBarrier(commandList);
 		}
-
-		//m_sobelFilter->Execute(commandList, renderTarget);
-		//commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET));
-		//m_shaders["COMPOSITE"]->Render(commandList);
-		//commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE));
 
 		break;
 	}

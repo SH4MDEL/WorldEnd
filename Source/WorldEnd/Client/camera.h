@@ -33,6 +33,7 @@ public:
 
 	XMFLOAT4X4 GetViewMatrix() const { return m_viewMatrix; }
 	XMFLOAT4X4 GetProjMatrix() const { return m_projMatrix; }
+	BoundingFrustum& GetViewFrustum() { return m_viewFrustum; }
 	void SetViewMatrix(const XMFLOAT4X4& viewMatrix) { m_viewMatrix = viewMatrix; }
 	void SetProjMatrix(const XMFLOAT4X4& projMatrix) { m_projMatrix = projMatrix; }
 
@@ -50,6 +51,7 @@ public:
 protected:
 	XMFLOAT4X4				m_viewMatrix;	// 뷰변환 행렬
 	XMFLOAT4X4				m_projMatrix;	// 투영변환 행렬
+	BoundingFrustum			m_viewFrustum;	// 뷰 프러스텀
 
 	ComPtr<ID3D12Resource>	m_cameraBuffer;
 	CameraInfo*				m_cameraBufferPointer;

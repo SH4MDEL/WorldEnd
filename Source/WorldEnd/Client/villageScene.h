@@ -67,7 +67,6 @@ private:
 	void BuildLight(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist);
 
 	void UpdateLightSystem(FLOAT timeElapsed);
-	void UpdateBoundingFrustum();
 
 	void DrawBoundingBox(BoundingOrientedBox boundingBox, FLOAT roll, FLOAT pitch, FLOAT yaw);
 
@@ -101,10 +100,8 @@ protected:
 	XMFLOAT4						m_directionalDiffuse;
 	XMFLOAT3						m_directionalDirection;
 
-	BoundingFrustum				m_boundingFrustum;
-
 	// 플레이어의 충돌을 검사하기 위한 쿼드트리
-	unique_ptr<QuadtreeFrustum>	m_quadtree;
+	unique_ptr<QuadtreeFrustum>		m_quadtree;
 
 	bool							m_onTerrain;
 };
