@@ -58,7 +58,7 @@ Monster::Monster() : m_target_id{ -1 }, m_current_animation{ ObjectAnimation::ID
 	m_current_behavior{ MonsterBehavior::COUNT }, m_aggro_level{ 0 },
 	m_last_behavior_id{ 1 }
 {
-	m_bounding_box.Center = XMFLOAT3(0.028f, 1.27f, 0.f);
+    m_bounding_box.Center = XMFLOAT3(0.028f, 1.27f, 0.f);
 	m_bounding_box.Extents = XMFLOAT3(0.8f, 1.3f, 0.6f);
 	m_bounding_box.Orientation = XMFLOAT4(0.f, 0.f, 0.f, 1.f);
 }
@@ -1194,10 +1194,12 @@ std::chrono::milliseconds WizardMonster::SetBehaviorTime(MonsterBehavior behavio
 
 BossMonster::BossMonster()
 {
+	m_bounding_box.Center = XMFLOAT3(6.556f, 1.032f, 2.018f);
+	m_bounding_box.Extents = XMFLOAT3(1.648f, 2.214f, 2.018f);
 	m_max_hp = 1000.f;
-	m_damage = 30.f;
-	m_attack_range = 3.f;
-	m_boundary_range = 2.f;
+	m_damage = 3.f;
+	m_attack_range = 5.f;
+	m_boundary_range = 4.f;
 	m_monster_type = MonsterType::BOSS;
 }
 
@@ -1224,20 +1226,20 @@ void BossMonster::Update(FLOAT elapsed_time)
 	if (!(m_hp <= m_max_hp / 2.5)) {                                                        // 일반 상태
 		if (CanSwapAttackBehavior()) {                                                      // 경계 범위 내에 들어오면 일반 공격
 			if (IsInRange(m_boundary_range) && m_behavior_cnt == 0) {
+				//m_damage = 25.f;
 				ChangeBehavior(MonsterBehavior::PREPARE_NORMAL_ATTACK);
 				RandomTarget(elapsed_time);
 				m_behavior_cnt++;
 			}
 			else if (IsInRange(m_attack_range) && m_behavior_cnt == 1) {                    // 공격 범위 내에 들어오면 스킬 공격
+				//m_damage = 35.f;
 				ChangeBehavior(MonsterBehavior::PREPARE_WIDE_SKILL);
 				RandomTarget(elapsed_time);
 				m_behavior_cnt = 0;
-				m_damage += 10.f;
 			}
 		}
 	}     
 	else {                                                                                  // 광폭화 상태
-		//m_behavior_cnt = 0;
 		if (CanSwapAttackBehavior()) {                                                      // 경계 범위 내에 들어오면 강화된 일반 공격
 			if (IsInRange(m_boundary_range) && m_enhance_behavior_cnt == 0) {
 				ChangeBehavior(MonsterBehavior::PREPARE_ATTACK);

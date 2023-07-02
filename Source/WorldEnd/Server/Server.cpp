@@ -477,7 +477,7 @@ void Server::WorkerThread()
 				}
 				else if (monster->GetBehavior() == MonsterBehavior::NORMAL_ATTACK) {
 					obb.Center = *pos;
-					obb.Extents = XMFLOAT3{ 1.0f, 1.0f, 1.0f };
+					obb.Extents = XMFLOAT3{ 0.4f, 0.4f, 0.4f };
 					std::cout << "보스 공격 충돌" << std::endl;
 				}
 				else if (monster->GetBehavior() == MonsterBehavior::ENHANCE_WIDE_SKILL) {
