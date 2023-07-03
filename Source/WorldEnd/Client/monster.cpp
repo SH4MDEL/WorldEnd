@@ -1,6 +1,6 @@
 #include "monster.h"
 
-Monster::Monster() : m_hp{ 200.f }, m_maxHp{ 200.f }
+Monster::Monster() : m_hp{ 200.f }, m_maxHp{ 200.f }, m_enable{ false }
 {
 	m_boundingBox.Center = XMFLOAT3(0.028f, 1.27f, 0.f);
 	m_boundingBox.Extents = XMFLOAT3(0.8f, 1.3f, 0.6f);

@@ -92,7 +92,7 @@ public:
 	void ProcessPacket(char* ptr);
 	void PacketReassembly(char* net_buf, size_t io_byte);
 	void RecvLoginOk(char* ptr);
-	void RecvAddObject(char* ptr);
+	void RecvAddPlayer(char* ptr);
 	void RecvRemovePlayer(char* ptr);
 	void RecvRemoveMonster(char* ptr);
 	void RecvUpdateClient(char* ptr);
@@ -103,9 +103,7 @@ public:
 	void RecvResetCooldown(char* ptr);
 	void RecvClearFloor(char* ptr);
 	void RecvFailFloor(char* ptr);
-	void RecvMonsterHit(char* ptr);
 	void RecvChangeStamina(char* ptr);
-	void RecvMonsterAttackCollision(char* ptr);
 	void RecvSetInteractable(char* ptr);
 	void RecvWarpNextFloor(char* ptr);
 	void RecvPlayerDeath(char* ptr);

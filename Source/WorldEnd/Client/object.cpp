@@ -890,12 +890,6 @@ void AnimationController::Update(float timeElapsed, const shared_ptr<GameObject>
 				m_blendingMode = AnimationBlending::NORMAL;
 				m_animationTracks[1].SetEnable(false);
 			}
-			/*else if (ANIMATION_TYPE_ONCE == m_animationTracks[1].GetAnimationType()&&
-				m_animationTracks[1].GetPosition() == m_animationSet->GetAnimations()[m_animationTracks[1].GetAnimation()]->GetLength())
-			{
-				m_blendingMode = AnimationBlending::NORMAL;
-				m_animationTracks[1].SetEnable(false);
-			}*/
 			
 		}
 		rootObject->UpdateAnimationTransform(nullptr);

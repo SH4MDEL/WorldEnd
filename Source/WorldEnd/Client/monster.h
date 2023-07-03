@@ -17,10 +17,12 @@ public:
 	void SetHpBar(const shared_ptr<GaugeBar>& hpBar) override { m_hpBar = hpBar; }
 	void SetVelocity(XMFLOAT3& velocity);
 	void SetType(MonsterType type) { m_type = type; }
+	void SetEnable(bool value) { m_enable = value; }
 
 	FLOAT GetMaxHp() const override { return m_maxHp; }
 	FLOAT GetHp() const override { return m_hp; }
 	MonsterType GetType() const { return m_type; }
+	bool GetEnable() const { return m_enable; }
 
 	virtual void ChangeAnimation(USHORT animation, bool doSend) override;
 
@@ -30,6 +32,7 @@ private:
 	shared_ptr<GaugeBar>	m_hpBar;		// HP¹Ù
 
 	MonsterType			m_type;
+	bool				m_enable;
 };
 
 class MonsterMagicCircle : public GameObject

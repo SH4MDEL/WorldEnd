@@ -4,6 +4,7 @@
 #include "monster.h"
 #include "object.h"
 #include "map.h"
+#include "database.h"
 
 
 enum class EventType : char 
@@ -36,6 +37,25 @@ struct TIMER_EVENT {
 	}
 };
 
+enum class DBEventType : char {
+	TRY_LOGIN, LOGOUT, CREATE_ACCOUNT, DELETE_ACCOUNT,
+	UPDATE_PLAYER_INFO, UPDATE_SKILL_INFO, UPDATE_UPGRADE_INFO,
+	UPDATE_GOLD, UPDATE_POSITION
+};
+
+struct DB_EVENT {
+	std::chrono::system_clock::time_point event_time;
+	std::wstring user_id;
+	std::wstring data;
+	INT client_id;
+	DBEventType event_type;
+
+	constexpr bool operator <(const DB_EVENT& left)const
+	{
+		return (event_time > left.event_time);
+	}
+};
+
 class Server
 {
 public:
@@ -46,37 +66,36 @@ public:
 
 	~Server();
 
+	// Network
 	void Network();
 	void WorkerThread();
 	void ProcessPacket(int id, char* p);
 	void Disconnect(int id);
 
+	// Send
 	void SendLoginOk(int client_id);
-	void SendMoveInGameRoom(int client_id, int room_num);
 	void SendPlayerDeath(int client_id);
 	void SendChangeAnimation(int client_id, USHORT animation);
-	void SendMonsterHit(int client_id, const std::span<int>& receiver,
-		const std::span<int>& creater);
-	void SendMonsterHit(int client_id, const std::span<int>& receiver,
-		int hit_id);
-	void SendMonsterAttack(int client_id, const std::span<int>& clients,
-		const BoundingOrientedBox& obb);
-	void SendMonsterAttack(int monster_id, int player_id);
 	void SendArrowShoot(int client_id, int arrow_id, ActionType type);
 	void SendRemoveArrow(int client_id, int arrow_id);
-	void SendMonsterShoot(int client_id);
-	void SendChangeHp(int client_id, FLOAT hp);
+	void SendChangeHp(int client_id);
 	void SendTrigger(int client_id, TriggerType type, const XMFLOAT3& pos);
 	void SendMagicCircle(int room_num, const XMFLOAT3& pos, const XMFLOAT3& extent);
 
-	bool IsPlayer(int client_id);
+	// 기타 처리
+	bool IsPlayer(int client_id); 
 	void GameRoomObjectCollisionCheck(const std::shared_ptr<MovementObject>& object,
-			int room_num);
+		int room_num);
 	void ProcessArrow(int client_id, int target_id, ActionType type);
 
-	void Timer();
-	void ProcessEvent(const TIMER_EVENT& ev);
+	// 타이머 쓰레드 및 처리
+	void TimerThread();
+	void ProcessTimerEvent(const TIMER_EVENT& ev);
 
+	// DB 쓰레드
+	void DBThread();
+
+	// 타이머 이벤트 Set
 	void SetTimerEvent(const TIMER_EVENT& ev);
 	void SetAttackTimerEvent(int id, ActionType attack_type,
 		std::chrono::system_clock::time_point attack_time);
@@ -91,6 +110,7 @@ public:
 	void SetTrigger(int client_id, TriggerType type, const XMFLOAT3& pos);
 	void SetTrigger(int client_id, TriggerType type, int target_id);
 
+	// Getter
 	INT GetNewId();
 	INT GetNewMonsterId(MonsterType type);
 	INT GetNewTriggerId(TriggerType type);
@@ -115,11 +135,14 @@ public:
 	static void CollideByStaticOBB(const std::shared_ptr<GameObject>& object,
 		const std::shared_ptr<GameObject>& static_object);
 
+public:
 	std::array<std::shared_ptr<MovementObject>, MAX_OBJECT> m_clients;
 	std::array<std::shared_ptr<Trigger>, MAX_TRIGGER> m_triggers;
 
 private:
 	std::unique_ptr<GameRoomManager> m_game_room_manager;
+	std::unique_ptr<PartyManager> m_party_manager;
+	std::unique_ptr<DataBase> m_database;
 
 	SOCKET				m_server_socket;
 	HANDLE				m_handle_iocp;
@@ -128,6 +151,7 @@ private:
 	bool						m_accept;
 
 	concurrency::concurrent_priority_queue<TIMER_EVENT> m_timer_queue;
+	concurrency::concurrent_priority_queue<DB_EVENT> m_db_queue;
 
 	Server();
 };

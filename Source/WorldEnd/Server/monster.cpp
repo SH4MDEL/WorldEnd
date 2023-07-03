@@ -12,48 +12,6 @@ std::uniform_real_distribution<FLOAT> random_step_back_time(5.f, 7.f);
 std::uniform_int_distribution<INT> random_flee_angle(20, 45);
 
 
-// ------------------------- 디버그 용 ---------------------------------
-std::string DebugBehavior(MonsterBehavior b)
-{
-	switch (b) {
-	case MonsterBehavior::CHASE:
-		return std::string("chase");
-		break;
-	case MonsterBehavior::RETARGET:
-		return std::string("retarget");
-		break;
-	case MonsterBehavior::TAUNT:
-		return std::string("taunt");
-		break;
-	case MonsterBehavior::PREPARE_ATTACK:
-		return std::string("prepare_attack");
-		break;
-	case MonsterBehavior::AIM:
-		return std::string("aim");
-		break;
-	case MonsterBehavior::ATTACK:
-		return std::string("attack");
-		break;
-	case MonsterBehavior::STEP_BACK:
-		return std::string("stepBack");
-		break;
-	case MonsterBehavior::FLEE:
-		return std::string("flee");
-		break;
-	case MonsterBehavior::DELAY:
-		return std::string("delay");
-		break;
-	case MonsterBehavior::DEATH:
-		return std::string("death");
-		break;
-	default:	// 없는 행동이면 COUNT
-		return std::string("x");
-		break;
-	}
-}
-// ------------------------- 디버그 용 ---------------------------------
-
-
 Monster::Monster() : m_target_id{ -1 }, m_current_animation{ ObjectAnimation::IDLE },
 	m_current_behavior{ MonsterBehavior::COUNT }, m_aggro_level{ 0 },
 	m_last_behavior_id{ 1 }
@@ -72,6 +30,7 @@ void Monster::Init()
 	m_last_behavior_id = 1;	// 0은 유효하지 않은 행동 id
 	m_room_num = -1;	// FREE 되자마자 몬스터 가져갈 시 
 						// 타이머 이벤트가 남아있을 수 있으므로 초기화
+	m_status->Init();
 }
 
 void Monster::Update(FLOAT elapsed_time)
@@ -199,7 +158,7 @@ void Monster::SetBehaviorId(BYTE id)
 
 MONSTER_DATA Monster::GetMonsterData() const
 {
-	return MONSTER_DATA( m_id, m_position, m_velocity, m_yaw, m_hp );
+	return MONSTER_DATA{ m_id, m_position, m_yaw };
 }
 
 bool Monster::ChangeAnimation(BYTE animation)
@@ -300,12 +259,11 @@ void Monster::DoBehavior(FLOAT elapsed_time)
 
 void Monster::DecreaseHp(FLOAT damage, INT id)
 {
-	if (m_hp <= 0)
+	if (m_status->GetHp() <= 0)
 		return;
 
-	m_hp -= damage;
-	if (m_hp <= 0) {
-		m_hp = 0.f;
+	bool death = m_status->CalculateHitDamage(damage);
+	if (death) {
 		{
 			std::lock_guard<std::mutex> l{ m_state_lock };
 			m_state = State::DEATH;
@@ -319,7 +277,7 @@ void Monster::DecreaseHp(FLOAT damage, INT id)
 		return;
 
 	// 일정 비율 이상 (현재는 20%) 데미지가 들어오면 타겟 변경
-	if ((m_max_hp / 5.f - damage) <= std::numeric_limits<FLOAT>::epsilon()) {
+	if ((m_status->GetMaxHp() / 5.f - damage) <= std::numeric_limits<FLOAT>::epsilon()) {
 		SetTarget(id);
 		//SetAggroLevel(AggroLevel::HIT_AGGRO);
 	}
@@ -479,8 +437,8 @@ void Monster::InitializePosition(INT mon_cnt, MonsterType mon_type, INT random_m
 
 WarriorMonster::WarriorMonster()
 {
-	m_max_hp = 200.f;
-	m_damage = 20;
+	m_status->SetMaxHp(200.f);
+	m_status->SetAtk(20.f);
 	m_attack_range = 1.5f;
 	m_boundary_range = 3.f;
 	m_monster_type = MonsterType::WARRIOR;
@@ -489,8 +447,6 @@ WarriorMonster::WarriorMonster()
 void WarriorMonster::Init()
 {
 	Monster::Init();
-
-	m_hp = m_max_hp;
 }
 
 void WarriorMonster::Update(FLOAT elapsed_time)
@@ -631,8 +587,8 @@ std::chrono::milliseconds WarriorMonster::SetBehaviorTime(MonsterBehavior behavi
 
 ArcherMonster::ArcherMonster()
 {
-	m_max_hp = 150.f;
-	m_damage = 20;
+	m_status->SetMaxHp(150.f);
+	m_status->SetAtk(20.f);
 	m_attack_range = 12.5f;
 	m_recover_attack_range = 8.f;
 	m_boundary_range = 3.f;
@@ -643,7 +599,6 @@ ArcherMonster::ArcherMonster()
 void ArcherMonster::Init()
 {
 	Monster::Init();
-	m_hp = m_max_hp;
 }
 
 void ArcherMonster::Update(FLOAT elapsed_time)
@@ -907,8 +862,8 @@ void ArcherMonster::SetFleeDirection()
 
 WizardMonster::WizardMonster()
 {
-	m_max_hp = 170.f;
-	m_damage = 10.f;
+	m_status->SetMaxHp(170.f);
+	m_status->SetAtk(10.f);
 	m_attack_range = 8.f;
 	m_boundary_range = 2.5f;
 	m_monster_type = MonsterType::WIZARD;
@@ -917,8 +872,6 @@ WizardMonster::WizardMonster()
 void WizardMonster::Init()
 {
 	Monster::Init();
-	
-	m_hp = m_max_hp;
 }
 
 void WizardMonster::Update(FLOAT elapsed_time)

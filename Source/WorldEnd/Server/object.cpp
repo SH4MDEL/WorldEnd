@@ -188,9 +188,10 @@ void WarpPortal::SendEvent(const std::span<INT>& ids, void* c)
 }
 
 MovementObject::MovementObject() : m_velocity{ 0.f, 0.f, 0.f },
-	m_state{ State::FREE }, m_name{}, m_hp{}, m_damage{},
+	m_state{ State::FREE }, m_name{},
 	m_room_num{ -1 }, m_trigger_flag{ 0 }
 {
+	m_status = std::make_unique<Status>();
 }
 
 void MovementObject::SetVelocity(FLOAT x, FLOAT y, FLOAT z)
@@ -259,16 +260,6 @@ void Trigger::SetRemoveEvent(INT id)
 
 void Trigger::Activate(INT id)
 {
-	// 트리거의 공통 처리
-	//  - 트리거 플래그 확인
-	//  - 트리거 플래그 활성화
-	//  - 타이머 이벤트 생성
-	
-	// 트리거 처리, 유효성검사만 트리거 별로 따로 처리되도록 하면 됨
-
-	/*std::string s = (m_type == ARROW_RAIN) ? "ARROW RAIN" : "UNDEAD GRASP";
-	printf("트리거 활성화, id : %d, %s\n", id, s.c_str());*/
-
 	Server& server = Server::GetInstance();
 	UCHAR trigger_type = static_cast<UCHAR>(m_type);
 	if (IsValid(id)) {
@@ -340,6 +331,10 @@ void ArrowRain::ProcessTrigger(INT id)
 {
 	Server& server = Server::GetInstance();
 	server.m_clients[id]->DecreaseHp(m_damage, -1);
+
+	if (State::DEATH != server.m_clients[id]->GetState()) {
+		server.SendChangeHp(id);
+	}
 }
 
 bool ArrowRain::IsValid(INT id)
@@ -367,7 +362,7 @@ void UndeadGrasp::ProcessTrigger(INT id)
 	server.m_clients[id]->DecreaseHp(m_damage, m_created_id);
 
 	if (State::DEATH != server.m_clients[id]->GetState()) {
-		server.SendChangeHp(id, server.m_clients[id]->GetHp());
+		server.SendChangeHp(id);
 	}
 }
 

@@ -42,15 +42,22 @@ constexpr int MAX_TRIGGER = MAX_ARROW_RAIN + MAX_UNDEAD_GRASP;
 
 constexpr char CS_PACKET_LOGIN = 1;
 constexpr char CS_PACKET_PLAYER_MOVE = 2;
-constexpr char CS_PACKET_SET_COOLDOWN = 4;
-constexpr char CS_PACKET_ATTACK = 5;
-constexpr char CS_PACKET_SHOOT = 6;
-constexpr char CS_PACKET_CHANGE_ANIMATION = 7;
-constexpr char CS_PACKET_CHANGE_STAMINA = 8;
-constexpr char CS_PACKET_INTERACT_OBJECT = 9;
+constexpr char CS_PACKET_SET_COOLDOWN = 3;
+constexpr char CS_PACKET_ATTACK = 4;
+constexpr char CS_PACKET_CHANGE_ANIMATION = 5;
+constexpr char CS_PACKET_CHANGE_STAMINA = 6;
+constexpr char CS_PACKET_INTERACT_OBJECT = 7;
+
+//  ------------ 파티 관련 패킷 (클라이언트 -> 서버)  ------------
+constexpr char CS_PACKET_JOIN_PARTY = 8;
+constexpr char CS_PACKET_CREATE_PARTY = 9;
+constexpr char CS_PACKET_EXIT_PARTY = 10;
+constexpr char CS_PACKET_CHANGE_CHARACTER = 11;
+constexpr char CS_PACKET_READY = 12;
+// -----------------------------------------------------------
 
 constexpr char SC_PACKET_LOGIN_OK = 1;
-constexpr char SC_PACKET_ADD_OBJECT = 2;
+constexpr char SC_PACKET_ADD_PLAYER = 2;
 constexpr char SC_PACKET_REMOVE_PLAYER = 3;
 constexpr char SC_PACKET_REMOVE_MONSTER = 4;
 constexpr char SC_PACKET_UPDATE_CLIENT = 5;
@@ -61,23 +68,36 @@ constexpr char SC_PACKET_CHANGE_ANIMATION = 9;
 constexpr char SC_PACKET_RESET_COOLDOWN = 10;
 constexpr char SC_PACKET_CLEAR_FLOOR = 11;
 constexpr char SC_PACKET_FAIL_FLOOR = 12;
-constexpr char SC_PACKET_MONSTER_HIT = 13;
-constexpr char SC_PACKET_CHANGE_STAMINA = 14;
-constexpr char SC_PACKET_MONSTER_ATTACK_COLLISION = 15;
-constexpr char SC_PACKET_SET_INTERACTABLE = 16;
-constexpr char SC_PACKET_START_BATTLE = 17;
-constexpr char SC_PACKET_WARP_NEXT_FLOOR = 18;
-constexpr char SC_PACKET_PLAYER_DEATH = 19;
-constexpr char SC_PACKET_ARROW_SHOOT = 20;
-constexpr char SC_PACKET_REMOVE_ARROW = 21;
-constexpr char SC_PACKET_MONSTER_SHOOT = 22;
-constexpr char SC_PACKET_INTERACT_OBJECT = 23;
-constexpr char SC_PACKET_CHANGE_HP = 24;
-constexpr char SC_PACKET_ADD_TRIGGER = 25;
-constexpr char SC_PACKET_ADD_MAGIC_CIRCLE = 26;
+
+constexpr char SC_PACKET_CHANGE_STAMINA = 13;
+constexpr char SC_PACKET_CHANGE_HP = 14;
+constexpr char SC_PACKET_SET_INTERACTABLE = 15;
+constexpr char SC_PACKET_START_BATTLE = 16;
+constexpr char SC_PACKET_WARP_NEXT_FLOOR = 17;
+constexpr char SC_PACKET_PLAYER_DEATH = 18;
+constexpr char SC_PACKET_ARROW_SHOOT = 19;
+constexpr char SC_PACKET_REMOVE_ARROW = 20;
+constexpr char SC_PACKET_MONSTER_SHOOT = 21;
+constexpr char SC_PACKET_INTERACT_OBJECT = 22;
+constexpr char SC_PACKET_ADD_TRIGGER = 23;
+constexpr char SC_PACKET_ADD_MAGIC_CIRCLE = 24;
+
+//  ------------ 파티 관련 패킷 (서버 -> 클라이언트)  ------------
+constexpr char SC_PACKET_JOIN_FAIL = 25;
+constexpr char SC_PACKET_JOIN_OK = 26;
+constexpr char SC_PACKET_CREATE_OK = 27;
+constexpr char SC_PACKET_CREATE_FAIL = 28;
+constexpr char SC_PACKET_ADD_PARTY_MEMBER = 29;
+constexpr char SC_PACKET_REMOVE_PARTY_MEMBER = 30;
+constexpr char SC_PACKET_CHANGE_HOST = 31;
+constexpr char SC_PACKET_CHANGE_CHARACTER = 32;
+constexpr char SC_PACKET_PLAYER_READY = 33;
+constexpr char SC_PACKET_ENTER_GAME_ROOM = 34;
+constexpr char SC_PACKET_ENTER_FAIL = 35;
+// -----------------------------------------------------------
 
 enum class PlayerType : char { WARRIOR, ARCHER, COUNT };
-enum class MonsterType : char { WARRIOR, ARCHER, WIZARD, COUNT };
+enum class MonsterType : char { WARRIOR, ARCHER, WIZARD, CENTAUR, COUNT };
 enum class EnvironmentType : char { RAIN, FOG, GAS, TRAP, COUNT };
 
 enum ActionType : char {
@@ -508,29 +528,12 @@ namespace RoomSetting
 }
 
 #pragma pack(push,1)
-struct PLAYER_DATA
-{
-	INT					id;				// 플레이어 고유 번호
-	DirectX::XMFLOAT3	pos;			// 위치
-	DirectX::XMFLOAT3	velocity;		// 속도
-	FLOAT				yaw;			// 회전각
-	FLOAT               hp;
-};
-
-struct ARROW_DATA    
-{
-	DirectX::XMFLOAT3	pos;		// 위치
-	DirectX::XMFLOAT3	velocity;	// 방향
-	INT					player_id;	// 쏜 사람
-};
 
 struct MONSTER_DATA
 {
 	INT					id;			// 몬스터 고유 번호
 	DirectX::XMFLOAT3	pos;		// 위치
-	DirectX::XMFLOAT3	velocity;	// 속도
 	FLOAT				yaw;		// 회전각
-	FLOAT				hp;
 };
 //////////////////////////////////////////////////////
 // 클라에서 서버로
@@ -543,13 +546,6 @@ struct CS_LOGIN_PACKET
 	PlayerType player_type;
 };
 
-struct CS_LOGOUT_PACKET 
-{
-	UCHAR size;
-	UCHAR type;
-};
-
-
 struct CS_PLAYER_MOVE_PACKET
 {
 	UCHAR size;
@@ -559,25 +555,11 @@ struct CS_PLAYER_MOVE_PACKET
 	FLOAT yaw;
 };
 
-struct CS_READY_PACKET      // 파티 준비 완료를 알려주는 패킷
-{
-	UCHAR size;
-	UCHAR type;
-	bool ready_check;
-};
-
 struct CS_COOLDOWN_PACKET
 {
 	UCHAR size;
 	UCHAR type;
 	ActionType cooldown_type;
-};
-
-struct CS_ARROW_PACKET       // 공격키를 눌렀을때 투사체를 생성해주는 패킷
-{
-	UCHAR size;
-	UCHAR type;
-	ARROW_DATA arrow_data;
 };
 
 struct CS_ATTACK_PACKET
@@ -586,14 +568,6 @@ struct CS_ATTACK_PACKET
 	UCHAR type;
 	ActionType attack_type;
 	std::chrono::system_clock::time_point attack_time; 
-};
-
-struct CS_SHOOT_PACKET
-{
-	UCHAR size;
-	UCHAR type;
-	ActionType attack_type;
-	std::chrono::system_clock::time_point attack_time;
 };
 
 struct CS_CHANGE_ANIMATION_PACKET
@@ -617,6 +591,39 @@ struct CS_INTERACT_OBJECT_PACKET
 	InteractionType interaction_type;
 };
 
+struct CS_JOIN_PARTY_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+	USHORT party_num;
+};
+
+struct CS_CREATE_PARTY_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+};
+
+struct CS_EXIT_PARTY_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+};
+
+struct CS_CHANGE_CHARACTER_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+	PlayerType player_type;
+};
+
+struct CS_READY_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+	bool is_ready;
+};
+
 ///////////////////////////////////////////////////////////////////////
 // 서버에서 클라로
 
@@ -625,16 +632,20 @@ struct SC_LOGIN_OK_PACKET    // 로그인 성공을 알려주는 패킷
 	UCHAR size;
 	UCHAR type;
 	CHAR  name[NAME_SIZE];
-	PLAYER_DATA player_data;
+	INT id;
+	DirectX::XMFLOAT3 pos;
+	FLOAT hp;
 	PlayerType player_type;
 };
 
-struct SC_ADD_OBJECT_PACKET
+struct SC_ADD_PLAYER_PACKET
 {
 	UCHAR size;
 	UCHAR type;
 	CHAR  name[NAME_SIZE];
-	PLAYER_DATA player_data;
+	INT id;
+	DirectX::XMFLOAT3 pos;
+	FLOAT hp;
 	PlayerType player_type;
 };
 
@@ -658,34 +669,13 @@ struct SC_LOGIN_FAIL_PACKET  // 로그인 실패를 알려주는 패킷
 	UCHAR type;
 };
 
-struct SC_READY_CHECK_PACKET  // 파티 준비 상태를 알려주는 패킷
-{
-	UCHAR size;
-	UCHAR type;
-	CHAR id;
-	bool ready_check;
-};
-
-struct SC_PLAYER_SELECT_PACKET // 플레이어 종류 선택 패킷 
-{
-	UCHAR size;
-	UCHAR type;
-	CHAR id;
-	PlayerType player_type;
-};
-
-struct SC_ARROW_DATA_PACKET    // 투사체 정보를 보내주는 패킷
-{
-	UCHAR size;
-	UCHAR type;
-	ARROW_DATA arrow_data;
-};
-
 struct SC_UPDATE_CLIENT_PACKET
 {
 	UCHAR size;
 	UCHAR type;
-	PLAYER_DATA	data;
+	INT id;
+	DirectX::XMFLOAT3 pos;
+	FLOAT yaw;
 	//UINT move_time;
 };
 
@@ -694,6 +684,7 @@ struct SC_ADD_MONSTER_PACKET
 	UCHAR size;
 	UCHAR type;
 	MONSTER_DATA monster_data;
+	FLOAT hp;
 	MonsterType monster_type;
 };
 
@@ -741,14 +732,6 @@ struct SC_FAIL_FLOOR_PACKET
 	UCHAR type;
 };
 
-struct SC_CREATE_MONSTER_HIT
-{
-	UCHAR size;
-	UCHAR type;
-	INT id;		// 몬스터 id
-	FLOAT hp;	// 체력
-};
-
 struct SC_CHANGE_STAMINA_PACKET
 {
 	UCHAR size;
@@ -756,12 +739,12 @@ struct SC_CHANGE_STAMINA_PACKET
 	FLOAT stamina;
 };
 
-struct SC_MONSTER_ATTACK_COLLISION_PACKET
+struct SC_CHANGE_HP_PACKET
 {
 	UCHAR size;
 	UCHAR type;
-	INT ids[MAX_INGAME_USER];
-	FLOAT hps[MAX_INGAME_USER];
+	INT id;
+	FLOAT hp;
 };
 
 struct SC_SET_INTERACTABLE_PACKET
@@ -783,7 +766,6 @@ struct SC_WARP_NEXT_FLOOR_PACKET
 	UCHAR size;
 	UCHAR type;
 	BYTE floor;
-	// 플레이어의 초기 장소까지 같이 알려줘야 하는지
 };
 
 struct SC_PLAYER_DEATH_PACKET
@@ -816,14 +798,6 @@ struct SC_INTERACT_OBJECT_PACKET
 	InteractionType interaction_type;
 };
 
-struct SC_CHANGE_HP_PACKET
-{
-	UCHAR size;
-	UCHAR type;
-	INT id;
-	FLOAT hp;
-};
-
 struct SC_ADD_TRIGGER_PACKET
 {
 	UCHAR size;
@@ -838,6 +812,80 @@ struct SC_ADD_MAGIC_CIRCLE_PACKET
 	UCHAR type;
 	DirectX::XMFLOAT3 pos;
 	DirectX::XMFLOAT3 extent;
+};
+
+struct SC_JOIN_FAIL_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+};
+
+struct SC_JOIN_OK_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+};
+
+struct SC_CREATE_OK_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+};
+
+struct SC_CREATE_FAIL_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+};
+
+struct SC_ADD_PARTY_MEMBER_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+	PlayerType player_type;
+	INT id;
+	std::string name;
+};
+
+struct SC_REMOVE_PARTY_MEMBER_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+	INT id;
+};
+
+struct SC_CHANGE_HOST_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+};
+
+struct SC_CHANGE_CHARACTER_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+	INT id;
+	PlayerType player_type;
+};
+
+struct SC_PLAYER_READY_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+	INT id;
+	bool is_ready;
+};
+
+struct SC_ENTER_GAME_ROOM_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+};
+
+struct SC_ENTER_FAIL_PACKET
+{
+	UCHAR size;
+	UCHAR type;
 };
 
 #pragma pack (pop)

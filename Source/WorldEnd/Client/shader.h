@@ -26,7 +26,7 @@ public:
 	shared_ptr<Player> GetPlayer() const { return m_player; }
 	shared_ptr<Camera> GetCamera() const { return m_camera; }
 	const vector<shared_ptr<GameObject>>& GetObjects() const { return m_gameObjects; }
-	const unordered_map<INT, shared_ptr<Monster>>& GetMonsters() const { return m_monsters; }
+	unordered_map<INT, shared_ptr<Monster>>& GetMonsters() { return m_monsters; }
 	ComPtr<ID3D12PipelineState> GetPipelineState() const { return m_pipelineState; }
 
 	void SetPlayer(const shared_ptr<Player>& player);
