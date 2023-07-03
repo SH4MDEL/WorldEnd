@@ -1,6 +1,7 @@
 #pragma once
 #include "stdafx.h"
 #include "object.h"
+#include "skill.h"
 
 enum CompType
 {
@@ -50,6 +51,7 @@ public:
 	void SetPartyNum(SHORT party_num);
 	void SetReady(bool value);
 	void SetUserId(const std::wstring_view& ws);
+	void SetGold(INT gold);
 
 	const SOCKET& GetSocket() const override { return m_socket; }
 	ExpOver& GetExpOver() { return m_recv_over; }
@@ -65,6 +67,7 @@ public:
 	SHORT GetPartyNum() const { return m_party_num; }
 	bool GetReady() const { return m_is_ready; }
 	std::wstring GetUserId() const { return m_user_id; }
+	INT GetGold() const { return m_gold; }
 
 	void ChangeStamina(FLOAT value);
 	virtual void DecreaseHp(FLOAT damage, INT id) override;
@@ -89,6 +92,9 @@ private:
 	USHORT					m_current_animation;
 
 	std::wstring			m_user_id;
+	INT						m_gold;
+
+	std::array<std::shared_ptr<Skill>, static_cast<INT>(SkillType::COUNT)>	m_skills;
 
 	void SetBoundingBox(PlayerType type);
 };

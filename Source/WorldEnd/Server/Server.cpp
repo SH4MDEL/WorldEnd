@@ -49,19 +49,7 @@ Server::Server()
 
 
 	std::wstring test_id{L"ldh5112"};
-	USER_INFO test{ test_id, L"123456", L"이동현" };
-	//m_database->CreateAccount(test);
-
-	PLAYER_INFO p{ .user_id = test_id, .gold = 500, .player_type = 1,
-			.x = 10.f, .y = 5.f, .z = -3.1f };
-	m_database->UpdatePlayer(p);
-
-	SKILL_INFO s{ .user_id = test_id, .player_type = 1,
-		.normal_skill = L"멀티샷", .ultimate = L"폭풍의 시" };
-	m_database->UpdateSkill(s);
-
-	UPGRADE_INFO u{ .user_id = test_id, .hp = 5, .def = 7, .atk = 10, .crit_rate = 3, .crit_damage = 1 };
-	m_database->UpdateUpgrade(u);
+	m_database->GetSkillData(test_id);
 
 	printf("Complete Initialize!\n");
 	// ----------------------- //
@@ -1666,10 +1654,7 @@ void Server::DBThread()
 					user_info.user_id = ev.user_id;
 					// data를 password 와 name 으로 split
 
-					if (m_database->CreateAccount(user_info)) {
-
-					}
-					else {
+					if (!m_database->CreateAccount(user_info)) {
 
 					}
 					break;
@@ -1679,10 +1664,7 @@ void Server::DBThread()
 					user_info.user_id = ev.user_id;
 					user_info.password = ev.data;
 
-					if (m_database->DeleteAccount(user_info)) {
-
-					}
-					else {
+					if (!m_database->DeleteAccount(user_info)) {
 
 					}
 					break; 
@@ -1690,10 +1672,7 @@ void Server::DBThread()
 				case DBEventType::UPDATE_PLAYER_INFO: {
 					PLAYER_INFO player_info{};
 
-					if (m_database->UpdatePlayer(player_info)) {
-
-					}
-					else {
+					if (!m_database->UpdatePlayer(player_info)) {
 
 					}
 					break;
@@ -1701,10 +1680,7 @@ void Server::DBThread()
 				case DBEventType::UPDATE_SKILL_INFO: {
 					SKILL_INFO skill_info{};
 
-					if (m_database->UpdateSkill(skill_info)) {
-
-					}
-					else {
+					if (!m_database->UpdateSkill(skill_info)) {
 
 					}
 					break;
@@ -1712,21 +1688,27 @@ void Server::DBThread()
 				case DBEventType::UPDATE_UPGRADE_INFO: {
 					UPGRADE_INFO upgrade_info{};
 
-					if (m_database->UpdateUpgrade(upgrade_info)) {
-
-					}
-					else {
+					if (!m_database->UpdateUpgrade(upgrade_info)) {
 
 					}
 					break;
 				}
-				case DBEventType::UPDATE_GOLD:
-					
+				case DBEventType::UPDATE_GOLD: {
+					auto client = dynamic_pointer_cast<Client>(m_clients[ev.client_id]);
+					if (!m_database->UpdateGold(ev.user_id, client->GetGold())) {
 
+					}
 					break;
-				case DBEventType::UPDATE_POSITION:
+				}
+				case DBEventType::UPDATE_POSITION: {
+					auto client = dynamic_pointer_cast<Client>(m_clients[ev.client_id]);
+					XMFLOAT3 pos = client->GetPosition();
 
+					if (!m_database->UpdatePosition(ev.user_id, pos.x, pos.y, pos.z)) {
+
+					}
 					break;
+				}
 				}
 
 				continue;

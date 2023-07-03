@@ -1,5 +1,6 @@
 #pragma once
 #include "stdafx.h"
+#include "status.h"
 
 struct SCORE_DATA
 {
@@ -192,9 +193,9 @@ public:
 	void SetState(State state) { m_state = state; }
 	void SetName(std::string name) { m_name = name; }
 	void SetName(const char* c);
-	void SetMaxHp(FLOAT hp) { m_max_hp = hp; }
-	void SetHp(FLOAT hp) { m_hp = hp; }
-	void SetDamage(FLOAT damage) { m_damage = damage; }
+	void SetMaxHp(FLOAT hp) { m_status->SetMaxHp(hp); }
+	void SetHp(FLOAT hp) { m_status->SetHp(hp); }
+	void SetDamage(FLOAT damage) { m_status->SetAtk(damage); }
 	void SetRoomNum(SHORT room_num) { m_room_num = room_num; }
 	void SetTriggerFlag() { m_trigger_flag = 0; }
 	void SetTriggerFlag(UCHAR trigger, bool val);
@@ -203,9 +204,9 @@ public:
 	std::mutex& GetStateMutex() { return m_state_lock; }
 	virtual State GetState() const override { return m_state; }
 	std::string GetName() const { return m_name; }
-	FLOAT GetMaxHp() const { return m_max_hp; }
-	FLOAT GetHp() const { return m_hp; }
-	FLOAT GetDamage() const { return m_damage; }
+	FLOAT GetMaxHp() const { return m_status->GetMaxHp(); }
+	FLOAT GetHp() const { return m_status->GetHp(); }
+	FLOAT GetDamage() const { return m_status->GetAtk(); }
 	SHORT GetRoomNum() const { return m_room_num; }
 	UCHAR GetTriggerFlag() const { return m_trigger_flag; }
 
@@ -225,17 +226,18 @@ public:
 	virtual void DoSend(void* p, INT packet_count) {}
 
 protected:
-	XMFLOAT3	m_velocity;
-
-	std::mutex	m_state_lock;
-	State		m_state;
-
-	std::string	m_name;
-	FLOAT		m_max_hp;
-	FLOAT		m_hp;
-	FLOAT		m_damage;
-
-	SHORT		m_room_num;
-	UCHAR		m_trigger_flag;
+	XMFLOAT3					m_velocity;
+								
+	std::mutex					m_state_lock;
+	State						m_state;
+								
+	std::string					m_name;
+	std::unique_ptr<Status>		m_status;
+	/*FLOAT						m_max_hp;
+	FLOAT						m_hp;
+	FLOAT						m_damage;*/
+								
+	SHORT						m_room_num;
+	UCHAR						m_trigger_flag;
 };
 

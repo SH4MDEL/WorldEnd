@@ -188,9 +188,10 @@ void WarpPortal::SendEvent(const std::span<INT>& ids, void* c)
 }
 
 MovementObject::MovementObject() : m_velocity{ 0.f, 0.f, 0.f },
-	m_state{ State::FREE }, m_name{}, m_hp{}, m_damage{},
+	m_state{ State::FREE }, m_name{},
 	m_room_num{ -1 }, m_trigger_flag{ 0 }
 {
+	m_status = std::make_unique<Status>();
 }
 
 void MovementObject::SetVelocity(FLOAT x, FLOAT y, FLOAT z)

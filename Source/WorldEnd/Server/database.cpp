@@ -317,3 +317,108 @@ bool DataBase::UpdateUpgrade(const UPGRADE_INFO& upgrade_info)
 	return true;
 }
 
+bool DataBase::UpdateGold(std::wstring user_id, int gold)
+{
+	SQLRETURN ret = SQLAllocHandle(SQL_HANDLE_STMT, m_hdbc, &m_hstmt);
+	if (!(SQL_SUCCESS == ret || SQL_SUCCESS_WITH_INFO == ret)) {
+		std::cout << "Statement Handle 할당 실패" << std::endl;
+		return false;
+	}
+
+	std::wstring query =
+		std::format(L"EXEC [WorldEnd].[dbo].[update_gold] '{0}', {1}", user_id, gold);
+
+	ret = SQLExecDirect(m_hstmt, (SQLWCHAR*)query.c_str(), SQL_NTS);
+	if (!(SQL_SUCCESS == ret || SQL_SUCCESS_WITH_INFO == ret)) {
+		HandleDiagnosticRecord(m_hstmt, SQL_HANDLE_STMT, ret);
+		SQLCancel(m_hstmt);
+		SQLFreeHandle(SQL_HANDLE_STMT, m_hstmt);
+		return false;
+	}
+
+	SQLCancel(m_hstmt);
+	SQLFreeHandle(SQL_HANDLE_STMT, m_hstmt);
+	return true;
+}
+
+bool DataBase::UpdatePosition(std::wstring user_id, float x, float y, float z)
+{
+	SQLRETURN ret = SQLAllocHandle(SQL_HANDLE_STMT, m_hdbc, &m_hstmt);
+	if (!(SQL_SUCCESS == ret || SQL_SUCCESS_WITH_INFO == ret)) {
+		std::cout << "Statement Handle 할당 실패" << std::endl;
+		return false;
+	}
+
+	std::wstring query =
+		std::format(L"EXEC [WorldEnd].[dbo].[update_position] '{0}', {1},{2},{3}",
+			user_id, x, y, z);
+
+	ret = SQLExecDirect(m_hstmt, (SQLWCHAR*)query.c_str(), SQL_NTS);
+	if (!(SQL_SUCCESS == ret || SQL_SUCCESS_WITH_INFO == ret)) {
+		HandleDiagnosticRecord(m_hstmt, SQL_HANDLE_STMT, ret);
+		SQLCancel(m_hstmt);
+		SQLFreeHandle(SQL_HANDLE_STMT, m_hstmt);
+		return false;
+	}
+
+	SQLCancel(m_hstmt);
+	SQLFreeHandle(SQL_HANDLE_STMT, m_hstmt);
+	return true;
+}
+
+bool DataBase::GetSkillData(std::wstring user_id)
+{
+	SQLRETURN ret = SQLAllocHandle(SQL_HANDLE_STMT, m_hdbc, &m_hstmt);
+	if (!(SQL_SUCCESS == ret || SQL_SUCCESS_WITH_INFO == ret)) {
+		std::cout << "Statement Handle 할당 실패" << std::endl;
+		return false;
+	}
+
+	std::wstring query = std::format(L"EXEC [WorldEnd].[dbo].[get_skill_data] '{0}'", user_id);
+
+	ret = SQLExecDirect(m_hstmt, (SQLWCHAR*)query.c_str(), SQL_NTS);
+	if (!(SQL_SUCCESS == ret || SQL_SUCCESS_WITH_INFO == ret)) {
+		HandleDiagnosticRecord(m_hstmt, SQL_HANDLE_STMT, ret);
+		SQLCancel(m_hstmt);
+		SQLFreeHandle(SQL_HANDLE_STMT, m_hstmt);
+		return false;
+	}
+
+
+	SKILL_TABLE skill_table{ L"NULL"};
+
+	// 테이블 읽어서 bind
+	ret = SQLBindCol(m_hstmt, 1, SQL_C_WCHAR, &skill_table.user_id, 20, &skill_table.cb_user_id);
+	ret = SQLBindCol(m_hstmt, 2, SQL_C_TINYINT, &skill_table.player_type, 1, &skill_table.cb_player_type);
+	ret = SQLBindCol(m_hstmt, 3, SQL_C_WCHAR, &skill_table.normal_skill_name, 30, &skill_table.cb_skill);
+	ret = SQLBindCol(m_hstmt, 4, SQL_C_WCHAR, &skill_table.ultimate_name, 30, &skill_table.cb_ultimate);
+
+	while (true) {
+		ret = SQLFetch(m_hstmt);
+
+		if (SQL_SUCCESS == ret || SQL_SUCCESS_WITH_INFO == ret) {
+
+			// 스킬 정보 저장
+
+			std::wcout << skill_table.user_id << std::endl;
+			std::cout << "플레이어 타입 : " << (int)skill_table.player_type << std::endl;
+			std::wcout << skill_table.normal_skill_name << ", " << skill_table.ultimate_name 
+				<< std::endl << std::endl;
+
+		}
+		else {
+			break;
+		}
+	}
+
+	if (!wcscmp(skill_table.user_id, L"NULL")) {
+		std::cout << "Fail" << std::endl;
+		return false;
+	}
+
+	SQLCancel(m_hstmt);
+	SQLFreeHandle(SQL_HANDLE_STMT, m_hstmt);
+
+	return true;
+}
+

@@ -76,6 +76,17 @@ struct PLAYER_TABLE
 	SQLLEN cb_skill{}, cb_ultimate{}, cb_logged_in{};
 };
 
+struct SKILL_TABLE 
+{
+	SQLWCHAR user_id[20];
+	SQLINTEGER player_type;
+	SQLWCHAR normal_skill_name[30];
+	SQLWCHAR ultimate_name[30];
+
+	SQLLEN cb_user_id{}, cb_player_type{};
+	SQLLEN cb_skill{}, cb_ultimate{};
+};
+
 class DataBase
 {
 public:
@@ -89,6 +100,9 @@ public:
 	bool UpdatePlayer(const PLAYER_INFO& player_info);
 	bool UpdateSkill(const SKILL_INFO& skill_info);
 	bool UpdateUpgrade(const UPGRADE_INFO& upgrade_info);
+	bool UpdateGold(std::wstring user_id, int gold);
+	bool UpdatePosition(std::wstring user_id, float x, float y, float z);
+	bool GetSkillData(std::wstring user_id);
 
 private:
 	SQLHENV m_henv;

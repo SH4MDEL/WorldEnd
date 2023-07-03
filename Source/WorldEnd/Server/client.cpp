@@ -57,8 +57,10 @@ void Client::Init()
 	// 나중에 DB에서 처리될 것들
 	SetPlayerType(PlayerType::WARRIOR);
 	m_name = "Player";
-	m_damage = 90.f;
-	m_hp = m_max_hp = 100.f;
+
+	m_status->SetAtk(90.f);
+	m_status->SetMaxHp(100.f);
+	m_status->SetHp(100.f);
 }
 
 void Client::DoRecv()
@@ -169,6 +171,11 @@ void Client::SetUserId(const std::wstring_view& ws)
 	m_user_id = ws.data();
 }
 
+void Client::SetGold(INT gold)
+{
+	m_gold = gold;
+}
+
 FLOAT Client::GetSkillRatio(ActionType type) const
 {
 	FLOAT ratio{};
@@ -195,12 +202,11 @@ void Client::ChangeStamina(FLOAT value)
 
 void Client::DecreaseHp(FLOAT damage, INT id)
 {
-	if (m_hp <= 0)
+	if (m_status->GetHp() <= 0)
 		return;
 
-	m_hp -= damage;
-	if (m_hp <= 0) {
-		m_hp = 0;
+	bool death = m_status->CalculateHitDamage(damage);
+	if (death) {
 
 		// INGAME 에서 State를 바꾸는 것에는 경합이 필요 없으므로 lock 걸지 않음
 		m_state = State::DEATH;
@@ -213,7 +219,7 @@ void Client::RestoreCondition()
 {
 	m_state = State::INGAME;
 	m_current_animation = ObjectAnimation::IDLE;
-	m_hp = m_max_hp;
+	m_status->Init();
 	m_stamina = PlayerSetting::MAX_STAMINA;
 	m_interactable = false;
 }
