@@ -1209,7 +1209,7 @@ void TowerScene::RecvAddMonster(char* ptr)
 	m_monsters.insert({ static_cast<INT>(packet->monster_data.id), monster });
 
 	SetHpBar(monster);
-	m_globalShaders["ANIMATION"]->SetMonster(packet->monster_data.id, monster);
+	m_shaders["ANIMATION"]->SetMonster(packet->monster_data.id, monster);
 }
 
 void TowerScene::RecvUpdateMonster(char* ptr)
@@ -1258,7 +1258,7 @@ void TowerScene::RecvClearFloor(char* ptr)
 	SetState(State::OutputResult);
 	m_resultUI->SetEnable();
 
-	m_globalShaders["ANIMATION"]->GetMonsters().clear();
+	m_shaders["ANIMATION"]->GetMonsters().clear();
 	m_monsters.clear();
 }
 
