@@ -168,7 +168,6 @@ private:
 	UINT64														m_fenceValue;
 	HANDLE														m_fenceEvent;
 
-	vector<unique_ptr<Scene>>									m_scenes;
-	INT															m_sceneIndex;
+	unique_ptr<Scene>											m_scene;
 };
 

@@ -1,13 +1,16 @@
 #include "loadingScene.h"
 
-LoadingScene::LoadingScene() : m_loadEnd{ false }
+LoadingScene::LoadingScene(const ComPtr<ID3D12Device>& device, 
+	const ComPtr<ID3D12GraphicsCommandList>& commandList, 
+	const ComPtr<ID3D12RootSignature>& rootSignature, 
+	const ComPtr<ID3D12RootSignature>& postRootSignature) : m_loadEnd{ false }
 {
-
+	OnCreate(device, commandList, rootSignature, postRootSignature);
 }
 
 LoadingScene::~LoadingScene()
 {
-
+	//OnDestroy();
 }
 
 void LoadingScene::CreateShaderVariable(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList) {};

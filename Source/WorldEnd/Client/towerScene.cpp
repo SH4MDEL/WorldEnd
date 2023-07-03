@@ -2,16 +2,24 @@
 
 constexpr FLOAT FAR_POSITION = 10000.f;
 
-TowerScene::TowerScene() : 
-	m_NDCspace( 0.5f, 0.0f, 0.0f, 0.0f,
-				0.0f, -0.5f, 0.0f, 0.0f,
-				0.0f, 0.0f, 1.0f, 0.0f,
-				0.5f, 0.5f, 0.0f, 1.0f),
+TowerScene::TowerScene(const ComPtr<ID3D12Device>&device, 
+	const ComPtr<ID3D12GraphicsCommandList>&commandList, 
+	const ComPtr<ID3D12RootSignature>&rootSignature, 
+	const ComPtr<ID3D12RootSignature>&postRootSignature) :
+	m_NDCspace(0.5f, 0.0f, 0.0f, 0.0f,
+		0.0f, -0.5f, 0.0f, 0.0f,
+		0.0f, 0.0f, 1.0f, 0.0f,
+		0.5f, 0.5f, 0.0f, 1.0f),
 	m_sceneState{ (INT)State::Unused },
 	m_accumulatedTime{ 0 }
-{}
+{
+	OnCreate(device, commandList, rootSignature, postRootSignature);
+}
 
-TowerScene::~TowerScene() {}
+TowerScene::~TowerScene() 
+{
+	//OnDestroy();
+}
 
 void TowerScene::OnResize(const ComPtr<ID3D12Device>& device, UINT width, UINT height)
 {

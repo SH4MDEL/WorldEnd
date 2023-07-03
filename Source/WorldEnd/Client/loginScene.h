@@ -16,7 +16,11 @@ public:
 		Bluring = BlurLevel1 | BlurLevel2 | BlurLevel3 | BlurLevel4 | BlurLevel5
 	};
 
-	LoginScene();
+	LoginScene() = default;
+	LoginScene(const ComPtr<ID3D12Device>& device,
+		const ComPtr<ID3D12GraphicsCommandList>& commandList,
+		const ComPtr<ID3D12RootSignature>& rootSignature,
+		const ComPtr<ID3D12RootSignature>& postRootSignature);
 	~LoginScene() override;
 
 	void OnResize(const ComPtr<ID3D12Device>& device, UINT width, UINT height) override;

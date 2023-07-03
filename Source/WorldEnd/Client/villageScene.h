@@ -21,7 +21,11 @@ public:
 		Count
 	};
 
-	VillageScene();
+	VillageScene() = default;
+	VillageScene(const ComPtr<ID3D12Device>& device,
+		const ComPtr<ID3D12GraphicsCommandList>& commandList,
+		const ComPtr<ID3D12RootSignature>& rootSignature,
+		const ComPtr<ID3D12RootSignature>& postRootSignature);
 	~VillageScene() override;
 
 	void OnResize(const ComPtr<ID3D12Device>& device, UINT width, UINT height) override;

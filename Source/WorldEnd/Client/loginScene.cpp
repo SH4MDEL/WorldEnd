@@ -1,11 +1,17 @@
 #include "loginScene.h"
 
-LoginScene::LoginScene() : 
-	m_sceneState{ (INT)State::Unused } 
-{}
-LoginScene::~LoginScene() 
-{ 
+LoginScene::LoginScene(const ComPtr<ID3D12Device>& device, 
+	const ComPtr<ID3D12GraphicsCommandList>& commandList, 
+	const ComPtr<ID3D12RootSignature>& rootSignature, 
+	const ComPtr<ID3D12RootSignature>& postRootSignature) :
+	m_sceneState{ (INT)State::Unused }
+{
+	OnCreate(device, commandList, rootSignature, postRootSignature);
+}
 
+LoginScene::~LoginScene()
+{ 
+	//OnDestroy();
 }
 
 void LoginScene::OnResize(const ComPtr<ID3D12Device>& device, UINT width, UINT height)

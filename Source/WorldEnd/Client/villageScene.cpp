@@ -1,15 +1,21 @@
 #include "villageScene.h"
 
-VillageScene::VillageScene() :
+VillageScene::VillageScene(const ComPtr<ID3D12Device>& device, 
+	const ComPtr<ID3D12GraphicsCommandList>& commandList, 
+	const ComPtr<ID3D12RootSignature>& rootSignature, 
+	const ComPtr<ID3D12RootSignature>& postRootSignature) :
 	m_NDCspace(0.5f, 0.0f, 0.0f, 0.0f,
 		0.0f, -0.5f, 0.0f, 0.0f,
 		0.0f, 0.0f, 1.0f, 0.0f,
 		0.5f, 0.5f, 0.0f, 1.0f),
 	m_sceneState{ (INT)State::Unused }
-{}
+{
+	OnCreate(device, commandList, rootSignature, postRootSignature);
+}
+
 VillageScene::~VillageScene()
 {
-
+	//OnDestroy();
 }
 
 void VillageScene::OnResize(const ComPtr<ID3D12Device>& device, UINT width, UINT height)
@@ -142,7 +148,6 @@ void VillageScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	m_player = make_shared<Player>();
 	m_player->SetType(g_selectedPlayerType);
 	LoadPlayerFromFile(m_player);
-
 
 	m_shaders["ANIMATION"]->SetPlayer(m_player);
 	// 데이터베이스에서 플레이어의 시작 위치로 수정
