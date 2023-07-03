@@ -67,17 +67,11 @@
     <Filter Include="셰이더 파일\Compute">
       <UniqueIdentifier>{8808d3f5-7db0-4252-aa11-b9b8dbf44cc6}</UniqueIdentifier>
     </Filter>
-    <Filter Include="소스 파일\Scene\LoadingScene">
-      <UniqueIdentifier>{c68ad9bb-1763-4911-bae2-9b6b3b124274}</UniqueIdentifier>
-    </Filter>
     <Filter Include="소스 파일\Scene\GameScene">
       <UniqueIdentifier>{c7b51ddc-03d5-46dd-95f7-a03c553b9315}</UniqueIdentifier>
     </Filter>
     <Filter Include="헤더 파일\Scene\GameScene">
       <UniqueIdentifier>{2c97ee96-6ee8-47a1-b35f-7962b9f13025}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="헤더 파일\Scene\LoadingScene">
-      <UniqueIdentifier>{db1097b1-f2c5-49aa-9269-5a58ba37363a}</UniqueIdentifier>
     </Filter>
     <Filter Include="셰이더 파일\Instancing">
       <UniqueIdentifier>{ce74b543-0474-482a-8e5d-d1675d2ca5f3}</UniqueIdentifier>
@@ -174,15 +168,6 @@
     <ClInclude Include="fadeFilter.h">
       <Filter>헤더 파일\Filter</Filter>
     </ClInclude>
-    <ClInclude Include="globalLoadingScene.h">
-      <Filter>헤더 파일\Scene\LoadingScene</Filter>
-    </ClInclude>
-    <ClInclude Include="towerLoadingScene.h">
-      <Filter>헤더 파일\Scene\LoadingScene</Filter>
-    </ClInclude>
-    <ClInclude Include="villageLoadingScene.h">
-      <Filter>헤더 파일\Scene\LoadingScene</Filter>
-    </ClInclude>
     <ClInclude Include="towerScene.h">
       <Filter>헤더 파일\Scene\GameScene</Filter>
     </ClInclude>
@@ -200,6 +185,9 @@
     </ClInclude>
     <ClInclude Include="QuadtreeFrustum.h">
       <Filter>헤더 파일\System</Filter>
+    </ClInclude>
+    <ClInclude Include="loadingScene.h">
+      <Filter>헤더 파일\Scene</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -278,15 +266,6 @@
     <ClCompile Include="fadeFilter.cpp">
       <Filter>소스 파일\Filter</Filter>
     </ClCompile>
-    <ClCompile Include="globalLoadingScene.cpp">
-      <Filter>소스 파일\Scene\LoadingScene</Filter>
-    </ClCompile>
-    <ClCompile Include="towerLoadingScene.cpp">
-      <Filter>소스 파일\Scene\LoadingScene</Filter>
-    </ClCompile>
-    <ClCompile Include="villageLoadingScene.cpp">
-      <Filter>소스 파일\Scene\LoadingScene</Filter>
-    </ClCompile>
     <ClCompile Include="loginScene.cpp">
       <Filter>소스 파일\Scene\GameScene</Filter>
     </ClCompile>
@@ -304,6 +283,9 @@
     </ClCompile>
     <ClCompile Include="QuadtreeFrustum.cpp">
       <Filter>소스 파일\System</Filter>
+    </ClCompile>
+    <ClCompile Include="loadingScene.cpp">
+      <Filter>소스 파일\Scene</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

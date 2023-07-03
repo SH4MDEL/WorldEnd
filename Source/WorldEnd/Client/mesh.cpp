@@ -840,8 +840,8 @@ SkyboxMesh::SkyboxMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12Gr
 		D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, m_vertexUploadBuffer);
 
 	m_vertexBufferView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
-	m_vertexBufferView.StrideInBytes = sizeof(SkyboxVertex);
-	m_vertexBufferView.SizeInBytes = sizeof(SkyboxVertex) * vertices.size();
+	m_vertexBufferView.StrideInBytes = (UINT)sizeof(SkyboxVertex);
+	m_vertexBufferView.SizeInBytes = (UINT)(sizeof(SkyboxVertex) * vertices.size());
 }
 
 PlaneMesh::PlaneMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList, XMFLOAT3 position, XMFLOAT2 size)

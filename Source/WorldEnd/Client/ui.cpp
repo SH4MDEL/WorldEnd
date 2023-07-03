@@ -24,10 +24,10 @@ void UI::OnProcessingMouseMessage(UINT message, LPARAM lParam)
 
 	// 충돌했다면 설정된 버튼의 함수를 stack에 넣는다.
 	if (message == WM_LBUTTONDOWN) {
-		if (m_uiMatrix._11 - m_uiMatrix._21 + 1 <= (FLOAT)g_mousePosition.x / (FLOAT)g_GameFramework.GetWindowWidth() * 2 &&
-			m_uiMatrix._11 + m_uiMatrix._21 + 1 >= (FLOAT)g_mousePosition.x / (FLOAT)g_GameFramework.GetWindowWidth() * 2 &&
-			1 - m_uiMatrix._12 - m_uiMatrix._22 <= (FLOAT)g_mousePosition.y / (FLOAT)g_GameFramework.GetWindowHeight() * 2 &&
-			1 - m_uiMatrix._12 + m_uiMatrix._22 >= (FLOAT)g_mousePosition.y / (FLOAT)g_GameFramework.GetWindowHeight() * 2) {
+		if (m_uiMatrix._11 - m_uiMatrix._21 + 1.f <= (FLOAT)g_mousePosition.x / (FLOAT)g_GameFramework.GetWindowWidth() * 2.f &&
+			m_uiMatrix._11 + m_uiMatrix._21 + 1.f >= (FLOAT)g_mousePosition.x / (FLOAT)g_GameFramework.GetWindowWidth() * 2.f &&
+			1.f - m_uiMatrix._12 - m_uiMatrix._22 <= (FLOAT)g_mousePosition.y / (FLOAT)g_GameFramework.GetWindowHeight() * 2.f &&
+			1.f - m_uiMatrix._12 + m_uiMatrix._22 >= (FLOAT)g_mousePosition.y / (FLOAT)g_GameFramework.GetWindowHeight() * 2.f) {
 			g_clickEventStack.push(m_clickEvent);
 		}
 	}
@@ -92,8 +92,7 @@ void UI::RenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext)
 
 void UI::SetTexture(const string& name) 
 { 
-	if (Scene::m_globalTextures[name]) m_texture = Scene::m_globalTextures[name];
-	else m_texture = Scene::m_textures[name];
+	if (Scene::m_textures[name]) m_texture = Scene::m_textures[name];
 }
 void UI::SetChild(const shared_ptr<UI>& ui) { m_children.push_back(ui); }
 void UI::SetClickEvent(function<void()> chickEvent) { m_clickEvent = chickEvent; }
@@ -183,10 +182,10 @@ void ButtonUI::OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOA
 	// 사용할 수 없다면 자식 UI까지 갈 것도 없이 return한다.
 	if (!m_enable) return;
 
-	if (m_uiMatrix._11 - m_uiMatrix._21 + 1 <= (FLOAT)g_mousePosition.x / (FLOAT)g_GameFramework.GetWindowWidth() * 2 &&
-		m_uiMatrix._11 + m_uiMatrix._21 + 1 >= (FLOAT)g_mousePosition.x / (FLOAT)g_GameFramework.GetWindowWidth() * 2 &&
-		1 - m_uiMatrix._12 - m_uiMatrix._22 <= (FLOAT)g_mousePosition.y / (FLOAT)g_GameFramework.GetWindowHeight() * 2 &&
-		1 - m_uiMatrix._12 + m_uiMatrix._22 >= (FLOAT)g_mousePosition.y / (FLOAT)g_GameFramework.GetWindowHeight() * 2) {
+	if (m_uiMatrix._11 - m_uiMatrix._21 + 1.f <= (FLOAT)g_mousePosition.x / (FLOAT)g_GameFramework.GetWindowWidth() * 2.f &&
+		m_uiMatrix._11 + m_uiMatrix._21 + 1.f >= (FLOAT)g_mousePosition.x / (FLOAT)g_GameFramework.GetWindowWidth() * 2.f &&
+		1.f - m_uiMatrix._12 - m_uiMatrix._22 <= (FLOAT)g_mousePosition.y / (FLOAT)g_GameFramework.GetWindowHeight() * 2.f &&
+		1.f - m_uiMatrix._12 + m_uiMatrix._22 >= (FLOAT)g_mousePosition.y / (FLOAT)g_GameFramework.GetWindowHeight() * 2.f) {
 		if (m_type != Type::BUTTON_ACTIVE) {
 			m_type = Type::BUTTON_MOUSEON;
 		}
@@ -208,10 +207,10 @@ void ButtonUI::OnProcessingMouseMessage(UINT message, LPARAM lParam)
 
 	// 충돌했다면 설정된 버튼의 함수를 stack에 넣는다.
 	if (message == WM_LBUTTONDOWN) {
-		if (m_uiMatrix._11 - m_uiMatrix._21 + 1 <= (FLOAT)g_mousePosition.x / (FLOAT)g_GameFramework.GetWindowWidth() * 2 &&
-			m_uiMatrix._11 + m_uiMatrix._21 + 1 >= (FLOAT)g_mousePosition.x / (FLOAT)g_GameFramework.GetWindowWidth() * 2 &&
-			1 - m_uiMatrix._12 - m_uiMatrix._22 <= (FLOAT)g_mousePosition.y / (FLOAT)g_GameFramework.GetWindowHeight() * 2 &&
-			1 - m_uiMatrix._12 + m_uiMatrix._22 >= (FLOAT)g_mousePosition.y / (FLOAT)g_GameFramework.GetWindowHeight() * 2) {
+		if (m_uiMatrix._11 - m_uiMatrix._21 + 1.f <= (FLOAT)g_mousePosition.x / (FLOAT)g_GameFramework.GetWindowWidth() * 2.f &&
+			m_uiMatrix._11 + m_uiMatrix._21 + 1.f >= (FLOAT)g_mousePosition.x / (FLOAT)g_GameFramework.GetWindowWidth() * 2.f &&
+			1.f - m_uiMatrix._12 - m_uiMatrix._22 <= (FLOAT)g_mousePosition.y / (FLOAT)g_GameFramework.GetWindowHeight() * 2.f &&
+			1.f - m_uiMatrix._12 + m_uiMatrix._22 >= (FLOAT)g_mousePosition.y / (FLOAT)g_GameFramework.GetWindowHeight() * 2.f) {
 			g_clickEventStack.push(m_clickEvent);
 			m_type = Type::BUTTON_ACTIVE;
 		}

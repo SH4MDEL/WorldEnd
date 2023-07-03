@@ -47,7 +47,7 @@ void BlurFilter::Execute(const ComPtr<ID3D12GraphicsCommandList>& commandList, c
 		// Horizontal Blur pass.
 		//
 
-		commandList->SetPipelineState(Scene::m_globalShaders["HORZBLUR"]->GetPipelineState().Get());
+		commandList->SetPipelineState(Scene::m_shaders["HORZBLUR"]->GetPipelineState().Get());
 
 		commandList->SetComputeRootDescriptorTable((INT)PostShaderRegister::BaseTexture, m_horzBlurGpuSrv);
 		commandList->SetComputeRootDescriptorTable((INT)PostShaderRegister::OutputTexture, m_vertBlurGpuUav);
@@ -67,7 +67,7 @@ void BlurFilter::Execute(const ComPtr<ID3D12GraphicsCommandList>& commandList, c
 		// Vertical Blur pass.
 		//
 
-		commandList->SetPipelineState(Scene::m_globalShaders["VERTBLUR"]->GetPipelineState().Get());
+		commandList->SetPipelineState(Scene::m_shaders["VERTBLUR"]->GetPipelineState().Get());
 
 		commandList->SetComputeRootDescriptorTable((INT)PostShaderRegister::BaseTexture, m_vertBlurGpuSrv);
 		commandList->SetComputeRootDescriptorTable((INT)PostShaderRegister::OutputTexture, m_horzBlurGpuUav);

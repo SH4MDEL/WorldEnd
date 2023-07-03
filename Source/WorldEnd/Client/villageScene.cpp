@@ -34,12 +34,7 @@ void VillageScene::OnCreate(
 
 void VillageScene::OnDestroy()
 {
-	m_meshs.clear();
-	m_textures.clear();
-	m_materials.clear();
-	m_animationSets.clear();
-
-	for (auto& shader : m_globalShaders) shader.second->Clear();
+	for (auto& shader : m_shaders) shader.second->Clear();
 
 	DestroyObjects();
 }
@@ -149,7 +144,7 @@ void VillageScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	LoadPlayerFromFile(m_player);
 
 
-	m_globalShaders["ANIMATION"]->SetPlayer(m_player);
+	m_shaders["ANIMATION"]->SetPlayer(m_player);
 	// 데이터베이스에서 플레이어의 시작 위치로 수정
 	m_player->SetPosition(XMFLOAT3{25.f, 5.65f, 66.f});
 
@@ -162,7 +157,7 @@ void VillageScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	XMFLOAT4X4 projMatrix;
 	XMStoreFloat4x4(&projMatrix, XMMatrixPerspectiveFovLH(0.25f * XM_PI, g_GameFramework.GetAspectRatio(), 0.1f, 300.0f));
 	m_camera->SetProjMatrix(projMatrix);
-	m_globalShaders["OBJECTBLEND"]->SetCamera(m_camera);
+	m_shaders["OBJECTBLEND"]->SetCamera(m_camera);
 
 	m_shadow = make_shared<Shadow>(device, 1024, 1024);
 
@@ -178,13 +173,13 @@ void VillageScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	m_terrain->Rotate(0.f, 0.f, 180.f);
 	m_terrain->SetPosition(XMFLOAT3{ 418.3, -2.11f, 697.f });
 	m_terrain->SetTexture("TERRAIN");
-	m_globalShaders["TERRAIN"]->SetObject(m_terrain);
+	m_shaders["TERRAIN"]->SetObject(m_terrain);
 
 	// 스카이 박스 생성
 	auto skybox{ make_shared<GameObject>() };
 	skybox->SetMesh("SKYBOX");
-	skybox->SetTexture("SKYBOX");
-	m_globalShaders["SKYBOX"]->SetObject(skybox);
+	skybox->SetTexture("VILLAGESKYBOX");
+	m_shaders["SKYBOX"]->SetObject(skybox);
 
 	BuildUI(device, commandlist);
 
@@ -277,12 +272,12 @@ void VillageScene::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 void VillageScene::Update(FLOAT timeElapsed)
 {
 	if (CheckState(State::SceneLeave)) {
-		g_GameFramework.ChangeScene(SCENETAG::TowerLoadingScene);
+		g_GameFramework.ChangeScene(SCENETAG::TowerScene);
 		return;
 	}
 	m_camera->Update(timeElapsed);
-	if (m_globalShaders["SKYBOX"]) for (auto& skybox : m_globalShaders["SKYBOX"]->GetObjects()) skybox->SetPosition(m_camera->GetEye());
-	for (const auto& shader : m_globalShaders)
+	if (m_shaders["SKYBOX"]) for (auto& skybox : m_shaders["SKYBOX"]->GetObjects()) skybox->SetPosition(m_camera->GetEye());
+	for (const auto& shader : m_shaders)
 		shader.second->Update(timeElapsed);
 	m_fadeFilter->Update(timeElapsed);
 
@@ -291,9 +286,9 @@ void VillageScene::Update(FLOAT timeElapsed)
 
 	// 프러스텀 컬링을 진행하는 셰이더에 바운딩 프러스텀 전달
 	auto viewFrustum = m_camera->GetViewFrustum();
-	static_pointer_cast<StaticObjectShader>(m_globalShaders["OBJECT1"])->SetBoundingFrustum(viewFrustum);
-	static_pointer_cast<StaticObjectShader>(m_globalShaders["OBJECT2"])->SetBoundingFrustum(viewFrustum);
-	static_pointer_cast<StaticObjectBlendShader>(m_globalShaders["OBJECTBLEND"])->SetBoundingFrustum(viewFrustum);
+	static_pointer_cast<StaticObjectShader>(m_shaders["OBJECT1"])->SetBoundingFrustum(viewFrustum);
+	static_pointer_cast<StaticObjectShader>(m_shaders["OBJECT2"])->SetBoundingFrustum(viewFrustum);
+	static_pointer_cast<StaticObjectBlendShader>(m_shaders["OBJECTBLEND"])->SetBoundingFrustum(viewFrustum);
 }
 
 void VillageScene::PreProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) 
@@ -303,18 +298,18 @@ void VillageScene::PreProcess(const ComPtr<ID3D12GraphicsCommandList>& commandLi
 	{
 	case 0:
 	{
-		m_globalShaders["OBJECT1"]->Render(commandList, m_globalShaders["SHADOW"]);
+		m_shaders["OBJECT1"]->Render(commandList, m_shaders["SHADOW"]);
 		break;
 	}
 	case 1:
 	{
-		m_globalShaders["OBJECT2"]->Render(commandList, m_globalShaders["SHADOW"]);
+		m_shaders["OBJECT2"]->Render(commandList, m_shaders["SHADOW"]);
 		break;
 	}
 	case 2:
 	{
-		m_globalShaders["OBJECTBLEND"]->Render(commandList, m_globalShaders["SHADOW"]);
-		m_globalShaders["ANIMATION"]->Render(commandList, m_globalShaders["ANIMATIONSHADOW"]);
+		m_shaders["OBJECTBLEND"]->Render(commandList, m_shaders["SHADOW"]);
+		m_shaders["ANIMATION"]->Render(commandList, m_shaders["ANIMATIONSHADOW"]);
 		break;
 	}
 	}
@@ -329,22 +324,22 @@ void VillageScene::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, 
 	{
 	case 0:
 	{
-		m_globalShaders.at("SKYBOX")->Render(commandList);
-		m_globalShaders.at("TERRAIN")->Render(commandList);
-		m_globalShaders.at("OBJECT1")->Render(commandList);
+		m_shaders.at("SKYBOX")->Render(commandList);
+		m_shaders.at("TERRAIN")->Render(commandList);
+		m_shaders.at("OBJECT1")->Render(commandList);
 		break;
 	}
 	case 1:
 	{
-		m_globalShaders.at("OBJECT2")->Render(commandList);
+		m_shaders.at("OBJECT2")->Render(commandList);
 		break;
 	}
 	case 2:
 	{
-		m_globalShaders.at("ANIMATION")->Render(commandList);
-		m_globalShaders.at("OBJECTBLEND")->Render(commandList);
-		m_globalShaders["WIREFRAME"]->Render(commandList);
-		m_globalShaders.at("UI")->Render(commandList);
+		m_shaders.at("ANIMATION")->Render(commandList);
+		m_shaders.at("OBJECTBLEND")->Render(commandList);
+		m_shaders["WIREFRAME"]->Render(commandList);
+		m_shaders.at("UI")->Render(commandList);
 		break;
 	}
 	}
@@ -399,7 +394,7 @@ void VillageScene::PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandL
 	case 1:
 	{
 		commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET));
-		m_globalShaders.at("POSTUI")->Render(commandList);
+		m_shaders.at("POSTUI")->Render(commandList);
 		commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE));
 		break;
 	}
@@ -494,15 +489,15 @@ void VillageScene::LoadSceneFromFile(wstring fileName, wstring sceneName)
 		static int threadNum = 0;
 		if (objectName == "Nonblocking" || objectName == "Blocking") continue;
 		else if (IsBlendObject(objectName)) {
-			m_globalShaders["OBJECTBLEND"]->SetObject(object);
+			m_shaders["OBJECTBLEND"]->SetObject(object);
 
 		}
 		else if (threadNum == 0) {
-			m_globalShaders["OBJECT1"]->SetObject(object);
+			m_shaders["OBJECT1"]->SetObject(object);
 			threadNum = 1;
 		}
 		else {
-			m_globalShaders["OBJECT2"]->SetObject(object);
+			m_shaders["OBJECT2"]->SetObject(object);
 			threadNum = 0;
 		}
 	}
@@ -552,7 +547,7 @@ void VillageScene::LoadPlayerFromFile(const shared_ptr<Player>& player)
 		XMFLOAT3{0.37f, 0.65f, 0.37f}, XMFLOAT4{0.f, 0.f, 0.f, 1.f} };
 	player->SetBoundingBox(obb);
 
-	player->SetAnimationSet(m_globalAnimationSets[animationSet], animationSet);
+	player->SetAnimationSet(m_animationSets[animationSet], animationSet);
 	player->SetAnimationOnTrack(0, ObjectAnimation::IDLE);
 	player->GetAnimationController()->SetTrackEnable(1, false);
 	player->GetAnimationController()->SetTrackEnable(2, false);
@@ -634,7 +629,7 @@ void VillageScene::DrawBoundingBox(BoundingOrientedBox boundingBox, FLOAT roll, 
 	wireFrame->SetPosition(boundingBox.Center);
 
 	wireFrame->SetMesh("WIREFRAME");
-	m_globalShaders["WIREFRAME"]->SetObject(wireFrame);
+	m_shaders["WIREFRAME"]->SetObject(wireFrame);
 }
 
 void VillageScene::CollideWithMap()

@@ -44,7 +44,7 @@ void SobelFilter::Execute(const ComPtr<ID3D12GraphicsCommandList>& commandList, 
 	commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderMap.Get(),
 		D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_GENERIC_READ));
 
-	commandList->SetPipelineState(Scene::m_globalShaders["SOBEL"]->GetPipelineState().Get());
+	commandList->SetPipelineState(Scene::m_shaders["SOBEL"]->GetPipelineState().Get());
 
 	commandList->SetComputeRootDescriptorTable((INT)PostShaderRegister::BaseTexture, m_sobelGpuSrv);
 	commandList->SetComputeRootDescriptorTable((INT)PostShaderRegister::OutputTexture, m_sobelGpuUav);

@@ -4,11 +4,9 @@
 #include "camera.h"
 #include "object.h"
 #include "scene.h"
-#include "globalLoadingScene.h"
-#include "villageLoadingScene.h"
+#include "loadingScene.h"
 #include "loginScene.h"
 #include "villageScene.h"
-#include "towerLoadingScene.h"
 #include "towerScene.h"
 
 struct FrameworkInfo

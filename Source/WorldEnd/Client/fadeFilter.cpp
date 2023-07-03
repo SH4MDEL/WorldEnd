@@ -43,7 +43,7 @@ void FadeFilter::Execute(const ComPtr<ID3D12GraphicsCommandList>& commandList, c
 			D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
 
 		// 파이프라인 상태 설정
-		commandList->SetPipelineState(Scene::m_globalShaders["FADE"]->GetPipelineState().Get());
+		commandList->SetPipelineState(Scene::m_shaders["FADE"]->GetPipelineState().Get());
 
 		commandList->SetComputeRootDescriptorTable((INT)PostShaderRegister::BaseTexture, m_renderGpuSrv);
 		commandList->SetComputeRootDescriptorTable((INT)PostShaderRegister::OutputTexture, m_fadeGpuUav);

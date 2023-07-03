@@ -26,7 +26,7 @@ void LoginScene::OnCreate(
 
 void LoginScene::OnDestroy() 
 {
-	for (auto& shader : m_globalShaders) shader.second->Clear();
+	for (auto& shader : m_shaders) shader.second->Clear();
 
 	DestroyObjects();
 }
@@ -94,7 +94,7 @@ void LoginScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 	gameExitButtonUI->SetChild(gameExitButtonTextUI);
 	m_titleUI->SetChild(gameExitButtonUI);
 
-	m_globalShaders["UI"]->SetUI(m_titleUI);
+	m_shaders["UI"]->SetUI(m_titleUI);
 
 	BuildOptionUI(device, commandlist);
 
@@ -102,7 +102,7 @@ void LoginScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 	m_characterSelectTextUI->SetText(L"WARRIOR ¼±ÅÃ Áß");
 	m_characterSelectTextUI->SetColorBrush("WHITE");
 	m_characterSelectTextUI->SetTextFormat("KOPUB18");
-	m_globalShaders["UI"]->SetUI(m_characterSelectTextUI);
+	m_shaders["UI"]->SetUI(m_characterSelectTextUI);
 }
 
 void LoginScene::BuildOptionUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist)
@@ -155,7 +155,7 @@ void LoginScene::BuildOptionUI(const ComPtr<ID3D12Device>& device, const ComPtr<
 	option2560x1440ResolutionButtonUI->SetChild(option2560x1440ResolutionButtonTextUI);
 	m_optionUI->SetChild(option2560x1440ResolutionButtonUI);
 
-	m_globalShaders["UI"]->SetUI(m_optionUI);
+	m_shaders["UI"]->SetUI(m_optionUI);
 }
 
 void LoginScene::DestroyObjects()
@@ -200,7 +200,7 @@ void LoginScene::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 
 void LoginScene::Update(FLOAT timeElapsed) 
 {
-	for (const auto& shader : m_globalShaders)
+	for (const auto& shader : m_shaders)
 		shader.second->Update(timeElapsed);
 	m_fadeFilter->Update(timeElapsed);
 }
@@ -221,7 +221,7 @@ void LoginScene::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UI
 	}
 	case 2:
 	{
-		m_globalShaders.at("UI")->Render(commandList);
+		m_shaders.at("UI")->Render(commandList);
 		break;
 	}
 	}
@@ -279,7 +279,7 @@ void LoginScene::PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandLis
 	case 1:
 	{
 		commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET));
-		m_globalShaders.at("POSTUI")->Render(commandList);
+		m_shaders.at("POSTUI")->Render(commandList);
 		commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE));
 		break;
 	}

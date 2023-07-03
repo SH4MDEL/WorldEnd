@@ -329,7 +329,7 @@ namespace VillageSetting
 	// 0도 (다리 아래 우측)
 	constexpr float STAIRS8_LEFT = -77.436f + BilldingStair_B_SIZE.x / 2.f;
 	constexpr float STAIRS8_RIGHT = STAIRS8_LEFT - BilldingStair_B_SIZE.x;
-	constexpr float STAIRS8_BACK = 98.11 + BilldingStair_B_SIZE.z / 2.f;
+	constexpr float STAIRS8_BACK = 98.11f + BilldingStair_B_SIZE.z / 2.f;
 	constexpr float STAIRS8_FRONT = STAIRS8_BACK - BilldingStair_B_SIZE.z;
 	constexpr float STAIRS8_BOTTOM = STAIRS7_BOTTOM;
 	constexpr float STAIRS8_TOP = STAIRS8_BOTTOM + BilldingStair_B_SIZE.y + 0.05f;
@@ -389,7 +389,7 @@ namespace VillageSetting
 
 	constexpr float STAIRS16_LEFT = -35.998f - BilldingStair_F_SIZE.x / 2.f;
 	constexpr float STAIRS16_RIGHT = STAIRS16_LEFT + BilldingStair_F_SIZE.x;
-	constexpr float STAIRS16_BACK = 118.67 + BilldingStair_F_SIZE.z / 2.f;
+	constexpr float STAIRS16_BACK = 118.67f + BilldingStair_F_SIZE.z / 2.f;
 	constexpr float STAIRS16_FRONT = STAIRS16_BACK - BilldingStair_F_SIZE.z;
 	constexpr float STAIRS16_BOTTOM = STAIRS1_TOP;
 	constexpr float STAIRS16_TOP = STAIRS16_BOTTOM + BilldingStair_F_SIZE.y - 0.3f;
@@ -444,14 +444,14 @@ namespace VillageSetting
 	constexpr float STAIRS23_TOP = 3.08f;
 
 	constexpr float STAIRS24_LEFT = -64.12f;
-	constexpr float STAIRS24_RIGHT = -67.1;
+	constexpr float STAIRS24_RIGHT = -67.1f;
 	constexpr float STAIRS24_BACK = 74.6f;
 	constexpr float STAIRS24_FRONT = 80.7f;
 	constexpr float STAIRS24_BOTTOM = STAIRS23_TOP;
 	constexpr float STAIRS24_TOP = 5.65f;
 
-	constexpr float STAIRS25_LEFT = 95.18;
-	constexpr float STAIRS25_RIGHT = 97.89;
+	constexpr float STAIRS25_LEFT = 95.18f;
+	constexpr float STAIRS25_RIGHT = 97.89f;
 	constexpr float STAIRS25_BACK = -111.f;
 	constexpr float STAIRS25_FRONT = -105.33f;
 	constexpr float STAIRS25_BOTTOM = 5.65f;
@@ -459,8 +459,8 @@ namespace VillageSetting
 
 	constexpr float STAIRS26_LEFT = 101.5f;
 	constexpr float STAIRS26_RIGHT = 98.47f;
-	constexpr float STAIRS26_BACK = -100.65;
-	constexpr float STAIRS26_FRONT = -107.12;
+	constexpr float STAIRS26_BACK = -100.65f;
+	constexpr float STAIRS26_FRONT = -107.12f;
 	constexpr float STAIRS26_BOTTOM = STAIRS25_TOP;
 	constexpr float STAIRS26_TOP = STAIRS13_TOP;
 

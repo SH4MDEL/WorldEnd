@@ -104,8 +104,7 @@ void GameObject::Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw)
 void GameObject::SetMesh(const string& name)
 {
 	if (m_mesh) m_mesh.reset();
-	if (Scene::m_globalMeshs[name]) m_mesh = Scene::m_globalMeshs[name];
-	else m_mesh = Scene::m_meshs[name];
+	m_mesh = Scene::m_meshs[name];
 }
 
 void GameObject::SetMesh(const shared_ptr<Mesh>& mesh)
@@ -116,15 +115,13 @@ void GameObject::SetMesh(const shared_ptr<Mesh>& mesh)
 void GameObject::SetTexture(const string& name)
 {
 	if (m_texture) m_texture.reset();
-	if (Scene::m_globalTextures[name]) m_texture = Scene::m_globalTextures[name];
-	else m_texture = Scene::m_textures[name];
+	m_texture = Scene::m_textures[name];
 }
 
 void GameObject::SetMaterials(const string& name)
 {
 	if (m_materials) m_materials.reset();
-	if (Scene::m_globalMaterials[name]) m_materials = Scene::m_globalMaterials[name];
-	else m_materials = Scene::m_materials[name];
+	m_materials = Scene::m_materials[name];
 }
 
 XMFLOAT3 GameObject::GetPosition() const
@@ -346,7 +343,6 @@ void GameObject::LoadObject(ifstream& in, const shared_ptr<GameObject>& rootObje
 			in.read(&meshName[0], sizeof(CHAR) * strLength);
 
 			if (Scene::m_meshs[meshName]) Scene::m_meshs[meshName]->CreateShaderVariables(rootObject.get());
-			else Scene::m_globalMeshs[meshName]->CreateShaderVariables(rootObject.get());
 
 			SetMesh(meshName);
 			SetBoundingBox(m_mesh->GetBoundingBox());
@@ -356,8 +352,7 @@ void GameObject::LoadObject(ifstream& in, const shared_ptr<GameObject>& rootObje
 			string meshName(strLength, '\0');
 			in.read(&meshName[0], sizeof(CHAR) * strLength);
 
-			if (Scene::m_meshs[meshName]) Scene::m_meshs[meshName]->CreateShaderVariables(rootObject.get());
-			else Scene::m_globalMeshs[meshName]->CreateShaderVariables(rootObject.get());
+			Scene::m_meshs[meshName]->CreateShaderVariables(rootObject.get());
 
 			// 스킨메쉬는 메쉬정보까지 담고 있으므로
 			// 메쉬까지 읽기만 하고 넘기도록 함
@@ -796,7 +791,7 @@ void AnimationController::SetAnimationSet(const shared_ptr<AnimationSet>& animat
 {
 	if (m_animationSet) m_animationSet.reset();
 	if (animationSet) m_animationSet = animationSet;
-	else m_animationSet = Scene::m_globalAnimationSets[name];
+	else m_animationSet = Scene::m_animationSets[name];
 }
 
 void AnimationController::SetTrackAnimation(int animationTrack, int animation)

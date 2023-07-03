@@ -35,12 +35,7 @@ void TowerScene::OnCreate(const ComPtr<ID3D12Device>& device,
 
 void TowerScene::OnDestroy()
 {
-	m_meshs.clear();
-	m_textures.clear();
-	m_materials.clear();
-	m_animationSets.clear();
-
-	for (auto& shader : m_globalShaders) shader.second->Clear();
+	for (auto& shader : m_shaders) shader.second->Clear();
 
 	DestroyObjects();
 }
@@ -150,7 +145,7 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	m_player->SetType(g_selectedPlayerType);
 	LoadPlayerFromFile(m_player);
 
-	m_globalShaders["ANIMATION"]->SetPlayer(m_player);
+	m_shaders["ANIMATION"]->SetPlayer(m_player);
 	m_player->SetPosition(RoomSetting::START_POSITION);
 
 	// 체력 바 생성
@@ -163,7 +158,7 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	staminaBar->SetMaxGauge(m_player->GetMaxStamina());
 	staminaBar->SetGauge(m_player->GetStamina());
 	staminaBar->SetPosition(XMFLOAT3(FAR_POSITION, FAR_POSITION, FAR_POSITION));
-	m_globalShaders["VERTGAUGE"]->SetObject(staminaBar);
+	m_shaders["VERTGAUGE"]->SetObject(staminaBar);
 	m_player->SetStaminaBar(staminaBar);
 
 	// 카메라 생성
@@ -187,21 +182,21 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	LoadObjectFromFile(TEXT("./Resource/Model/TowerScene/AD_Gate.bin"), m_gate);
 	m_gate->SetPosition(RoomSetting::BATTLE_STARTER_POSITION);
 	m_gate->SetScale(0.5f, 0.5f, 0.5f);
-	m_globalShaders["OBJECT1"]->SetObject(m_gate);
+	m_shaders["OBJECT1"]->SetObject(m_gate);
 
 	// 스카이 박스 생성
 	auto skybox{ make_shared<GameObject>() };
 	skybox->SetMesh("SKYBOX");
-	skybox->SetTexture("SKYBOX");
-	m_globalShaders["SKYBOX"]->SetObject(skybox);
+	skybox->SetTexture("TOWERSKYBOX");
+	m_shaders["SKYBOX"]->SetObject(skybox);
 
 	// 파티클 시스템 생성
 	g_particleSystem = make_unique<ParticleSystem>(device, commandlist,
-		static_pointer_cast<ParticleShader>(m_globalShaders["EMITTERPARTICLE"]),
-		static_pointer_cast<ParticleShader>(m_globalShaders["PUMPERPARTICLE"]));
+		static_pointer_cast<ParticleShader>(m_shaders["EMITTERPARTICLE"]),
+		static_pointer_cast<ParticleShader>(m_shaders["PUMPERPARTICLE"]));
 	m_towerObjectManager = make_unique<TowerObjectManager>(device, commandlist,
-		m_globalShaders["OBJECT1"], m_globalShaders["TRIGGEREFFECT"], 
-		static_pointer_cast<InstancingShader>(m_globalShaders["ARROW_INSTANCE"]));
+		m_shaders["OBJECT1"], m_shaders["TRIGGEREFFECT"],
+		static_pointer_cast<InstancingShader>(m_shaders["ARROW_INSTANCE"]));
 
 	BuildUI(device, commandlist);
 
@@ -269,7 +264,7 @@ void TowerScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 		m_hpUI[i]->SetTexture("HPBAR");
 		m_hpUI[i]->SetMaxGauge(100.f);
 		m_hpUI[i]->SetDisable();
-		m_globalShaders["UI"]->SetUI(m_hpUI[i]);
+		m_shaders["UI"]->SetUI(m_hpUI[i]);
 	}
 
 	m_interactUI = make_shared<StandardUI>(XMFLOAT2{ 0.25f, 0.15f }, XMFLOAT2{ 0.24f, 0.08f });
@@ -279,7 +274,7 @@ void TowerScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 	m_interactTextUI->SetTextFormat("KOPUB18");
 	m_interactUI->SetChild(m_interactTextUI);
 	m_interactUI->SetDisable();
-	m_globalShaders["UI"]->SetUI(m_interactUI);
+	m_shaders["UI"]->SetUI(m_interactUI);
 
 	m_skillUI = make_shared<VertGaugeUI>(XMFLOAT2{ -0.60f, -0.75f }, XMFLOAT2{ 0.15f, 0.15f }, 0.f);
 	auto eText = make_shared<TextUI>(XMFLOAT2{ 0.f, -0.8f }, XMFLOAT2{ 0.15f, 0.15f });
@@ -301,9 +296,9 @@ void TowerScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 		m_skillUI->SetTexture("ARCHERSKILL");
 		m_ultimateUI->SetTexture("ARCHERULTIMATE");
 	}
-	m_globalShaders["UI"]->SetUI(m_skillUI);
+	m_shaders["UI"]->SetUI(m_skillUI);
 	m_player->SetSkillGauge(m_skillUI);
-	m_globalShaders["UI"]->SetUI(m_ultimateUI);
+	m_shaders["UI"]->SetUI(m_ultimateUI);
 	m_player->SetUltimateGauge(m_ultimateUI);
 	m_player->ResetAllCooldown();
 
@@ -332,7 +327,7 @@ void TowerScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 
 	m_exitUI->SetChild(exitUI);
 	m_exitUI->SetDisable();
-	m_globalShaders["POSTUI"]->SetUI(m_exitUI);
+	m_shaders["POSTUI"]->SetUI(m_exitUI);
 
 	m_resultUI = make_shared<BackgroundUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 1.f, 1.f });
 	auto resultUI{ make_shared<StandardUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.4f, 0.5f}) };
@@ -365,7 +360,7 @@ void TowerScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 
 	m_resultUI->SetChild(resultUI);
 	m_resultUI->SetDisable();
-	m_globalShaders["POSTUI"]->SetUI(m_resultUI);
+	m_shaders["POSTUI"]->SetUI(m_resultUI);
 }
 
 void TowerScene::BuildLight(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist)
@@ -543,15 +538,15 @@ void TowerScene::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 void TowerScene::Update(FLOAT timeElapsed)
 {
 	if (CheckState(State::SceneLeave)) {
-		g_GameFramework.ChangeScene(SCENETAG::VillageLoadingScene);
+		g_GameFramework.ChangeScene(SCENETAG::VillageScene);
 		closesocket(g_socket);
 		return;
 	}
 	RecvPacket();
 
 	m_camera->Update(timeElapsed);
-	if (m_globalShaders["SKYBOX"]) for (auto& skybox : m_globalShaders["SKYBOX"]->GetObjects()) skybox->SetPosition(m_camera->GetEye());
-	for (const auto& shader : m_globalShaders)
+	if (m_shaders["SKYBOX"]) for (auto& skybox : m_shaders["SKYBOX"]->GetObjects()) skybox->SetPosition(m_camera->GetEye());
+	for (const auto& shader : m_shaders)
 		shader.second->Update(timeElapsed);
 	g_particleSystem->Update(timeElapsed);
 	m_towerObjectManager->Update(timeElapsed);
@@ -578,9 +573,9 @@ void TowerScene::Update(FLOAT timeElapsed)
 
 	// 프러스텀 컬링을 진행하는 셰이더에 바운딩 프러스텀 전달
 	auto viewFrustum = m_camera->GetViewFrustum();
-	static_pointer_cast<StaticObjectShader>(m_globalShaders["OBJECT1"])->SetBoundingFrustum(viewFrustum);
-	static_pointer_cast<StaticObjectShader>(m_globalShaders["OBJECT2"])->SetBoundingFrustum(viewFrustum);
-	static_pointer_cast<StaticObjectBlendShader>(m_globalShaders["OBJECTBLEND"])->SetBoundingFrustum(viewFrustum);
+	static_pointer_cast<StaticObjectShader>(m_shaders["OBJECT1"])->SetBoundingFrustum(viewFrustum);
+	static_pointer_cast<StaticObjectShader>(m_shaders["OBJECT2"])->SetBoundingFrustum(viewFrustum);
+	static_pointer_cast<StaticObjectBlendShader>(m_shaders["OBJECTBLEND"])->SetBoundingFrustum(viewFrustum);
 
 }
 
@@ -617,12 +612,12 @@ void TowerScene::PreProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList
 	{
 	case 0:
 	{
-		m_globalShaders["ANIMATION"]->Render(commandList, m_globalShaders["ANIMATIONSHADOW"]);
+		m_shaders["ANIMATION"]->Render(commandList, m_shaders["ANIMATIONSHADOW"]);
 		break;
 	}
 	case 1:
 	{
-		m_globalShaders["OBJECT1"]->Render(commandList, m_globalShaders["SHADOW"]);
+		m_shaders["OBJECT1"]->Render(commandList, m_shaders["SHADOW"]);
 		break;
 	}
 	case 2:
@@ -642,23 +637,23 @@ void TowerScene::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UI
 	{
 	case 0:
 	{
-		m_globalShaders.at("OBJECT1")->Render(commandList);
+		m_shaders.at("OBJECT1")->Render(commandList);
 		break;
 	}
 	case 1:
 	{
 		m_towerObjectManager->Render(commandList);
-		m_globalShaders.at("ANIMATION")->Render(commandList);
+		m_shaders.at("ANIMATION")->Render(commandList);
 		break;
 	}
 	case 2:
 	{
-		m_globalShaders.at("SKYBOX")->Render(commandList);
+		m_shaders.at("SKYBOX")->Render(commandList);
 		g_particleSystem->Render(commandList);
-		m_globalShaders.at("HORZGAUGE")->Render(commandList);
-		m_globalShaders.at("VERTGAUGE")->Render(commandList);
-		m_globalShaders.at("UI")->Render(commandList);
-		//m_globalShaders["DEBUG"]->Render(commandList);
+		m_shaders.at("HORZGAUGE")->Render(commandList);
+		m_shaders.at("VERTGAUGE")->Render(commandList);
+		m_shaders.at("UI")->Render(commandList);
+		//m_shaders["DEBUG"]->Render(commandList);
 		break;
 	}
 	}
@@ -716,7 +711,7 @@ void TowerScene::PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandLis
 	case 1:
 	{
 		commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET));
-		m_globalShaders.at("POSTUI")->Render(commandList);
+		m_shaders.at("POSTUI")->Render(commandList);
 		commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE));
 		break;
 	}
@@ -774,7 +769,7 @@ void TowerScene::LoadSceneFromFile(wstring fileName, wstring sceneName)
 		in.read((CHAR*)(&worldMatrix), sizeof(XMFLOAT4X4));
 		object->SetWorldMatrix(worldMatrix);
 
-		m_globalShaders["OBJECT1"]->SetObject(object);
+		m_shaders["OBJECT1"]->SetObject(object);
 	}
 }
 
@@ -822,7 +817,7 @@ void TowerScene::LoadPlayerFromFile(const shared_ptr<Player>& player)
 		XMFLOAT3{0.37f, 0.65f, 0.37f}, XMFLOAT4{0.f, 0.f, 0.f, 1.f}};
 	player->SetBoundingBox(obb);
 
-	player->SetAnimationSet(m_globalAnimationSets[animationSet], animationSet);
+	player->SetAnimationSet(m_animationSets[animationSet], animationSet);
 	player->SetAnimationOnTrack(0, ObjectAnimation::IDLE);
 	player->GetAnimationController()->SetTrackEnable(1, false);
 	player->GetAnimationController()->SetTrackEnable(2, false);
@@ -866,7 +861,7 @@ void TowerScene::SetHpBar(const shared_ptr<AnimationObject>& object)
 	hpBar->SetMaxGauge(object->GetMaxHp());
 	hpBar->SetGauge(object->GetHp());
 	hpBar->SetPosition(XMFLOAT3{ FAR_POSITION, FAR_POSITION, FAR_POSITION });
-	m_globalShaders["HORZGAUGE"]->SetObject(hpBar);
+	m_shaders["HORZGAUGE"]->SetObject(hpBar);
 	object->SetHpBar(hpBar);
 }
 
@@ -911,7 +906,7 @@ INT TowerScene::SetTarget(const shared_ptr<GameObject>& object)
 			if (elm.second->GetHp() <= std::numeric_limits<float>::epsilon()) continue;
 
 			// 추가는 되었으나 그려지고 있지 않다면 건너뜀
-			if (!m_globalShaders["ANIMATION"]->GetMonsters().contains(elm.first)) continue;
+			if (!m_shaders["ANIMATION"]->GetMonsters().contains(elm.first)) continue;
 
 			sub = Vector3::Sub(pos, elm.second->GetPosition());
 			length = Vector3::Length(sub);
@@ -1148,7 +1143,7 @@ void TowerScene::RecvAddObject(char* ptr)
 	m_idSet.insert({ id, (INT)m_idSet.size() });
 	m_hpUI[m_idSet[id]]->SetEnable();
 
-	m_globalShaders["ANIMATION"]->SetMultiPlayer(id, multiPlayer);
+	m_shaders["ANIMATION"]->SetMultiPlayer(id, multiPlayer);
 	cout << "add player" << id << endl;
 }
 
@@ -1168,7 +1163,7 @@ void TowerScene::RecvRemoveMonster(char* ptr)
 	m_monsters[packet->id]->SetPosition(XMFLOAT3(FAR_POSITION, FAR_POSITION, FAR_POSITION));
 
 	// 임시 삭제
-	m_globalShaders["ANIMATION"]->RemoveMonster(packet->id);
+	m_shaders["ANIMATION"]->RemoveMonster(packet->id);
 	m_monsters.erase(packet->id);
 }
 
@@ -1383,7 +1378,7 @@ void TowerScene::RecvWarpNextFloor(char* ptr)
 			elm.second->SetHp(m_player->GetMaxHp());
 		}
 
-		m_globalShaders["OBJECT1"]->SetObject(m_gate);
+		m_shaders["OBJECT1"]->SetObject(m_gate);
 
 		for (int i = 1; i < 8; ++i) {
 			m_lightSystem->m_lights[i].m_enable = false;
@@ -1448,14 +1443,14 @@ void TowerScene::RecvInteractObject(char* ptr)
 
 		m_interactUI->SetDisable();
 		m_gate->SetInterect([&]() {
-			m_globalShaders["OBJECT1"]->RemoveObject(m_gate);
+			m_shaders["OBJECT1"]->RemoveObject(m_gate);
 		m_lightSystem->m_lights[4].m_enable = true;
 		m_lightSystem->m_lights[5].m_enable = true;
 		m_lightSystem->m_lights[6].m_enable = true;
 		m_lightSystem->m_lights[7].m_enable = true;
 
 		for (auto& monster : m_monsters) {
-			m_globalShaders["ANIMATION"]->SetMonster(monster.first, monster.second);
+			m_shaders["ANIMATION"]->SetMonster(monster.first, monster.second);
 		}
 
 			});
@@ -1571,7 +1566,7 @@ void TowerScene::CollideWithMap()
 		}
 	}
 
-	auto& v1 = m_globalShaders["OBJECT1"]->GetObjects();
+	auto& v1 = m_shaders["OBJECT1"]->GetObjects();
 	if (!m_monsters.empty() &&
 		find(v1.begin(), v1.end(), m_gate) == v1.end())
 	{

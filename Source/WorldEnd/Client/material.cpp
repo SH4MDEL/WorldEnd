@@ -104,24 +104,16 @@ void Materials::LoadMaterials(const ComPtr<ID3D12Device>& device, const ComPtr<I
 				wstrToken.assign(strToken.begin(), strToken.end());
 
 				m_materials[materialIndex].m_type |= MATERIAL_ALBEDO_MAP;
-				if (!Scene::m_globalTextures.count(strToken) && !Scene::m_textures.count(strToken)) { // 해시맵에 존재 x
+				if (!Scene::m_textures.count(strToken)) { // 해시맵에 존재 x
 					m_materials[materialIndex].m_albedoMap = make_shared<Texture>();
 					m_materials[materialIndex].m_albedoMap->LoadTextureFileHierarchy(device, commandList, wstrToken, (INT)ShaderRegister::AlbedoTexture);
 					m_materials[materialIndex].m_albedoMap->CreateSrvDescriptorHeap(device);
 					m_materials[materialIndex].m_albedoMap->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
 
-					if (IsGlobal) {
-						Scene::m_globalTextures.insert({ strToken, m_materials[materialIndex].m_albedoMap });
-					}
-					else {
-						Scene::m_textures.insert({ strToken, m_materials[materialIndex].m_albedoMap });
-					}
+					Scene::m_textures.insert({ strToken, m_materials[materialIndex].m_albedoMap });
 				}
 				else {
-					if (Scene::m_globalTextures.count(strToken)) {
-						m_materials[materialIndex].m_albedoMap = Scene::m_globalTextures[strToken];
-					}
-					else m_materials[materialIndex].m_albedoMap = Scene::m_textures[strToken];
+					m_materials[materialIndex].m_albedoMap = Scene::m_textures[strToken];
 				}
 			}
 			else m_materials[materialIndex].m_albedoMap = nullptr;
@@ -139,25 +131,19 @@ void Materials::LoadMaterials(const ComPtr<ID3D12Device>& device, const ComPtr<I
 				wstrToken.assign(strToken.begin(), strToken.end());
 
 				m_materials[materialIndex].m_type |= MATERIAL_SPECULAR_MAP;
-				if (!Scene::m_globalTextures.count(strToken) && !Scene::m_textures.count(strToken)) { // 해시맵에 존재 x
+				if (!Scene::m_textures.count(strToken)) { // 해시맵에 존재 x
 					m_materials[materialIndex].m_specularMap = make_shared<Texture>();
 					m_materials[materialIndex].m_specularMap->LoadTextureFileHierarchy(device, commandList, wstrToken, (INT)ShaderRegister::SpecularTexture);
 					m_materials[materialIndex].m_specularMap->CreateSrvDescriptorHeap(device);
 					m_materials[materialIndex].m_specularMap->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
 
-					if (IsGlobal) {
-						Scene::m_globalTextures.insert({ strToken, m_materials[materialIndex].m_specularMap });
-					}
-					else {
-						Scene::m_textures.insert({ strToken, m_materials[materialIndex].m_specularMap });
-					}
+					Scene::m_textures.insert({ strToken, m_materials[materialIndex].m_specularMap });
+
 				}
 				else {
-					if (Scene::m_globalTextures.count(strToken)) {
-						m_materials[materialIndex].m_specularMap = Scene::m_globalTextures[strToken];
-					}
-					else m_materials[materialIndex].m_specularMap = Scene::m_textures[strToken];
+					m_materials[materialIndex].m_specularMap = Scene::m_textures[strToken];
 				}
+
 			}
 			else m_materials[materialIndex].m_specularMap = nullptr;
 		}
@@ -174,24 +160,16 @@ void Materials::LoadMaterials(const ComPtr<ID3D12Device>& device, const ComPtr<I
 				wstrToken.assign(strToken.begin(), strToken.end());
 
 				m_materials[materialIndex].m_type |= MATERIAL_NORMAL_MAP;
-				if (!Scene::m_globalTextures.count(strToken) && !Scene::m_textures.count(strToken)) { // 해시맵에 존재 x
+				if (!Scene::m_textures.count(strToken)) { // 해시맵에 존재 x
 					m_materials[materialIndex].m_normalMap = make_shared<Texture>();
 					m_materials[materialIndex].m_normalMap->LoadTextureFileHierarchy(device, commandList, wstrToken, (INT)ShaderRegister::NormalTexture);
 					m_materials[materialIndex].m_normalMap->CreateSrvDescriptorHeap(device);
 					m_materials[materialIndex].m_normalMap->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
 
-					if (IsGlobal) {
-						Scene::m_globalTextures.insert({ strToken, m_materials[materialIndex].m_normalMap });
-					}
-					else {
-						Scene::m_textures.insert({ strToken, m_materials[materialIndex].m_normalMap });
-					}
+					Scene::m_textures.insert({ strToken, m_materials[materialIndex].m_normalMap });
 				}
 				else {
-					if (Scene::m_globalTextures.count(strToken)) {
-						m_materials[materialIndex].m_normalMap = Scene::m_globalTextures[strToken];
-					}
-					else m_materials[materialIndex].m_normalMap = Scene::m_textures[strToken];
+					m_materials[materialIndex].m_normalMap = Scene::m_textures[strToken];
 				}
 			}
 			else m_materials[materialIndex].m_normalMap = nullptr;
@@ -209,24 +187,16 @@ void Materials::LoadMaterials(const ComPtr<ID3D12Device>& device, const ComPtr<I
 				wstrToken.assign(strToken.begin(), strToken.end());
 
 				m_materials[materialIndex].m_type |= MATERIAL_METALLIC_MAP;
-				if (!Scene::m_globalTextures.count(strToken) && !Scene::m_textures.count(strToken)) { // 해시맵에 존재 x
+				if (!Scene::m_textures.count(strToken)) { // 해시맵에 존재 x
 					m_materials[materialIndex].m_metallicMap = make_shared<Texture>();
 					m_materials[materialIndex].m_metallicMap->LoadTextureFileHierarchy(device, commandList, wstrToken, (INT)ShaderRegister::MetallicTexture);
 					m_materials[materialIndex].m_metallicMap->CreateSrvDescriptorHeap(device);
 					m_materials[materialIndex].m_metallicMap->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
 
-					if (IsGlobal) {
-						Scene::m_globalTextures.insert({ strToken, m_materials[materialIndex].m_metallicMap });
-					}
-					else {
-						Scene::m_textures.insert({ strToken, m_materials[materialIndex].m_metallicMap });
-					}
+					Scene::m_textures.insert({ strToken, m_materials[materialIndex].m_metallicMap });
 				}
 				else {
-					if (Scene::m_globalTextures.count(strToken)) {
-						m_materials[materialIndex].m_metallicMap = Scene::m_globalTextures[strToken];
-					}
-					else m_materials[materialIndex].m_metallicMap = Scene::m_textures[strToken];
+					m_materials[materialIndex].m_metallicMap = Scene::m_textures[strToken];
 				}
 			}
 			else m_materials[materialIndex].m_metallicMap = nullptr;
@@ -244,24 +214,16 @@ void Materials::LoadMaterials(const ComPtr<ID3D12Device>& device, const ComPtr<I
 				wstrToken.assign(strToken.begin(), strToken.end());
 
 				m_materials[materialIndex].m_type |= MATERIAL_EMISSION_MAP;
-				if (!Scene::m_globalTextures.count(strToken) && !Scene::m_textures.count(strToken)) { // 해시맵에 존재 x
+				if (!Scene::m_textures.count(strToken)) { // 해시맵에 존재 x
 					m_materials[materialIndex].m_emissionMap = make_shared<Texture>();
 					m_materials[materialIndex].m_emissionMap->LoadTextureFileHierarchy(device, commandList, wstrToken, (INT)ShaderRegister::EmissionTexture);
 					m_materials[materialIndex].m_emissionMap->CreateSrvDescriptorHeap(device);
 					m_materials[materialIndex].m_emissionMap->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
 
-					if (IsGlobal) {
-						Scene::m_globalTextures.insert({ strToken, m_materials[materialIndex].m_emissionMap });
-					}
-					else {
-						Scene::m_textures.insert({ strToken, m_materials[materialIndex].m_emissionMap });
-					}
+					Scene::m_textures.insert({ strToken, m_materials[materialIndex].m_emissionMap });
 				}
 				else {
-					if (Scene::m_globalTextures.count(strToken)) {
-						m_materials[materialIndex].m_emissionMap = Scene::m_globalTextures[strToken];
-					}
-					else m_materials[materialIndex].m_emissionMap = Scene::m_textures[strToken];
+					m_materials[materialIndex].m_emissionMap = Scene::m_textures[strToken];
 				}
 			}
 			else m_materials[materialIndex].m_emissionMap = nullptr;
@@ -279,24 +241,16 @@ void Materials::LoadMaterials(const ComPtr<ID3D12Device>& device, const ComPtr<I
 				wstrToken.assign(strToken.begin(), strToken.end());
 
 				m_materials[materialIndex].m_type |= MATERIAL_DETAIL_ALBEDO_MAP;
-				if (!Scene::m_globalTextures.count(strToken) && !Scene::m_textures.count(strToken)) { // 해시맵에 존재 x
+				if (!Scene::m_textures.count(strToken)) { // 해시맵에 존재 x
 					m_materials[materialIndex].m_detailAlbedoMap = make_shared<Texture>();
 					m_materials[materialIndex].m_detailAlbedoMap->LoadTextureFileHierarchy(device, commandList, wstrToken, (INT)ShaderRegister::DetailAlbedoTexture);
 					m_materials[materialIndex].m_detailAlbedoMap->CreateSrvDescriptorHeap(device);
 					m_materials[materialIndex].m_detailAlbedoMap->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
 
-					if (IsGlobal) {
-						Scene::m_globalTextures.insert({ strToken, m_materials[materialIndex].m_detailAlbedoMap });
-					}
-					else {
-						Scene::m_textures.insert({ strToken, m_materials[materialIndex].m_detailAlbedoMap });
-					}
+					Scene::m_textures.insert({ strToken, m_materials[materialIndex].m_detailAlbedoMap });
 				}
 				else {
-					if (Scene::m_globalTextures.count(strToken)) {
-						m_materials[materialIndex].m_detailAlbedoMap = Scene::m_globalTextures[strToken];
-					}
-					else m_materials[materialIndex].m_detailAlbedoMap = Scene::m_textures[strToken];
+					m_materials[materialIndex].m_detailAlbedoMap = Scene::m_textures[strToken];
 				}
 			}
 			else m_materials[materialIndex].m_detailAlbedoMap = nullptr;
@@ -314,24 +268,17 @@ void Materials::LoadMaterials(const ComPtr<ID3D12Device>& device, const ComPtr<I
 				wstrToken.assign(strToken.begin(), strToken.end());
 
 				m_materials[materialIndex].m_type |= MATERIAL_DETAIL_NORMAL_MAP;
-				if (!Scene::m_globalTextures.count(strToken) && !Scene::m_textures.count(strToken)) { // 해시맵에 존재 x
+				if (!Scene::m_textures.count(strToken)) { // 해시맵에 존재 x
 					m_materials[materialIndex].m_detailNormalMap = make_shared<Texture>();
 					m_materials[materialIndex].m_detailNormalMap->LoadTextureFileHierarchy(device, commandList, wstrToken, (INT)ShaderRegister::DetailNormalTexture);
 					m_materials[materialIndex].m_detailNormalMap->CreateSrvDescriptorHeap(device);
 					m_materials[materialIndex].m_detailNormalMap->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
 
-					if (IsGlobal) {
-						Scene::m_globalTextures.insert({ strToken, m_materials[materialIndex].m_detailNormalMap });
-					}
-					else {
-						Scene::m_textures.insert({ strToken, m_materials[materialIndex].m_detailNormalMap });
-					}
+
+					Scene::m_textures.insert({ strToken, m_materials[materialIndex].m_detailNormalMap });
 				}
 				else {
-					if (Scene::m_globalTextures.count(strToken)) {
-						m_materials[materialIndex].m_detailNormalMap = Scene::m_globalTextures[strToken];
-					}
-					else m_materials[materialIndex].m_detailNormalMap = Scene::m_textures[strToken];
+					m_materials[materialIndex].m_detailNormalMap = Scene::m_textures[strToken];
 				}
 			}
 			else m_materials[materialIndex].m_detailNormalMap = nullptr;

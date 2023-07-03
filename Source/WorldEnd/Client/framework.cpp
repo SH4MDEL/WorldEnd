@@ -13,7 +13,7 @@ GameFramework::GameFramework(UINT width, UINT height) :
 	m_scissorRect{0, 0, (LONG)width, (LONG)height}, 
 	m_rtvDescriptorSize {0}, 
 	m_isGameEnd {false}, 
-	m_sceneIndex{static_cast<int>(SCENETAG::GlobalLoadingScene)}
+	m_sceneIndex{static_cast<int>(SCENETAG::LoadingScene)}
 {
 	m_aspectRatio = (FLOAT)width / (FLOAT)height;
 	m_scenes.resize(static_cast<int>(SCENETAG::Count));
@@ -620,11 +620,9 @@ void GameFramework::BuildObjects()
 
 	CreateShaderVariable();
 
-	m_scenes[static_cast<INT>(SCENETAG::GlobalLoadingScene)] = make_unique<GlobalLoadingScene>();
-	m_scenes[static_cast<INT>(SCENETAG::VillageLoadingScene)] = make_unique<VillageLoadingScene>();
+	m_scenes[static_cast<INT>(SCENETAG::LoadingScene)] = make_unique<LoadingScene>();
 	m_scenes[static_cast<INT>(SCENETAG::LoginScene)] = make_unique<LoginScene>();
 	m_scenes[static_cast<INT>(SCENETAG::VillageScene)] = make_unique<VillageScene>();
-	m_scenes[static_cast<INT>(SCENETAG::TowerLoadingScene)] = make_unique<TowerLoadingScene>();
 	m_scenes[static_cast<INT>(SCENETAG::TowerScene)] = make_unique<TowerScene>();
 
 	m_mainCommandList->Close();

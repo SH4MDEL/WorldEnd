@@ -93,7 +93,7 @@ void Texture::UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& comm
 
 void Texture::ReleaseUploadBuffer()
 {
-	for (int i = 0; auto & textureUploadBuffer : m_textureUploadHeap) {
+	for (auto& textureUploadBuffer : m_textureUploadHeap) {
 		textureUploadBuffer.Reset();
 	}
 }

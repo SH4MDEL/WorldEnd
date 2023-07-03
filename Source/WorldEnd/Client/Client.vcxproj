@@ -154,13 +154,12 @@
     <ClInclude Include="DDSTextureLoader12.h" />
     <ClInclude Include="fadeFilter.h" />
     <ClInclude Include="framework.h" />
-    <ClInclude Include="globalLoadingScene.h" />
     <ClInclude Include="instancingShader.h" />
     <ClInclude Include="light.h" />
+    <ClInclude Include="loadingScene.h" />
     <ClInclude Include="loginScene.h" />
     <ClInclude Include="objectManager.h" />
     <ClInclude Include="QuadtreeFrustum.h" />
-    <ClInclude Include="towerLoadingScene.h" />
     <ClInclude Include="monster.h" />
     <ClInclude Include="particle.h" />
     <ClInclude Include="particleMesh.h" />
@@ -182,7 +181,6 @@
     <ClInclude Include="texture.h" />
     <ClInclude Include="timer.h" />
     <ClInclude Include="ui.h" />
-    <ClInclude Include="villageLoadingScene.h" />
     <ClInclude Include="villageScene.h" />
   </ItemGroup>
   <ItemGroup>
@@ -192,13 +190,12 @@
     <ClCompile Include="DDSTextureLoader12.cpp" />
     <ClCompile Include="fadeFilter.cpp" />
     <ClCompile Include="framework.cpp" />
-    <ClCompile Include="globalLoadingScene.cpp" />
     <ClCompile Include="instancingShader.cpp" />
     <ClCompile Include="light.cpp" />
+    <ClCompile Include="loadingScene.cpp" />
     <ClCompile Include="loginScene.cpp" />
     <ClCompile Include="objectManager.cpp" />
     <ClCompile Include="QuadtreeFrustum.cpp" />
-    <ClCompile Include="towerLoadingScene.cpp" />
     <ClCompile Include="monster.cpp" />
     <ClCompile Include="particle.cpp" />
     <ClCompile Include="particleMesh.cpp" />
@@ -218,7 +215,6 @@
     <ClCompile Include="texture.cpp" />
     <ClCompile Include="timer.cpp" />
     <ClCompile Include="ui.cpp" />
-    <ClCompile Include="villageLoadingScene.cpp" />
     <ClCompile Include="villageScene.cpp" />
   </ItemGroup>
   <ItemGroup>
