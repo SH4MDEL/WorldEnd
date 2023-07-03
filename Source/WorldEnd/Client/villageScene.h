@@ -8,6 +8,7 @@ public:
 	enum class State {
 		Unused = 0x00,
 		OutputOptionUI = 0x01,
+		SceneLeave = 0x02,
 		BlurLevel1 = Unused,
 		BlurLevel2 = Unused,
 		BlurLevel3 = Unused,
@@ -58,7 +59,7 @@ public:
 	void LoadObjectFromFile(wstring fileName, const shared_ptr<GameObject>& object);
 	void LoadPlayerFromFile(const shared_ptr<Player>& player);
 
-	bool CheckState(State sceneState);
+	bool CheckState(State sceneState) const;
 	void SetState(State sceneState);
 	void ResetState(State sceneState);
 

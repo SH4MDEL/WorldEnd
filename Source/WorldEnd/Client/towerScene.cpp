@@ -187,7 +187,7 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	LoadObjectFromFile(TEXT("./Resource/Model/TowerScene/AD_Gate.bin"), m_gate);
 	m_gate->SetPosition(RoomSetting::BATTLE_STARTER_POSITION);
 	m_gate->SetScale(0.5f, 0.5f, 0.5f);
-	m_globalShaders["OBJECT"]->SetObject(m_gate);
+	m_globalShaders["OBJECT1"]->SetObject(m_gate);
 
 	// 스카이 박스 생성
 	auto skybox{ make_shared<GameObject>() };
@@ -200,7 +200,7 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 		static_pointer_cast<ParticleShader>(m_globalShaders["EMITTERPARTICLE"]),
 		static_pointer_cast<ParticleShader>(m_globalShaders["PUMPERPARTICLE"]));
 	m_towerObjectManager = make_unique<TowerObjectManager>(device, commandlist,
-		m_globalShaders["OBJECT"], m_globalShaders["TRIGGEREFFECT"], 
+		m_globalShaders["OBJECT1"], m_globalShaders["TRIGGEREFFECT"], 
 		static_pointer_cast<InstancingShader>(m_globalShaders["ARROW_INSTANCE"]));
 
 	BuildUI(device, commandlist);
@@ -575,6 +575,13 @@ void TowerScene::Update(FLOAT timeElapsed)
 				Vector3::Add(m_directionalDirection, Vector3::Mul({ 2.f, 0.f, 2.f }, m_age / m_lifeTime));
 		}
 	}
+
+	// 프러스텀 컬링을 진행하는 셰이더에 바운딩 프러스텀 전달
+	auto viewFrustum = m_camera->GetViewFrustum();
+	static_pointer_cast<StaticObjectShader>(m_globalShaders["OBJECT1"])->SetBoundingFrustum(viewFrustum);
+	static_pointer_cast<StaticObjectShader>(m_globalShaders["OBJECT2"])->SetBoundingFrustum(viewFrustum);
+	static_pointer_cast<StaticObjectBlendShader>(m_globalShaders["OBJECTBLEND"])->SetBoundingFrustum(viewFrustum);
+
 }
 
 void TowerScene::UpdateLightSystem(FLOAT timeElapsed)
@@ -615,7 +622,7 @@ void TowerScene::PreProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList
 	}
 	case 1:
 	{
-		m_globalShaders["OBJECT"]->Render(commandList, m_globalShaders["SHADOW"]);
+		m_globalShaders["OBJECT1"]->Render(commandList, m_globalShaders["SHADOW"]);
 		break;
 	}
 	case 2:
@@ -635,12 +642,12 @@ void TowerScene::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UI
 	{
 	case 0:
 	{
-		m_globalShaders.at("OBJECT")->Render(commandList);
-		m_towerObjectManager->Render(commandList);
+		m_globalShaders.at("OBJECT1")->Render(commandList);
 		break;
 	}
 	case 1:
 	{
+		m_towerObjectManager->Render(commandList);
 		m_globalShaders.at("ANIMATION")->Render(commandList);
 		break;
 	}
@@ -767,7 +774,7 @@ void TowerScene::LoadSceneFromFile(wstring fileName, wstring sceneName)
 		in.read((CHAR*)(&worldMatrix), sizeof(XMFLOAT4X4));
 		object->SetWorldMatrix(worldMatrix);
 
-		m_globalShaders["OBJECT"]->SetObject(object);
+		m_globalShaders["OBJECT1"]->SetObject(object);
 	}
 }
 
@@ -1376,7 +1383,7 @@ void TowerScene::RecvWarpNextFloor(char* ptr)
 			elm.second->SetHp(m_player->GetMaxHp());
 		}
 
-		m_globalShaders["OBJECT"]->SetObject(m_gate);
+		m_globalShaders["OBJECT1"]->SetObject(m_gate);
 
 		for (int i = 1; i < 8; ++i) {
 			m_lightSystem->m_lights[i].m_enable = false;
@@ -1441,7 +1448,7 @@ void TowerScene::RecvInteractObject(char* ptr)
 
 		m_interactUI->SetDisable();
 		m_gate->SetInterect([&]() {
-			m_globalShaders["OBJECT"]->RemoveObject(m_gate);
+			m_globalShaders["OBJECT1"]->RemoveObject(m_gate);
 		m_lightSystem->m_lights[4].m_enable = true;
 		m_lightSystem->m_lights[5].m_enable = true;
 		m_lightSystem->m_lights[6].m_enable = true;
@@ -1564,9 +1571,9 @@ void TowerScene::CollideWithMap()
 		}
 	}
 
-	auto& v = m_globalShaders["OBJECT"]->GetObjects();
+	auto& v1 = m_globalShaders["OBJECT1"]->GetObjects();
 	if (!m_monsters.empty() &&
-		find(v.begin(), v.end(), m_gate) == v.end())
+		find(v1.begin(), v1.end(), m_gate) == v1.end())
 	{
 		for (const auto& obj : m_invisibleWalls) {
 			auto& obb = obj->GetBoundingBox();

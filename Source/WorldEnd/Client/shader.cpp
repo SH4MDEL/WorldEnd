@@ -234,13 +234,11 @@ void StaticObjectShader::Render(const ComPtr<ID3D12GraphicsCommandList>& command
 	}
 }
 
-//void StaticObjectShader::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, const shared_ptr<Shader>& shader) const
-//{
-//	shader->UpdateShaderVariable(commandList);
-//
-//	for (const auto& elm : m_quadtreeFrustum->GetGameObjects(m_boundingFrustum))
-//		if (elm) elm->Render(commandList);
-//}
+void StaticObjectShader::Clear()
+{
+	Shader::Clear();
+	m_quadtreeFrustum->Clear();
+}
 
 StaticObjectBlendShader::StaticObjectBlendShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature)
 {
@@ -331,13 +329,11 @@ void StaticObjectBlendShader::Render(const ComPtr<ID3D12GraphicsCommandList>& co
 	}
 }
 
-//void StaticObjectBlendShader::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, const shared_ptr<Shader>& shader) const
-//{
-//	shader->UpdateShaderVariable(commandList);
-//
-//	for (const auto& elm : m_quadtreeFrustum->GetGameObjects(m_boundingFrustum))
-//		if (elm) elm->Render(commandList);
-//}
+void StaticObjectBlendShader::Clear()
+{
+	Shader::Clear();
+	m_quadtreeFrustum->Clear();
+}
 
 AnimationShader::AnimationShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature)
 {

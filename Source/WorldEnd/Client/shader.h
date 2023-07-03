@@ -65,7 +65,8 @@ public:
 	void SetBoundingFrustum(const BoundingFrustum& boundingFrustum);
 
 	void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const override;
-	//void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, const shared_ptr<Shader>& shader) const override;
+
+	void Clear() override;
 
 private:
 	shared_ptr<QuadtreeFrustum>	m_quadtreeFrustum;
@@ -83,7 +84,8 @@ public:
 
 	void Update(FLOAT timeElapsed) override;
 	void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const override;
-	//void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, const shared_ptr<Shader>& shader) const override;
+
+	void Clear() override;
 
 private:
 	shared_ptr<QuadtreeFrustum>	m_quadtreeFrustum;

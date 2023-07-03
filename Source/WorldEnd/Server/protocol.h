@@ -258,19 +258,21 @@ namespace MonsterSetting
 
 namespace VillageSetting
 {
+	using namespace DirectX;
+
 	constexpr FLOAT TERRAIN_HEIGHT_OFFSET = 2.34f;
 
-	constexpr XMFLOAT3 BilldingStair_A_SIZE = { 6.004f, 2.152f, 5.747f };
-	constexpr XMFLOAT3 BilldingStair_B_SIZE = { 12.42f, 2.385f, 5.99f };
-	constexpr XMFLOAT3 BilldingStair_C_SIZE = { 3.38f, 2.226f, 5.25f };
+	constexpr XMFLOAT3 BilldingStair_A_SIZE { 6.004f, 2.152f, 5.747f };
+	constexpr XMFLOAT3 BilldingStair_B_SIZE { 12.42f, 2.385f, 5.99f };
+	constexpr XMFLOAT3 BilldingStair_C_SIZE { 3.38f, 2.226f, 5.25f };
 	constexpr FLOAT BilldingStair_C_OFFSET = 5.5f;
-	constexpr XMFLOAT3 BilldingStair_D_SIZE = { 6.829f, 5.543f, 17.21f };
-	constexpr XMFLOAT3 BilldingStair_F_SIZE = { 6.926f, 3.429f, 8.227f };
-	constexpr XMFLOAT3 BilldingStair_G_SIZE = { 6.742f, 4.832f, 11.27f };
-	constexpr XMFLOAT3 BilldingStair_H_SIZE = { 13.35f, 5.036f, 11.76f };
+	constexpr XMFLOAT3 BilldingStair_D_SIZE { 6.829f, 5.543f, 17.21f };
+	constexpr XMFLOAT3 BilldingStair_F_SIZE { 6.926f, 3.429f, 8.227f };
+	constexpr XMFLOAT3 BilldingStair_G_SIZE { 6.742f, 4.832f, 11.27f };
+	constexpr XMFLOAT3 BilldingStair_H_SIZE { 13.35f, 5.036f, 11.76f };
 
 	// 270도 회전된 상태
-	constexpr float STAIRS1_LEFT = 66.17 - BilldingStair_H_SIZE.x / 2.f;
+	constexpr float STAIRS1_LEFT = 66.17f - BilldingStair_H_SIZE.x / 2.f;
 	constexpr float STAIRS1_RIGHT = STAIRS1_LEFT + BilldingStair_H_SIZE.x;
 	constexpr float STAIRS1_BACK = 36.68f - BilldingStair_H_SIZE.z / 2.f;
 	constexpr float STAIRS1_FRONT = STAIRS1_BACK + BilldingStair_H_SIZE.z;

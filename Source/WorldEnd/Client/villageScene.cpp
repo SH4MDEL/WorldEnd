@@ -202,12 +202,15 @@ void VillageScene::DestroyObjects()
 {
 	m_player.reset();
 	m_camera.reset();
+	m_terrain.reset();
 
 	m_lightSystem.reset();
 	m_shadow.reset();
 
 	m_blurFilter.reset();
 	m_fadeFilter.reset();
+
+	m_quadtree.reset();
 }
 
 void VillageScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist)
@@ -265,10 +268,18 @@ void VillageScene::OnProcessingMouseMessage(UINT message, LPARAM lParam)
 void VillageScene::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 {
 	if (m_player) m_player->OnProcessingKeyboardMessage(timeElapsed);
+
+	if (GetAsyncKeyState(VK_TAB) & 0x8000) {
+		SetState(State::SceneLeave);
+	}
 }
 
 void VillageScene::Update(FLOAT timeElapsed)
 {
+	if (CheckState(State::SceneLeave)) {
+		g_GameFramework.ChangeScene(SCENETAG::TowerLoadingScene);
+		return;
+	}
 	m_camera->Update(timeElapsed);
 	if (m_globalShaders["SKYBOX"]) for (auto& skybox : m_globalShaders["SKYBOX"]->GetObjects()) skybox->SetPosition(m_camera->GetEye());
 	for (const auto& shader : m_globalShaders)
@@ -287,6 +298,7 @@ void VillageScene::Update(FLOAT timeElapsed)
 
 void VillageScene::PreProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) 
 {
+	if (CheckState(State::SceneLeave)) return;
 	switch (threadIndex)
 	{
 	case 0:
@@ -310,6 +322,7 @@ void VillageScene::PreProcess(const ComPtr<ID3D12GraphicsCommandList>& commandLi
 
 void VillageScene::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) const
 {
+	if (CheckState(State::SceneLeave)) return;
 	if (m_camera) m_camera->UpdateShaderVariable(commandList);
 	if (m_lightSystem) m_lightSystem->UpdateShaderVariable(commandList);
 	switch (threadIndex)
@@ -340,6 +353,7 @@ void VillageScene::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, 
 
 void VillageScene::PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList, const ComPtr<ID3D12Resource>& renderTarget, UINT threadIndex)
 {
+	if (CheckState(State::SceneLeave)) return;
 	switch (threadIndex)
 	{
 	case 0:
@@ -406,7 +420,7 @@ void VillageScene::PostRenderText(const ComPtr<ID2D1DeviceContext2>& deviceConte
 {
 }
 
-bool VillageScene::CheckState(State sceneState)
+bool VillageScene::CheckState(State sceneState) const
 {
 	return m_sceneState & (INT)sceneState;
 }

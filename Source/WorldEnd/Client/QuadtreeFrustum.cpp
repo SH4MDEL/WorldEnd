@@ -66,6 +66,13 @@ unordered_set<shared_ptr<GameObject>> QuadtreeFrustum::GetGameObjects(const Boun
 	return objectList;
 }
 
+void QuadtreeFrustum::Clear()
+{
+	for (auto& child : m_children) {
+		child->Clear();
+	}
+}
+
 
 LeafQuadtree::LeafQuadtree(XMFLOAT3 position, XMFLOAT3 extent, INT depth) : QuadtreeFrustum()
 {
@@ -101,4 +108,9 @@ unordered_set<shared_ptr<GameObject>> LeafQuadtree::GetGameObjects(const Boundin
 		}
 	}
 	return objectList;
+}
+
+void LeafQuadtree::Clear()
+{
+	m_objects.clear();
 }
