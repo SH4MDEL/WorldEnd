@@ -290,6 +290,16 @@ void Monster::DoBehavior(FLOAT elapsed_time)
 		break;
 	}
        // 보스 몬스터
+	case MonsterBehavior::PREPARE_NORMAL_ATTACK: {
+		XMFLOAT3 player_dir = GetDirection(m_target_id);
+		UpdateRotation(player_dir);
+		break;
+	}
+	case MonsterBehavior::NORMAL_ATTACK: {
+		XMFLOAT3 player_dir = GetDirection(m_target_id);
+		UpdateRotation(player_dir);
+		break;
+	}
 	case MonsterBehavior::PREPARE_WIDE_SKILL: {
 		XMFLOAT3 player_dir = GetDirection(m_target_id);
 		UpdateRotation(player_dir);
@@ -300,6 +310,7 @@ void Monster::DoBehavior(FLOAT elapsed_time)
 		UpdateRotation(player_dir);
 		break;
 	}
+
 
 	case MonsterBehavior::LAUGHING:
 		// 행동 X
@@ -1197,7 +1208,7 @@ BossMonster::BossMonster()
 	m_bounding_box.Center = XMFLOAT3(6.556f, 1.032f, 2.018f);
 	m_bounding_box.Extents = XMFLOAT3(1.648f, 2.214f, 2.018f);
 	m_max_hp = 1000.f;
-	m_damage = 3.f;
+	m_damage = 15.f;
 	m_attack_range = 5.f;
 	m_boundary_range = 4.f;
 	m_monster_type = MonsterType::BOSS;
@@ -1294,6 +1305,7 @@ MonsterBehavior BossMonster::SetNextBehavior(MonsterBehavior behavior)
 		temp = MonsterBehavior::DELAY;
 		break;
 	case MonsterBehavior::PREPARE_WIDE_SKILL:
+		m_bounding_box.Extents = XMFLOAT3(3.648f, 2.214f, 4.018f);
 		temp = MonsterBehavior::WIDE_SKILL;
 		break;
 	case MonsterBehavior::WIDE_SKILL:
@@ -1324,6 +1336,7 @@ MonsterBehavior BossMonster::SetNextBehavior(MonsterBehavior behavior)
 		temp = MonsterBehavior::DELAY;
 		break;
 	case MonsterBehavior::DELAY:
+		m_bounding_box.Extents = XMFLOAT3(1.648f, 2.214f, 2.018f);
 		temp = MonsterBehavior::CHASE;
 		break;
 	case MonsterBehavior::DEATH:
