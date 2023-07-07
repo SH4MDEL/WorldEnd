@@ -854,7 +854,7 @@ void TowerScene::LoadMonsterFromFile(const shared_ptr<Monster>& monster)
 		animationSet = "Undead_WizardAnimation";
 		break;
 
-	case MonsterType::CENTAUR:
+	case MonsterType::BOSS:
 		filePath = TEXT("./Resource/Model/Centaur.bin");
 		animationSet = "CentaurAnimation";
 		break;

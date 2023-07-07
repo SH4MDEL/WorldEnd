@@ -3,6 +3,7 @@
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
 #define NOMINMAX
+//#define USER_NUM_TEST
 
 #include <iostream>
 #include <fstream>
@@ -22,6 +23,7 @@
 #include <concurrent_priority_queue.h>
 #include <concurrent_unordered_set.h>
 #include <set>
+#include <map>
 #include "protocol.h"
 
 #pragma comment (lib, "opengl32.lib")

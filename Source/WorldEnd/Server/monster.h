@@ -21,6 +21,7 @@ public:
 	BYTE GetAggroLevel() const { return m_aggro_level; }
 	MonsterBehavior GetBehavior() const { return m_current_behavior; }
 	BYTE GetLastBehaviorId() const { return m_last_behavior_id; }
+	INT  GetPlayerHighestDamage();
 
 	bool ChangeAnimation(BYTE animation);
 
@@ -39,6 +40,9 @@ public:
 	virtual void StepBack(FLOAT elapsed_time) {}
 	virtual void Flee(FLOAT elapsed_time) {}
 	void CollisionCheck();
+
+	void RandomTarget();
+
 	
 
 	// 나중에 던전 매니저로 옮겨야 할 함수
@@ -65,6 +69,12 @@ protected:
 	MonsterBehavior		m_current_behavior;
 	BYTE				m_aggro_level;
 	BYTE				m_last_behavior_id;
+	FLOAT               m_highest_damage;
+
+	std::vector<INT>    m_pl_random_id;
+
+	typedef std::pair<INT, FLOAT> m_save_damage_pair;
+	std::vector<m_save_damage_pair> m_pl_save_damage;
 };
 
 class WarriorMonster : public Monster
@@ -125,5 +135,28 @@ private:
 	virtual MonsterBehavior SetNextBehavior(MonsterBehavior behavior) override;
 	virtual void SetBehaviorAnimation(MonsterBehavior behavior) override;
 	virtual std::chrono::milliseconds SetBehaviorTime(MonsterBehavior behavior) override;
+};
+
+class BossMonster : public Monster
+{
+public:
+	BossMonster();
+	virtual ~BossMonster() = default;
+
+	virtual void Init() override;
+	virtual void Update(FLOAT elapsed_time) override;
+	virtual void DecreaseHp(FLOAT damage, INT id) override;
+
+private:
+	virtual bool CanSwapAttackBehavior() override;
+	virtual MonsterBehavior SetNextBehavior(MonsterBehavior behavior) override;
+	virtual void SetBehaviorAnimation(MonsterBehavior behavior) override;
+	virtual std::chrono::milliseconds SetBehaviorTime(MonsterBehavior behavior) override;
+	void RandomTarget();
+	void PlayerHighestDamageTarget();
+
+	INT    m_behavior_cnt = 0;   
+	INT    m_enhance_behavior_cnt = 0;
+	bool   m_enhance_check = true;
 };
 

@@ -36,6 +36,10 @@ Server::Server()
 		m_triggers[i]->SetId(i);
 	}
 
+	for (size_t i = BOSS_MONSTER_START; i < BOSS_MONSTER_END; ++i) {
+		m_clients[i] = std::make_shared<BossMonster>();
+	}
+
 
 	m_game_room_manager = std::make_unique<GameRoomManager>();
 	m_party_manager = std::make_unique <PartyManager>();
@@ -166,16 +170,16 @@ void Server::Network()
 
 }
 
-void Server::WorkerThread() 
+void Server::WorkerThread()
 {
-	while(true) {
+	while (true) {
 		DWORD num_bytes{};
 		ULONG_PTR key{};
 		WSAOVERLAPPED* over{};
 
 		BOOL ret = GetQueuedCompletionStatus(m_handle_iocp, &num_bytes, &key, &over, INFINITE);
 		ExpOver* exp_over = reinterpret_cast<ExpOver*>(over);
-		
+
 		if (FALSE == ret) {
 			printf("GQCS Error on client[%d]\n", static_cast<int>(key));
 			Disconnect(static_cast<int>(key));
@@ -380,7 +384,7 @@ void Server::WorkerThread()
 			auto& player_ids = game_room->GetPlayerIds();
 
 			BoundingOrientedBox obb{};
-			
+
 			// 전사 공격은 무기 바운드 박스 따라가도록 하면 됨
 			if (PlayerType::WARRIOR == client->GetPlayerType()) {
 
@@ -417,16 +421,28 @@ void Server::WorkerThread()
 			FLOAT damage{ client->GetDamage() };
 			damage *= client->GetSkillRatio(attack_type);
 
-			for (int id : monster_ids) {
-				if (-1 == id) continue;
-				if (State::INGAME != m_clients[id]->GetState()) continue;
-				
-				if (m_clients[id]->GetBoundingBox().Intersects(obb)) {
-					auto monster = dynamic_pointer_cast<Monster>(m_clients[id]);
+			if (game_room->GetFloorCount() != 4) {
+				for (int id : monster_ids) {
+					if (-1 == id) continue;
+					if (State::INGAME != m_clients[id]->GetState()) continue;
 
-					monster->DecreaseHp(damage, client->GetId());
-					v.push_back(id);
+					if (m_clients[id]->GetBoundingBox().Intersects(obb)) {
+						auto monster = dynamic_pointer_cast<Monster>(m_clients[id]);
+						monster->DecreaseHp(damage, client->GetId());
+						v.push_back(id);
+					}
+				}
+			}
+			else {
+				for (int id : monster_ids) {
+					if (-1 == id) continue;
+					if (State::INGAME != m_clients[id]->GetState()) continue;
 
+					if (m_clients[id]->GetBoundingBox().Intersects(obb)) {
+						auto monster = dynamic_pointer_cast<BossMonster>(m_clients[id]);
+						monster->DecreaseHp(damage, client->GetId());
+						v.push_back(id);
+					}
 				}
 			}
 
@@ -457,10 +473,10 @@ void Server::WorkerThread()
 			damage = monster->GetDamage();
 
 			// 공격 충돌 검사시 행동이 공격 중이 아니면
-			if (monster->GetBehavior() != MonsterBehavior::ATTACK) {
+			/*if (monster->GetBehavior() != MonsterBehavior::ATTACK) {
 				delete exp_over;
 				break;
-			}
+			}*/
 
 			if (MonsterType::WARRIOR == monster->GetMonsterType()) {
 				obb.Center = *pos;
@@ -470,6 +486,38 @@ void Server::WorkerThread()
 				XMFLOAT3 temp = Vector3::Normalize(Vector3::Sub(*pos, monster->GetPosition()));
 				obb.Center = Vector3::Add(*pos, Vector3::Mul(temp, 0.5f));
 				obb.Extents = XMFLOAT3{ 0.2f, 0.2f, 0.2f };
+			}
+			else if (MonsterType::BOSS == monster->GetMonsterType()) {
+				if (monster->GetBehavior() == MonsterBehavior::ATTACK) {
+					XMFLOAT3 temp = Vector3::Normalize(Vector3::Sub(*pos, monster->GetPosition()));
+					obb.Center = Vector3::Add(*pos, Vector3::Mul(temp, 1.5f));
+					obb.Extents = XMFLOAT3{ 1.1f, 1.1f, 1.1f };
+				}
+				else if (monster->GetBehavior() == MonsterBehavior::WIDE_SKILL) {
+					XMFLOAT3 temp = Vector3::Normalize(Vector3::Sub(*pos, monster->GetPosition()));
+					obb.Center = Vector3::Add(*pos, Vector3::Mul(temp, 2.0f));
+					obb.Extents = XMFLOAT3{ 1.6f, 1.6f, 1.6f };
+				}
+				else if (monster->GetBehavior() == MonsterBehavior::NORMAL_ATTACK) {
+					XMFLOAT3 temp = Vector3::Normalize(Vector3::Sub(*pos, monster->GetPosition()));
+					obb.Center = Vector3::Add(*pos, Vector3::Mul(temp, 1.5f));
+					obb.Extents = XMFLOAT3{ 1.2f, 1.2f, 1.2f };
+				}
+				else if (monster->GetBehavior() == MonsterBehavior::ENHANCE_WIDE_SKILL) {
+					XMFLOAT3 temp = Vector3::Normalize(Vector3::Sub(*pos, monster->GetPosition()));
+					obb.Center = Vector3::Add(*pos, Vector3::Mul(temp, 2.0f));
+					obb.Extents = XMFLOAT3{ 1.7f, 1.7f, 1.7f };
+				}
+				else if (monster->GetBehavior() == MonsterBehavior::RUCH_SKILL) {
+					XMFLOAT3 temp = Vector3::Normalize(Vector3::Sub(*pos, monster->GetPosition()));
+					obb.Center = Vector3::Add(*pos, Vector3::Mul(temp, 2.0f));
+					obb.Extents = XMFLOAT3{ 0.8f, 0.8f, 0.8f };
+				}
+				else if (monster->GetBehavior() == MonsterBehavior::ULTIMATE_SKILL) {
+					XMFLOAT3 temp = Vector3::Normalize(Vector3::Sub(*pos, monster->GetPosition()));
+					obb.Center = Vector3::Add(*pos, Vector3::Mul(temp, 1.5f));
+					obb.Extents = XMFLOAT3{ 1.1f, 1.1f, 1.1f };
+				}
 			}
 
 			for (int id : player_ids) {
@@ -494,7 +542,7 @@ void Server::WorkerThread()
 
 			TIMER_EVENT ev{ .event_time = std::chrono::system_clock::now() + std::chrono::seconds(1),
 				.obj_id = id, .event_type = EventType::STAMINA_CHANGE, .latest_id = latest_id };
-			
+
 			SC_CHANGE_STAMINA_PACKET packet{};
 			packet.size = sizeof(packet);
 			packet.type = SC_PACKET_CHANGE_STAMINA;
@@ -572,7 +620,7 @@ void Server::WorkerThread()
 				length = MonsterSetting::ARROW_RANGE;
 			}
 
-			float near_dist{std::numeric_limits<float>::max()};
+			float near_dist{ std::numeric_limits<float>::max() };
 			int near_id{ -1 };
 			XMVECTOR pos{ XMLoadFloat3(position) };
 			XMVECTOR dir{ XMLoadFloat3(direction) };
@@ -587,7 +635,7 @@ void Server::WorkerThread()
 					float dist{ Vector3::Length(Vector3::Sub(m_clients[client_id]->GetPosition(),
 						m_clients[id]->GetPosition())) };
 
-					if (dist < near_dist ) {
+					if (dist < near_dist) {
 						near_dist = dist;
 						near_id = client_id;
 					}
@@ -612,7 +660,7 @@ void Server::WorkerThread()
 				m_clients[near_id]->DecreaseHp(damage, id);
 				SendChangeHp(near_id);
 			}
-			
+
 			delete exp_over;
 			break;
 		}
@@ -635,7 +683,7 @@ void Server::WorkerThread()
 						break;
 				}
 				ProcessArrow(id, *target_id, *type);
-				
+
 				break;
 			case ActionType::ULTIMATE: {
 				XMFLOAT3* pos = reinterpret_cast<XMFLOAT3*>((exp_over->_send_buf +
@@ -711,7 +759,7 @@ void Server::WorkerThread()
 		case OP_TRIGGER_COOLDOWN: {
 			int trigger_id = static_cast<int>(key);
 			int* obj_id = reinterpret_cast<int*>(exp_over->_send_buf);
-			
+
 			// 특정 id의 트리거(obj_id)에 대한 발동시킨 오브젝트(target_id)의 플래그 초기화
 			UCHAR trigger = static_cast<UCHAR>(m_triggers[trigger_id]->GetType());
 			m_clients[*obj_id]->SetTriggerFlag(trigger, false);
@@ -790,6 +838,10 @@ void Server::ProcessPacket(int id, char* p)
 		client->SetYaw(packet->yaw);
 		RotateBoundingBox(client);
 		Move(client, packet->pos);
+
+#ifdef USER_NUM_TEST
+		client->SetLastMoveTime(packet->move_time);
+#endif	
 		break;
 	}
 	case CS_PACKET_SET_COOLDOWN: {
@@ -1197,7 +1249,12 @@ INT Server::GetNewMonsterId(MonsterType type)
 		start_num = WIZARD_MONSTER_START;
 		end_num = WIZARD_MONSTER_END;
 		break;
+	case MonsterType::BOSS:
+		start_num = BOSS_MONSTER_START;
+		end_num = BOSS_MONSTER_END;
+		break;
 	}
+
 
 	for (size_t i = start_num; i < end_num; ++i) {
 		std::lock_guard<std::mutex> lock{ m_clients[i]->GetStateMutex() };
@@ -1424,6 +1481,16 @@ void Server::ProcessTimerEvent(const TIMER_EVENT& ev)
 				m_timer_queue.push(attack_ev);
 				break;
 			}
+			case MonsterType::BOSS: {
+				TIMER_EVENT attack_ev{ .event_time = system_clock::now() + MonsterSetting::ATK_COLLISION_TIME[static_cast<int>(monster->GetMonsterType())],
+					.obj_id = ev.obj_id, .target_id = monster->GetRoomNum(),
+					.position = Vector3::Add(monster->GetPosition(), monster->GetFront()),
+					.event_type = EventType::MONSTER_ATTACK_COLLISION, .action_type = ActionType::SKILL,
+				};
+
+				m_timer_queue.push(attack_ev);
+				break;
+			}
 			}
 		}
 		else if (MonsterBehavior::CAST == ev.next_behavior_type) {
@@ -1440,6 +1507,34 @@ void Server::ProcessTimerEvent(const TIMER_EVENT& ev)
 			.latest_id = 0, .aggro_level = 3, .is_valid = false };
 
 			m_timer_queue.push(trigger_ev);
+		}
+		else if (MonsterBehavior::WIDE_SKILL == ev.next_behavior_type || MonsterBehavior::ENHANCE_WIDE_SKILL == ev.next_behavior_type ||
+			     MonsterBehavior::RUCH_SKILL == ev.next_behavior_type) {
+			TIMER_EVENT attack_ev{ .event_time = system_clock::now() + MonsterSetting::ATK_COLLISION_TIME[static_cast<int>(monster->GetMonsterType())],
+					.obj_id = ev.obj_id, .target_id = monster->GetRoomNum(),
+					.position = Vector3::Add(monster->GetPosition(), monster->GetFront()),
+					.event_type = EventType::MONSTER_ATTACK_COLLISION, .action_type = ActionType::SKILL,
+			};
+
+			m_timer_queue.push(attack_ev);
+		}
+		else if (MonsterBehavior::NORMAL_ATTACK == ev.next_behavior_type) {
+			TIMER_EVENT attack_ev{ .event_time = system_clock::now() + MonsterSetting::ATK_COLLISION_TIME[static_cast<int>(monster->GetMonsterType())],
+					.obj_id = ev.obj_id, .target_id = monster->GetRoomNum(),
+					.position = Vector3::Add(monster->GetPosition(), monster->GetFront()),
+					.event_type = EventType::MONSTER_ATTACK_COLLISION, .action_type = ActionType::NORMAL_ATTACK,
+			};
+
+			m_timer_queue.push(attack_ev);
+		}
+		else if (MonsterBehavior::ULTIMATE_SKILL == ev.next_behavior_type) {
+			TIMER_EVENT attack_ev{ .event_time = system_clock::now() + MonsterSetting::ATK_COLLISION_TIME[static_cast<int>(monster->GetMonsterType())],
+					.obj_id = ev.obj_id, .target_id = monster->GetRoomNum(),
+					.position = Vector3::Add(monster->GetPosition(), monster->GetFront()),
+					.event_type = EventType::MONSTER_ATTACK_COLLISION, .action_type = ActionType::ULTIMATE,
+			};
+
+			m_timer_queue.push(attack_ev);
 		}
 
 		ExpOver* over = new ExpOver;

@@ -11,13 +11,14 @@ constexpr int MAX_INGAME_MONSTER = 10;
 constexpr int MAX_GAME_ROOM_NUM = 3000;
 constexpr int MAX_PARTY_NUM = 1000;
 constexpr int MAX_RECORD_NUM = 5;
-constexpr int MAX_MONSTER_PLACEMENT = 80;
+constexpr int MAX_MONSTER_PLACEMENT = 165;
 
 constexpr int MAX_USER = 10000;
 constexpr int MAX_WARRIOR_MONSTER = 30000;
 constexpr int MAX_ARCHER_MONSTER = 30000;
 constexpr int MAX_WIZARD_MONSTER = 30000;
-constexpr int MAX_OBJECT = MAX_USER + MAX_WARRIOR_MONSTER + MAX_ARCHER_MONSTER + MAX_WIZARD_MONSTER;
+constexpr int MAX_BOSS_MONSTER = MAX_GAME_ROOM_NUM;
+constexpr int MAX_OBJECT = MAX_USER + MAX_WARRIOR_MONSTER + MAX_ARCHER_MONSTER + MAX_WIZARD_MONSTER + MAX_BOSS_MONSTER;
 
 constexpr int WARRIOR_MONSTER_START = MAX_USER;
 constexpr int WARRIOR_MONSTER_END = MAX_USER + MAX_WARRIOR_MONSTER;
@@ -27,6 +28,9 @@ constexpr int ARCHER_MONSTER_END = WARRIOR_MONSTER_END + MAX_ARCHER_MONSTER;
 
 constexpr int WIZARD_MONSTER_START = ARCHER_MONSTER_END;
 constexpr int WIZARD_MONSTER_END = ARCHER_MONSTER_END + MAX_WIZARD_MONSTER;
+
+constexpr int BOSS_MONSTER_START = WIZARD_MONSTER_END;
+constexpr int BOSS_MONSTER_END = WIZARD_MONSTER_END + MAX_BOSS_MONSTER;
 
 constexpr int MAX_ARROW_RAIN = 100;
 constexpr int MAX_UNDEAD_GRASP = 100;
@@ -97,7 +101,7 @@ constexpr char SC_PACKET_ENTER_FAIL = 35;
 // -----------------------------------------------------------
 
 enum class PlayerType : char { WARRIOR, ARCHER, COUNT };
-enum class MonsterType : char { WARRIOR, ARCHER, WIZARD, CENTAUR, COUNT };
+enum class MonsterType : char { WARRIOR, ARCHER, WIZARD, BOSS, COUNT};
 enum class EnvironmentType : char { RAIN, FOG, GAS, TRAP, COUNT };
 
 enum ActionType : char {
@@ -108,6 +112,11 @@ enum class MonsterBehavior : char {
 	BLOCK, BLOCKIDLE,				// 전사 몬스터
 	AIM, STEP_BACK, FLEE, DELAY,	// 궁수 몬스터
 	PREPARE_CAST, CAST,	LAUGHING,	// 마법사 몬스터
+	DASH, PREPARE_WIDE_SKILL, WIDE_SKILL, ENHANCE,                           // 보스 몬스터
+	PREPARE_NORMAL_ATTACK, NORMAL_ATTACK,                              // 보스 몬스터
+	PREPARE_ENHANCE_WIDE_SKILL, ENHANCE_WIDE_SKILL,                    // 보스 몬스터
+	PREPARE_RUCH_SKILL, RUCH_SKILL,                                    // 보스 몬스터
+	PREPARE_ULTIMATE_SKILL, ULTIMATE_SKILL,                            // 보스 몬스터
 	COUNT
 };
 enum InteractionType : char {
@@ -172,6 +181,16 @@ public:
 	enum USHORT {
 		PREPARE_CAST = MonsterAnimation::END - MonsterAnimation::ANIMATION_START + ANIMATION_START,
 		CAST, LAUGHING, 
+	};
+};
+
+class BossMonsterAnimation : public ObjectAnimation
+{
+public:
+	static constexpr int ANIMATION_START = 600;
+	enum USHORT {
+		PREPARE_WIDE_SKILL = ObjectAnimation::END + ANIMATION_START,
+		NORMAL_ATTACK, RUCH_SKILL, WIDE_SKILL, ENHANCE_WIDE_SKILL, ULTIMATE_SKILL, ENHANCE
 	};
 };
 
@@ -264,6 +283,8 @@ namespace MonsterSetting
 	constexpr float ARROW_SPEED = 18.f;
 	constexpr float RECOGNIZE_RANGE = 26.f;
 	constexpr float ARROW_RANGE = 15.f;
+	constexpr float BOSD_RUN_SPEED = 4.5f;
+	constexpr float BOSD_DASH_SPEED = 7.0f;
 
 	constexpr auto DECREASE_AGRO_LEVEL_TIME = 10s;
 
@@ -686,7 +707,9 @@ struct SC_UPDATE_CLIENT_PACKET
 	INT id;
 	DirectX::XMFLOAT3 pos;
 	FLOAT yaw;
-	//UINT move_time;
+#ifdef USER_NUM_TEST
+	UINT move_time;
+#endif
 };
 
 struct SC_ADD_MONSTER_PACKET
