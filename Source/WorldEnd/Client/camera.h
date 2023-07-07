@@ -87,3 +87,17 @@ private:
 	XMFLOAT3	m_offset;
 	FLOAT		m_delay;
 };
+
+class ViewingCamera : public Camera
+{
+public:
+	ViewingCamera();
+	~ViewingCamera() = default;
+
+	void Update(FLOAT timeElapsed) override;
+	void Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw) override;
+
+private:
+	bool m_direction;
+
+};

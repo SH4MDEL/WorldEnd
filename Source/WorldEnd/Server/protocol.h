@@ -276,6 +276,16 @@ namespace MonsterSetting
 	constexpr std::chrono::milliseconds CAST_COLLISION_TIME = 430ms;
 }
 
+namespace LoginSetting
+{
+	using namespace DirectX;
+
+	constexpr XMFLOAT3 Direction{ -77.4f, 15.f, 108.6f };
+	constexpr FLOAT DirectionStart = Direction.x - 25.f;
+	constexpr FLOAT DirectionEnd = Direction.x + 25.f;
+	constexpr FLOAT EyeOffset = 80.f;
+}
+
 namespace VillageSetting
 {
 	using namespace DirectX;

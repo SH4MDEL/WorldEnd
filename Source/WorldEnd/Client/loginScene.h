@@ -8,12 +8,17 @@ public:
 	enum class State {
 		Unused = 0x00,
 		OutputOptionUI = 0x01,
+		SceneLeave = 0x02,
 		BlurLevel1 = Unused,
 		BlurLevel2 = Unused,
 		BlurLevel3 = Unused,
 		BlurLevel4 = Unused,
 		BlurLevel5 = Unused,
 		Bluring = BlurLevel1 | BlurLevel2 | BlurLevel3 | BlurLevel4 | BlurLevel5
+	};
+	enum class LightTag : INT {
+		Directional,
+		Count
 	};
 
 	LoginScene() = default;
@@ -52,24 +57,44 @@ public:
 	void RenderText(const ComPtr< ID2D1DeviceContext2>& deviceContext) override;
 	void PostRenderText(const ComPtr< ID2D1DeviceContext2>& deviceContext) override;
 
-	shared_ptr<Shadow> GetShadow() override { return nullptr; }
+	shared_ptr<Shadow> GetShadow() override { return m_shadow; }
 
-	bool CheckState(State sceneState);
+	void LoadSceneFromFile(wstring fileName, wstring sceneName);
+	void LoadObjectFromFile(wstring fileName, const shared_ptr<GameObject>& object);
+
+	bool CheckState(State sceneState) const;
 	void SetState(State sceneState);
 	void ResetState(State sceneState);
 
 private:
 	void BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist);
 	void BuildOptionUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist);
+	void BuildLight(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist);
+
+	bool IsBlendObject(const string& objectName);
 
 private:
-	INT													m_sceneState;
+	ComPtr<ID3D12Resource>					m_sceneBuffer;
+	SceneInfo* m_sceneBufferPointer;
 
-	unique_ptr<BlurFilter>								m_blurFilter;
-	unique_ptr<FadeFilter>								m_fadeFilter;
+	INT										m_sceneState;
 
-	shared_ptr<UI>										m_titleUI;
-	shared_ptr<UI>										m_optionUI;
-	shared_ptr<TextUI>									m_characterSelectTextUI;
+	XMMATRIX								m_NDCspace;
+
+	shared_ptr<Camera>						m_camera;
+	shared_ptr<HeightMapTerrain>			m_terrain;
+
+	shared_ptr<LightSystem>					m_lightSystem;
+	shared_ptr<Shadow>						m_shadow;
+
+	unique_ptr<BlurFilter>					m_blurFilter;
+	unique_ptr<FadeFilter>					m_fadeFilter;
+
+	XMFLOAT4								m_directionalDiffuse;
+	XMFLOAT3								m_directionalDirection;
+
+	shared_ptr<UI>							m_titleUI;
+	shared_ptr<UI>							m_optionUI;
+	shared_ptr<TextUI>						m_characterSelectTextUI;
 };
 

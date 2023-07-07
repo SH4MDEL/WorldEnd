@@ -67,13 +67,15 @@ void UI::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, const shar
 	commandList->SetGraphicsRoot32BitConstants((INT)ShaderRegister::GameObject, 16, &uiMatrix, 0);
 	commandList->SetGraphicsRoot32BitConstants((INT)ShaderRegister::GameObject, 1, &m_type, 19);
 
-	if (m_texture) m_texture->UpdateShaderVariable(commandList);
+	if (m_texture) {
+		m_texture->UpdateShaderVariable(commandList);
 
-	commandList->IASetVertexBuffers(0, 1, nullptr);
-	commandList->IASetIndexBuffer(nullptr);
-	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_POINTLIST);
+		commandList->IASetVertexBuffers(0, 1, nullptr);
+		commandList->IASetIndexBuffer(nullptr);
+		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_POINTLIST);
 
-	commandList->DrawInstanced(1, 1, 0, 0);
+		commandList->DrawInstanced(1, 1, 0, 0);
+	}
 
 	for (auto& child : m_children) {
 		// 자식 UI에도 전파한다.

@@ -198,21 +198,6 @@ void VillageScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	BuildLight(device, commandlist);
 }
 
-void VillageScene::DestroyObjects()
-{
-	m_player.reset();
-	m_camera.reset();
-	m_terrain.reset();
-
-	m_lightSystem.reset();
-	m_shadow.reset();
-
-	m_blurFilter.reset();
-	m_fadeFilter.reset();
-
-	m_quadtree.reset();
-}
-
 void VillageScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist)
 {
 
@@ -236,6 +221,22 @@ void VillageScene::BuildLight(const ComPtr<ID3D12Device>& device, const ComPtr<I
 
 	m_lightSystem->CreateShaderVariable(device, commandlist);
 }
+
+void VillageScene::DestroyObjects()
+{
+	m_player.reset();
+	m_camera.reset();
+	m_terrain.reset();
+
+	m_lightSystem.reset();
+	m_shadow.reset();
+
+	m_blurFilter.reset();
+	m_fadeFilter.reset();
+
+	m_quadtree.reset();
+}
+
 
 void VillageScene::OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime)
 {
@@ -343,7 +344,7 @@ void VillageScene::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, 
 	{
 		m_shaders.at("ANIMATION")->Render(commandList);
 		m_shaders.at("OBJECTBLEND")->Render(commandList);
-		m_shaders["WIREFRAME"]->Render(commandList);
+		//m_shaders["WIREFRAME"]->Render(commandList);
 		m_shaders.at("UI")->Render(commandList);
 		break;
 	}
@@ -413,11 +414,12 @@ void VillageScene::PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandL
 
 void VillageScene::RenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext)
 {
-
+	if (CheckState(State::SceneLeave)) return;
 }
 
 void VillageScene::PostRenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext)
 {
+	if (CheckState(State::SceneLeave)) return;
 }
 
 bool VillageScene::CheckState(State sceneState) const
@@ -731,7 +733,6 @@ bool VillageScene::MoveOnTerrain()
 	if (m_onTerrain) {
 		pos.y = m_terrain->GetHeight(pos.x, pos.z);
 		pos.y += 0.1f;
-		cout << pos.y << endl;
 		m_player->SetPosition(pos);
 		return true;
 	}
@@ -741,7 +742,7 @@ bool VillageScene::MoveOnTerrain()
 bool VillageScene::MoveOnStairs()
 {
 	XMFLOAT3 pos = m_player->GetPosition();
-	cout << pos;
+
 	float ratio{};
 	if (pos.z >= VillageSetting::STAIRS1_LEFT &&
 		pos.z <= VillageSetting::STAIRS1_RIGHT &&

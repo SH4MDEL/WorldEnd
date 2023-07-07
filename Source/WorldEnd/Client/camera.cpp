@@ -2,7 +2,7 @@
 
 Camera::Camera() :
 	m_eye{ 0.0f, 0.0f, 0.0f }, m_right{ 1.f, 0.f, 0.f }, m_up { 0.0f, 1.0f, 0.0f}, m_look{ 0.0f, 0.0f, 1.0f },
-	m_roll{ 0.f }, m_pitch{ 0.f }, m_yaw{ 0.f }, m_delay{ 0.0f }
+	m_roll{ 0.f }, m_pitch{ 0.f }, m_yaw{ 0.f }, m_delay{ 0.1f }
 {
 	XMStoreFloat4x4(&m_viewMatrix, XMMatrixIdentity());
 	XMStoreFloat4x4(&m_projMatrix, XMMatrixIdentity());
@@ -59,7 +59,7 @@ void Camera::SetPlayer(const shared_ptr<Player>& player)
 	SetEye(m_player->GetPosition());
 }
 
-ThirdPersonCamera::ThirdPersonCamera() : Camera{}, m_offset{ 0.0f, 1.0f, -8.0f }, m_delay{ 0.1f }
+ThirdPersonCamera::ThirdPersonCamera() : Camera{}, m_offset{ 0.0f, 1.0f, -9.0f }, m_delay{ 0.1f }
 {
 
 }
@@ -153,4 +153,74 @@ void ThirdPersonCamera::Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw)
 	XMStoreFloat3(&m_offset, XMVector3TransformNormal(XMLoadFloat3(&m_offset), rotate));
 	XMFLOAT3 look{ Vector3::Sub(m_player->GetPosition(), m_eye) };
 	if (Vector3::Length(look)) m_look = look;
+}
+
+ViewingCamera::ViewingCamera() : Camera{}
+{
+}
+
+void ViewingCamera::Update(FLOAT timeElapsed)
+{
+
+	static float a = 0.f;
+	a += timeElapsed / 10.f;
+	XMFLOAT3 destination{ 
+		LoginSetting::EyeOffset * cos(a) + LoginSetting::Direction.x, LoginSetting::Direction.y + 20.f,
+		LoginSetting::EyeOffset * sin(a) + LoginSetting::Direction.z 
+	};
+	SetEye(destination);
+	SetLook(Vector3::Sub(LoginSetting::Direction, m_eye));
+
+	// 뷰 프러스텀 업데이트
+
+	// 동차 공간에서의 투영 절두체 꼭짓점들
+	static XMVECTORF32 HomogenousPoints[6] =
+	{
+		{  1.0f,  0.0f, 1.0f, 1.0f },   // 오른쪽 (먼 평면의)
+		{ -1.0f,  0.0f, 1.0f, 1.0f },   // 왼쪽
+		{  0.0f,  1.0f, 1.0f, 1.0f },   // 위
+		{  0.0f, -1.0f, 1.0f, 1.0f },   // 아래
+
+		{ 0.0f, 0.0f, 0.0f, 1.0f },     // 가까운
+		{ 0.0f, 0.0f, 1.0f, 1.0f }      // 먼
+	};
+
+	XMVECTOR Determinant;
+	XMMATRIX matInverse = XMMatrixInverse(&Determinant, XMLoadFloat4x4(&m_projMatrix));
+
+	// World Space에서의 절두체 꼭짓점들을 구한다.
+	XMVECTOR Points[6];
+
+	for (size_t i = 0; i < 6; ++i)
+	{
+		// 점을 변환한다.
+		Points[i] = XMVector4Transform(HomogenousPoints[i], matInverse);
+	}
+
+	m_viewFrustum.Origin = XMFLOAT3{ 0.f, 0.f, 0.f };
+	m_viewFrustum.Orientation = XMFLOAT4{ 0.f, 0.f, 0.f, 1.f };
+
+	// 기울기들을 계산한다.
+	Points[0] = XMVectorMultiply(Points[0], XMVectorReciprocal(XMVectorSplatZ(Points[0])));
+	Points[1] = XMVectorMultiply(Points[1], XMVectorReciprocal(XMVectorSplatZ(Points[1])));
+	Points[2] = XMVectorMultiply(Points[2], XMVectorReciprocal(XMVectorSplatZ(Points[2])));
+	Points[3] = XMVectorMultiply(Points[3], XMVectorReciprocal(XMVectorSplatZ(Points[3])));
+	// 가까운 평면 거리와 먼 평면 거리를 계산한다.
+	Points[4] = XMVectorMultiply(Points[4], XMVectorReciprocal(XMVectorSplatW(Points[4])));
+	Points[5] = XMVectorMultiply(Points[5], XMVectorReciprocal(XMVectorSplatW(Points[5])));
+
+	m_viewFrustum.RightSlope = XMVectorGetX(Points[0]);		// 양의 x 기울기
+	m_viewFrustum.LeftSlope = XMVectorGetX(Points[1]);		// 음의 x 기울기
+	m_viewFrustum.TopSlope = XMVectorGetY(Points[2]);		// 양의 y 기울기
+	m_viewFrustum.BottomSlope = XMVectorGetY(Points[3]);	// 음의 y 기울기
+
+	m_viewFrustum.Near = XMVectorGetZ(Points[4]);			// 원평면 z
+	m_viewFrustum.Far = XMVectorGetZ(Points[5]);			// 근평면 z
+
+	m_viewFrustum.Transform(m_viewFrustum, XMMatrixInverse(nullptr, XMLoadFloat4x4(&m_viewMatrix)));
+}
+
+void ViewingCamera::Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw)
+{
+
 }
