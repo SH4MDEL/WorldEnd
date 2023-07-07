@@ -191,7 +191,23 @@ void LoginScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 void LoginScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist)
 {
 	m_titleUI = make_shared<BackgroundUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 1.f, 1.f });
-	//m_titleUI->SetTexture("TITLE");
+
+	auto titleUI{ make_shared<UI>(XMFLOAT2{ 0.f, 0.5f }, XMFLOAT2{ 0.25f, 0.25f }) };
+	titleUI->SetTexture("TITLE");
+	m_titleUI->SetChild(titleUI);
+
+	m_idBox = make_shared<InputTextUI>(XMFLOAT2{ -0.3f, 0.f }, XMFLOAT2{ 0.2f, 0.08f }, XMFLOAT2{ 120.f, 10.f }, 20);
+	m_idBox->SetColorBrush("WHITE");
+	m_idBox->SetTextFormat("KOPUB18");
+	m_idBox->SetTexture("BUTTONUI");
+	m_titleUI->SetChild(m_idBox);
+
+	m_passwordBox = make_shared<InputTextUI>(XMFLOAT2{ 0.3f, 0.f }, XMFLOAT2{ 0.2f, 0.08f }, XMFLOAT2{ 120.f, 10.f }, 20);
+	m_passwordBox->SetColorBrush("WHITE");
+	m_passwordBox->SetTextFormat("KOPUB18");
+	m_passwordBox->SetTexture("BUTTONUI");
+	m_titleUI->SetChild(m_passwordBox);
+
 	auto gameStartButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.f, -0.3f}, XMFLOAT2{0.2f, 0.08f}) };
 	gameStartButtonUI->SetTexture("BUTTONUI");
 	gameStartButtonUI->SetClickEvent([&]() {
@@ -199,7 +215,7 @@ void LoginScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 			SetState(State::SceneLeave);
 			});
 		});
-	auto gameStartButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{40.f, 10.f}) };
+	auto gameStartButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.f, 0.f}, XMFLOAT2{40.f, 10.f}) };
 	gameStartButtonTextUI->SetText(L"게임 시작");
 	gameStartButtonTextUI->SetColorBrush("WHITE");
 	gameStartButtonTextUI->SetTextFormat("KOPUB18");
@@ -212,7 +228,7 @@ void LoginScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 		SetState(State::OutputOptionUI);
 		if (m_optionUI) m_optionUI->SetEnable();
 		});
-	auto optionButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{40.f, 10.f}) };
+	auto optionButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.f, 0.f}, XMFLOAT2{40.f, 10.f}) };
 	optionButtonTextUI->SetText(L"옵션");
 	optionButtonTextUI->SetColorBrush("WHITE");
 	optionButtonTextUI->SetTextFormat("KOPUB18");
@@ -226,7 +242,7 @@ void LoginScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 			PostMessage(NULL, WM_QUIT, 0, 0);
 			});
 		});
-	auto gameExitButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{40.f, 10.f}) };
+	auto gameExitButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.f, 0.f}, XMFLOAT2{40.f, 10.f}) };
 	gameExitButtonTextUI->SetText(L"게임 종료");
 	gameExitButtonTextUI->SetColorBrush("WHITE");
 	gameExitButtonTextUI->SetTextFormat("KOPUB18");
@@ -237,7 +253,7 @@ void LoginScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 
 	BuildOptionUI(device, commandlist);
 
-	m_characterSelectTextUI = make_shared<TextUI>(XMFLOAT2{ -0.7f, 0.8f }, XMFLOAT2{ 80.f, 15.f });
+	m_characterSelectTextUI = make_shared<TextUI>(XMFLOAT2{ -0.7f, 0.8f }, XMFLOAT2{ 0.f, 0.f },  XMFLOAT2{ 80.f, 15.f });
 	m_characterSelectTextUI->SetText(L"WARRIOR 선택 중");
 	m_characterSelectTextUI->SetColorBrush("WHITE");
 	m_characterSelectTextUI->SetTextFormat("KOPUB18");
@@ -263,7 +279,7 @@ void LoginScene::BuildOptionUI(const ComPtr<ID3D12Device>& device, const ComPtr<
 	option1080x720ResolutionButtonUI->SetClickEvent([&]() {
 		g_GameFramework.ResizeWindow(1080, 720);
 		});
-	auto  option1080x720ResolutionButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{100.f, 10.f}) };
+	auto  option1080x720ResolutionButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.f, 0.f}, XMFLOAT2{100.f, 10.f}) };
 	option1080x720ResolutionButtonTextUI->SetText(L"1080 X 720");
 	option1080x720ResolutionButtonTextUI->SetColorBrush("WHITE");
 	option1080x720ResolutionButtonTextUI->SetTextFormat("KOPUB18");
@@ -275,7 +291,7 @@ void LoginScene::BuildOptionUI(const ComPtr<ID3D12Device>& device, const ComPtr<
 	option1920x1080ResolutionButtonUI->SetClickEvent([&]() {
 		g_GameFramework.ResizeWindow(1920, 1080);
 	});
-	auto  option1920x1080ResolutionButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{100.f, 10.f}) };
+	auto  option1920x1080ResolutionButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.f, 0.f}, XMFLOAT2{100.f, 10.f}) };
 	option1920x1080ResolutionButtonTextUI->SetText(L"1920 X 1080");
 	option1920x1080ResolutionButtonTextUI->SetColorBrush("WHITE");
 	option1920x1080ResolutionButtonTextUI->SetTextFormat("KOPUB18");
@@ -287,7 +303,7 @@ void LoginScene::BuildOptionUI(const ComPtr<ID3D12Device>& device, const ComPtr<
 	option2560x1440ResolutionButtonUI->SetClickEvent([&]() {
 		g_GameFramework.ResizeWindow(2560, 1440);
 		});
-	auto  option2560x1440ResolutionButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{100.f, 10.f}) };
+	auto  option2560x1440ResolutionButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.f, 0.f}, XMFLOAT2{100.f, 10.f}) };
 	option2560x1440ResolutionButtonTextUI->SetText(L"2560 X 1440");
 	option2560x1440ResolutionButtonTextUI->SetColorBrush("WHITE");
 	option2560x1440ResolutionButtonTextUI->SetTextFormat("KOPUB18");
@@ -360,6 +376,11 @@ void LoginScene::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 		m_characterSelectTextUI->SetText(L"ARCHER 선택 중");
 		g_selectedPlayerType = PlayerType::ARCHER;
 	}
+}
+
+void LoginScene::OnProcessingKeyboardMessage(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	if (m_titleUI) m_titleUI->OnProcessingKeyboardMessage(hWnd, message, wParam, lParam);
 }
 
 void LoginScene::Update(FLOAT timeElapsed) 

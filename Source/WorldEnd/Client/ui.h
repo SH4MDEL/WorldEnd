@@ -14,13 +14,16 @@ public:
 		BUTTON_MOUSEON,
 		BUTTON_ACTIVE,
 		HORZGAUGE,
-		VERTGAUGE
+		VERTGAUGE,
+		TEXTBUTTON_NOACTIVE,
+		TEXTBUTTON_ACTIVE
 	};
 	UI(XMFLOAT2 position, XMFLOAT2 size);
 	~UI() = default;
 
 	virtual void OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime);
 	virtual void OnProcessingMouseMessage(UINT message, LPARAM lParam);
+	virtual void OnProcessingKeyboardMessage(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
 	virtual void Update(FLOAT timeElapsed);
 	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, const shared_ptr<UI>& parent);
@@ -72,7 +75,7 @@ private:
 class TextUI : public UI
 {
 public:
-	TextUI(XMFLOAT2 position, XMFLOAT2 size);
+	TextUI(XMFLOAT2 position, XMFLOAT2 size, XMFLOAT2 textSize);
 	~TextUI() = default;
 
 	void OnProcessingMouseMessage(UINT message, LPARAM lParam) override;
@@ -84,7 +87,7 @@ public:
 	void SetColorBrush(const string& colorBrush);
 	void SetTextFormat(const string& textFormat);
 
-private:
+protected:
 	shared_ptr<Text> m_text;
 };
 
@@ -131,6 +134,36 @@ private:
 	FLOAT m_maxGauge;
 
 	FLOAT m_border;
+};
+
+class InputTextUI : public TextUI
+{
+public:
+	InputTextUI(XMFLOAT2 position, XMFLOAT2 size, XMFLOAT2 textSize, INT limit);
+	virtual ~InputTextUI() = default;
+
+	virtual void Update(FLOAT timeElapsed) override;
+	void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, const shared_ptr<UI>& parent) override;
+
+	virtual void OnProcessingMouseMessage(UINT message, LPARAM lParam) override;
+	virtual void OnProcessingKeyboardMessage(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) override;
+
+	void SetTextLimit(INT limit);
+
+	wstring GetString();
+
+private:
+	void SetInputLogic(WPARAM wParam);
+	void DeleteLastChar();
+
+protected:
+	wstringstream	m_texting;
+	INT				m_limit;
+	BOOL			m_mouseOn;
+
+	const FLOAT		m_caretLifetime = 0.5f;
+	FLOAT			m_caretTime;
+	BOOL			m_caret;
 };
 
 // UI

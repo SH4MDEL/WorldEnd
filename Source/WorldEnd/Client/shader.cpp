@@ -1139,6 +1139,13 @@ UIShader::UIShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSi
 	Utiles::ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
 }
 
+void UIShader::Update(FLOAT timeElapsed)
+{
+	for (const auto& ui : m_ui) {
+		ui->Update(timeElapsed);
+	}
+}
+
 void UIShader::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const
 {
 	Shader::UpdateShaderVariable(commandList);

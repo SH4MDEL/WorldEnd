@@ -13,12 +13,13 @@ LoadingScene::~LoadingScene()
 	//OnDestroy();
 }
 
-void LoadingScene::CreateShaderVariable(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList) {};
-void LoadingScene::UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& commandList) {};
+void LoadingScene::CreateShaderVariable(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList) {}
+void LoadingScene::UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& commandList) {}
 
-void LoadingScene::OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime) {};
-void LoadingScene::OnProcessingMouseMessage(UINT message, LPARAM lParam) {};
-void LoadingScene::OnProcessingKeyboardMessage(FLOAT timeElapsed) {};
+void LoadingScene::OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime) {}
+void LoadingScene::OnProcessingMouseMessage(UINT message, LPARAM lParam) {}
+void LoadingScene::OnProcessingKeyboardMessage(FLOAT timeElapsed) {}
+void LoadingScene::OnProcessingKeyboardMessage(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {}
 
 void LoadingScene::OnResize(const ComPtr<ID3D12Device>& device, UINT width, UINT height)
 {

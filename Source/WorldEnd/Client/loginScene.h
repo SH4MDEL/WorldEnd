@@ -48,6 +48,7 @@ public:
 	void OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime) override;
 	void OnProcessingMouseMessage(UINT message, LPARAM lParam) override;
 	void OnProcessingKeyboardMessage(FLOAT timeElapsed) override;
+	void OnProcessingKeyboardMessage(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) override;
 
 	void Update(FLOAT timeElapsed) override;
 
@@ -96,5 +97,7 @@ private:
 	shared_ptr<UI>							m_titleUI;
 	shared_ptr<UI>							m_optionUI;
 	shared_ptr<TextUI>						m_characterSelectTextUI;
+	shared_ptr<InputTextUI>					m_idBox;
+	shared_ptr<InputTextUI>					m_passwordBox;
 };
 

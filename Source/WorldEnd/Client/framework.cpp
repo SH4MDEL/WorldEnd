@@ -105,6 +105,11 @@ void GameFramework::OnProcessingKeyboardMessage() const
 	if (m_scene) m_scene->OnProcessingKeyboardMessage(Timer::GetInstance().GetDeltaTime());
 }
 
+void GameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) const
+{
+	if (m_scene) m_scene->OnProcessingKeyboardMessage(hWnd, message, wParam, lParam);
+}
+
 void GameFramework::CreatePipeline()
 {
 	UINT dxgiFactoryFlags = 0;

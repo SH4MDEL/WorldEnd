@@ -162,6 +162,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_RBUTTONUP:
         g_GameFramework.OnProcessingMouseMessage(message, lParam);
         break;
+    case WM_CHAR:
+        g_GameFramework.OnProcessingKeyboardMessage(hWnd, message, wParam, lParam);
+        break;
     case WM_DESTROY:
         PostQuitMessage(0);
         break;

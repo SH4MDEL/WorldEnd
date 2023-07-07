@@ -275,6 +275,8 @@ void VillageScene::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 	}
 }
 
+void VillageScene::OnProcessingKeyboardMessage(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {}
+
 void VillageScene::Update(FLOAT timeElapsed)
 {
 	if (CheckState(State::SceneLeave)) {

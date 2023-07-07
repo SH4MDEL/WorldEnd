@@ -28,6 +28,7 @@ public:
 	void OnProcessingMouseMessage() const;
 	void OnProcessingMouseMessage(UINT message, LPARAM lParam) const;
 	void OnProcessingKeyboardMessage() const;
+	void OnProcessingKeyboardMessage(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) const;
 	void CreatePipeline();
 	
 	// 1. 디바이스 생성

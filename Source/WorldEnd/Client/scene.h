@@ -59,6 +59,7 @@ public:
 	virtual void OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime) = 0;
 	virtual void OnProcessingMouseMessage(UINT message, LPARAM lParam) = 0;
 	virtual void OnProcessingKeyboardMessage(FLOAT timeElapsed) = 0;
+	virtual void OnProcessingKeyboardMessage(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) = 0;
 
 	virtual void Update(FLOAT timeElapsed) = 0;
 

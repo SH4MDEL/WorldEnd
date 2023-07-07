@@ -216,6 +216,7 @@ public:
 	UIShader(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12RootSignature>& rootSignature);
 	~UIShader() = default;
 
+	void Update(FLOAT timeElapsed) override;
 	void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList) const override;
 
 	void Clear() override;

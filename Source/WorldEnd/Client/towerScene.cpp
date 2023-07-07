@@ -277,7 +277,7 @@ void TowerScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 
 	m_interactUI = make_shared<StandardUI>(XMFLOAT2{ 0.25f, 0.15f }, XMFLOAT2{ 0.24f, 0.08f });
 	m_interactUI->SetTexture("BUTTONUI");
-	m_interactTextUI = make_shared<TextUI>(XMFLOAT2{0.f, -0.2f}, XMFLOAT2{80.f, 20.f});
+	m_interactTextUI = make_shared<TextUI>(XMFLOAT2{0.f, -0.2f}, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{80.f, 20.f});
 	m_interactTextUI->SetColorBrush("WHITE");
 	m_interactTextUI->SetTextFormat("KOPUB18");
 	m_interactUI->SetChild(m_interactTextUI);
@@ -285,13 +285,13 @@ void TowerScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 	m_shaders["UI"]->SetUI(m_interactUI);
 
 	m_skillUI = make_shared<VertGaugeUI>(XMFLOAT2{ -0.60f, -0.75f }, XMFLOAT2{ 0.15f, 0.15f }, 0.f);
-	auto eText = make_shared<TextUI>(XMFLOAT2{ 0.f, -0.8f }, XMFLOAT2{ 0.15f, 0.15f });
+	auto eText = make_shared<TextUI>(XMFLOAT2{ 0.f, -0.8f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 0.15f, 0.15f });
 	eText->SetColorBrush("WHITE");
 	eText->SetTextFormat("KOPUB24");
 	eText->SetText(TEXT("E"));
 	m_skillUI->SetChild(eText);
 	m_ultimateUI = make_shared<VertGaugeUI>(XMFLOAT2{ -0.85f, -0.75f }, XMFLOAT2{ 0.15f, 0.15f }, 0.f);
-	auto qText = make_shared<TextUI>(XMFLOAT2{ 0.f, -0.8f }, XMFLOAT2{ 0.15f, 0.15f });
+	auto qText = make_shared<TextUI>(XMFLOAT2{ 0.f, -0.8f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 0.15f, 0.15f });
 	qText->SetColorBrush("WHITE");
 	qText->SetTextFormat("KOPUB24");
 	qText->SetText(TEXT("Q"));
@@ -313,7 +313,7 @@ void TowerScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 	m_exitUI = make_shared<BackgroundUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 1.f, 1.f }); 
 	auto exitUI{ make_shared<StandardUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.4f, 0.5f}) };
 	exitUI->SetTexture("FRAMEUI");
-	auto exitTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{120.f, 20.f}) };
+	auto exitTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.f, 0.f},XMFLOAT2{120.f, 20.f}) };
 	exitTextUI->SetText(L"던전에서 나가시겠습니까?");
 	exitTextUI->SetColorBrush("WHITE");
 	exitTextUI->SetTextFormat("KOPUB18");
@@ -326,7 +326,7 @@ void TowerScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 			SetState(State::SceneLeave);
 		});
 	});
-	auto exitButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{10.f, 10.f}) };
+	auto exitButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.f, 0.f},XMFLOAT2{10.f, 10.f}) };
 	exitButtonTextUI->SetText(L"예");
 	exitButtonTextUI->SetColorBrush("WHITE");
 	exitButtonTextUI->SetTextFormat("KOPUB18");
@@ -340,7 +340,7 @@ void TowerScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 	m_resultUI = make_shared<BackgroundUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 1.f, 1.f });
 	auto resultUI{ make_shared<StandardUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.4f, 0.5f}) };
 	resultUI->SetTexture("FRAMEUI");
-	m_resultTextUI = make_shared<TextUI>(XMFLOAT2{ 0.f, 0.2f }, XMFLOAT2{ 100.f, 20.f });
+	m_resultTextUI = make_shared<TextUI>(XMFLOAT2{ 0.f, 0.2f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 100.f, 20.f });
 	m_resultTextUI->SetText(L"클리어!");
 	m_resultTextUI->SetColorBrush("WHITE");
 	m_resultTextUI->SetTextFormat("MAPLE27");
@@ -348,7 +348,7 @@ void TowerScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 	auto resultRewardTextureUI{ make_shared<StandardUI>(XMFLOAT2{-0.2f, -0.2f}, XMFLOAT2{0.05f, 0.05f}) };
 	resultRewardTextureUI->SetTexture("GOLDUI");
 	resultUI->SetChild(resultRewardTextureUI);
-	m_resultRewardTextUI = make_shared<TextUI>(XMFLOAT2{0.2f, -0.2f}, XMFLOAT2{100.f, 20.f});
+	m_resultRewardTextUI = make_shared<TextUI>(XMFLOAT2{0.2f, -0.2f}, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{100.f, 20.f});
 	m_resultRewardTextUI->SetText(TEXT(""));
 	m_resultRewardTextUI->SetColorBrush("WHITE");
 	m_resultRewardTextUI->SetTextFormat("KOPUB24");
@@ -359,7 +359,7 @@ void TowerScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 		m_resultUI->SetDisable();
 		ResetState(State::OutputResult);
 		});
-	auto ResultButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{20.f, 10.f}) };
+	auto ResultButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.f, 0.f}, XMFLOAT2{20.f, 10.f}) };
 	ResultButtonTextUI->SetText(L"닫기");
 	ResultButtonTextUI->SetColorBrush("WHITE");
 	ResultButtonTextUI->SetTextFormat("KOPUB18");
@@ -542,6 +542,8 @@ void TowerScene::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 		if (m_player) m_player->OnProcessingKeyboardMessage(timeElapsed);
 	}
 }
+
+void TowerScene::OnProcessingKeyboardMessage(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {}
 
 void TowerScene::Update(FLOAT timeElapsed)
 {

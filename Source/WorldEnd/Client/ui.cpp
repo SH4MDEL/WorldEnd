@@ -38,7 +38,23 @@ void UI::OnProcessingMouseMessage(UINT message, LPARAM lParam)
 	}
 }
 
-void UI::Update(FLOAT timeElapsed) {}
+void UI::OnProcessingKeyboardMessage(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	if (!m_enable) return;
+
+	for (auto& child : m_children) {
+		child->OnProcessingKeyboardMessage(hWnd, message, wParam, lParam);
+	}
+}
+
+void UI::Update(FLOAT timeElapsed) 
+{
+	if (!m_enable) return;
+
+	for (auto& child : m_children) {
+		child->Update(timeElapsed);
+	}
+}
 
 void UI::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, const shared_ptr<UI>& parent)
 {
@@ -72,6 +88,7 @@ void UI::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, const shar
 
 		commandList->IASetVertexBuffers(0, 1, nullptr);
 		commandList->IASetIndexBuffer(nullptr);
+		// Geometry Shader를 거친다.
 		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_POINTLIST);
 
 		commandList->DrawInstanced(1, 1, 0, 0);
@@ -113,13 +130,13 @@ BackgroundUI::BackgroundUI(XMFLOAT2 position, XMFLOAT2 size) : UI(position, size
 	XMStoreFloat4x4(&m_uiMatrix, XMMatrixIdentity());
 }
 
-TextUI::TextUI(XMFLOAT2 position, XMFLOAT2 size) : UI(position, size)
+TextUI::TextUI(XMFLOAT2 position, XMFLOAT2 size, XMFLOAT2 textSize) : UI(position, size)
 {
 	m_type = Type::TEXT;
 	XMStoreFloat4x4(&m_uiMatrix, XMMatrixIdentity());
 	m_size.x /= g_GameFramework.GetAspectRatio();
 
-	m_text = make_shared<Text>(position, size.x, size.y);
+	m_text = make_shared<Text>(position, textSize.x, textSize.y);
 }
 
 void TextUI::OnProcessingMouseMessage(UINT message, LPARAM lParam)
@@ -263,4 +280,173 @@ void VertGaugeUI::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, c
 	commandList->SetGraphicsRoot32BitConstants((INT)ShaderRegister::GameObject, 1, &(m_border), 18);
 
 	UI::Render(commandList, parent);
+}
+
+InputTextUI::InputTextUI(XMFLOAT2 position, XMFLOAT2 size, XMFLOAT2 textSize, INT limit) :
+	TextUI(position, size, textSize), m_limit{ limit }, m_mouseOn{ false }, m_caretTime { 0.f }, m_caret{ false }
+{
+	m_type = Type::TEXTBUTTON_NOACTIVE;
+}
+
+void InputTextUI::Update(FLOAT timeElapsed)
+{
+	if (!m_enable) return;
+
+	// 텍스트 바가 활성화 된 상태일경우 캐럿에 관한 업데이트 진행
+	if (m_type == Type::TEXTBUTTON_ACTIVE) {
+		m_caretTime += timeElapsed;
+		if (m_caretTime >= m_caretLifetime) {
+			m_caretTime -= m_caretLifetime;
+			m_caret = !m_caret;
+		}
+	}
+	if (m_caret) {
+		m_text->SetText(m_texting.str() + TEXT("|"));
+
+	}
+	else {
+		m_text->SetText(m_texting.str());
+	}
+
+	for (auto& child : m_children) child->Update(timeElapsed);
+}
+
+void InputTextUI::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, const shared_ptr<UI>& parent)
+{
+	if (!m_enable) return;
+
+	if (parent) {
+		XMFLOAT4X4 parentMatrix = parent->GetUIMatrix();
+		m_uiMatrix._11 = parentMatrix._21 * m_position.x + parentMatrix._11;
+		m_uiMatrix._12 = parentMatrix._22 * m_position.y + parentMatrix._12;
+
+	}
+	else {
+		m_uiMatrix._11 = m_position.x;
+		m_uiMatrix._12 = m_position.y;
+	}
+	m_uiMatrix._21 = m_size.x;
+	m_uiMatrix._22 = m_size.y;
+
+	if (m_text) m_text->SetPosition(XMFLOAT2{ m_uiMatrix._11, m_uiMatrix._12 });
+
+	XMFLOAT4X4 uiMatrix;
+	XMStoreFloat4x4(&uiMatrix, XMMatrixTranspose(XMLoadFloat4x4(&m_uiMatrix)));
+	commandList->SetGraphicsRoot32BitConstants((INT)ShaderRegister::GameObject, 16, &uiMatrix, 0);
+	commandList->SetGraphicsRoot32BitConstants((INT)ShaderRegister::GameObject, 1, &m_type, 19);
+
+	if (m_texture) {
+		m_texture->UpdateShaderVariable(commandList);
+
+		commandList->IASetVertexBuffers(0, 1, nullptr);
+		commandList->IASetIndexBuffer(nullptr);
+		// Geometry Shader를 거친다.
+		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_POINTLIST);
+
+		commandList->DrawInstanced(1, 1, 0, 0);
+	}
+
+	for (auto& child : m_children) {
+		// 자식 UI에도 전파한다.
+		child->Render(commandList, shared_from_this());
+	}
+}
+
+void InputTextUI::OnProcessingMouseMessage(UINT message, LPARAM lParam)
+{
+	// 사용할 수 없다면 자식 UI까지 갈 것도 없이 return한다.
+	if (!m_enable) return;
+
+	// 충돌했다면 설정된 버튼의 함수를 stack에 넣는다.
+	if (message == WM_LBUTTONDOWN) {
+		if (m_uiMatrix._11 - m_uiMatrix._21 + 1.f <= (FLOAT)g_mousePosition.x / (FLOAT)g_GameFramework.GetWindowWidth() * 2.f &&
+			m_uiMatrix._11 + m_uiMatrix._21 + 1.f >= (FLOAT)g_mousePosition.x / (FLOAT)g_GameFramework.GetWindowWidth() * 2.f &&
+			1.f - m_uiMatrix._12 - m_uiMatrix._22 <= (FLOAT)g_mousePosition.y / (FLOAT)g_GameFramework.GetWindowHeight() * 2.f &&
+			1.f - m_uiMatrix._12 + m_uiMatrix._22 >= (FLOAT)g_mousePosition.y / (FLOAT)g_GameFramework.GetWindowHeight() * 2.f) {
+			
+			m_type = Type::TEXTBUTTON_ACTIVE;
+		}
+		else {
+			m_type = Type::TEXTBUTTON_NOACTIVE;
+			m_caret = false;
+			m_caretTime = 0.f;
+		}
+	}
+
+	for (auto& child : m_children) {
+		// 자식 UI에도 전파한다.
+		child->OnProcessingMouseMessage(message, lParam);
+	}
+}
+
+void InputTextUI::OnProcessingKeyboardMessage(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	switch (message)
+	{
+	case WM_CHAR:
+		if (m_type == Type::TEXTBUTTON_ACTIVE) {
+
+			if (wParam < 128) {
+				if (m_texting.str().length() < m_limit) {
+					SetInputLogic(wParam);
+				}
+				else if (m_texting.str().length() >= m_limit && wParam == VK_BACK) {
+					DeleteLastChar();
+				}
+			}
+		}
+		break;
+	}
+
+	for (auto& child : m_children) {
+		child->OnProcessingKeyboardMessage(hWnd, message, wParam, lParam);
+	}
+}
+
+void InputTextUI::SetTextLimit(INT limit)
+{
+	m_limit = limit;
+}
+
+wstring InputTextUI::GetString()
+{
+	return m_texting.str();
+}
+
+void InputTextUI::SetInputLogic(WPARAM wParam)
+{
+	if (wParam == VK_BACK) {
+		if (m_texting.str().length() > 0) {
+			DeleteLastChar();
+		}
+	}
+	else if (wParam == VK_RETURN) {
+		// 입력 처리
+		m_type = Type::TEXTBUTTON_NOACTIVE;
+		m_caret = false;
+		m_caretTime = 0.f;
+	}
+	else if (wParam == VK_ESCAPE) {
+		// 탈출
+		m_type = Type::TEXTBUTTON_NOACTIVE;
+		m_caret = false;
+		m_caretTime = 0.f;
+	}
+	else {
+		m_texting << static_cast<char>(wParam);
+	}
+	m_text->SetText(m_texting.str());
+}
+
+void InputTextUI::DeleteLastChar()
+{
+	wstring oldText = m_texting.str();
+	wstring newText = TEXT("");
+	for (int i = 0; i < oldText.length() - 1; ++i) {
+		newText += oldText[i];
+	}
+	m_texting.str(TEXT(""));
+	m_texting << newText;
+
+	m_text->SetText(m_texting.str());
 }
