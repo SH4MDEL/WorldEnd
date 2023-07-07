@@ -72,7 +72,7 @@ void NetworkModule::WorkerThread()
 			}
 			m_clients[ci].GetCurrentPacketSize() = packet_size;
 			m_clients[ci].GetPrevPacketData() = pacekt_remain_size;
-		
+
 			m_clients[ci].DoRecv();
 		}
 		else if (OP_SEND == over->event_type) {
@@ -97,6 +97,7 @@ void NetworkModule::ProcessPacket(int ci, unsigned char packet[])
 	case SC_PACKET_UPDATE_CLIENT: {
 		SC_UPDATE_CLIENT_PACKET* move_packet = reinterpret_cast<SC_UPDATE_CLIENT_PACKET*>(packet);
 		if (move_packet->data.id < MAX_CLIENTS) {
+			if (move_packet->data.id == -1) return;
 			int my_id = m_client_map[move_packet->data.id];
 			if (-1 != my_id) {
 				m_clients[my_id].GetX() = move_packet->data.pos.x;
@@ -112,7 +113,7 @@ void NetworkModule::ProcessPacket(int ci, unsigned char packet[])
 			}
 		}
 	}
-								break;
+	break;
 	case SC_PACKET_LOGIN_OK:
 	{
 		m_clients[ci].m_connect = true;
@@ -123,7 +124,6 @@ void NetworkModule::ProcessPacket(int ci, unsigned char packet[])
 		m_clients[my_id].GetID() = login_packet->player_data.id;
 		m_clients[my_id].GetX() = login_packet->player_data.pos.x;
 		m_clients[my_id].GetY() = login_packet->player_data.pos.y;
-
 	}
 	break;
 	case SC_PACKET_UPDATE_MONSTER:
@@ -135,8 +135,6 @@ void NetworkModule::ProcessPacket(int ci, unsigned char packet[])
 		m_monsters[monster_data.id].id = monster_packet->monster_data.id;
 		m_monsters[monster_data.id].x = monster_packet->monster_data.pos.x;
 		m_monsters[monster_data.id].y = monster_packet->monster_data.pos.y;
-
-
 	}
 	break;
 	case SC_PACKET_ADD_MONSTER:
@@ -150,6 +148,7 @@ void NetworkModule::ProcessPacket(int ci, unsigned char packet[])
 		m_monsters[monster_data.id].y = mon_add_packet->monster_data.pos.y;
 	}
 	break;
+	case SC_PACKET_ADD_OBJECT: break;
 	}
 }
 
@@ -180,13 +179,14 @@ void NetworkModule::SendLoginPacket()
 
 void NetworkModule::SendPlayerMovePacket(int connections)
 {
-	CS_PLAYER_MOVE_PACKET move_packet;
+	CS_PLAYER_MOVE_PACKET move_packet{};
 	move_packet.size = sizeof(move_packet);
 	move_packet.type = CS_PACKET_PLAYER_MOVE;
-	switch (rand() % 3) {
-	case 0: move_packet.pos.x = 0; break;
-	case 1: move_packet.pos.y = 1; break;
-	case 2: move_packet.pos.z = 2; break;
+	switch (rand() % 4) {
+	case 0: move_packet.pos.x++; break;
+	case 1: move_packet.pos.x--; break;
+	case 2: move_packet.pos.z++; break;
+	case 3: move_packet.pos.z--; break;
 	}
 	move_packet.move_time = static_cast<unsigned>(duration_cast<milliseconds>(high_resolution_clock::now().time_since_epoch()).count());
 	m_clients[connections].DoSend(&move_packet);
@@ -261,7 +261,6 @@ fail_to_connect:
 void NetworkModule::TestThread()
 {
 	while (true) {
-		Sleep(max(20, global_delay));
 		AdjustNumberOfClient();
 
 		for (int i = 0; i < m_num_connections; ++i) {

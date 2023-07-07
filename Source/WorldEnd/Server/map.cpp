@@ -112,9 +112,8 @@ bool GameRoom::SetPlayer(INT room_num, INT player_id)
 					m_state = GameRoomState::INGAME;
 				}
 			}
-
 			l.unlock();
-			server.m_clients[id]->SetPosition(RoomSetting::START_POSITION);
+			server.m_clients[id]->SetPosition(RoomSetting::BATTLE_STARTER_POSITION);
 			join = true;
 
 			if (GameRoomState::ONBATTLE == m_state) {
@@ -137,7 +136,6 @@ bool GameRoom::SetPlayer(INT room_num, INT player_id)
 			SendAddPlayer(id, player_id);
 		}
 	}
-
 	return join;
 }
 
@@ -445,8 +443,8 @@ void GameRoom::InitMonsters(INT room_num)
 	using namespace std;
 
 	Server& server = Server::GetInstance();
-	// 파일을 읽어서 몬스터를 생성할 예정
 
+	// 파일을 읽어서 몬스터를 생성
 	ifstream in{ "MonsterPos.txt" };
 
 	FLOAT mon_pos[MAX_MONSTER_PLACEMENT]{};
@@ -455,12 +453,32 @@ void GameRoom::InitMonsters(INT room_num)
 		in >> mon_pos[i];
 	}
 
-	INT random_map = GameRoom::GenerateRandomRoom(m_save_room, 0, 4);
+    INT random_map = GameRoom::GenerateRandomRoom(m_save_room, 0, 7);
 
 	// Init 은 플레이어 진입 시 불려야함
 	INT new_warrior_id{};
 	INT new_archer_id{};
 	INT new_wizard_id{};
+	INT new_boss_id{};
+
+	if (m_floor_cnt == 4)         // 보스방 진입
+	{
+		random_map = 10;
+
+		new_boss_id = server.GetNewMonsterId(MonsterType::BOSS);
+
+		m_monster_ids[0] = new_boss_id;
+
+		auto monster = dynamic_pointer_cast<Monster>(server.m_clients[new_boss_id]);
+		monster->Init();
+
+		monster->SetId(new_boss_id);
+		monster->InitializePosition(0, MonsterType::BOSS, random_map, mon_pos);
+		monster->SetRoomNum(room_num);
+		monster->SetTarget(-1);
+		monster->SetState(State::ACCEPT);
+		++m_monster_count;
+	}
 
 	if (random_map == 0)
 	{
@@ -666,9 +684,215 @@ void GameRoom::InitMonsters(INT room_num)
 			monster->SetState(State::ACCEPT);
 			++m_monster_count;
 		}
+	}
+	else if (random_map == 4)
+	{
+		for (size_t i = 0; i < mon_pos[81]; ++i) {
+			new_warrior_id = server.GetNewMonsterId(MonsterType::WARRIOR);
 
+			m_monster_ids[i] = new_warrior_id;
+
+			auto monster = dynamic_pointer_cast<Monster>(server.m_clients[new_warrior_id]);
+			monster->Init();
+
+			monster->SetId(new_warrior_id);
+			monster->InitializePosition(i, MonsterType::WARRIOR, random_map, mon_pos);
+			monster->SetRoomNum(room_num);
+			monster->SetTarget(-1);
+			monster->SetState(State::ACCEPT);
+			++m_monster_count;
+		}
+
+		for (size_t i = 0; i < mon_pos[87]; ++i) {
+			new_archer_id = server.GetNewMonsterId(MonsterType::ARCHER);
+
+			m_monster_ids[i + 2] = new_archer_id;
+
+			auto monster = dynamic_pointer_cast<Monster>(server.m_clients[new_archer_id]);
+			monster->Init();
+
+			monster->SetId(new_archer_id);
+			monster->InitializePosition(i + 2, MonsterType::ARCHER, random_map, mon_pos);
+			monster->SetRoomNum(room_num);
+			monster->SetTarget(-1);
+			monster->SetState(State::ACCEPT);
+			++m_monster_count;
+		}
+
+
+		for (size_t i = 0; i < mon_pos[97]; ++i) {
+			new_wizard_id = server.GetNewMonsterId(MonsterType::WIZARD);
+
+			m_monster_ids[i + 6] = new_wizard_id;
+
+			auto monster = dynamic_pointer_cast<Monster>(server.m_clients[new_wizard_id]);
+			monster->Init();
+
+			monster->SetId(new_wizard_id);
+			monster->InitializePosition(i + 6, MonsterType::WIZARD, random_map, mon_pos);
+			monster->SetRoomNum(room_num);
+			monster->SetTarget(-1);
+			monster->SetState(State::ACCEPT);
+			++m_monster_count;
+		}
+	}
+	else if (random_map == 5)
+	{
+		for (size_t i = 0; i < mon_pos[103]; ++i) {
+			new_warrior_id = server.GetNewMonsterId(MonsterType::WARRIOR);
+
+			m_monster_ids[i] = new_warrior_id;
+
+			auto monster = dynamic_pointer_cast<Monster>(server.m_clients[new_warrior_id]);
+			monster->Init();
+
+			monster->SetId(new_warrior_id);
+			monster->InitializePosition(i, MonsterType::WARRIOR, random_map, mon_pos);
+			monster->SetRoomNum(room_num);
+			monster->SetTarget(-1);
+			monster->SetState(State::ACCEPT);
+			++m_monster_count;
+		}
+
+		for (size_t i = 0; i < mon_pos[111]; ++i) {
+			new_archer_id = server.GetNewMonsterId(MonsterType::ARCHER);
+
+			m_monster_ids[i + 3] = new_archer_id;
+
+			auto monster = dynamic_pointer_cast<Monster>(server.m_clients[new_archer_id]);
+			monster->Init();
+
+			monster->SetId(new_archer_id);
+			monster->InitializePosition(i + 3, MonsterType::ARCHER, random_map, mon_pos);
+			monster->SetRoomNum(room_num);
+			monster->SetTarget(-1);
+			monster->SetState(State::ACCEPT);
+			++m_monster_count;
+		}
+
+
+		for (size_t i = 0; i < mon_pos[117]; ++i) {
+			new_wizard_id = server.GetNewMonsterId(MonsterType::WIZARD);
+
+			m_monster_ids[i + 5] = new_wizard_id;
+
+			auto monster = dynamic_pointer_cast<Monster>(server.m_clients[new_wizard_id]);
+			monster->Init();
+
+			monster->SetId(new_wizard_id);
+			monster->InitializePosition(i + 5, MonsterType::WIZARD, random_map, mon_pos);
+			monster->SetRoomNum(room_num);
+			monster->SetTarget(-1);
+			monster->SetState(State::ACCEPT);
+			++m_monster_count;
+		}
+	}
+	else if (random_map == 6)
+	{
+		for (size_t i = 0; i < mon_pos[123]; ++i) {
+			new_warrior_id = server.GetNewMonsterId(MonsterType::WARRIOR);
+
+			m_monster_ids[i] = new_warrior_id;
+
+			auto monster = dynamic_pointer_cast<Monster>(server.m_clients[new_warrior_id]);
+			monster->Init();
+
+			monster->SetId(new_warrior_id);
+			monster->InitializePosition(i, MonsterType::WARRIOR, random_map, mon_pos);
+			monster->SetRoomNum(room_num);
+			monster->SetTarget(-1);
+			monster->SetState(State::ACCEPT);
+			++m_monster_count;
+		}
+
+		for (size_t i = 0; i < mon_pos[131]; ++i) {
+			new_archer_id = server.GetNewMonsterId(MonsterType::ARCHER);
+
+			m_monster_ids[i + 3] = new_archer_id;
+
+			auto monster = dynamic_pointer_cast<Monster>(server.m_clients[new_archer_id]);
+			monster->Init();
+
+			monster->SetId(new_archer_id);
+			monster->InitializePosition(i + 3, MonsterType::ARCHER, random_map, mon_pos);
+			monster->SetRoomNum(room_num);
+			monster->SetTarget(-1);
+			monster->SetState(State::ACCEPT);
+			++m_monster_count;
+		}
+
+
+		for (size_t i = 0; i < mon_pos[137]; ++i) {
+			new_wizard_id = server.GetNewMonsterId(MonsterType::WIZARD);
+
+			m_monster_ids[i + 5] = new_wizard_id;
+
+			auto monster = dynamic_pointer_cast<Monster>(server.m_clients[new_wizard_id]);
+			monster->Init();
+
+			monster->SetId(new_wizard_id);
+			monster->InitializePosition(i + 5, MonsterType::WIZARD, random_map, mon_pos);
+			monster->SetRoomNum(room_num);
+			monster->SetTarget(-1);
+			monster->SetState(State::ACCEPT);
+			++m_monster_count;
+		}
+	}
+	else if (random_map == 7)
+	{
+		for (size_t i = 0; i < mon_pos[143]; ++i) {
+			new_warrior_id = server.GetNewMonsterId(MonsterType::WARRIOR);
+
+			m_monster_ids[i] = new_warrior_id;
+
+			auto monster = dynamic_pointer_cast<Monster>(server.m_clients[new_warrior_id]);
+			monster->Init();
+
+			monster->SetId(new_warrior_id);
+			monster->InitializePosition(i, MonsterType::WARRIOR, random_map, mon_pos);
+			monster->SetRoomNum(room_num);
+			monster->SetTarget(-1);
+			monster->SetState(State::ACCEPT);
+			++m_monster_count;
+		}
+
+		for (size_t i = 0; i < mon_pos[151]; ++i) {
+			new_archer_id = server.GetNewMonsterId(MonsterType::ARCHER);
+
+			m_monster_ids[i + 3] = new_archer_id;
+
+			auto monster = dynamic_pointer_cast<Monster>(server.m_clients[new_archer_id]);
+			monster->Init();
+
+			monster->SetId(new_archer_id);
+			monster->InitializePosition(i + 3, MonsterType::ARCHER, random_map, mon_pos);
+			monster->SetRoomNum(room_num);
+			monster->SetTarget(-1);
+			monster->SetState(State::ACCEPT);
+			++m_monster_count;
+		}
+
+
+		for (size_t i = 0; i < mon_pos[159]; ++i) {
+			new_wizard_id = server.GetNewMonsterId(MonsterType::WIZARD);
+
+			m_monster_ids[i + 6] = new_wizard_id;
+
+			auto monster = dynamic_pointer_cast<Monster>(server.m_clients[new_wizard_id]);
+			monster->Init();
+
+			monster->SetId(new_wizard_id);
+			monster->InitializePosition(i + 6, MonsterType::WIZARD, random_map, mon_pos);
+			monster->SetRoomNum(room_num);
+			monster->SetTarget(-1);
+			monster->SetState(State::ACCEPT);
+			++m_monster_count;
+		}
 	}
 
+	//m_floor_cnt++;
+
+	cout << random_map << "번 방" << endl;
 }
 
 void GameRoom::InitEnvironment()
