@@ -152,10 +152,11 @@ private:
 	virtual MonsterBehavior SetNextBehavior(MonsterBehavior behavior) override;
 	virtual void SetBehaviorAnimation(MonsterBehavior behavior) override;
 	virtual std::chrono::milliseconds SetBehaviorTime(MonsterBehavior behavior) override;
-	void RandomTarget(FLOAT elapsed_time);
+	void RandomTarget();
 	void PlayerHighestDamageTarget();
 
 	INT    m_behavior_cnt = 0;   
 	INT    m_enhance_behavior_cnt = 0;
+	bool   m_enhance_check = true;
 };
 

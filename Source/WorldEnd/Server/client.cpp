@@ -56,7 +56,7 @@ void Client::Init()
 	SetPlayerType(PlayerType::WARRIOR);
 	m_name = "Player";
 	m_damage = 90.f;
-	m_hp = m_max_hp = 100.f;
+	m_hp = m_max_hp = 250.f;
 }
 
 void Client::DoRecv()

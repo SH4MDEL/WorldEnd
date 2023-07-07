@@ -444,8 +444,12 @@ void Monster::ChasePlayer(FLOAT elapsed_time)
 	if (Vector3::Equal(player_dir, XMFLOAT3(0.f, 0.f, 0.f)))
 		return;
 
-	if(m_monster_type == MonsterType::BOSS)
-		UpdatePosition(player_dir, elapsed_time, MonsterSetting::BOSD_RUN_SPEED);
+	if (m_monster_type == MonsterType::BOSS) {
+		if(!(m_hp <= m_max_hp / 2.5))
+			UpdatePosition(player_dir, elapsed_time, MonsterSetting::BOSD_RUN_SPEED);
+		else
+			UpdatePosition(player_dir, elapsed_time, MonsterSetting::BOSD_DASH_SPEED);
+	}
 	else
 		UpdatePosition(player_dir, elapsed_time, MonsterSetting::WALK_SPEED);
 	UpdateRotation(player_dir);
@@ -600,7 +604,7 @@ void Monster::InitializePosition(INT mon_cnt, MonsterType mon_type, INT random_m
 WarriorMonster::WarriorMonster()
 {
 	m_max_hp = 200.f;
-	m_damage = 2;
+	m_damage = 25;
 	m_attack_range = 1.5f;
 	m_boundary_range = 3.f;
 	m_monster_type = MonsterType::WARRIOR;
@@ -1028,7 +1032,7 @@ void ArcherMonster::SetFleeDirection()
 WizardMonster::WizardMonster()
 {
 	m_max_hp = 170.f;
-	m_damage = 10.f;
+	m_damage = 15.f;
 	m_attack_range = 8.f;
 	m_boundary_range = 2.5f;
 	m_monster_type = MonsterType::WIZARD;
@@ -1208,7 +1212,7 @@ BossMonster::BossMonster()
 	m_bounding_box.Center = XMFLOAT3(6.556f, 1.032f, 2.018f);
 	m_bounding_box.Extents = XMFLOAT3(1.648f, 2.214f, 2.018f);
 	m_max_hp = 1000.f;
-	m_damage = 15.f;
+	m_damage = 30.f;
 	m_attack_range = 5.f;
 	m_boundary_range = 4.f;
 	m_monster_type = MonsterType::BOSS;
@@ -1237,15 +1241,15 @@ void BossMonster::Update(FLOAT elapsed_time)
 	if (!(m_hp <= m_max_hp / 2.5)) {                                                        // 일반 상태
 		if (CanSwapAttackBehavior()) {                                                      // 경계 범위 내에 들어오면 일반 공격
 			if (IsInRange(m_boundary_range) && m_behavior_cnt == 0) {
-				//m_damage = 25.f;
 				ChangeBehavior(MonsterBehavior::PREPARE_NORMAL_ATTACK);
-				RandomTarget(elapsed_time);
+				RandomTarget();
+				m_damage = 40.f;
 				m_behavior_cnt++;
 			}
 			else if (IsInRange(m_attack_range) && m_behavior_cnt == 1) {                    // 공격 범위 내에 들어오면 스킬 공격
-				//m_damage = 35.f;
 				ChangeBehavior(MonsterBehavior::PREPARE_WIDE_SKILL);
-				RandomTarget(elapsed_time);
+				RandomTarget();
+				m_damage = 30.f;
 				m_behavior_cnt = 0;
 			}
 		}
@@ -1255,23 +1259,26 @@ void BossMonster::Update(FLOAT elapsed_time)
 			if (IsInRange(m_boundary_range) && m_enhance_behavior_cnt == 0) {
 				ChangeBehavior(MonsterBehavior::PREPARE_ATTACK);
 				PlayerHighestDamageTarget();
+				m_damage = 45.f;
+				m_attack_range = 5.f;
 				m_enhance_behavior_cnt++;
 			}
 			else if (IsInRange(m_attack_range) && m_enhance_behavior_cnt == 1) {                    // 공격 범위 내에 들어오면 강화된 스킬 공격
 				ChangeBehavior(MonsterBehavior::PREPARE_ENHANCE_WIDE_SKILL);
 				PlayerHighestDamageTarget();
-				m_attack_range += 2.f;
+				m_damage = 55.f;
 				m_enhance_behavior_cnt++;
 			}
 			else if (IsInRange(m_attack_range) && m_enhance_behavior_cnt == 2) {                    // 공격 범위 내에 들어오면 돌진 스킬 공격
 				ChangeBehavior(MonsterBehavior::PREPARE_RUCH_SKILL);
 				PlayerHighestDamageTarget();
-				m_attack_range -= 4.f;
+				m_attack_range = 3.f;
 				m_enhance_behavior_cnt++;
 			}
 			else if (IsInRange(m_attack_range) && m_enhance_behavior_cnt == 3) {                    // 공격 범위 내에 들어오면 필살기 스킬 공격
 				ChangeBehavior(MonsterBehavior::PREPARE_ULTIMATE_SKILL);
 				PlayerHighestDamageTarget();
+				m_damage = 35.f;
 				m_enhance_behavior_cnt = 0;
 			}
 		}
@@ -1292,10 +1299,10 @@ MonsterBehavior BossMonster::SetNextBehavior(MonsterBehavior behavior)
 	MonsterBehavior temp{};
 	switch (behavior) {
 	case MonsterBehavior::CHASE:{
-		if (m_hp == m_max_hp / 2.5)
-			temp = MonsterBehavior::ENHANCE;
-		/*else
-			temp = MonsterBehavior::DELAY;*/
+		if ((m_hp <= m_max_hp / 2.5) && m_enhance_check == true) {
+			ChangeBehavior(MonsterBehavior::ENHANCE);
+			m_enhance_check = false;
+		}
 		break;
 	}
 	case MonsterBehavior::PREPARE_ATTACK:
@@ -1305,10 +1312,13 @@ MonsterBehavior BossMonster::SetNextBehavior(MonsterBehavior behavior)
 		temp = MonsterBehavior::DELAY;
 		break;
 	case MonsterBehavior::PREPARE_WIDE_SKILL:
-		m_bounding_box.Extents = XMFLOAT3(3.648f, 2.214f, 4.018f);
 		temp = MonsterBehavior::WIDE_SKILL;
+		m_bounding_box.Extents = XMFLOAT3(3.648f, 2.214f, 4.018f);
 		break;
 	case MonsterBehavior::WIDE_SKILL:
+		temp = MonsterBehavior::DELAY;
+		break;
+	case MonsterBehavior::ENHANCE:
 		temp = MonsterBehavior::DELAY;
 		break;
 	case MonsterBehavior::PREPARE_NORMAL_ATTACK:
@@ -1504,7 +1514,7 @@ void BossMonster::DecreaseHp(FLOAT damage, INT id)
 		return;
 }
 
-void BossMonster::RandomTarget(FLOAT elapsed_time)
+void BossMonster::RandomTarget()
 {
 	std::random_device rd;
 	std::mt19937 gen(rd());
@@ -1514,7 +1524,7 @@ void BossMonster::RandomTarget(FLOAT elapsed_time)
 	INT random_id = *m_pl_random_id.begin();
 
 	SetTarget(random_id);
-	std::cout << "랜덤으로 추격당하는 플레이어 - " << random_id << std::endl;
+	//std::cout << "랜덤으로 추격당하는 플레이어 - " << random_id << std::endl;
 }
 
 void BossMonster::PlayerHighestDamageTarget()
