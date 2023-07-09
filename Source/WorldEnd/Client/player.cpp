@@ -23,11 +23,11 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 	if (ObjectAnimation::DEATH == m_currentAnimation)
 		return;
 
-	if (GetAsyncKeyState('1') & 0x8000) {
+	if (GetAsyncKeyState('3') & 0x8000) {
 		SetPosition(Vector3::Add(GetPosition(), { 0.f, 0.1f, 0.f }));
 		cout << GetPosition();
 	}
-	if (GetAsyncKeyState('2') & 0x8000) {
+	if (GetAsyncKeyState('4') & 0x8000) {
 		SetPosition(Vector3::Add(GetPosition(), { 0.f, -0.1f, 0.f }));
 		cout << GetPosition();
 	}

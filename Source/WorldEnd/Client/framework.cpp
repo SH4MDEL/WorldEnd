@@ -859,7 +859,6 @@ void GameFramework::WorkerThread(UINT threadIndex)
 			m_shadowCommandLists[threadIndex]->RSSetViewports(1, &m_scene->GetShadow()->GetViewport());
 			m_shadowCommandLists[threadIndex]->RSSetScissorRects(1, &m_scene->GetShadow()->GetScissorRect());
 
-
 			// 장면을 깊이 버퍼에만 렌더링할 것이므로 렌더 타겟은 nullptr로 설정한다.
 			// 이처럼 nullptr 렌더 타겟을 설정하면 색상 쓰기가 비활성화된다.
 			// 반드시 활성 PSO의 렌더 타겟 개수도 0으로 지정해야 함을 주의해야 한다.

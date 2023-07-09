@@ -96,7 +96,6 @@ private:
 
 	shared_ptr<UI>							m_titleUI;
 	shared_ptr<UI>							m_optionUI;
-	shared_ptr<TextUI>						m_characterSelectTextUI;
 	shared_ptr<InputTextUI>					m_idBox;
 	shared_ptr<InputTextUI>					m_passwordBox;
 };

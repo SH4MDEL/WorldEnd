@@ -273,6 +273,12 @@ void VillageScene::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 	if (GetAsyncKeyState(VK_TAB) & 0x8000) {
 		SetState(State::SceneLeave);
 	}
+	if (GetAsyncKeyState('1') & 0x8000) {
+		ChangeCharacter(PlayerType::WARRIOR, m_player);
+	}
+	if (GetAsyncKeyState('2') & 0x8000) {
+		ChangeCharacter(PlayerType::ARCHER, m_player);
+	}
 }
 
 void VillageScene::OnProcessingKeyboardMessage(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {}
@@ -1055,4 +1061,24 @@ bool VillageScene::MoveOnStairs()
 		return true;
 	}
 	return false;
+}
+
+void VillageScene::ChangeCharacter(PlayerType type, shared_ptr<Player>& player)
+{
+	if (g_selectedPlayerType == type) return;
+	g_selectedPlayerType = type;
+
+	//auto id = player->GetId();
+	auto position = player->GetPosition();
+
+	player = make_shared<Player>();
+	player->SetType(g_selectedPlayerType);
+	LoadPlayerFromFile(player);
+
+	m_shaders["ANIMATION"]->SetPlayer(player);
+	player->SetPosition(position);
+
+	m_camera->SetPlayer(player);
+	player->SetCamera(m_camera);
+	
 }

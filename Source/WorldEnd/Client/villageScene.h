@@ -85,6 +85,8 @@ private:
 	bool MoveOnTerrain();
 	bool MoveOnStairs();
 
+	void ChangeCharacter(PlayerType type, shared_ptr<Player>& player);
+
 protected:
 	ComPtr<ID3D12Resource>			m_sceneBuffer;
 	SceneInfo*						m_sceneBufferPointer;

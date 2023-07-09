@@ -34,7 +34,7 @@ void LoginScene::OnCreate(
 	const ComPtr<ID3D12RootSignature>& rootSignature, 
 	const ComPtr<ID3D12RootSignature>& postRootSignature) 
 {
-	g_selectedPlayerType = PlayerType::WARRIOR;
+	g_selectedPlayerType = PlayerType::ARCHER;
 	m_sceneState = (INT)State::Unused;
 	BuildObjects(device, commandList, rootSignature, postRootSignature);
 }
@@ -252,12 +252,6 @@ void LoginScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 	m_shaders["POSTUI"]->SetUI(m_titleUI);
 
 	BuildOptionUI(device, commandlist);
-
-	m_characterSelectTextUI = make_shared<TextUI>(XMFLOAT2{ -0.7f, 0.8f }, XMFLOAT2{ 0.f, 0.f },  XMFLOAT2{ 80.f, 15.f });
-	m_characterSelectTextUI->SetText(L"WARRIOR 선택 중");
-	m_characterSelectTextUI->SetColorBrush("WHITE");
-	m_characterSelectTextUI->SetTextFormat("KOPUB18");
-	m_shaders["POSTUI"]->SetUI(m_characterSelectTextUI);
 }
 
 void LoginScene::BuildOptionUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist)
@@ -345,7 +339,6 @@ void LoginScene::DestroyObjects()
 
 	m_titleUI.reset();
 	m_optionUI.reset();
-	m_characterSelectTextUI.reset();
 }
 
 void LoginScene::OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime) 
@@ -368,14 +361,7 @@ void LoginScene::OnProcessingMouseMessage(UINT message, LPARAM lParam)
 
 void LoginScene::OnProcessingKeyboardMessage(FLOAT timeElapsed) 
 {
-	if (GetAsyncKeyState('1') & 0x8000) {
-		m_characterSelectTextUI->SetText(L"WARRIOR 선택 중");
-		g_selectedPlayerType = PlayerType::WARRIOR;
-	}
-	else if (GetAsyncKeyState('2') & 0x8000) {
-		m_characterSelectTextUI->SetText(L"ARCHER 선택 중");
-		g_selectedPlayerType = PlayerType::ARCHER;
-	}
+
 }
 
 void LoginScene::OnProcessingKeyboardMessage(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -500,7 +486,6 @@ void LoginScene::PostRenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext
 	else {
 		if (m_optionUI) m_optionUI->RenderText(deviceContext);
 	}
-	if (m_characterSelectTextUI) m_characterSelectTextUI->RenderText(deviceContext);
 }
 
 bool LoginScene::CheckState(State sceneState) const
