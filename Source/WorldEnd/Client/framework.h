@@ -1,6 +1,7 @@
 #pragma once
 #include "stdafx.h"
 #include "timer.h"
+#include "soundManager.h"
 #include "camera.h"
 #include "object.h"
 #include "scene.h"

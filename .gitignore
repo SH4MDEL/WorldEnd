@@ -23,6 +23,8 @@ mono_crash.*
 *.zip
 *.ttf
 *.raw
+*.mp3
+*.wav
 
 # Build results
 [Dd]ebug/

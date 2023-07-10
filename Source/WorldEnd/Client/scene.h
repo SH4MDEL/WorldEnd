@@ -17,6 +17,7 @@
 #include "blurFilter.h"
 #include "fadeFilter.h"
 #include "sobelFilter.h"
+#include "soundManager.h"
 
 struct SceneInfo
 {

@@ -186,6 +186,8 @@ void LoginScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 
 	// 조명 생성
 	BuildLight(device, commandlist);
+
+	SoundManager::GetInstance().PlayMusic(SoundManager::Music::Title);
 }
 
 void LoginScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist)

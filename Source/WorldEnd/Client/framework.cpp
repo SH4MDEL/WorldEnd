@@ -630,6 +630,7 @@ void GameFramework::BuildObjects()
 	WaitForPreviousFrame();
 
 	Timer::GetInstance().Tick();
+	SoundManager::GetInstance();
 }
 
 void GameFramework::CreateThread()
@@ -693,6 +694,7 @@ void GameFramework::Update(FLOAT timeElapsed)
 	wstring title{ TEXT("세상끝 (") + to_wstring((int)(Timer::GetInstance().GetFPS())) + TEXT("FPS)") };
 	SetWindowText(m_hWnd, title.c_str());
 
+	SoundManager::GetInstance().Update(timeElapsed);
 	if (m_scene) m_scene->Update(timeElapsed);
 }
 

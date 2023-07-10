@@ -67,6 +67,9 @@ using namespace std;
 #include <MSWSock.h>
 #include <thread>
 
+// 사운드 관련
+#include "fmod.hpp"
+
 class GameFramework;
 class ParticleSystem;
 class TowerObjectManager;
