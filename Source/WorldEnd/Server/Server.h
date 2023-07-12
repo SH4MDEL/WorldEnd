@@ -74,6 +74,7 @@ public:
 
 	// Send
 	void SendLoginOk(int client_id);
+	void SendLoginFail(int client_id);
 	void SendPlayerDeath(int client_id);
 	void SendChangeAnimation(int client_id, USHORT animation);
 	void SendArrowShoot(int client_id, int arrow_id, ActionType type);

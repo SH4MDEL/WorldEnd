@@ -166,7 +166,7 @@ bool DataBase::TryLogin(const USER_INFO& user_info, PLAYER_DATA& player_data)
 	return false;
 }
 
-bool DataBase::Logout(const std::wstring_view& ws)
+bool DataBase::Logout(const std::wstring_view& id)
 {
 	// 상태 핸들 할당
 	SQLRETURN ret = SQLAllocHandle(SQL_HANDLE_STMT, m_hdbc, &m_hstmt);
@@ -176,7 +176,7 @@ bool DataBase::Logout(const std::wstring_view& ws)
 	}
 
 	std::wstring query = std::format(L"EXEC [WorldEnd].[dbo].[logout] '{}'",
-		ws.data());
+		id.data());
 
 	ret = SQLExecDirect(m_hstmt, (SQLWCHAR*)query.c_str(), SQL_NTS);
 	if (!(SQL_SUCCESS == ret || SQL_SUCCESS_WITH_INFO == ret)) {
@@ -200,8 +200,8 @@ bool DataBase::CreateAccount(const USER_INFO& user_info)
 		return false;
 	}
 
-	std::wstring query = std::format(L"EXEC [WorldEnd].[dbo].[create_account] '{0}', '{1}', '{2}'",
-		user_info.user_id, user_info.password, user_info.name);
+	std::wstring query = std::format(L"EXEC [WorldEnd].[dbo].[create_account] '{0}', '{1}'",
+		user_info.user_id, user_info.password);
 
 	ret = SQLExecDirect(m_hstmt, (SQLWCHAR*)query.c_str(), SQL_NTS);
 	if (!(SQL_SUCCESS == ret || SQL_SUCCESS_WITH_INFO == ret)) {

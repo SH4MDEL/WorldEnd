@@ -758,6 +758,10 @@ void LoadingScene::BuildText()
 	}
 }
 
+void LoadingScene::ProcessPacket(char* ptr)
+{
+}
+
 void LoadingScene::DestroyObjects()
 {
 	m_loadingText.reset();

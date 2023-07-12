@@ -146,7 +146,7 @@ void VillageScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 
 	// 플레이어 생성
 	m_player = make_shared<Player>();
-	m_player->SetType(g_selectedPlayerType);
+	m_player->SetType(g_playerInfo.playerType);
 	LoadPlayerFromFile(m_player);
 
 	m_shaders["ANIMATION"]->SetPlayer(m_player);
@@ -437,6 +437,10 @@ void VillageScene::SetState(State sceneState)
 void VillageScene::ResetState(State sceneState)
 {
 	m_sceneState &= ~(INT)sceneState;
+}
+
+void VillageScene::ProcessPacket(char* ptr)
+{
 }
 
 void VillageScene::LoadSceneFromFile(wstring fileName, wstring sceneName)

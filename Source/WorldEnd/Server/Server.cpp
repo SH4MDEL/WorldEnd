@@ -52,8 +52,8 @@ Server::Server()
 	m_database->TryLogin(a, p);*/
 
 
-	std::wstring test_id{L"ldh5112"};
-	m_database->GetSkillData(test_id);
+	/*std::wstring test_id{L"ldh5112"};
+	m_database->GetSkillData(test_id);*/
 
 	printf("Complete Initialize!\n");
 	// ----------------------- //
@@ -809,27 +809,20 @@ void Server::ProcessPacket(int id, char* p)
 	switch (type){
 	case CS_PACKET_LOGIN: {
 		CS_LOGIN_PACKET* packet = reinterpret_cast<CS_LOGIN_PACKET*>(p);
-		client->SetPlayerType(packet->player_type);
-		client->SetName(packet->name);
-		{
-			std::lock_guard<std::mutex> lock{ client->GetStateMutex() };
-			client->SetState(State::INGAME);
-		}
-		SendLoginOk(id);
-
-		// 원래는 던전 진입 시 던전에 배치해야하지만
-		// 현재 마을이 없이 바로 던전에 진입하므로 던전에 입장시킴
-		/*client->SetRoomNum(0);
-		m_game_room_manager->SetPlayer(client->GetRoomNum(), id);*/
-
-		if (!m_game_room_manager->FillPlayer(id)) {
-			Disconnect(id);
-			// 채우지 못할 경우 현재는 접속 종료
-		}
-		m_game_room_manager->SendAddMonster(client->GetRoomNum(), id);
-
-		printf("%d is connect\n", client->GetId());
 		
+		USER_INFO info{ .user_id = packet->id, .password = packet->password };
+		PLAYER_DATA data{};
+
+		// DB 이벤트 만들어서 처리할 것
+		if (m_database->TryLogin(info, data)) {
+			std::cout << "Login" << std::endl;
+			SendLoginOk(id);
+		}
+		else {
+			std::cout << "FAIL" << std::endl;
+			SendLoginFail(id);
+			Disconnect(id);
+		}
 		break;
 	}
 	case CS_PACKET_PLAYER_MOVE: {
@@ -960,6 +953,25 @@ void Server::ProcessPacket(int id, char* p)
 		m_party_manager->PlayerReady(client->GetPartyNum(), id);
 		break;
 	}
+	case CS_PACKET_ENTER_DUNGEON: {
+		CS_ENTER_DUNGEON_PACKET* packet = reinterpret_cast<CS_ENTER_DUNGEON_PACKET*>(p);
+
+		auto client = dynamic_pointer_cast<Client>(m_clients[id]);
+
+		// 파티원 전부 설정?
+		{
+			std::lock_guard<std::mutex> lock{ client->GetStateMutex() };
+			client->SetState(State::INGAME);
+		}
+
+		if (!m_game_room_manager->FillPlayer(id)) {
+			Disconnect(id);
+			// 채우지 못할 경우 현재는 접속 종료
+		}
+		m_game_room_manager->SendAddMonster(client->GetRoomNum(), id);
+
+		break;
+	}
 
 
 	}
@@ -990,11 +1002,16 @@ void Server::Disconnect(int id)
 	
 	closesocket(client->GetSocket());
 
+
+	// DB 내에서 if 할지 추가 쿼리를 실행할지?
+	m_database->Logout(client->GetUserId());
+
+
 	std::lock_guard<std::mutex> lock{ client->GetStateMutex() };
 	client->SetState(State::FREE);
 }
 
-// 마을, 던전 구분 필요
+
 void Server::SendLoginOk(int client_id)
 {
 	SC_LOGIN_OK_PACKET packet{};
@@ -1003,9 +1020,19 @@ void Server::SendLoginOk(int client_id)
 	packet.id = client_id;
 	packet.pos = m_clients[client_id]->GetPosition();
 	packet.hp = m_clients[client_id]->GetHp();
-	packet.player_type = m_clients[client_id]->GetPlayerType();
+	//packet.player_type = m_clients[client_id]->GetPlayerType();
+	packet.player_type = PlayerType::ARCHER;
 	strcpy_s(packet.name, sizeof(packet.name), m_clients[client_id]->GetName().c_str());
 
+	m_clients[client_id]->DoSend(&packet);
+}
+
+void Server::SendLoginFail(int client_id)
+{
+	SC_LOGIN_FAIL_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = SC_PACKET_LOGIN_FAIL;
+	
 	m_clients[client_id]->DoSend(&packet);
 }
 

@@ -71,6 +71,12 @@ public:
 	
 	virtual shared_ptr<Shadow> GetShadow() { return nullptr; }
 
+
+	virtual void RecvPacket();
+	virtual void PacketReassembly(char* net_buf, size_t io_byte);
+	virtual void ProcessPacket(char* ptr) = 0;
+
+
 	static unordered_map<string, shared_ptr<Shader>>		m_shaders;
 	static unordered_map<string, shared_ptr<Mesh>>			m_meshs;
 	static unordered_map<string, shared_ptr<Texture>>		m_textures;

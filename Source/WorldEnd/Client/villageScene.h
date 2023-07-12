@@ -68,6 +68,9 @@ public:
 	void SetState(State sceneState);
 	void ResetState(State sceneState);
 
+
+	virtual void ProcessPacket(char* ptr);
+
 private:
 	void BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist);
 	void BuildLight(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist);

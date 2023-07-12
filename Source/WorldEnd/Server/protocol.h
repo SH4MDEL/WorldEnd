@@ -6,6 +6,8 @@ constexpr short SERVER_PORT = 9000;
 
 constexpr int BUF_SIZE = 5000;
 constexpr int NAME_SIZE = 20;
+constexpr int ID_SIZE = 30;
+constexpr int PASSWORD_SIZE = 30;
 constexpr int MAX_INGAME_USER = 3;
 constexpr int MAX_INGAME_MONSTER = 10;
 constexpr int MAX_GAME_ROOM_NUM = 3000;
@@ -58,8 +60,10 @@ constexpr char CS_PACKET_CREATE_PARTY = 9;
 constexpr char CS_PACKET_EXIT_PARTY = 10;
 constexpr char CS_PACKET_CHANGE_CHARACTER = 11;
 constexpr char CS_PACKET_READY = 12;
+constexpr char CS_PACKET_ENTER_DUNGEON = 13;
 // -----------------------------------------------------------
 
+constexpr char SC_PACKET_LOGIN_FAIL = 0;
 constexpr char SC_PACKET_LOGIN_OK = 1;
 constexpr char SC_PACKET_ADD_PLAYER = 2;
 constexpr char SC_PACKET_REMOVE_PLAYER = 3;
@@ -573,8 +577,8 @@ struct CS_LOGIN_PACKET
 {
 	UCHAR size;
 	UCHAR type;
-	CHAR name[NAME_SIZE];
-	PlayerType player_type;
+	std::wstring id;
+	std::wstring password;
 };
 
 struct CS_PLAYER_MOVE_PACKET
@@ -653,6 +657,12 @@ struct CS_READY_PACKET
 	UCHAR size;
 	UCHAR type;
 	bool is_ready;
+};
+
+struct CS_ENTER_DUNGEON_PACKET
+{
+	UCHAR size;
+	UCHAR type;
 };
 
 ///////////////////////////////////////////////////////////////////////

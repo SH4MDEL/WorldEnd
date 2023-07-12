@@ -87,11 +87,8 @@ public:
 	void ResetState(State sceneState);
 
     // 서버 추가 코드
-	void InitServer();
 	void SendPlayerData();
-	void RecvPacket();
 	void ProcessPacket(char* ptr);
-	void PacketReassembly(char* net_buf, size_t io_byte);
 	void RecvLoginOk(char* ptr);
 	void RecvAddPlayer(char* ptr);
 	void RecvRemovePlayer(char* ptr);

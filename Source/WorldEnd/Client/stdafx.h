@@ -71,13 +71,21 @@ class GameFramework;
 class ParticleSystem;
 class TowerObjectManager;
 
+struct PlayerInfo {
+    INT        id;
+    INT        gold;
+    FLOAT      x, y, z;
+    PlayerType playerType;
+};
+
+
 extern GameFramework                    g_GameFramework;
 extern mt19937				            g_randomEngine;
 
 extern SOCKET                           g_socket;                           // 소켓
 extern string				            g_serverIP;							// 서버 아이피
 extern mutex                            g_mutex;
-extern PlayerType                       g_selectedPlayerType;
+extern PlayerInfo                       g_playerInfo;
 extern wstring                          g_loadingText;
 extern INT                              g_loadingIndex;
 extern unique_ptr<ParticleSystem>       g_particleSystem;
