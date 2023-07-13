@@ -78,7 +78,7 @@ private:
 	// 서버 코드
 	void InitServer();
 	void ProcessPacket(char* ptr);
-	bool TryLogin();
+	void TryLogin();
 
 	void RecvLoginOk(char* ptr);
 	void RecvLoginFail(char* ptr);

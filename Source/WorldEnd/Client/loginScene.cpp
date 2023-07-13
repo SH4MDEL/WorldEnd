@@ -671,7 +671,7 @@ void LoginScene::ProcessPacket(char* ptr)
 	}
 }
 
-bool LoginScene::TryLogin()
+void LoginScene::TryLogin()
 {
 #ifdef USE_NETWORK
 	CS_LOGIN_PACKET login_packet{};

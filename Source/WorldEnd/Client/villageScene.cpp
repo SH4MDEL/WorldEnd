@@ -1265,14 +1265,14 @@ bool VillageScene::MoveOnStairs()
 
 void VillageScene::ChangeCharacter(PlayerType type, shared_ptr<Player>& player)
 {
-	if (g_selectedPlayerType == type) return;
-	g_selectedPlayerType = type;
+	if (g_playerInfo.playerType == type) return;
+	g_playerInfo.playerType = type;
 
 	//auto id = player->GetId();
 	auto position = player->GetPosition();
 
 	player = make_shared<Player>();
-	player->SetType(g_selectedPlayerType);
+	player->SetType(g_playerInfo.playerType);
 	LoadPlayerFromFile(player);
 
 	m_shaders["ANIMATION"]->SetPlayer(player);
