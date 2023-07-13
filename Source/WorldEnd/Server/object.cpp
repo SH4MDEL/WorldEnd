@@ -201,11 +201,6 @@ void MovementObject::SetVelocity(FLOAT x, FLOAT y, FLOAT z)
 	m_velocity.z = z;
 }
 
-void MovementObject::SetName(const char* c)
-{
-	SetName(std::string(c));
-}
-
 void MovementObject::SetTriggerFlag(UCHAR trigger, bool val)
 {
 	if(val)

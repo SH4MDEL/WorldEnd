@@ -146,12 +146,14 @@ void VillageScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 
 	// 플레이어 생성
 	m_player = make_shared<Player>();
-	m_player->SetType(g_playerInfo.playerType);
-	LoadPlayerFromFile(m_player);
 
+	// DB 에서 받아온 플레이어 정보 입력
+	m_player->SetType(g_playerInfo.playerType);
+	m_player->SetId(g_playerInfo.id);
+	m_player->SetPosition(g_playerInfo.position);
+
+	LoadPlayerFromFile(m_player);
 	m_shaders["ANIMATION"]->SetPlayer(m_player);
-	// 데이터베이스에서 플레이어의 시작 위치로 수정
-	m_player->SetPosition(XMFLOAT3{25.f, 5.65f, 66.f});
 
 	// 카메라 생성
 	m_camera = make_shared<ThirdPersonCamera>();

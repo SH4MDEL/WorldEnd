@@ -962,9 +962,6 @@ void TowerScene::ProcessPacket(char* ptr)
 
 	switch (ptr[1])
 	{
-	case SC_PACKET_LOGIN_OK:
-		RecvLoginOk(ptr);
-		break;
 	case SC_PACKET_ADD_PLAYER:
 		RecvAddPlayer(ptr);
 		break;
@@ -1032,14 +1029,6 @@ void TowerScene::ProcessPacket(char* ptr)
 		cout << "UnDefined Packet!!" << endl;
 		break;
 	}
-}
-
-void TowerScene::RecvLoginOk(char* ptr)
-{
-	SC_LOGIN_OK_PACKET* packet = reinterpret_cast<SC_LOGIN_OK_PACKET*>(ptr);
-	m_player->SetId(packet->id);
-	///m_player->SetPosition(packet->pos);
-	m_player->SetHp(packet->hp);
 }
 
 void TowerScene::RecvAddPlayer(char* ptr)

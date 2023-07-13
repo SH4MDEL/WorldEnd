@@ -700,9 +700,7 @@ void LoginScene::RecvLoginOk(char* ptr)
 {
 	SC_LOGIN_OK_PACKET* packet = reinterpret_cast<SC_LOGIN_OK_PACKET*>(ptr);
 	g_playerInfo.id = packet->id;
-	g_playerInfo.x = packet->pos.x;
-	g_playerInfo.y = packet->pos.y;
-	g_playerInfo.z = packet->pos.z;
+	g_playerInfo.position = XMFLOAT3{ packet->pos.x, packet->pos.y, packet->pos.z };
 	g_playerInfo.playerType = packet->player_type;
 
 	m_fadeFilter->FadeOut([&]() {

@@ -46,15 +46,6 @@ Server::Server()
 
 	m_database = std::make_unique<DataBase>();
 
-	/*USER_INFO a{L"ldh5112", L"123456", L"TEST"};
-	PLAYER_DATA p{};
-
-	m_database->TryLogin(a, p);*/
-
-
-	/*std::wstring test_id{L"ldh5112"};
-	m_database->GetSkillData(test_id);*/
-
 	printf("Complete Initialize!\n");
 	// ----------------------- //
 }
@@ -123,10 +114,13 @@ void Server::Network()
 	for (auto& th : m_worker_threads)
 		th.detach();
 
-	std::thread thread1{ &Server::TimerThread,this };
+	std::thread thread1{ &Server::TimerThread, this };
 	thread1.detach();
-	std::thread thread2{ &Server::TimerThread,this };
+	std::thread thread2{ &Server::TimerThread, this };
 	thread2.detach();
+
+	std::thread db_thread { &Server::DBThread, this };
+	db_thread.detach();
 
 	constexpr int MAX_FAME = 60;
 	using frame = std::chrono::duration<int32_t, std::ratio<1, MAX_FAME>>;
@@ -796,6 +790,16 @@ void Server::WorkerThread()
 			delete exp_over;
 			break;
 		}
+		case OP_LOGIN_OK:
+			SendLoginOk(static_cast<int>(key));
+
+			delete exp_over;
+			break;
+		case OP_LOGIN_FAIL:
+			SendLoginFail(static_cast<int>(key));
+
+			delete exp_over;
+			break;
 
 		}
 	}
@@ -813,16 +817,15 @@ void Server::ProcessPacket(int id, char* p)
 		USER_INFO info{ .user_id = packet->id, .password = packet->password };
 		PLAYER_DATA data{};
 
-		// DB 이벤트 만들어서 처리할 것
-		if (m_database->TryLogin(info, data)) {
-			std::cout << "Login" << std::endl;
-			SendLoginOk(id);
-		}
-		else {
-			std::cout << "FAIL" << std::endl;
-			SendLoginFail(id);
-			Disconnect(id);
-		}
+		DB_EVENT ev{};
+		ev.client_id = id;
+		ev.user_id = packet->id;
+		ev.data = packet->password;
+		ev.event_type = DBEventType::TRY_LOGIN;
+		ev.event_time = std::chrono::system_clock::now();
+		SetDatabaseEvent(ev);
+		std::cout << "try login!" << std::endl;
+
 		break;
 	}
 	case CS_PACKET_PLAYER_MOVE: {
@@ -991,6 +994,14 @@ void Server::Disconnect(int id)
 	else {
 		// 마을 내 플레이어 제거
 	}
+
+	DB_EVENT ev{};
+	ev.client_id = id;
+	ev.user_id = client->GetUserId();
+	ev.event_type = DBEventType::LOGOUT;
+	ev.event_time = std::chrono::system_clock::now();
+	SetDatabaseEvent(ev);
+
 	client->Init();
 
 	client->SetRemainSize(0);
@@ -1001,11 +1012,6 @@ void Server::Disconnect(int id)
 	ZeroMemory(&ex_over._wsa_over, sizeof(ex_over._wsa_over));
 	
 	closesocket(client->GetSocket());
-
-
-	// DB 내에서 if 할지 추가 쿼리를 실행할지?
-	m_database->Logout(client->GetUserId());
-
 
 	std::lock_guard<std::mutex> lock{ client->GetStateMutex() };
 	client->SetState(State::FREE);
@@ -1020,9 +1026,8 @@ void Server::SendLoginOk(int client_id)
 	packet.id = client_id;
 	packet.pos = m_clients[client_id]->GetPosition();
 	packet.hp = m_clients[client_id]->GetHp();
-	//packet.player_type = m_clients[client_id]->GetPlayerType();
-	packet.player_type = PlayerType::ARCHER;
-	strcpy_s(packet.name, sizeof(packet.name), m_clients[client_id]->GetName().c_str());
+	packet.player_type = m_clients[client_id]->GetPlayerType();
+	packet.name = m_clients[client_id]->GetName();
 
 	m_clients[client_id]->DoSend(&packet);
 }
@@ -1034,6 +1039,8 @@ void Server::SendLoginFail(int client_id)
 	packet.type = SC_PACKET_LOGIN_FAIL;
 	
 	m_clients[client_id]->DoSend(&packet);
+
+	Disconnect(client_id);
 }
 
 void Server::SendPlayerDeath(int client_id)
@@ -1740,6 +1747,8 @@ void Server::DBThread()
 			else{
 				switch (ev.event_type) {
 				case DBEventType::TRY_LOGIN: {
+					ExpOver* over = new ExpOver;
+
 					USER_INFO user_info{};
 					user_info.user_id = ev.user_id;
 					user_info.password = ev.data;
@@ -1751,25 +1760,25 @@ void Server::DBThread()
 
 						client->SetUserId(ev.user_id);
 						std::string name{};
-						name.assign(data.name.begin(), data.name.end());
-						client->SetName(name);
+						client->SetName(data.name);
 						client->SetPlayerType(static_cast<PlayerType>(data.player_type));
 						client->SetPosition(data.x, data.y, data.z);
+
 						// 강화정보 Set
+
 						// 스킬 정보 Set
+
+						over->_comp_type = OP_LOGIN_OK;
+						PostQueuedCompletionStatus(m_handle_iocp, 1, ev.client_id, &over->_wsa_over);
 					}
 					else {
-						// LOGIN FAIL
+						over->_comp_type = OP_LOGIN_FAIL;
+						PostQueuedCompletionStatus(m_handle_iocp, 1, ev.client_id, &over->_wsa_over);
 					}
 					break;
 				}
 				case DBEventType::LOGOUT:
-					if (m_database->Logout(ev.user_id)) {
-						// Logout
-					}
-					else {
-						// logout 실패
-					}
+					m_database->Logout(ev.user_id);
 					break;
 				case DBEventType::CREATE_ACCOUNT: {
 					USER_INFO user_info{};
@@ -1844,6 +1853,11 @@ void Server::DBThread()
 void Server::SetTimerEvent(const TIMER_EVENT& ev)
 {
 	m_timer_queue.push(ev);
+}
+
+void Server::SetDatabaseEvent(const DB_EVENT& ev)
+{
+	m_db_queue.push(ev);
 }
 
 void Server::SetAttackTimerEvent(int id, ActionType attack_type,

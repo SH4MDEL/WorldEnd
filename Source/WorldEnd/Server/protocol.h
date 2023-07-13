@@ -672,7 +672,7 @@ struct SC_LOGIN_OK_PACKET    // 로그인 성공을 알려주는 패킷
 {
 	UCHAR size;
 	UCHAR type;
-	CHAR  name[NAME_SIZE];
+	std::wstring name;
 	INT id;
 	DirectX::XMFLOAT3 pos;
 	FLOAT hp;

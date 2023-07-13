@@ -74,7 +74,7 @@ class TowerObjectManager;
 struct PlayerInfo {
     INT        id;
     INT        gold;
-    FLOAT      x, y, z;
+    XMFLOAT3   position;
     PlayerType playerType;
 };
 
