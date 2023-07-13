@@ -528,6 +528,26 @@ namespace VillageSetting
 	constexpr float STAIRS28_FRONT = -102.f;
 	constexpr float STAIRS28_BOTTOM = STAIRS27_TOP;
 	constexpr float STAIRS28_TOP = STAIRS10_TOP;
+
+
+	constexpr float GATE_LENGTH = 12.33f;
+	constexpr float GATE_OFFSET = 2.f;
+
+	constexpr float NORTH_GATE_LEFT = -76.83f - GATE_LENGTH / 2.f;
+	constexpr float NORTH_GATE_RIGHT = -76.83f + GATE_LENGTH / 2.f;
+	constexpr float NORTH_GATE_FRONT = 271.81f - GATE_OFFSET;
+
+	constexpr float SOUTH_GATE_LEFT = -74.84f + GATE_LENGTH / 2.f;
+	constexpr float SOUTH_GATE_RIGHT = -74.84f - GATE_LENGTH / 2.f;
+	constexpr float SOUTH_GATE_FRONT = -60.56f + GATE_OFFSET;
+
+	constexpr float WEST_GATE_LEFT = 60.99f - GATE_LENGTH / 2.f;
+	constexpr float WEST_GATE_RIGHT = 60.99f + GATE_LENGTH / 2.f;
+	constexpr float WEST_GATE_FRONT = -218.59 + GATE_OFFSET;
+
+	constexpr float EAST_GATE_LEFT = 67.141f + GATE_LENGTH / 2.f;
+	constexpr float EAST_GATE_RIGHT = 67.141f - GATE_LENGTH / 2.f;
+	constexpr float EAST_GATE_FRONT = 69.09f - GATE_OFFSET;
 }
 
 namespace RoomSetting

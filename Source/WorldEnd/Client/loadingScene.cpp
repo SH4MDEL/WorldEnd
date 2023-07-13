@@ -404,10 +404,26 @@ void LoadingScene::BuildTexture(const ComPtr<ID3D12Device>& device, const ComPtr
 	buttonUITexture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/UI_Button.dds"), (INT)ShaderRegister::BaseTexture);
 	buttonUITexture->CreateSrvDescriptorHeap(device);
 	buttonUITexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+	auto textbarUITexture{ make_shared<Texture>() };
+	textbarUITexture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/UI_Textbar.dds"), (INT)ShaderRegister::BaseTexture);
+	textbarUITexture->CreateSrvDescriptorHeap(device);
+	textbarUITexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+	auto roomUITexture{ make_shared<Texture>() };
+	roomUITexture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/UI_Room.dds"), (INT)ShaderRegister::BaseTexture);
+	roomUITexture->CreateSrvDescriptorHeap(device);
+	roomUITexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
 	auto goldUITexture{ make_shared<Texture>() };
 	goldUITexture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/Gold.dds"), (INT)ShaderRegister::BaseTexture);
 	goldUITexture->CreateSrvDescriptorHeap(device);
 	goldUITexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+	auto leftArrowUITexture{ make_shared<Texture>() };
+	leftArrowUITexture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/UI_LeftArrow.dds"), (INT)ShaderRegister::BaseTexture);
+	leftArrowUITexture->CreateSrvDescriptorHeap(device);
+	leftArrowUITexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+	auto rightArrowUITexture{ make_shared<Texture>() };
+	rightArrowUITexture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/UI_RightArrow.dds"), (INT)ShaderRegister::BaseTexture);
+	rightArrowUITexture->CreateSrvDescriptorHeap(device);
+	rightArrowUITexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
 
 	auto warriorSkillTexture{ make_shared<Texture>() };
 	warriorSkillTexture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/SkillTexture/Warrior_Skill.dds"), (INT)ShaderRegister::BaseTexture);
@@ -439,7 +455,11 @@ void LoadingScene::BuildTexture(const ComPtr<ID3D12Device>& device, const ComPtr
 	m_textures.insert({ "FRAMEUI", frameUITexture });
 	m_textures.insert({ "CANCELUI", cancelUITexture });
 	m_textures.insert({ "BUTTONUI", buttonUITexture });
+	m_textures.insert({ "TEXTBARUI", textbarUITexture });
+	m_textures.insert({ "ROOMUI", roomUITexture });
 	m_textures.insert({ "GOLDUI", goldUITexture });
+	m_textures.insert({ "LEFTARROWUI", leftArrowUITexture });
+	m_textures.insert({ "RIGHTARROWUI", rightArrowUITexture });
 	m_textures.insert({ "WARRIORSKILL", warriorSkillTexture });
 	m_textures.insert({ "WARRIORULTIMATE", warriorUltimateTexture });
 	m_textures.insert({ "ARCHERSKILL", archerSkillTexture });

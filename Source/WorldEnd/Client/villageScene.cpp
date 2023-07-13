@@ -8,7 +8,9 @@ VillageScene::VillageScene(const ComPtr<ID3D12Device>& device,
 		0.0f, -0.5f, 0.0f, 0.0f,
 		0.0f, 0.0f, 1.0f, 0.0f,
 		0.5f, 0.5f, 0.0f, 1.0f),
-	m_sceneState{ (INT)State::Unused }
+	m_sceneState{ (INT)State::Unused },
+	m_roomPage{0},
+	m_selectedRoom{-1}
 {
 	OnCreate(device, commandList, rootSignature, postRootSignature);
 }
@@ -200,7 +202,135 @@ void VillageScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 
 void VillageScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist)
 {
+	m_interactUI = make_shared<StandardUI>(XMFLOAT2{ 0.25f, 0.15f }, XMFLOAT2{ 0.29f, 0.1f });
+	m_interactUI->SetTexture("BUTTONUI");
+	m_interactTextUI = make_shared<TextUI>(XMFLOAT2{ 0.f, -0.2f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 80.f, 20.f });
+	m_interactTextUI->SetColorBrush("WHITE");
+	m_interactTextUI->SetTextFormat("KOPUB18");
+	m_interactUI->SetChild(m_interactTextUI);
+	m_interactUI->SetDisable();
+	m_shaders["UI"]->SetUI(m_interactUI);
 
+	m_roomUI = make_shared<BackgroundUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 0.8f, 0.8f });
+	m_roomUI->SetTexture("ROOMUI");
+
+	auto roomCancelButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.9f, 0.9f}, XMFLOAT2{0.06f, 0.06f}) };
+	roomCancelButtonUI->SetTexture("CANCELUI");
+	roomCancelButtonUI->SetClickEvent([&]() {
+		ResetState(State::OutputRoomUI);
+		if (m_roomUI) m_roomUI->SetDisable();
+		m_roomPage = 0;
+		m_selectedRoom = -1;
+		});
+	m_roomUI->SetChild(roomCancelButtonUI);
+
+	auto createRoomButtonUI = make_shared<ButtonUI>(XMFLOAT2{ -0.3f, -0.75f }, XMFLOAT2{ 0.29f, 0.1f });
+	createRoomButtonUI->SetTexture("BUTTONUI");
+	createRoomButtonUI->SetClickEvent([&]() {
+		cout << m_selectedRoom << "번 방 생성 패킷 전송" << endl;
+		cout << "누가 이미 만들어놨으면 실패 패킷 보내야 함" << endl;
+		// 이건 원래 여기서 하면 안되고 성공 패킷이 날아왔을 때
+		ResetState(State::OutputRoomUI);
+		if (m_roomUI) m_roomUI->SetDisable();
+		SetState(State::OutputPartyUI);
+		if (m_partyUI) m_partyUI->SetEnable();
+		});
+	auto createRoomButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.f, 0.f},XMFLOAT2{120.f, 10.f}) };
+	createRoomButtonTextUI->SetText(L"파티 생성");
+	createRoomButtonTextUI->SetColorBrush("WHITE");
+	createRoomButtonTextUI->SetTextFormat("KOPUB21");
+	createRoomButtonUI->SetChild(createRoomButtonTextUI);
+	m_roomUI->SetChild(createRoomButtonUI);
+
+	auto joinRoomButtonUI = make_shared<ButtonUI>(XMFLOAT2{ 0.3f, -0.75f }, XMFLOAT2{ 0.29f, 0.1f });
+	joinRoomButtonUI->SetTexture("BUTTONUI");
+	joinRoomButtonUI->SetClickEvent([&]() {
+		cout << m_selectedRoom << "번 방 참가 패킷 전송" << endl;
+		cout << "방이 없으면 실패 패킷 보내야 함" << endl;
+		// 이건 원래 여기서 하면 안되고 성공 패킷이 날아왔을 때
+		ResetState(State::OutputRoomUI);
+		if (m_roomUI) m_roomUI->SetDisable();
+		SetState(State::OutputPartyUI);
+		if (m_partyUI) m_partyUI->SetEnable();
+		});
+	auto joinRoomButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.f, 0.f},XMFLOAT2{120.f, 10.f}) };
+	joinRoomButtonTextUI->SetText(L"파티 가입");
+	joinRoomButtonTextUI->SetColorBrush("WHITE");
+	joinRoomButtonTextUI->SetTextFormat("KOPUB21");
+	joinRoomButtonUI->SetChild(joinRoomButtonTextUI);
+	m_roomUI->SetChild(joinRoomButtonUI);
+
+	m_leftArrowUI = make_shared<ButtonUI>(XMFLOAT2{-0.8f, 0.f}, XMFLOAT2{0.1f, 0.2f});
+	m_leftArrowUI->SetTexture("LEFTARROWUI");
+	m_leftArrowUI->SetClickEvent([&]() {
+		if (m_roomPage != 0) {
+			m_roomPage -= 1;
+			m_selectedRoom = -1;
+			cout << m_roomPage << " 페이지에 해당하는 정보 달라는 패킷 전송" << endl;
+		}
+		});
+	m_roomUI->SetChild(m_leftArrowUI);
+
+	m_rightArrowUI = make_shared<ButtonUI>(XMFLOAT2{0.8f, 0.f}, XMFLOAT2{0.1f, 0.2f});
+	m_rightArrowUI->SetTexture("RIGHTARROWUI");
+	m_rightArrowUI->SetClickEvent([&]() {
+		m_roomPage += 1;
+		m_selectedRoom = -1;
+		cout << m_roomPage << " 페이지에 해당하는 정보 달라는 패킷 전송" << endl;
+		});
+	m_roomUI->SetChild(m_rightArrowUI);
+
+	for (size_t i = 0; auto& roomTextUI : m_roomButtonTextUI) {
+		auto roomButton = make_shared<ButtonUI>(XMFLOAT2{ 0.f, -0.4f + i * 0.2f }, XMFLOAT2{ 0.6f, 0.08f });
+		roomButton->SetTexture("TEXTBARUI");
+		roomButton->SetClickEvent([&]() {
+			m_selectedRoom = i;
+			});
+
+		// i번 방의 정보를 갱신하는 패킷이 날아왔을 때 m_roomButtonTextUI[i]의 Text를 갱신해 주자.
+		m_roomButtonTextUI[i] = make_shared<TextUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 300.f, 20.f });
+		m_roomButtonTextUI[i]->SetText(TEXT("Empty"));
+		m_roomButtonTextUI[i]->SetColorBrush("WHITE");
+		m_roomButtonTextUI[i]->SetTextFormat("KOPUB21");
+
+		roomButton->SetChild(m_roomButtonTextUI[i]);
+		m_roomUI->SetChild(roomButton);
+		++i;
+	}
+
+	m_roomUI->SetDisable();
+	m_shaders["UI"]->SetUI(m_roomUI);
+
+	m_partyUI = make_shared<BackgroundUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 0.8f, 0.8f });
+	m_partyUI->SetTexture("ROOMUI");
+
+	auto partyCancelButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.9f, 0.9f}, XMFLOAT2{0.06f, 0.06f}) };
+	partyCancelButtonUI->SetTexture("CANCELUI");
+	partyCancelButtonUI->SetClickEvent([&]() {
+		ResetState(State::OutputPartyUI);
+		if (m_partyUI) m_partyUI->SetDisable();
+		cout << "파티 UI 닫았다는 패킷 전송" << endl;
+
+		});
+	m_partyUI->SetChild(partyCancelButtonUI);
+
+	auto enterDungeonButtonUI = make_shared<ButtonUI>(XMFLOAT2{ 0.f, -0.75f }, XMFLOAT2{ 0.29f, 0.1f });
+	enterDungeonButtonUI->SetTexture("BUTTONUI");
+	enterDungeonButtonUI->SetClickEvent([&]() {
+		ResetState(State::OutputPartyUI);
+		if (m_partyUI) m_partyUI->SetDisable();
+		cout << "던전 입장 패킷 전송" << endl;
+		cout << "파티원이 다같이 입장해야 함" << endl;
+		});
+	auto enterDungeonButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.f, 0.f},XMFLOAT2{120.f, 10.f}) };
+	enterDungeonButtonTextUI->SetText(L"던전 입장");
+	enterDungeonButtonTextUI->SetColorBrush("WHITE");
+	enterDungeonButtonTextUI->SetTextFormat("KOPUB21");
+	enterDungeonButtonUI->SetChild(enterDungeonButtonTextUI);
+	m_partyUI->SetChild(enterDungeonButtonUI);
+
+	m_partyUI->SetDisable();
+	m_shaders["UI"]->SetUI(m_partyUI);
 }
 
 void VillageScene::BuildLight(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist)
@@ -240,35 +370,57 @@ void VillageScene::DestroyObjects()
 
 void VillageScene::OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime)
 {
-	SetCursor(NULL);
-	RECT windowRect;
-	GetWindowRect(hWnd, &windowRect);
+	if (!CheckState(State::CantPlayerControl)) {
+		SetCursor(NULL);
+		RECT windowRect;
+		GetWindowRect(hWnd, &windowRect);
 
-	POINT prevPosition{ windowRect.left + width / 2, windowRect.top + height / 2 };
-	POINT nextPosition;
-	GetCursorPos(&nextPosition);
+		POINT prevPosition{ windowRect.left + width / 2, windowRect.top + height / 2 };
+		POINT nextPosition;
+		GetCursorPos(&nextPosition);
 
-	int dx = nextPosition.x - prevPosition.x;
-	int dy = nextPosition.y - prevPosition.y;
+		int dx = nextPosition.x - prevPosition.x;
+		int dy = nextPosition.y - prevPosition.y;
 
-	if (m_camera) m_camera->Rotate(0.f, dy * 5.0f * deltaTime, dx * 5.0f * deltaTime);
-	SetCursorPos(prevPosition.x, prevPosition.y);
+		if (m_camera) m_camera->Rotate(0.f, dy * 5.0f * deltaTime, dx * 5.0f * deltaTime);
+		SetCursorPos(prevPosition.x, prevPosition.y);
+	}
+
+	if (m_roomUI) m_roomUI->OnProcessingMouseMessage(hWnd, width, height, deltaTime);
+	if (m_partyUI) m_partyUI->OnProcessingMouseMessage(hWnd, width, height, deltaTime);
 }
 
 void VillageScene::OnProcessingMouseMessage(UINT message, LPARAM lParam)
 {
-	if (m_player) m_player->OnProcessingMouseMessage(message, lParam);
-	if (!g_clickEventStack.empty()) {
-		g_clickEventStack.top()();
-		while (!g_clickEventStack.empty()) {
-			g_clickEventStack.pop();
+	if (!CheckState(State::CantPlayerControl)) {
+		if (m_player) m_player->OnProcessingMouseMessage(message, lParam);
+	}
+
+	if (CheckState(State::OutputRoomUI)) {
+		if (m_roomUI) m_roomUI->OnProcessingMouseMessage(message, lParam);
+		if (!g_clickEventStack.empty()) {
+			g_clickEventStack.top()();
+			while (!g_clickEventStack.empty()) {
+				g_clickEventStack.pop();
+			}
+		}
+	}
+	if (CheckState(State::OutputPartyUI)) {
+		if (m_partyUI) m_partyUI->OnProcessingMouseMessage(message, lParam);
+		if (!g_clickEventStack.empty()) {
+			g_clickEventStack.top()();
+			while (!g_clickEventStack.empty()) {
+				g_clickEventStack.pop();
+			}
 		}
 	}
 }
 
 void VillageScene::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 {
-	if (m_player) m_player->OnProcessingKeyboardMessage(timeElapsed);
+	if (!CheckState(State::CantPlayerControl)) {
+		if (m_player) m_player->OnProcessingKeyboardMessage(timeElapsed);
+	}
 
 	if (GetAsyncKeyState(VK_TAB) & 0x8000) {
 		SetState(State::SceneLeave);
@@ -281,7 +433,21 @@ void VillageScene::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 	}
 }
 
-void VillageScene::OnProcessingKeyboardMessage(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {}
+void VillageScene::OnProcessingKeyboardMessage(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
+{
+	switch (message)
+	{
+	case WM_CHAR:
+		if (wParam == 'f' || wParam == 'F') {
+			if (CheckState(State::DungeonInteract)) {
+				ResetState(State::DungeonInteract);
+				SetState(State::OutputRoomUI);
+				m_roomUI->SetEnable();
+			}
+		}
+		break;
+	}
+}
 
 void VillageScene::Update(FLOAT timeElapsed)
 {
@@ -296,13 +462,37 @@ void VillageScene::Update(FLOAT timeElapsed)
 	m_fadeFilter->Update(timeElapsed);
 
 	CollideWithMap();
-	//UpdateLightSystem(timeElapsed);
+	UpdateDungeonInteract(timeElapsed);
 
 	// 프러스텀 컬링을 진행하는 셰이더에 바운딩 프러스텀 전달
 	auto viewFrustum = m_camera->GetViewFrustum();
 	static_pointer_cast<StaticObjectShader>(m_shaders["OBJECT1"])->SetBoundingFrustum(viewFrustum);
 	static_pointer_cast<StaticObjectShader>(m_shaders["OBJECT2"])->SetBoundingFrustum(viewFrustum);
 	static_pointer_cast<StaticObjectBlendShader>(m_shaders["OBJECTBLEND"])->SetBoundingFrustum(viewFrustum);
+}
+
+void VillageScene::UpdateDungeonInteract(FLOAT timeElapsed)
+{
+	m_interactUI->SetDisable();
+	ResetState(State::DungeonInteract);
+	if (CheckState(State::OutputRoomUI)) return;
+	if (CheckState(State::OutputPartyUI)) return;
+
+	auto position = m_player->GetPosition();
+	bool isInteract = false;
+
+	if ((position.x >= VillageSetting::NORTH_GATE_LEFT && position.x <= VillageSetting::NORTH_GATE_RIGHT && position.z >= VillageSetting::NORTH_GATE_FRONT) ||
+		(position.x <= VillageSetting::SOUTH_GATE_LEFT && position.x >= VillageSetting::SOUTH_GATE_RIGHT && position.z <= VillageSetting::SOUTH_GATE_FRONT) ||
+		(position.z >= VillageSetting::WEST_GATE_LEFT && position.z <= VillageSetting::WEST_GATE_RIGHT && position.x <= VillageSetting::WEST_GATE_FRONT) ||
+		(position.z <= VillageSetting::EAST_GATE_LEFT && position.z >= VillageSetting::EAST_GATE_RIGHT && position.x >= VillageSetting::EAST_GATE_FRONT)) {
+		isInteract = true;
+	}
+
+	if (isInteract) {
+		m_interactUI->SetEnable();
+		SetState(State::DungeonInteract);
+		m_interactTextUI->SetText(TEXT("F : 파티 생성"));
+	}
 }
 
 void VillageScene::PreProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList, UINT threadIndex) 
@@ -334,6 +524,7 @@ void VillageScene::Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, 
 	if (CheckState(State::SceneLeave)) return;
 	if (m_camera) m_camera->UpdateShaderVariable(commandList);
 	if (m_lightSystem) m_lightSystem->UpdateShaderVariable(commandList);
+
 	switch (threadIndex)
 	{
 	case 0:
@@ -423,6 +614,9 @@ void VillageScene::PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandL
 void VillageScene::RenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext)
 {
 	if (CheckState(State::SceneLeave)) return;
+	if (m_interactUI) m_interactUI->RenderText(deviceContext);
+	if (m_roomUI) m_roomUI->RenderText(deviceContext);
+	if (m_partyUI) m_partyUI->RenderText(deviceContext);
 }
 
 void VillageScene::PostRenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext)

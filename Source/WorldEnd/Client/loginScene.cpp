@@ -187,7 +187,7 @@ void LoginScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	// 조명 생성
 	BuildLight(device, commandlist);
 
-	SoundManager::GetInstance().PlayMusic(SoundManager::Music::Title);
+	//SoundManager::GetInstance().PlayMusic(SoundManager::Music::Title);
 }
 
 void LoginScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist)
@@ -198,19 +198,19 @@ void LoginScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 	titleUI->SetTexture("TITLE");
 	m_titleUI->SetChild(titleUI);
 
-	m_idBox = make_shared<InputTextUI>(XMFLOAT2{ -0.3f, 0.f }, XMFLOAT2{ 0.2f, 0.08f }, XMFLOAT2{ 120.f, 10.f }, 20);
+	m_idBox = make_shared<InputTextUI>(XMFLOAT2{ -0.3f, 0.f }, XMFLOAT2{ 0.3f, 0.04f }, XMFLOAT2{ 120.f, 10.f }, 20);
 	m_idBox->SetColorBrush("WHITE");
 	m_idBox->SetTextFormat("KOPUB18");
-	m_idBox->SetTexture("BUTTONUI");
+	m_idBox->SetTexture("TEXTBARUI");
 	m_titleUI->SetChild(m_idBox);
 
-	m_passwordBox = make_shared<InputTextUI>(XMFLOAT2{ 0.3f, 0.f }, XMFLOAT2{ 0.2f, 0.08f }, XMFLOAT2{ 120.f, 10.f }, 20);
+	m_passwordBox = make_shared<InputTextUI>(XMFLOAT2{ 0.3f, 0.f }, XMFLOAT2{ 0.3f, 0.04f }, XMFLOAT2{ 120.f, 10.f }, 20);
 	m_passwordBox->SetColorBrush("WHITE");
 	m_passwordBox->SetTextFormat("KOPUB18");
-	m_passwordBox->SetTexture("BUTTONUI");
+	m_passwordBox->SetTexture("TEXTBARUI");
 	m_titleUI->SetChild(m_passwordBox);
 
-	auto gameStartButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.f, -0.3f}, XMFLOAT2{0.2f, 0.08f}) };
+	auto gameStartButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.f, -0.3f}, XMFLOAT2{0.29f, 0.1f}) };
 	gameStartButtonUI->SetTexture("BUTTONUI");
 	gameStartButtonUI->SetClickEvent([&]() {
 		m_fadeFilter->FadeOut([&]() {
@@ -224,7 +224,7 @@ void LoginScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 	gameStartButtonUI->SetChild(gameStartButtonTextUI);
 	m_titleUI->SetChild(gameStartButtonUI);
 
-	auto optionButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.f, -0.5f}, XMFLOAT2{0.2f, 0.08f}) };
+	auto optionButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.f, -0.5f}, XMFLOAT2{0.29f, 0.1f}) };
 	optionButtonUI->SetTexture("BUTTONUI");
 	optionButtonUI->SetClickEvent([&]() {
 		SetState(State::OutputOptionUI);
@@ -237,7 +237,7 @@ void LoginScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 	optionButtonUI->SetChild(optionButtonTextUI);
 	m_titleUI->SetChild(optionButtonUI);
 
-	auto gameExitButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.f, -0.7f}, XMFLOAT2{0.2f, 0.08f}) };
+	auto gameExitButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.f, -0.7f}, XMFLOAT2{0.29f, 0.1f}) };
 	gameExitButtonUI->SetTexture("BUTTONUI");
 	gameExitButtonUI->SetClickEvent([&]() {
 		m_fadeFilter->FadeOut([&]() {
@@ -270,7 +270,7 @@ void LoginScene::BuildOptionUI(const ComPtr<ID3D12Device>& device, const ComPtr<
 	});
 	m_optionUI->SetChild(optionCancelButtonUI);
 
-	auto option1080x720ResolutionButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.f, 0.3f}, XMFLOAT2{0.2f, 0.08f}) };
+	auto option1080x720ResolutionButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.f, 0.3f}, XMFLOAT2{0.29f, 0.1f}) };
 	option1080x720ResolutionButtonUI->SetTexture("BUTTONUI");
 	option1080x720ResolutionButtonUI->SetClickEvent([&]() {
 		g_GameFramework.ResizeWindow(1080, 720);
@@ -282,7 +282,7 @@ void LoginScene::BuildOptionUI(const ComPtr<ID3D12Device>& device, const ComPtr<
 	option1080x720ResolutionButtonUI->SetChild(option1080x720ResolutionButtonTextUI);
 	m_optionUI->SetChild(option1080x720ResolutionButtonUI);
 
-	auto option1920x1080ResolutionButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.2f, 0.08f}) };
+	auto option1920x1080ResolutionButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.29f, 0.1f}) };
 	option1920x1080ResolutionButtonUI->SetTexture("BUTTONUI");
 	option1920x1080ResolutionButtonUI->SetClickEvent([&]() {
 		g_GameFramework.ResizeWindow(1920, 1080);
@@ -294,7 +294,7 @@ void LoginScene::BuildOptionUI(const ComPtr<ID3D12Device>& device, const ComPtr<
 	option1920x1080ResolutionButtonUI->SetChild(option1920x1080ResolutionButtonTextUI);
 	m_optionUI->SetChild(option1920x1080ResolutionButtonUI);
 
-	auto option2560x1440ResolutionButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.f, -0.3f}, XMFLOAT2{0.2f, 0.08f}) };
+	auto option2560x1440ResolutionButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.f, -0.3f}, XMFLOAT2{0.29f, 0.1f}) };
 	option2560x1440ResolutionButtonUI->SetTexture("BUTTONUI");
 	option2560x1440ResolutionButtonUI->SetClickEvent([&]() {
 		g_GameFramework.ResizeWindow(2560, 1440);

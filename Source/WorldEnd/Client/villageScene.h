@@ -7,14 +7,17 @@ class VillageScene : public Scene
 public:
 	enum class State {
 		Unused = 0x00,
-		OutputOptionUI = 0x01,
-		SceneLeave = 0x02,
+		DungeonInteract = 0x01,
+		OutputRoomUI = 0x02,
+		OutputPartyUI = 0x04,
+		SceneLeave = 0x08,
 		BlurLevel1 = Unused,
 		BlurLevel2 = Unused,
 		BlurLevel3 = Unused,
 		BlurLevel4 = Unused,
 		BlurLevel5 = Unused,
-		Bluring = BlurLevel1 | BlurLevel2 | BlurLevel3 | BlurLevel4 | BlurLevel5
+		Bluring = BlurLevel1 | BlurLevel2 | BlurLevel3 | BlurLevel4 | BlurLevel5,
+		CantPlayerControl = OutputRoomUI | OutputPartyUI
 	};
 	enum class LightTag : INT {
 		Directional,
@@ -72,7 +75,7 @@ private:
 	void BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist);
 	void BuildLight(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist);
 
-	void UpdateLightSystem(FLOAT timeElapsed);
+	void UpdateDungeonInteract(FLOAT timeElapsed);
 
 	void DrawBoundingBox(BoundingOrientedBox boundingBox, FLOAT roll, FLOAT pitch, FLOAT yaw);
 
@@ -104,6 +107,22 @@ protected:
 
 	unique_ptr<BlurFilter>			m_blurFilter;
 	unique_ptr<FadeFilter>			m_fadeFilter;
+
+	shared_ptr<UI>					m_interactUI;
+	shared_ptr<TextUI>				m_interactTextUI;
+
+	// Room UI 관련
+	shared_ptr<UI>					m_roomUI;
+	shared_ptr<ButtonUI>			m_leftArrowUI;
+	shared_ptr<ButtonUI>			m_rightArrowUI;
+	array<shared_ptr<TextUI>, 6>	m_roomButtonTextUI;
+	UINT							m_roomPage;
+	INT								m_selectedRoom;
+
+	// Party UI 관련
+	shared_ptr<UI>					m_partyUI;
+	array<shared_ptr<Player>, 3>	m_partyUIPlayer;
+
 
 	XMFLOAT4						m_directionalDiffuse;
 	XMFLOAT3						m_directionalDirection;
