@@ -10,7 +10,7 @@ mt19937							g_randomEngine{ random_device{}() };
 SOCKET							g_socket{};
 string							g_serverIP{ "127.0.0.1" };
 mutex                           g_mutex;
-PlayerType                      g_selectedPlayerType;
+PlayerInfo						g_playerInfo;
 wstring                         g_loadingText{L""};
 INT                             g_loadingIndex;
 unique_ptr<ParticleSystem>		g_particleSystem;

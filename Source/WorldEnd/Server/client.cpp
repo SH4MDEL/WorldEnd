@@ -56,7 +56,7 @@ void Client::Init()
 
 	// 나중에 DB에서 처리될 것들
 	SetPlayerType(PlayerType::WARRIOR);
-	m_name = "Player";
+	m_name = std::wstring{ L"Player" };
 
 	m_status->SetAtk(90.f);
 	m_status->SetMaxHp(100.f);

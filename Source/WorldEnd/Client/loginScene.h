@@ -74,6 +74,15 @@ private:
 
 	bool IsBlendObject(const string& objectName);
 
+
+	// 서버 코드
+	void InitServer();
+	void ProcessPacket(char* ptr);
+	bool TryLogin();
+
+	void RecvLoginOk(char* ptr);
+	void RecvLoginFail(char* ptr);
+
 private:
 	ComPtr<ID3D12Resource>					m_sceneBuffer;
 	SceneInfo* m_sceneBufferPointer;

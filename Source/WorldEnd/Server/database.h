@@ -7,7 +7,6 @@ struct USER_INFO
 {
 	std::wstring user_id;
 	std::wstring password;
-	std::wstring name;
 };
 
 struct PLAYER_INFO
@@ -94,7 +93,7 @@ public:
 	~DataBase();
 
 	bool TryLogin(const USER_INFO& user_info, PLAYER_DATA& player_data);
-	bool Logout(const std::wstring_view& ws);
+	bool Logout(const std::wstring_view& id);
 	bool CreateAccount(const USER_INFO& user_info);
 	bool DeleteAccount(const USER_INFO& user_info);
 	bool UpdatePlayer(const PLAYER_INFO& player_info);

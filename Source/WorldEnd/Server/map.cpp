@@ -169,7 +169,7 @@ void GameRoom::SendAddPlayer(INT sender, INT receiver)
 	packet.pos = server.m_clients[sender]->GetPosition();
 	packet.hp = server.m_clients[sender]->GetHp();
 	packet.player_type = server.m_clients[sender]->GetPlayerType();
-	strcpy_s(packet.name, sizeof(packet.name), server.m_clients[sender]->GetName().c_str());
+	//strcpy_s(packet.name, sizeof(packet.name), server.m_clients[sender]->GetName().c_str());
 
 	server.m_clients[receiver]->DoSend(&packet);
 }

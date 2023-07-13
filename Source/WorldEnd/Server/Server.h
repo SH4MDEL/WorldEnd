@@ -74,6 +74,7 @@ public:
 
 	// Send
 	void SendLoginOk(int client_id);
+	void SendLoginFail(int client_id);
 	void SendPlayerDeath(int client_id);
 	void SendChangeAnimation(int client_id, USHORT animation);
 	void SendArrowShoot(int client_id, int arrow_id, ActionType type);
@@ -97,6 +98,7 @@ public:
 
 	// 타이머 이벤트 Set
 	void SetTimerEvent(const TIMER_EVENT& ev);
+	void SetDatabaseEvent(const DB_EVENT& ev);
 	void SetAttackTimerEvent(int id, ActionType attack_type,
 		std::chrono::system_clock::time_point attack_time);
 	void SetCooldownTimerEvent(int id, ActionType action_type);

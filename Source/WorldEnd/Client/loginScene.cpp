@@ -34,7 +34,8 @@ void LoginScene::OnCreate(
 	const ComPtr<ID3D12RootSignature>& rootSignature, 
 	const ComPtr<ID3D12RootSignature>& postRootSignature) 
 {
-	g_selectedPlayerType = PlayerType::ARCHER;
+	g_playerInfo.playerType = PlayerType::WARRIOR;
+
 	m_sceneState = (INT)State::Unused;
 	BuildObjects(device, commandList, rootSignature, postRootSignature);
 }
@@ -212,11 +213,18 @@ void LoginScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 
 	auto gameStartButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.f, -0.3f}, XMFLOAT2{0.29f, 0.1f}) };
 	gameStartButtonUI->SetTexture("BUTTONUI");
+#ifdef USE_NETWORK
+	gameStartButtonUI->SetClickEvent([&]() {
+		InitServer();
+		TryLogin();
+		});
+#else
 	gameStartButtonUI->SetClickEvent([&]() {
 		m_fadeFilter->FadeOut([&]() {
 			SetState(State::SceneLeave);
 			});
-		});
+	});
+#endif
 	auto gameStartButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.f, 0.f}, XMFLOAT2{40.f, 10.f}) };
 	gameStartButtonTextUI->SetText(L"게임 시작");
 	gameStartButtonTextUI->SetColorBrush("WHITE");
@@ -373,10 +381,20 @@ void LoginScene::OnProcessingKeyboardMessage(HWND hWnd, UINT message, WPARAM wPa
 
 void LoginScene::Update(FLOAT timeElapsed) 
 {
+#ifdef USE_NETWORK
 	if (CheckState(State::SceneLeave)) {
 		g_GameFramework.ChangeScene(SCENETAG::VillageScene);
 		return;
 	}
+	RecvPacket();
+#else
+	if (CheckState(State::SceneLeave)) {
+		g_GameFramework.ChangeScene(SCENETAG::VillageScene);
+		return;
+	}
+#endif
+
+	
 	m_camera->Update(timeElapsed);
 	if (m_shaders["SKYBOX"]) for (auto& skybox : m_shaders["SKYBOX"]->GetObjects()) skybox->SetPosition(m_camera->GetEye());
 	for (const auto& shader : m_shaders)
@@ -609,3 +627,81 @@ bool LoginScene::IsBlendObject(const string& objectName)
 	if (objectName == "Decal_A") return true;
 	return false;
 }
+
+void LoginScene::InitServer()
+{
+	wcout.imbue(locale("korean"));
+	WSADATA wsa;
+	if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) {
+		cout << "WSA START ERROR" << endl;
+	}
+
+	// socket 생성
+	g_socket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, 0, 0, WSA_FLAG_OVERLAPPED);
+	if (g_socket == INVALID_SOCKET) {
+		cout << "SOCKET INIT ERROR!" << endl;
+	}
+
+	// connect
+	SOCKADDR_IN server_address{};
+	ZeroMemory(&server_address, sizeof(server_address));
+	server_address.sin_family = AF_INET;
+	server_address.sin_port = htons(SERVER_PORT);
+	inet_pton(AF_INET, g_serverIP.c_str(), &(server_address.sin_addr.s_addr));
+
+	connect(g_socket, reinterpret_cast<SOCKADDR*>(&server_address), sizeof(server_address));
+
+	unsigned long noblock = 1;
+	ioctlsocket(g_socket, FIONBIO, &noblock);
+}
+
+void LoginScene::ProcessPacket(char* ptr)
+{
+	switch (ptr[1])
+	{
+	case SC_PACKET_LOGIN_OK:
+		RecvLoginOk(ptr);
+		break;
+	case SC_PACKET_LOGIN_FAIL:
+		RecvLoginFail(ptr);
+		break;
+	default:
+		cout << "UnDefined Packet!!" << endl;
+		break;
+	}
+}
+
+bool LoginScene::TryLogin()
+{
+#ifdef USE_NETWORK
+	CS_LOGIN_PACKET login_packet{};
+	login_packet.size = sizeof(login_packet);
+	login_packet.type = CS_PACKET_LOGIN;
+	login_packet.id = m_idBox->GetString();
+	login_packet.password = m_passwordBox->GetString();
+	send(g_socket, reinterpret_cast<char*>(&login_packet), sizeof(login_packet), NULL);
+#endif
+}
+
+void LoginScene::RecvLoginOk(char* ptr)
+{
+	SC_LOGIN_OK_PACKET* packet = reinterpret_cast<SC_LOGIN_OK_PACKET*>(ptr);
+	g_playerInfo.id = packet->id;
+	g_playerInfo.position = XMFLOAT3{ packet->pos.x, packet->pos.y, packet->pos.z };
+	g_playerInfo.playerType = packet->player_type;
+
+	m_fadeFilter->FadeOut([&]() {
+		SetState(State::SceneLeave);
+		});
+	cout << "OK" << endl;
+}
+
+void LoginScene::RecvLoginFail(char* ptr)
+{
+	SC_LOGIN_FAIL_PACKET* packet = reinterpret_cast<SC_LOGIN_FAIL_PACKET*>(ptr);
+
+	cout << "FAIL" << endl;
+	// 로그인 실패 창 띄우기
+}
+
+

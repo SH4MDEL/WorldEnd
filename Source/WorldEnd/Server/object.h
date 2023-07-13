@@ -191,8 +191,7 @@ public:
 	void SetStateLock() { m_state_lock.lock(); }
 	void SetStateUnLock() { m_state_lock.unlock(); }
 	void SetState(State state) { m_state = state; }
-	void SetName(std::string name) { m_name = name; }
-	void SetName(const char* c);
+	void SetName(std::wstring name) { m_name = name; }
 	void SetMaxHp(FLOAT hp) { m_status->SetMaxHp(hp); }
 	void SetHp(FLOAT hp) { m_status->SetHp(hp); }
 	void SetDamage(FLOAT damage) { m_status->SetAtk(damage); }
@@ -204,7 +203,7 @@ public:
 	XMFLOAT3 GetVelocity() const { return m_velocity; }
 	std::mutex& GetStateMutex() { return m_state_lock; }
 	virtual State GetState() const override { return m_state; }
-	std::string GetName() const { return m_name; }
+	std::wstring GetName() const { return m_name; }
 	FLOAT GetMaxHp() const { return m_status->GetMaxHp(); }
 	FLOAT GetHp() const { return m_status->GetHp(); }
 	FLOAT GetDamage() const { return m_status->GetAtk(); }
@@ -233,7 +232,7 @@ protected:
 	std::mutex					m_state_lock;
 	State						m_state;
 								
-	std::string					m_name;
+	std::wstring				m_name;
 	std::unique_ptr<Status>		m_status;
 	/*FLOAT						m_max_hp;
 	FLOAT						m_hp;

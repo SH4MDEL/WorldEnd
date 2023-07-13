@@ -92,9 +92,9 @@ bool DataBase::TryLogin(const USER_INFO& user_info, PLAYER_DATA& player_data)
 	ret = SQLBindCol(m_hstmt, 2, SQL_C_WCHAR, &player_table.name, 30, &player_table.cb_name);
 	ret = SQLBindCol(m_hstmt, 3, SQL_C_SLONG, &player_table.gold, 4, &player_table.cb_gold);
 	ret = SQLBindCol(m_hstmt, 4, SQL_C_TINYINT, &player_table.player_type, 1, &player_table.cb_player_type);
-	ret = SQLBindCol(m_hstmt, 5, SQL_C_FLOAT, &player_table.x, 8, &player_table.cb_x);
-	ret = SQLBindCol(m_hstmt, 6, SQL_FLOAT, &player_table.y, 8, &player_table.cb_y);
-	ret = SQLBindCol(m_hstmt, 7, SQL_FLOAT, &player_table.z, 8, &player_table.cb_z);
+	ret = SQLBindCol(m_hstmt, 5, SQL_C_DOUBLE, &player_table.x, 8, &player_table.cb_x);
+	ret = SQLBindCol(m_hstmt, 6, SQL_C_DOUBLE, &player_table.y, 8, &player_table.cb_y);
+	ret = SQLBindCol(m_hstmt, 7, SQL_C_DOUBLE, &player_table.z, 8, &player_table.cb_z);
 	ret = SQLBindCol(m_hstmt, 8, SQL_C_TINYINT, &player_table.hp_level, 1, &player_table.cb_hp_level);
 	ret = SQLBindCol(m_hstmt, 9, SQL_C_TINYINT, &player_table.atk_level, 1, &player_table.cb_atk_level);
 	ret = SQLBindCol(m_hstmt, 10, SQL_C_TINYINT, &player_table.def_level, 1, &player_table.cb_def_level);
@@ -116,8 +116,7 @@ bool DataBase::TryLogin(const USER_INFO& user_info, PLAYER_DATA& player_data)
 			player_data.player_type = player_table.player_type;
 			player_data.x = player_table.x;
 			player_data.y = player_table.y; 
-			player_data.y = player_table.y;
-
+			player_data.z = player_table.z;
 			player_data.hp_level = player_table.hp_level;
 			player_data.def_level = player_table.def_level;
 			player_data.atk_level = player_table.atk_level;
@@ -166,7 +165,7 @@ bool DataBase::TryLogin(const USER_INFO& user_info, PLAYER_DATA& player_data)
 	return false;
 }
 
-bool DataBase::Logout(const std::wstring_view& ws)
+bool DataBase::Logout(const std::wstring_view& id)
 {
 	// 상태 핸들 할당
 	SQLRETURN ret = SQLAllocHandle(SQL_HANDLE_STMT, m_hdbc, &m_hstmt);
@@ -176,7 +175,7 @@ bool DataBase::Logout(const std::wstring_view& ws)
 	}
 
 	std::wstring query = std::format(L"EXEC [WorldEnd].[dbo].[logout] '{}'",
-		ws.data());
+		id.data());
 
 	ret = SQLExecDirect(m_hstmt, (SQLWCHAR*)query.c_str(), SQL_NTS);
 	if (!(SQL_SUCCESS == ret || SQL_SUCCESS_WITH_INFO == ret)) {
@@ -200,8 +199,8 @@ bool DataBase::CreateAccount(const USER_INFO& user_info)
 		return false;
 	}
 
-	std::wstring query = std::format(L"EXEC [WorldEnd].[dbo].[create_account] '{0}', '{1}', '{2}'",
-		user_info.user_id, user_info.password, user_info.name);
+	std::wstring query = std::format(L"EXEC [WorldEnd].[dbo].[create_account] '{0}', '{1}'",
+		user_info.user_id, user_info.password);
 
 	ret = SQLExecDirect(m_hstmt, (SQLWCHAR*)query.c_str(), SQL_NTS);
 	if (!(SQL_SUCCESS == ret || SQL_SUCCESS_WITH_INFO == ret)) {

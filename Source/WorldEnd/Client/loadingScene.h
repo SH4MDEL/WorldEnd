@@ -60,6 +60,8 @@ private:
 	inline void BuildAnimationSet();
 	inline void BuildText();
 
+	virtual void ProcessPacket(char* ptr);
+
 private:
 	shared_ptr<Text>				m_loadingText;
 	const wstring					m_maxFileCount = L" / 410";
