@@ -152,7 +152,11 @@ void VillageScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	// DB 에서 받아온 플레이어 정보 입력
 	m_player->SetType(g_playerInfo.playerType);
 	m_player->SetId(g_playerInfo.id);
+#ifdef DEBUG
 	m_player->SetPosition(g_playerInfo.position);
+#else
+	m_player->SetPosition(XMFLOAT3{ 25.f, 5.65f, 66.f });
+#endif
 
 	LoadPlayerFromFile(m_player);
 	m_shaders["ANIMATION"]->SetPlayer(m_player);
@@ -831,6 +835,11 @@ bool VillageScene::IsCollideExceptObject(const string& objectName)
 	if (objectName == "Flower_D") return true;
 	if (objectName == "Decal_A") return true;
 	if (objectName == "Bridge_A") return true;
+	if (objectName == "CastleWall_F") return true;
+	if (objectName == "Plaza_A") return true;
+	if (objectName == "GrassTile_R") return true;
+	if (objectName == "GrassTile_E") return true;
+	if (objectName == "Tree_branch_A") return true;
 
 	return false;
 }
