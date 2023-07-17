@@ -215,7 +215,7 @@ void VillageScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D
 	m_roomUI = make_shared<BackgroundUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 0.8f, 0.8f });
 	m_roomUI->SetTexture("ROOMUI");
 
-	auto roomCancelButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.9f, 0.9f}, XMFLOAT2{0.06f, 0.06f}) };
+	auto roomCancelButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.95f, 0.9f}, XMFLOAT2{0.06f, 0.06f}) };
 	roomCancelButtonUI->SetTexture("CANCELUI");
 	roomCancelButtonUI->SetClickEvent([&]() {
 		ResetState(State::OutputRoomUI);
@@ -299,7 +299,7 @@ void VillageScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D
 	m_partyUI = make_shared<BackgroundUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 0.8f, 0.8f });
 	m_partyUI->SetTexture("ROOMUI");
 
-	auto partyCancelButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.9f, 0.9f}, XMFLOAT2{0.06f, 0.06f}) };
+	auto partyCancelButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.95f, 0.9f}, XMFLOAT2{0.06f, 0.06f}) };
 	partyCancelButtonUI->SetTexture("CANCELUI");
 	partyCancelButtonUI->SetClickEvent([&]() {
 		ResetState(State::OutputPartyUI);

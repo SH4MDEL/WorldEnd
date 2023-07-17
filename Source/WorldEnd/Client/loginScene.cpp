@@ -199,40 +199,74 @@ void LoginScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 	titleUI->SetTexture("TITLE");
 	m_titleUI->SetChild(titleUI);
 
-	m_idBox = make_shared<InputTextUI>(XMFLOAT2{ -0.3f, 0.f }, XMFLOAT2{ 0.3f, 0.04f }, XMFLOAT2{ 120.f, 10.f }, 20);
+	m_idBox = make_shared<InputTextUI>(XMFLOAT2{ 0.f, 0.1f }, XMFLOAT2{ 0.3f, 0.04f }, XMFLOAT2{ 120.f, 10.f }, 20);
 	m_idBox->SetColorBrush("WHITE");
 	m_idBox->SetTextFormat("KOPUB18");
 	m_idBox->SetTexture("TEXTBARUI");
 	m_titleUI->SetChild(m_idBox);
 
-	m_passwordBox = make_shared<InputTextUI>(XMFLOAT2{ 0.3f, 0.f }, XMFLOAT2{ 0.3f, 0.04f }, XMFLOAT2{ 120.f, 10.f }, 20);
+	auto idTextUI{ make_shared<TextUI>(XMFLOAT2{-0.25f, 0.1f}, XMFLOAT2{0.f, 0.f}, XMFLOAT2{120.f, 10.f}) };
+	idTextUI->SetText(L"      ID : ");
+	idTextUI->SetColorBrush("WHITE");
+	idTextUI->SetTextFormat("KOPUB18");
+	m_titleUI->SetChild(idTextUI);
+
+	m_passwordBox = make_shared<InputTextUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 0.3f, 0.04f }, XMFLOAT2{ 120.f, 10.f }, 20);
 	m_passwordBox->SetColorBrush("WHITE");
 	m_passwordBox->SetTextFormat("KOPUB18");
 	m_passwordBox->SetTexture("TEXTBARUI");
 	m_titleUI->SetChild(m_passwordBox);
 
-	auto gameStartButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.f, -0.3f}, XMFLOAT2{0.29f, 0.1f}) };
-	gameStartButtonUI->SetTexture("BUTTONUI");
+	auto passwordTextUI{ make_shared<TextUI>(XMFLOAT2{-0.25f, 0.f}, XMFLOAT2{0.f, 0.f}, XMFLOAT2{120.f, 10.f}) };
+	passwordTextUI->SetText(L"PASSWORD : ");
+	passwordTextUI->SetColorBrush("WHITE");
+	passwordTextUI->SetTextFormat("KOPUB18");
+	m_titleUI->SetChild(passwordTextUI);
+
+
+	auto loginButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.f, -0.19f}, XMFLOAT2{0.232f, 0.08f}) };
+	loginButtonUI->SetTexture("BUTTONUI");
 #ifdef USE_NETWORK
-	gameStartButtonUI->SetClickEvent([&]() {
+	loginButtonUI->SetClickEvent([&]() {
 		InitServer();
 		TryLogin();
 		});
 #else
-	gameStartButtonUI->SetClickEvent([&]() {
+	loginButtonUI->SetClickEvent([&]() {
 		m_fadeFilter->FadeOut([&]() {
 			SetState(State::SceneLeave);
 			});
 	});
 #endif
-	auto gameStartButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.f, 0.f}, XMFLOAT2{40.f, 10.f}) };
-	gameStartButtonTextUI->SetText(L"게임 시작");
-	gameStartButtonTextUI->SetColorBrush("WHITE");
-	gameStartButtonTextUI->SetTextFormat("KOPUB18");
-	gameStartButtonUI->SetChild(gameStartButtonTextUI);
-	m_titleUI->SetChild(gameStartButtonUI);
+	auto loginButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.f, 0.f}, XMFLOAT2{40.f, 10.f}) };
+	loginButtonTextUI->SetText(L"로그인");
+	loginButtonTextUI->SetColorBrush("WHITE");
+	loginButtonTextUI->SetTextFormat("KOPUB18");
+	loginButtonUI->SetChild(loginButtonTextUI);
+	m_titleUI->SetChild(loginButtonUI);
 
-	auto optionButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.f, -0.5f}, XMFLOAT2{0.29f, 0.1f}) };
+	auto signinButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.f, -0.36f}, XMFLOAT2{0.232f, 0.08f}) };
+	signinButtonUI->SetTexture("BUTTONUI");
+#ifdef USE_NETWORK
+	signinButtonUI->SetClickEvent([&]() {
+		InitServer();
+		TryLogin();
+		});
+#else
+	signinButtonUI->SetClickEvent([&]() {
+		m_fadeFilter->FadeOut([&]() {
+			SetState(State::SceneLeave);
+			});
+		});
+#endif
+	auto signinButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.f, 0.f}, XMFLOAT2{40.f, 10.f}) };
+	signinButtonTextUI->SetText(L"회원 가입");
+	signinButtonTextUI->SetColorBrush("WHITE");
+	signinButtonTextUI->SetTextFormat("KOPUB18");
+	signinButtonUI->SetChild(signinButtonTextUI);
+	m_titleUI->SetChild(signinButtonUI);
+
+	auto optionButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.f, -0.53f}, XMFLOAT2{0.232f, 0.08f}) };
 	optionButtonUI->SetTexture("BUTTONUI");
 	optionButtonUI->SetClickEvent([&]() {
 		SetState(State::OutputOptionUI);
@@ -245,7 +279,7 @@ void LoginScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 	optionButtonUI->SetChild(optionButtonTextUI);
 	m_titleUI->SetChild(optionButtonUI);
 
-	auto gameExitButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.f, -0.7f}, XMFLOAT2{0.29f, 0.1f}) };
+	auto gameExitButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.f, -0.7f}, XMFLOAT2{0.232f, 0.08f}) };
 	gameExitButtonUI->SetTexture("BUTTONUI");
 	gameExitButtonUI->SetClickEvent([&]() {
 		m_fadeFilter->FadeOut([&]() {
