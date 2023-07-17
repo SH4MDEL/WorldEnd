@@ -117,9 +117,9 @@ void UI::SetChild(const shared_ptr<UI>& ui) { m_children.push_back(ui); }
 void UI::SetClickEvent(function<void()> chickEvent) { m_clickEvent = chickEvent; }
 XMFLOAT4X4 UI::GetUIMatrix() { return m_uiMatrix; }
 
-StandardUI::StandardUI(XMFLOAT2 position, XMFLOAT2 size) : UI(position, size)
+ImageUI::ImageUI(XMFLOAT2 position, XMFLOAT2 size) : UI(position, size)
 {
-	m_type = Type::STANDARD;
+	m_type = Type::IMAGE;
 	XMStoreFloat4x4(&m_uiMatrix, XMMatrixIdentity());
 	m_size.x /= g_GameFramework.GetAspectRatio();
 }
@@ -242,6 +242,55 @@ void ButtonUI::OnProcessingMouseMessage(UINT message, LPARAM lParam)
 		// 자식 UI에도 전파한다.
 		child->OnProcessingMouseMessage(message, lParam);
 	}
+}
+
+SwitchUI::SwitchUI(XMFLOAT2 position, XMFLOAT2 size) : UI(position, size)
+{
+	m_type = Type::SWITCH_NOACTIVE;
+	XMStoreFloat4x4(&m_uiMatrix, XMMatrixIdentity());
+	m_size.x /= g_GameFramework.GetAspectRatio();
+}
+
+void SwitchUI::OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime)
+{
+	// 사용할 수 없다면 자식 UI까지 갈 것도 없이 return한다.
+	if (!m_enable) return;
+
+	for (auto& child : m_children) {
+		// 자식 UI에도 전파한다.
+		child->OnProcessingMouseMessage(hWnd, width, height, deltaTime);
+	}
+}
+
+void SwitchUI::OnProcessingMouseMessage(UINT message, LPARAM lParam)
+{
+	// 사용할 수 없다면 자식 UI까지 갈 것도 없이 return한다.
+	if (!m_enable) return;
+
+	// 충돌했다면 설정된 버튼의 함수를 stack에 넣는다.
+	if (message == WM_LBUTTONDOWN) {
+		if (m_uiMatrix._11 - m_uiMatrix._21 + 1.f <= (FLOAT)g_mousePosition.x / (FLOAT)g_GameFramework.GetWindowWidth() * 2.f &&
+			m_uiMatrix._11 + m_uiMatrix._21 + 1.f >= (FLOAT)g_mousePosition.x / (FLOAT)g_GameFramework.GetWindowWidth() * 2.f &&
+			1.f - m_uiMatrix._12 - m_uiMatrix._22 <= (FLOAT)g_mousePosition.y / (FLOAT)g_GameFramework.GetWindowHeight() * 2.f &&
+			1.f - m_uiMatrix._12 + m_uiMatrix._22 >= (FLOAT)g_mousePosition.y / (FLOAT)g_GameFramework.GetWindowHeight() * 2.f) {
+			g_clickEventStack.push(m_clickEvent);
+			m_type = Type::SWITCH_ACTIVE;
+		}
+		else {
+			m_type = Type::SWITCH_NOACTIVE;
+		}
+	}
+
+	for (auto& child : m_children) {
+		// 자식 UI에도 전파한다.
+		child->OnProcessingMouseMessage(message, lParam);
+	}
+}
+
+bool SwitchUI::IsActive()
+{
+	if (m_type == Type::SWITCH_ACTIVE) return true;
+	return false;
 }
 
 HorzGaugeUI::HorzGaugeUI(XMFLOAT2 position, XMFLOAT2 size, FLOAT border) : 

@@ -24,7 +24,7 @@ void LoginScene::OnResize(const ComPtr<ID3D12Device>& device, UINT width, UINT h
 	if (m_fadeFilter) m_fadeFilter->OnResize(device, width, height);
 
 	XMFLOAT4X4 projMatrix;
-	XMStoreFloat4x4(&projMatrix, XMMatrixPerspectiveFovLH(0.25f * XM_PI, g_GameFramework.GetAspectRatio(), 0.1f, 100.0f));
+	XMStoreFloat4x4(&projMatrix, XMMatrixPerspectiveFovLH(0.25f * XM_PI, g_GameFramework.GetAspectRatio(), 0.1f, 500.0f));
 	if (m_camera) m_camera->SetProjMatrix(projMatrix);
 }
 
@@ -152,7 +152,7 @@ void LoginScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	m_camera->CreateShaderVariable(device, commandlist);
 
 	XMFLOAT4X4 projMatrix;
-	XMStoreFloat4x4(&projMatrix, XMMatrixPerspectiveFovLH(0.25f * XM_PI, g_GameFramework.GetAspectRatio(), 0.1f, 300.0f));
+	XMStoreFloat4x4(&projMatrix, XMMatrixPerspectiveFovLH(0.25f * XM_PI, g_GameFramework.GetAspectRatio(), 0.1f, 500.0f));
 	m_camera->SetProjMatrix(projMatrix);
 	m_shaders["OBJECTBLEND"]->SetCamera(m_camera);
 
@@ -195,7 +195,7 @@ void LoginScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 {
 	m_titleUI = make_shared<BackgroundUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 1.f, 1.f });
 
-	auto titleUI{ make_shared<UI>(XMFLOAT2{ 0.f, 0.5f }, XMFLOAT2{ 0.25f, 0.25f }) };
+	auto titleUI{ make_shared<ImageUI>(XMFLOAT2{ 0.f, 0.5f }, XMFLOAT2{ 0.61f, 0.25f }) };
 	titleUI->SetTexture("TITLE");
 	m_titleUI->SetChild(titleUI);
 
@@ -266,7 +266,7 @@ void LoginScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 
 void LoginScene::BuildOptionUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist)
 {
-	m_optionUI = make_shared<StandardUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 0.5f, 0.7f });
+	m_optionUI = make_shared<ImageUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 0.5f, 0.7f });
 	m_optionUI->SetTexture("FRAMEUI");
 	m_optionUI->SetDisable();
 

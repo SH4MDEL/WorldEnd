@@ -9,8 +9,7 @@ VillageScene::VillageScene(const ComPtr<ID3D12Device>& device,
 		0.0f, 0.0f, 1.0f, 0.0f,
 		0.5f, 0.5f, 0.0f, 1.0f),
 	m_sceneState{ (INT)State::Unused },
-	m_roomPage{0},
-	m_selectedRoom{-1}
+	m_roomPage{0}
 {
 	OnCreate(device, commandList, rootSignature, postRootSignature);
 }
@@ -204,7 +203,7 @@ void VillageScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 
 void VillageScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist)
 {
-	m_interactUI = make_shared<StandardUI>(XMFLOAT2{ 0.25f, 0.15f }, XMFLOAT2{ 0.29f, 0.1f });
+	m_interactUI = make_shared<ImageUI>(XMFLOAT2{ 0.25f, 0.15f }, XMFLOAT2{ 0.29f, 0.1f });
 	m_interactUI->SetTexture("BUTTONUI");
 	m_interactTextUI = make_shared<TextUI>(XMFLOAT2{ 0.f, -0.2f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 80.f, 20.f });
 	m_interactTextUI->SetColorBrush("WHITE");
@@ -222,14 +221,13 @@ void VillageScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D
 		ResetState(State::OutputRoomUI);
 		if (m_roomUI) m_roomUI->SetDisable();
 		m_roomPage = 0;
-		m_selectedRoom = -1;
 		});
 	m_roomUI->SetChild(roomCancelButtonUI);
 
 	auto createRoomButtonUI = make_shared<ButtonUI>(XMFLOAT2{ -0.3f, -0.75f }, XMFLOAT2{ 0.29f, 0.1f });
 	createRoomButtonUI->SetTexture("BUTTONUI");
 	createRoomButtonUI->SetClickEvent([&]() {
-		cout << m_selectedRoom << "번 방 생성 패킷 전송" << endl;
+		cout << "방 생성 패킷 전송" << endl;
 		cout << "누가 이미 만들어놨으면 실패 패킷 보내야 함" << endl;
 		// 이건 원래 여기서 하면 안되고 성공 패킷이 날아왔을 때
 		ResetState(State::OutputRoomUI);
@@ -247,7 +245,7 @@ void VillageScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D
 	auto joinRoomButtonUI = make_shared<ButtonUI>(XMFLOAT2{ 0.3f, -0.75f }, XMFLOAT2{ 0.29f, 0.1f });
 	joinRoomButtonUI->SetTexture("BUTTONUI");
 	joinRoomButtonUI->SetClickEvent([&]() {
-		cout << m_selectedRoom << "번 방 참가 패킷 전송" << endl;
+		cout << "방 참가 패킷 전송" << endl;
 		cout << "방이 없으면 실패 패킷 보내야 함" << endl;
 		// 이건 원래 여기서 하면 안되고 성공 패킷이 날아왔을 때
 		ResetState(State::OutputRoomUI);
@@ -267,7 +265,6 @@ void VillageScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D
 	m_leftArrowUI->SetClickEvent([&]() {
 		if (m_roomPage != 0) {
 			m_roomPage -= 1;
-			m_selectedRoom = -1;
 			cout << m_roomPage << " 페이지에 해당하는 정보 달라는 패킷 전송" << endl;
 		}
 		});
@@ -277,26 +274,22 @@ void VillageScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D
 	m_rightArrowUI->SetTexture("RIGHTARROWUI");
 	m_rightArrowUI->SetClickEvent([&]() {
 		m_roomPage += 1;
-		m_selectedRoom = -1;
 		cout << m_roomPage << " 페이지에 해당하는 정보 달라는 패킷 전송" << endl;
 		});
 	m_roomUI->SetChild(m_rightArrowUI);
 
-	for (size_t i = 0; auto& roomTextUI : m_roomButtonTextUI) {
-		auto roomButton = make_shared<ButtonUI>(XMFLOAT2{ 0.f, -0.4f + i * 0.2f }, XMFLOAT2{ 0.6f, 0.08f });
-		roomButton->SetTexture("TEXTBARUI");
-		roomButton->SetClickEvent([&]() {
-			m_selectedRoom = i;
-			});
+	for (size_t i = 0; auto& roomSwitchUI : m_roomSwitchUI) {
+		roomSwitchUI = make_shared<SwitchUI>(XMFLOAT2{ 0.f, -0.4f + i * 0.2f }, XMFLOAT2{ 0.6f, 0.08f });
+		roomSwitchUI->SetTexture("TEXTBARUI");
 
-		// i번 방의 정보를 갱신하는 패킷이 날아왔을 때 m_roomButtonTextUI[i]의 Text를 갱신해 주자.
-		m_roomButtonTextUI[i] = make_shared<TextUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 300.f, 20.f });
-		m_roomButtonTextUI[i]->SetText(TEXT("Empty"));
-		m_roomButtonTextUI[i]->SetColorBrush("WHITE");
-		m_roomButtonTextUI[i]->SetTextFormat("KOPUB21");
+		// i번 방의 정보를 갱신하는 패킷이 날아왔을 때 m_roomSwitchTextUI[i]의 Text를 갱신해 주자.
+		m_roomSwitchTextUI[i] = make_shared<TextUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 300.f, 20.f });
+		m_roomSwitchTextUI[i]->SetText(TEXT("Empty"));
+		m_roomSwitchTextUI[i]->SetColorBrush("WHITE");
+		m_roomSwitchTextUI[i]->SetTextFormat("KOPUB21");
 
-		roomButton->SetChild(m_roomButtonTextUI[i]);
-		m_roomUI->SetChild(roomButton);
+		roomSwitchUI->SetChild(m_roomSwitchTextUI[i]);
+		m_roomUI->SetChild(roomSwitchUI);
 		++i;
 	}
 
@@ -330,6 +323,22 @@ void VillageScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D
 	enterDungeonButtonTextUI->SetTextFormat("KOPUB21");
 	enterDungeonButtonUI->SetChild(enterDungeonButtonTextUI);
 	m_partyUI->SetChild(enterDungeonButtonUI);
+
+	for (int i = 0; i < 3; ++i) {
+		auto characterFrameUI{ make_shared<ImageUI>(XMFLOAT2{ -0.6f + i * 0.6f, 0.1f }, XMFLOAT2{ 0.3f, 0.51f }) };
+		characterFrameUI->SetTexture("CHARACTERFRAMEUI");
+
+		m_partyPlayerUI[i] = make_shared<ImageUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 0.3f, 0.51f });
+		characterFrameUI->SetChild(m_partyPlayerUI[i]);
+
+		m_partyPlayerTextUI[i] = make_shared<TextUI>(XMFLOAT2{ 0.f, -0.8f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 300.f, 20.f });
+		m_partyPlayerTextUI[i]->SetText(TEXT("Empty"));
+		m_partyPlayerTextUI[i]->SetColorBrush("WHITE");
+		m_partyPlayerTextUI[i]->SetTextFormat("KOPUB21");
+		characterFrameUI->SetChild(m_partyPlayerTextUI[i]);
+
+		m_partyUI->SetChild(characterFrameUI);
+	}
 
 	m_partyUI->SetDisable();
 	m_shaders["UI"]->SetUI(m_partyUI);

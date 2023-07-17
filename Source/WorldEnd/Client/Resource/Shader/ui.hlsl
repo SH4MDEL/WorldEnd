@@ -4,16 +4,18 @@
  *  UI_SHADER
  */
 
-#define TYPE_STANDARD 0
+#define TYPE_IMAGE 0
 #define TYPE_BACKGROUND 1
 #define TYPE_TEXT 2
 #define TYPE_BUTTON_NOACTIVE 3
 #define TYPE_BUTTON_MOUSEON 4
 #define TYPE_BUTTON_ACTIVE 5
-#define TYPE_HORZGAUGE 6
-#define TYPE_VERTGAUGE 7
-#define TYPE_TEXTBUTTON_NOACTIVE 8
-#define TYPE_TEXTBUTTON_ACTIVE 9
+#define TYPE_SWITCH_NOACTIVE 6
+#define TYPE_SWITCH_ACTIVE 7
+#define TYPE_HORZGAUGE 8
+#define TYPE_VERTGAUGE 9
+#define TYPE_TEXTBUTTON_NOACTIVE 10
+#define TYPE_TEXTBUTTON_ACTIVE 11
 
 
 struct VS_UI_OUTPUT
@@ -63,8 +65,6 @@ void GS_UI_MAIN(point VS_UI_OUTPUT input[1], inout TriangleStream<GS_UI_OUTPUT> 
 
 float4 PS_UI_MAIN(GS_UI_OUTPUT input) : SV_TARGET
 {
-	//if (g_type == TYPE_BACKGROUND) 
-	//	return float4(0.f, 0.f, 0.f, 0.f);
 	if (g_type == TYPE_HORZGAUGE) {
 		if (input.uv.x <= g_age + (1 - g_age) * (g_gauge / g_maxGauge)) {
 			return g_baseTexture.Sample(g_samplerWrap, input.uv);
@@ -77,10 +77,10 @@ float4 PS_UI_MAIN(GS_UI_OUTPUT input) : SV_TARGET
 		}
 		return g_subTexture.Sample(g_samplerWrap, input.uv);
 	}
-	if (g_type == TYPE_BUTTON_MOUSEON) {
+	if (g_type == TYPE_BUTTON_MOUSEON || g_type == TYPE_TEXTBUTTON_ACTIVE) {
 		return g_baseTexture.Sample(g_samplerWrap, input.uv) * float4(0.8f, 0.8f, 0.8f, 1.f);
 	}
-	if (g_type == TYPE_BUTTON_ACTIVE) {
+	if (g_type == TYPE_BUTTON_ACTIVE || g_type == TYPE_SWITCH_ACTIVE) {
 		return g_baseTexture.Sample(g_samplerWrap, input.uv) * float4(0.6f, 0.6f, 0.6f, 1.f);
 	}
 	return g_baseTexture.Sample(g_samplerWrap, input.uv);

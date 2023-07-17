@@ -396,6 +396,10 @@ void LoadingScene::BuildTexture(const ComPtr<ID3D12Device>& device, const ComPtr
 	frameUITexture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/UI_Background.dds"), (INT)ShaderRegister::BaseTexture);
 	frameUITexture->CreateSrvDescriptorHeap(device);
 	frameUITexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+	auto characterFrameUITexture{ make_shared<Texture>() };
+	characterFrameUITexture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/UI_CharacterBackground.dds"), (INT)ShaderRegister::BaseTexture);
+	characterFrameUITexture->CreateSrvDescriptorHeap(device);
+	characterFrameUITexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
 	auto cancelUITexture{ make_shared<Texture>() };
 	cancelUITexture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/UI_Cancel.dds"), (INT)ShaderRegister::BaseTexture);
 	cancelUITexture->CreateSrvDescriptorHeap(device);
@@ -453,6 +457,7 @@ void LoadingScene::BuildTexture(const ComPtr<ID3D12Device>& device, const ComPtr
 	staminaBarTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
 
 	m_textures.insert({ "FRAMEUI", frameUITexture });
+	m_textures.insert({ "CHARACTERFRAMEUI", characterFrameUITexture });
 	m_textures.insert({ "CANCELUI", cancelUITexture });
 	m_textures.insert({ "BUTTONUI", buttonUITexture });
 	m_textures.insert({ "TEXTBARUI", textbarUITexture });

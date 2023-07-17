@@ -118,13 +118,14 @@ protected:
 	shared_ptr<UI>					m_roomUI;
 	shared_ptr<ButtonUI>			m_leftArrowUI;
 	shared_ptr<ButtonUI>			m_rightArrowUI;
-	array<shared_ptr<TextUI>, 6>	m_roomButtonTextUI;
+	array<shared_ptr<SwitchUI>, 6>	m_roomSwitchUI;
+	array<shared_ptr<TextUI>, 6>	m_roomSwitchTextUI;
 	UINT							m_roomPage;
-	INT								m_selectedRoom;
 
 	// Party UI ฐüทร
 	shared_ptr<UI>					m_partyUI;
-	array<shared_ptr<Player>, 3>	m_partyUIPlayer;
+	array<shared_ptr<UI>, 3>		m_partyPlayerUI;
+	array<shared_ptr<TextUI>, 3>	m_partyPlayerTextUI;
 
 
 	XMFLOAT4						m_directionalDiffuse;

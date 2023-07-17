@@ -145,8 +145,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     RECT rect; GetWindowRect(hWnd, &rect);
     GetCursorPos(&g_mousePosition);
-    g_mousePosition.x -= rect.left + 8;
-    g_mousePosition.y -= rect.top + 30;
+    g_mousePosition.x -= rect.left;
+    g_mousePosition.y -= rect.top;
 
     switch (message)
     {
