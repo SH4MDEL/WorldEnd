@@ -415,6 +415,7 @@ void Server::WorkerThread()
 			FLOAT damage{ client->GetDamage() };
 			damage *= client->GetSkillRatio(attack_type);
 
+
 			if (game_room->GetFloorCount() != 4) {
 				for (int id : monster_ids) {
 					if (-1 == id) continue;
@@ -1900,22 +1901,29 @@ void Server::SetCooldownTimerEvent(int id, ActionType action_type)
 
 	ev.event_time = std::chrono::system_clock::now();
 
+	auto client = dynamic_pointer_cast<Client>(m_clients[id]);
+
 	// 쿨타임 중인지 검사 필요
 	// 공격 외 쿨타임 처리
 	switch (action_type) {
 	case ActionType::NORMAL_ATTACK:
+		client->SetInvincibleRoll(false);
 		ev.event_time += PlayerSetting::ATTACK_COOLDOWN[player_type];
 		break;
 	case ActionType::SKILL:
+		client->SetInvincibleRoll(false);
 		ev.event_time += PlayerSetting::SKILL_COOLDOWN[player_type];
 		break;
 	case ActionType::ULTIMATE:
+		client->SetInvincibleRoll(false);
 		ev.event_time += PlayerSetting::ULTIMATE_COOLDOWN[player_type];
 		break;
 	case ActionType::DASH:
+		client->SetInvincibleRoll(false);
 		ev.event_time += PlayerSetting::DASH_COOLDOWN;
 		break;
 	case ActionType::ROLL:
+		client->SetInvincibleRoll(true);
 		ev.event_time += PlayerSetting::ROLL_COOLDOWN;
 		break;
 	}

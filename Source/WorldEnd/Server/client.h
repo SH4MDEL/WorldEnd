@@ -53,6 +53,7 @@ public:
 	void SetReady(bool value);
 	void SetUserId(const std::wstring_view& ws);
 	void SetGold(INT gold);
+	void SetInvincibleRoll(bool invincible_roll) { m_invincible_roll = invincible_roll; }
 
 	const SOCKET& GetSocket() const override { return m_socket; }
 	ExpOver& GetExpOver() { return m_recv_over; }
@@ -69,6 +70,7 @@ public:
 	bool GetReady() const { return m_is_ready; }
 	std::wstring GetUserId() const { return m_user_id; }
 	INT GetGold() const { return m_gold; }
+	bool GetInvincibleRoll() const { return m_invincible_roll; }
 
 	void ChangeStamina(FLOAT value);
 	virtual void DecreaseHp(FLOAT damage, INT id) override;
@@ -94,6 +96,7 @@ private:
 
 	std::wstring			m_user_id;
 	INT						m_gold;
+	bool                    m_invincible_roll = false;
 
 	std::array<std::shared_ptr<Skill>, static_cast<INT>(SkillType::COUNT)>	m_skills;
 
