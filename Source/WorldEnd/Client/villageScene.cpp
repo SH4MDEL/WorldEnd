@@ -152,7 +152,12 @@ void VillageScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	// DB 에서 받아온 플레이어 정보 입력
 	m_player->SetType(g_playerInfo.playerType);
 	m_player->SetId(g_playerInfo.id);
-	m_player->SetPosition(g_playerInfo.position);
+#ifdef USE_NETWORK
+	//m_player->SetPosition(g_playerInfo.position);
+	m_player->SetPosition(XMFLOAT3{ 35.f, 0.65f, 66.f });
+#else
+	m_player->SetPosition(XMFLOAT3{ 25.f, 5.65f, 66.f });
+#endif
 
 	LoadPlayerFromFile(m_player);
 	m_shaders["ANIMATION"]->SetPlayer(m_player);
@@ -219,6 +224,7 @@ void VillageScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D
 	auto roomCancelButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.9f, 0.9f}, XMFLOAT2{0.06f, 0.06f}) };
 	roomCancelButtonUI->SetTexture("CANCELUI");
 	roomCancelButtonUI->SetClickEvent([&]() {
+		SendClosePartyUI();							// 파티창 닫았음을 전송
 		ResetState(State::OutputRoomUI);
 		if (m_roomUI) m_roomUI->SetDisable();
 		m_roomPage = 0;
@@ -229,13 +235,7 @@ void VillageScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D
 	auto createRoomButtonUI = make_shared<ButtonUI>(XMFLOAT2{ -0.3f, -0.75f }, XMFLOAT2{ 0.29f, 0.1f });
 	createRoomButtonUI->SetTexture("BUTTONUI");
 	createRoomButtonUI->SetClickEvent([&]() {
-		cout << m_selectedRoom << "번 방 생성 패킷 전송" << endl;
-		cout << "누가 이미 만들어놨으면 실패 패킷 보내야 함" << endl;
-		// 이건 원래 여기서 하면 안되고 성공 패킷이 날아왔을 때
-		ResetState(State::OutputRoomUI);
-		if (m_roomUI) m_roomUI->SetDisable();
-		SetState(State::OutputPartyUI);
-		if (m_partyUI) m_partyUI->SetEnable();
+		SendCreateParty();	// 생성 전송
 		});
 	auto createRoomButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.f, 0.f},XMFLOAT2{120.f, 10.f}) };
 	createRoomButtonTextUI->SetText(L"파티 생성");
@@ -247,13 +247,7 @@ void VillageScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D
 	auto joinRoomButtonUI = make_shared<ButtonUI>(XMFLOAT2{ 0.3f, -0.75f }, XMFLOAT2{ 0.29f, 0.1f });
 	joinRoomButtonUI->SetTexture("BUTTONUI");
 	joinRoomButtonUI->SetClickEvent([&]() {
-		cout << m_selectedRoom << "번 방 참가 패킷 전송" << endl;
-		cout << "방이 없으면 실패 패킷 보내야 함" << endl;
-		// 이건 원래 여기서 하면 안되고 성공 패킷이 날아왔을 때
-		ResetState(State::OutputRoomUI);
-		if (m_roomUI) m_roomUI->SetDisable();
-		SetState(State::OutputPartyUI);
-		if (m_partyUI) m_partyUI->SetEnable();
+		SendJoinParty();		// 방 참가 전송
 		});
 	auto joinRoomButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.f, 0.f},XMFLOAT2{120.f, 10.f}) };
 	joinRoomButtonTextUI->SetText(L"파티 가입");
@@ -268,7 +262,7 @@ void VillageScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D
 		if (m_roomPage != 0) {
 			m_roomPage -= 1;
 			m_selectedRoom = -1;
-			cout << m_roomPage << " 페이지에 해당하는 정보 달라는 패킷 전송" << endl;
+			SendChangePage();		// 페이지 변경 전송
 		}
 		});
 	m_roomUI->SetChild(m_leftArrowUI);
@@ -278,7 +272,7 @@ void VillageScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D
 	m_rightArrowUI->SetClickEvent([&]() {
 		m_roomPage += 1;
 		m_selectedRoom = -1;
-		cout << m_roomPage << " 페이지에 해당하는 정보 달라는 패킷 전송" << endl;
+		SendChangePage();		// 페이지 변경 전송
 		});
 	m_roomUI->SetChild(m_rightArrowUI);
 
@@ -311,8 +305,6 @@ void VillageScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D
 	partyCancelButtonUI->SetClickEvent([&]() {
 		ResetState(State::OutputPartyUI);
 		if (m_partyUI) m_partyUI->SetDisable();
-		cout << "파티 UI 닫았다는 패킷 전송" << endl;
-
 		});
 	m_partyUI->SetChild(partyCancelButtonUI);
 
@@ -445,6 +437,7 @@ void VillageScene::OnProcessingKeyboardMessage(HWND hWnd, UINT message, WPARAM w
 				ResetState(State::DungeonInteract);
 				SetState(State::OutputRoomUI);
 				m_roomUI->SetEnable();
+				SendOpenPartyUI();
 			}
 		}
 		break;
@@ -457,6 +450,10 @@ void VillageScene::Update(FLOAT timeElapsed)
 		g_GameFramework.ChangeScene(SCENETAG::TowerScene);
 		return;
 	}
+#ifdef USE_NETWORK
+	RecvPacket();
+#endif
+
 	m_camera->Update(timeElapsed);
 	if (m_shaders["SKYBOX"]) for (auto& skybox : m_shaders["SKYBOX"]->GetObjects()) skybox->SetPosition(m_camera->GetEye());
 	for (const auto& shader : m_shaders)
@@ -643,6 +640,135 @@ void VillageScene::ResetState(State sceneState)
 
 void VillageScene::ProcessPacket(char* ptr)
 {
+	switch (ptr[1])
+	{
+	case SC_PACKET_PARTY_INFO:
+		RecvPartyInfo(ptr);
+		break;
+	case SC_PACKET_JOIN_OK:
+		RecvJoinOk(ptr);
+		break;
+	case SC_PACKET_JOIN_FAIL:
+		RecvJoinFail(ptr);
+		break;
+	case SC_PACKET_CREATE_OK:
+		RecvCreateOk(ptr);
+		break;
+	case SC_PACKET_CREATE_FAIL:
+		RecvCreateFail(ptr);
+		break;
+	default:
+		cout << "UnDefined Packet!!" << endl;
+		break;
+	}
+}
+
+void VillageScene::RecvPartyInfo(char* ptr)
+{
+	SC_PARTY_INFO_PACKET* packet = reinterpret_cast<SC_PARTY_INFO_PACKET*>(ptr);
+
+	for (INT i = 0; i < MAX_PARTIES_ON_PAGE; ++i) {
+		if (0 == packet->info.current_player) {
+			m_roomButtonTextUI[i]->SetText(TEXT("빈 방"));
+		}
+		else {
+			m_roomButtonTextUI[static_cast<INT>(packet->info.party_num)]->SetText(
+				packet->info.name + L"   " + to_wstring(packet->info.current_player) +
+				to_wstring(MAX_INGAME_USER));
+		}
+	}
+}
+
+void VillageScene::RecvJoinOk(char* ptr)
+{
+	SC_JOIN_OK_PACKET* packet = reinterpret_cast<SC_JOIN_OK_PACKET*>(ptr);
+
+	cout << "참가 성공!" << endl;
+	// 파티원 추가
+
+	ResetState(State::OutputRoomUI);
+	if (m_roomUI) m_roomUI->SetDisable();
+	SetState(State::OutputPartyUI);
+	if (m_partyUI) m_partyUI->SetEnable();
+}
+
+void VillageScene::RecvJoinFail(char* ptr)
+{
+	SC_JOIN_FAIL_PACKET* packet = reinterpret_cast<SC_JOIN_FAIL_PACKET*>(ptr);
+
+	cout << "참가 실패!" << endl;
+}
+
+void VillageScene::RecvCreateOk(char* ptr)
+{
+	SC_CREATE_OK_PACKET* packet = reinterpret_cast<SC_CREATE_OK_PACKET*>(ptr);
+
+	cout << "생성 성공!" << endl;
+
+	ResetState(State::OutputRoomUI);
+	if (m_roomUI) m_roomUI->SetDisable();
+	SetState(State::OutputPartyUI);
+	if (m_partyUI) m_partyUI->SetEnable();
+}
+
+void VillageScene::RecvCreateFail(char* ptr)
+{
+	SC_CREATE_FAIL_PACKET* packet = reinterpret_cast<SC_CREATE_FAIL_PACKET*>(ptr);
+
+	cout << "생성 실패!" << endl;
+}
+
+void VillageScene::SendChangePage()
+{
+#ifdef USE_NETWORK
+	CS_CHANGE_PARTY_PAGE_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = CS_PACKET_CHANGE_PARTY_PAGE;
+	packet.page = m_roomPage;
+	send(g_socket, reinterpret_cast<char*>(&packet), sizeof(packet), 0);
+#endif
+}
+
+void VillageScene::SendOpenPartyUI()
+{
+#ifdef USE_NETWORK
+	CS_OPEN_PARTY_UI_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = CS_PACKET_OPEN_PARTY_UI;
+	send(g_socket, reinterpret_cast<char*>(&packet), sizeof(packet), 0);
+#endif
+}
+
+void VillageScene::SendClosePartyUI()
+{
+#ifdef USE_NETWORK
+	CS_CLOSE_PARTY_UI_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = CS_PACKET_CLOSE_PARTY_UI;
+	send(g_socket, reinterpret_cast<char*>(&packet), sizeof(packet), 0);
+#endif
+}
+
+void VillageScene::SendCreateParty()
+{
+#ifdef USE_NETWORK
+	CS_CREATE_PARTY_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = CS_PACKET_CREATE_PARTY;
+	packet.party_num = m_roomPage * MAX_PARTIES_ON_PAGE + m_selectedRoom;
+	send(g_socket, reinterpret_cast<char*>(&packet), sizeof(packet), 0);
+#endif
+}
+
+void VillageScene::SendJoinParty()
+{
+#ifdef USE_NETWORK
+	CS_JOIN_PARTY_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = CS_PACKET_JOIN_PARTY;
+	packet.party_num = m_roomPage * MAX_PARTIES_ON_PAGE + m_selectedRoom;
+	send(g_socket, reinterpret_cast<char*>(&packet), sizeof(packet), 0);
+#endif
 }
 
 void VillageScene::LoadSceneFromFile(wstring fileName, wstring sceneName)

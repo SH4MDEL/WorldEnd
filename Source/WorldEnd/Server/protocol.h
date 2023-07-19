@@ -12,6 +12,7 @@ constexpr int MAX_INGAME_USER = 3;
 constexpr int MAX_INGAME_MONSTER = 10;
 constexpr int MAX_GAME_ROOM_NUM = 3000;
 constexpr int MAX_PARTY_NUM = 1000;
+constexpr int MAX_PARTIES_ON_PAGE = 6;
 constexpr int MAX_RECORD_NUM = 5;
 constexpr int MAX_MONSTER_PLACEMENT = 165;
 
@@ -61,6 +62,9 @@ constexpr char CS_PACKET_EXIT_PARTY = 10;
 constexpr char CS_PACKET_CHANGE_CHARACTER = 11;
 constexpr char CS_PACKET_READY = 12;
 constexpr char CS_PACKET_ENTER_DUNGEON = 13;
+constexpr char CS_PACKET_CHANGE_PARTY_PAGE = 14;
+constexpr char CS_PACKET_OPEN_PARTY_UI = 15;
+constexpr char CS_PACKET_CLOSE_PARTY_UI = 16;
 // -----------------------------------------------------------
 
 constexpr char SC_PACKET_LOGIN_FAIL = 0;
@@ -102,6 +106,7 @@ constexpr char SC_PACKET_CHANGE_CHARACTER = 32;
 constexpr char SC_PACKET_PLAYER_READY = 33;
 constexpr char SC_PACKET_ENTER_GAME_ROOM = 34;
 constexpr char SC_PACKET_ENTER_FAIL = 35;
+constexpr char SC_PACKET_PARTY_INFO = 36;
 // -----------------------------------------------------------
 
 enum class PlayerType : char { WARRIOR, ARCHER, COUNT };
@@ -590,6 +595,15 @@ struct MONSTER_DATA
 	DirectX::XMFLOAT3	pos;		// 위치
 	FLOAT				yaw;		// 회전각
 };
+
+struct PARTY_INFO
+{
+	std::wstring	name;
+	CHAR			current_player;
+	CHAR			party_num;
+};
+
+
 //////////////////////////////////////////////////////
 // 클라에서 서버로
 
@@ -597,8 +611,8 @@ struct CS_LOGIN_PACKET
 {
 	UCHAR size;
 	UCHAR type;
-	std::wstring id;
-	std::wstring password;
+	std::string id;
+	std::string password;
 };
 
 struct CS_PLAYER_MOVE_PACKET
@@ -650,13 +664,14 @@ struct CS_JOIN_PARTY_PACKET
 {
 	UCHAR size;
 	UCHAR type;
-	USHORT party_num;
+	INT party_num;
 };
 
 struct CS_CREATE_PARTY_PACKET
 {
 	UCHAR size;
 	UCHAR type;
+	INT party_num;
 };
 
 struct CS_EXIT_PARTY_PACKET
@@ -680,6 +695,25 @@ struct CS_READY_PACKET
 };
 
 struct CS_ENTER_DUNGEON_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+};
+
+struct CS_CHANGE_PARTY_PAGE_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+	INT page;
+};
+
+struct CS_OPEN_PARTY_UI_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+};
+
+struct CS_CLOSE_PARTY_UI_PACKET
 {
 	UCHAR size;
 	UCHAR type;
@@ -949,6 +983,13 @@ struct SC_ENTER_FAIL_PACKET
 {
 	UCHAR size;
 	UCHAR type;
+};
+
+struct SC_PARTY_INFO_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+	PARTY_INFO info;
 };
 
 #pragma pack (pop)

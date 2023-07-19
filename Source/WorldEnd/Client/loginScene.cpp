@@ -189,6 +189,8 @@ void LoginScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	BuildLight(device, commandlist);
 
 	//SoundManager::GetInstance().PlayMusic(SoundManager::Music::Title);
+
+	InitServer();
 }
 
 void LoginScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist)
@@ -215,7 +217,6 @@ void LoginScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 	gameStartButtonUI->SetTexture("BUTTONUI");
 #ifdef USE_NETWORK
 	gameStartButtonUI->SetClickEvent([&]() {
-		InitServer();
 		TryLogin();
 		});
 #else
@@ -381,19 +382,14 @@ void LoginScene::OnProcessingKeyboardMessage(HWND hWnd, UINT message, WPARAM wPa
 
 void LoginScene::Update(FLOAT timeElapsed) 
 {
+	if (CheckState(State::SceneLeave)) {
+		g_GameFramework.ChangeScene(SCENETAG::VillageScene);
+		return;
+	}
 #ifdef USE_NETWORK
-	if (CheckState(State::SceneLeave)) {
-		g_GameFramework.ChangeScene(SCENETAG::VillageScene);
-		return;
-	}
 	RecvPacket();
-#else
-	if (CheckState(State::SceneLeave)) {
-		g_GameFramework.ChangeScene(SCENETAG::VillageScene);
-		return;
-	}
 #endif
-
+	
 	
 	m_camera->Update(timeElapsed);
 	if (m_shaders["SKYBOX"]) for (auto& skybox : m_shaders["SKYBOX"]->GetObjects()) skybox->SetPosition(m_camera->GetEye());
@@ -674,12 +670,17 @@ void LoginScene::ProcessPacket(char* ptr)
 void LoginScene::TryLogin()
 {
 #ifdef USE_NETWORK
-	CS_LOGIN_PACKET login_packet{};
-	login_packet.size = sizeof(login_packet);
-	login_packet.type = CS_PACKET_LOGIN;
-	login_packet.id = m_idBox->GetString();
-	login_packet.password = m_passwordBox->GetString();
-	send(g_socket, reinterpret_cast<char*>(&login_packet), sizeof(login_packet), NULL);
+	CS_LOGIN_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = CS_PACKET_LOGIN;
+	
+	wstring id{ m_idBox->GetString() };
+	packet.id.assign(id.begin(), id.end());
+
+	wstring pw{ m_passwordBox->GetString() };
+	packet.password.assign(pw.begin(), pw.end());
+
+	send(g_socket, reinterpret_cast<char*>(&packet), sizeof(packet), 0);
 #endif
 }
 

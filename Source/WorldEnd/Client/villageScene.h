@@ -73,6 +73,17 @@ public:
 
 
 	virtual void ProcessPacket(char* ptr);
+	void RecvPartyInfo(char* ptr);
+	void RecvJoinOk(char* ptr);
+	void RecvJoinFail(char* ptr);
+	void RecvCreateOk(char* ptr);
+	void RecvCreateFail(char* ptr);
+
+	void SendChangePage();
+	void SendOpenPartyUI();
+	void SendClosePartyUI();
+	void SendCreateParty();
+	void SendJoinParty();
 
 private:
 	void BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist);
@@ -119,7 +130,7 @@ protected:
 	shared_ptr<ButtonUI>			m_leftArrowUI;
 	shared_ptr<ButtonUI>			m_rightArrowUI;
 	array<shared_ptr<TextUI>, 6>	m_roomButtonTextUI;
-	UINT							m_roomPage;
+	INT								m_roomPage;
 	INT								m_selectedRoom;
 
 	// Party UI ฐüทร

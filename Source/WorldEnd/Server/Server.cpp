@@ -814,13 +814,16 @@ void Server::ProcessPacket(int id, char* p)
 	case CS_PACKET_LOGIN: {
 		CS_LOGIN_PACKET* packet = reinterpret_cast<CS_LOGIN_PACKET*>(p);
 		
-		USER_INFO info{ .user_id = packet->id, .password = packet->password };
+		USER_INFO info{};
+		info.user_id.assign(packet->id.begin(), packet->id.end());
+		info.password.assign(packet->password.begin(), packet->password.end());
+
 		PLAYER_DATA data{};
 
 		DB_EVENT ev{};
 		ev.client_id = id;
-		ev.user_id = packet->id;
-		ev.data = packet->password;
+		ev.user_id = info.user_id;
+		ev.data = info.password;
 		ev.event_type = DBEventType::TRY_LOGIN;
 		ev.event_time = std::chrono::system_clock::now();
 		SetDatabaseEvent(ev);
@@ -975,6 +978,27 @@ void Server::ProcessPacket(int id, char* p)
 
 		break;
 	}
+	case CS_PACKET_CHANGE_PARTY_PAGE: {
+		CS_CHANGE_PARTY_PAGE_PACKET* packet = reinterpret_cast<CS_CHANGE_PARTY_PAGE_PACKET*>(p);
+		
+		std::cout << "페이지 변경" << std::endl;
+		m_party_manager->ChangePage(id, packet->page);
+		break;
+	}
+	case CS_PACKET_OPEN_PARTY_UI: {
+		CS_OPEN_PARTY_UI_PACKET* packet = reinterpret_cast<CS_OPEN_PARTY_UI_PACKET*>(p);
+
+		std::cout << "파티창 열기" << std::endl;
+		m_party_manager->OpenPartyUI(id);
+		break;
+	}
+	case CS_PACKET_CLOSE_PARTY_UI: {
+		CS_CLOSE_PARTY_UI_PACKET* packet = reinterpret_cast<CS_CLOSE_PARTY_UI_PACKET*>(p);
+
+		std::cout << "파티창 닫기" << std::endl;
+		m_party_manager->ClosePartyUI(id);
+		break;
+	}
 
 
 	}
@@ -1039,8 +1063,6 @@ void Server::SendLoginFail(int client_id)
 	packet.type = SC_PACKET_LOGIN_FAIL;
 	
 	m_clients[client_id]->DoSend(&packet);
-
-	Disconnect(client_id);
 }
 
 void Server::SendPlayerDeath(int client_id)

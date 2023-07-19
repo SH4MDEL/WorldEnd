@@ -518,7 +518,7 @@ bool PartyManager::CreateParty(INT player_id)
 	if (-1 == num)
 		return false;
 
-	JoinParty(num, player_id);
+	JoinParty(num, player_id);		// 방이 비어있다면 항상 성공할 것
 	SendCreateOk(player_id);
 
 	return true;
@@ -526,12 +526,37 @@ bool PartyManager::CreateParty(INT player_id)
 
 bool PartyManager::JoinParty(INT party_num, INT player_id)
 {
-	return m_parties[party_num]->Join(player_id);
+	bool success = m_parties[party_num]->Join(player_id);
+	if (success) {
+		std::unique_lock<std::mutex> l{ m_lock };
+		m_looking_clients.erase(player_id);	// 현재 파티에 참가한 플레이어는 삭제
+		std::unordered_map<INT, INT> clients = m_looking_clients;
+		l.unlock();
+
+		Server& server = Server::GetInstance();
+
+		for (const auto& [client_id, page] : clients) {
+			SendPartyPage(client_id, page);
+		}
+	}
+
+	return success;
 }
 
 void PartyManager::ExitParty(INT party_num, INT player_id)
 {
 	m_parties[party_num]->Exit(player_id);
+
+	std::unique_lock<std::mutex> l{ m_lock };
+	m_looking_clients.erase(player_id);	// 현재 파티에 참가한 플레이어는 삭제
+	std::unordered_map<INT, INT> clients = m_looking_clients;
+	l.unlock();
+
+	Server& server = Server::GetInstance();
+
+	for (const auto& [client_id, page] : clients) {
+		SendPartyPage(client_id, page);
+	}
 }
 
 void PartyManager::ChangeCharacter(INT party_num, INT player_id)
@@ -542,6 +567,58 @@ void PartyManager::ChangeCharacter(INT party_num, INT player_id)
 void PartyManager::PlayerReady(INT party_num, INT player_id)
 {
 	m_parties[party_num]->PlayerReady(player_id);
+}
+
+void PartyManager::OpenPartyUI(INT player_id)
+{
+	std::lock_guard<std::mutex> l{ m_lock };
+	m_looking_clients.insert({ player_id, 0 });	// 초기 0 페이지
+}
+
+void PartyManager::ClosePartyUI(INT player_id)
+{
+	std::lock_guard<std::mutex> l{ m_lock };
+	m_looking_clients.erase(player_id);
+}
+
+void PartyManager::ChangePage(INT player_id, INT page)
+{
+	std::unique_lock<std::mutex> l{ m_lock };
+	m_looking_clients[player_id] = page;
+	l.unlock();
+
+	SendPartyPage(player_id, page);
+}
+
+void PartyManager::SendPartyPage(INT player_id, INT page)
+{
+	Server& server = Server::GetInstance();
+
+	SC_PARTY_INFO_PACKET packet[MAX_PARTIES_ON_PAGE];
+
+	for (size_t i = 0; i < MAX_PARTIES_ON_PAGE; ++i) {
+		packet[i].size = sizeof(SC_PARTY_INFO_PACKET);
+		packet[i].type = SC_PACKET_PARTY_INFO;
+		packet[i].info.current_player = 0;
+	}
+
+	INT start_num{ GetStartNum(page) };
+
+	for (size_t i = 0; i < MAX_PARTIES_ON_PAGE; ++i) {
+		if (i + start_num >= MAX_PARTY_NUM) break;
+
+		INT host_id = m_parties[start_num + i]->GetHostId();
+		if (-1 != host_id) {
+			auto host = std::dynamic_pointer_cast<Client>(server.m_clients[host_id]);
+			packet[i].info.name = host->GetUserId();
+			packet[i].info.current_player = m_parties[start_num + i]->GetMemberCount();
+			packet[i].info.party_num = i;
+		}
+	}
+
+	std::cout << "id : " << player_id << "  page : " << page << std::endl;
+
+	server.m_clients[player_id]->DoSend(&packet, MAX_PARTIES_ON_PAGE);
 }
 
 INT PartyManager::FindEmptyParty()
@@ -566,4 +643,9 @@ void PartyManager::SendCreateOk(INT receiver)
 
 	Server& server = Server::GetInstance();
 	server.m_clients[receiver]->DoSend(&packet);
+}
+
+INT PartyManager::GetStartNum(INT page)
+{
+	return page * MAX_PARTIES_ON_PAGE;
 }

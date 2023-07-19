@@ -118,6 +118,7 @@ public:
 	PartyState GetState() const { return m_state; }
 	std::mutex& GetStateMutex() { return m_state_lock; }
 	INT GetHostId() const { return m_host_id; }
+	CHAR GetMemberCount() const { return m_member_count; }
 
 	bool Join(INT player_id);
 	void Exit(INT player_id);
@@ -139,7 +140,7 @@ private:
 	PartyState							m_state;
 	std::mutex							m_state_lock;
 	INT									m_host_id;		// 파티장 id
-	BYTE								m_member_count;
+	CHAR								m_member_count;
 };
 
 class PartyManager
@@ -156,10 +157,18 @@ public:
 	void ChangeCharacter(INT party_num, INT player_id);
 	void PlayerReady(INT party_num, INT player_id);
 
+	void OpenPartyUI(INT player_id);
+	void ClosePartyUI(INT player_id);
+	void ChangePage(INT player_id, INT page);
+	void SendPartyPage(INT player_id, INT page);
+
 private:
 	INT FindEmptyParty();
 	void SendCreateOk(INT receiver);
+	INT GetStartNum(INT page);
 
 private:
 	std::array<std::shared_ptr<Party>, MAX_PARTY_NUM>	m_parties;
+	std::unordered_map<INT, INT>						m_looking_clients;	// ui 열고있는 클라이언트,  <id, page>
+	std::mutex											m_lock;
 };
