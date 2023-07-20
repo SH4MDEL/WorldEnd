@@ -50,6 +50,7 @@ void Client::Init()
 	m_interactable = false;
 	m_latest_id = 0;
 	m_last_move_time = 0;
+	m_party_num = -1;
 	this->SetTriggerFlag();
 	m_is_ready = false;
 	m_user_id.clear();

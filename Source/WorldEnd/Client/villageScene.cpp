@@ -38,6 +38,12 @@ void VillageScene::OnCreate(
 {
 	m_sceneState = (INT)State::Unused;
 	BuildObjects(device, commandList, rootSignature, postRootSignature);
+#ifdef USE_NETWORK
+	CS_ENTER_VILLAGE_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = CS_PACKET_ENTER_VILLAGE;
+	send(g_socket, reinterpret_cast<char*>(&packet), sizeof(packet), 0);
+#endif // USE_NETWORK
 }
 
 void VillageScene::OnDestroy()
@@ -152,8 +158,9 @@ void VillageScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	// DB 에서 받아온 플레이어 정보 입력
 	m_player->SetType(g_playerInfo.playerType);
 	m_player->SetId(g_playerInfo.id);
-#ifdef DEBUG
-	m_player->SetPosition(g_playerInfo.position);
+#ifdef USE_NETWORK
+	//m_player->SetPosition(g_playerInfo.position);
+	m_player->SetPosition(XMFLOAT3{ 35.f, 5.65f, 66.f });
 #else
 	m_player->SetPosition(XMFLOAT3{ 25.f, 5.65f, 66.f });
 #endif
@@ -461,6 +468,9 @@ void VillageScene::Update(FLOAT timeElapsed)
 		g_GameFramework.ChangeScene(SCENETAG::TowerScene);
 		return;
 	}
+#ifdef USE_NETWORK
+	RecvPacket();
+#endif
 	m_camera->Update(timeElapsed);
 	if (m_shaders["SKYBOX"]) for (auto& skybox : m_shaders["SKYBOX"]->GetObjects()) skybox->SetPosition(m_camera->GetEye());
 	for (const auto& shader : m_shaders)
@@ -646,6 +656,77 @@ void VillageScene::ResetState(State sceneState)
 }
 
 void VillageScene::ProcessPacket(char* ptr)
+{
+	switch (ptr[1])
+	{
+	case SC_PACKET_ADD_PLAYER:
+		RecvAddPlayer(ptr);
+		break;
+	case SC_PACKET_REMOVE_PLAYER:
+		RecvRemovePlayer(ptr);
+		break;
+	case SC_PACKET_UPDATE_CLIENT:
+		RecvUpdateClient(ptr);
+		break;
+	/*case SC_PACKET_CHANGE_ANIMATION:
+		RecvChangeAnimation(ptr);
+		break;
+	case SC_PACKET_RESET_COOLDOWN:
+		RecvResetCooldown(ptr);
+		break;
+	case SC_PACKET_CHANGE_STAMINA:
+		RecvChangeStamina(ptr);
+		break;*/
+	default:
+		cout << "UnDefined Packet!!" << endl;
+		break;
+	}
+}
+
+
+void VillageScene::RecvAddPlayer(char* ptr)
+{
+	SC_ADD_PLAYER_PACKET* packet = reinterpret_cast<SC_ADD_PLAYER_PACKET*>(ptr);
+
+	INT id = packet->id;
+
+	auto multiPlayer = make_shared<Player>();
+	multiPlayer->SetType(packet->player_type);
+	LoadPlayerFromFile(multiPlayer);
+
+	// 멀티플레이어 설정
+	multiPlayer->SetPosition(packet->pos);
+	multiPlayer->SetHp(packet->hp);
+
+	m_multiPlayers.insert({ id, multiPlayer });
+
+	//SetHpBar(multiPlayer);
+
+	m_idSet.insert({ id, (INT)m_idSet.size() });
+	//m_hpUI[m_idSet[id]]->SetEnable();
+	//m_hpUI[m_idSet[id]]->SetGauge(packet->hp);
+
+	m_shaders["ANIMATION"]->SetMultiPlayer(id, multiPlayer);
+	cout << "add player" << id << endl;
+}
+
+void VillageScene::RecvUpdateClient(char* ptr)
+{
+	SC_UPDATE_CLIENT_PACKET* packet = reinterpret_cast<SC_UPDATE_CLIENT_PACKET*>(ptr);
+
+	if (-1 == packet->id) {
+		return;
+	}
+
+	if (packet->id != m_player->GetId()) {
+		auto& player = m_multiPlayers[packet->id];
+
+		player->SetPosition(packet->pos);
+		player->Rotate(0.f, 0.f, packet->yaw - player->GetYaw());
+	}
+}
+
+void VillageScene::RecvRemovePlayer(char* ptr)
 {
 }
 

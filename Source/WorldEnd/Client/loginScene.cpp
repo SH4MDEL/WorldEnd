@@ -674,12 +674,19 @@ void LoginScene::ProcessPacket(char* ptr)
 void LoginScene::TryLogin()
 {
 #ifdef USE_NETWORK
-	CS_LOGIN_PACKET login_packet{};
-	login_packet.size = sizeof(login_packet);
-	login_packet.type = CS_PACKET_LOGIN;
-	login_packet.id = m_idBox->GetString();
-	login_packet.password = m_passwordBox->GetString();
-	send(g_socket, reinterpret_cast<char*>(&login_packet), sizeof(login_packet), NULL);
+	CS_LOGIN_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = CS_PACKET_LOGIN;
+
+	wstring idBoxString{ m_idBox->GetString() };
+	string id{ idBoxString.begin(), idBoxString.end() };
+	strcpy_s(packet.id, id.c_str());
+
+	wstring passwordBoxString{ m_passwordBox->GetString() };
+	string pw{ passwordBoxString.begin(), passwordBoxString.end() };
+	strcpy_s(packet.password, pw.c_str());
+
+	send(g_socket, reinterpret_cast<char*>(&packet), sizeof(packet), 0);
 #endif
 }
 

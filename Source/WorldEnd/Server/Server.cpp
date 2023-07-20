@@ -814,20 +814,28 @@ void Server::ProcessPacket(int id, char* p)
 	switch (type){
 	case CS_PACKET_LOGIN: {
 		CS_LOGIN_PACKET* packet = reinterpret_cast<CS_LOGIN_PACKET*>(p);
-		
-		USER_INFO info{ .user_id = packet->id, .password = packet->password };
+
+		USER_INFO info{};
+
+		std::wstring user_id{ packet->id, packet->id + strlen(packet->id) };
+		std::wstring password{ packet->password, packet->password + strlen(packet->password) };
+
+		info.user_id = user_id;
+		info.password = password;
+
 		PLAYER_DATA data{};
 
 		DB_EVENT ev{};
 		ev.client_id = id;
-		ev.user_id = packet->id;
-		ev.data = packet->password;
+		ev.user_id = info.user_id;
+		ev.data = info.password;
 		ev.event_type = DBEventType::TRY_LOGIN;
 		ev.event_time = std::chrono::system_clock::now();
 		SetDatabaseEvent(ev);
 		std::cout << "try login!" << std::endl;
 
 		break;
+
 	}
 	case CS_PACKET_PLAYER_MOVE: {
 		CS_PLAYER_MOVE_PACKET* packet = reinterpret_cast<CS_PLAYER_MOVE_PACKET*>(p);
@@ -974,6 +982,22 @@ void Server::ProcessPacket(int id, char* p)
 		}
 		m_game_room_manager->SendAddMonster(client->GetRoomNum(), id);
 
+		break;
+	}
+	case CS_PACKET_ENTER_VILLAGE: {
+		CS_ENTER_VILLAGE_PACKET* packet = reinterpret_cast<CS_ENTER_VILLAGE_PACKET*>(p);
+
+			for (INT pl_id : m_game_room->GetPlayerIds()) {
+				if (-1 == pl_id) continue;
+				if (pl_id == id) continue;
+
+				// 내 정보를 기존에 방에 있던 플레이어에게 전송
+				m_game_room->SendAddPlayer(id, pl_id);
+
+				// 방에 있던 id가 내가 아니면 해당id의 정보를 나에게 전송
+				m_game_room->SendAddPlayer(pl_id, id);
+			}
+		
 		break;
 	}
 

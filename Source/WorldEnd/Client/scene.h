@@ -77,10 +77,16 @@ public:
 	virtual void PacketReassembly(char* net_buf, size_t io_byte);
 	virtual void ProcessPacket(char* ptr) = 0;
 
+	//virtual void SetHpBar(const shared_ptr<AnimationObject>& object) = 0;
 
 	static unordered_map<string, shared_ptr<Shader>>		m_shaders;
 	static unordered_map<string, shared_ptr<Mesh>>			m_meshs;
 	static unordered_map<string, shared_ptr<Texture>>		m_textures;
 	static unordered_map<string, shared_ptr<Materials>>		m_materials;
 	static unordered_map<string, shared_ptr<AnimationSet>>	m_animationSets;
+	static unordered_map<INT, shared_ptr<Player>>	        m_multiPlayers;
+
+	// UI ฐüทร
+	//array<shared_ptr<HorzGaugeUI>, MAX_INGAME_USER - 1>	m_hpUI;
+	static unordered_map<INT, INT>						    m_idSet;
 };

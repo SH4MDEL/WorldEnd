@@ -143,6 +143,7 @@ public:
 	std::unordered_map<INT, Client> m_player_damage_compare;
 
 private:
+	std::unique_ptr<GameRoom> m_game_room;
 	std::unique_ptr<GameRoomManager> m_game_room_manager;
 	std::unique_ptr<PartyManager> m_party_manager;
 	std::unique_ptr<DataBase> m_database;

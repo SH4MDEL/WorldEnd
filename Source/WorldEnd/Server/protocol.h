@@ -61,6 +61,7 @@ constexpr char CS_PACKET_EXIT_PARTY = 10;
 constexpr char CS_PACKET_CHANGE_CHARACTER = 11;
 constexpr char CS_PACKET_READY = 12;
 constexpr char CS_PACKET_ENTER_DUNGEON = 13;
+constexpr char CS_PACKET_ENTER_VILLAGE = 14;
 // -----------------------------------------------------------
 
 constexpr char SC_PACKET_LOGIN_FAIL = 0;
@@ -597,8 +598,8 @@ struct CS_LOGIN_PACKET
 {
 	UCHAR size;
 	UCHAR type;
-	std::wstring id;
-	std::wstring password;
+	CHAR id[20];
+	CHAR password[20];
 };
 
 struct CS_PLAYER_MOVE_PACKET
@@ -680,6 +681,12 @@ struct CS_READY_PACKET
 };
 
 struct CS_ENTER_DUNGEON_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+};
+
+struct CS_ENTER_VILLAGE_PACKET
 {
 	UCHAR size;
 	UCHAR type;
