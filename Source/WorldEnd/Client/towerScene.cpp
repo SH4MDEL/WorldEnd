@@ -295,12 +295,12 @@ void TowerScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 	qText->SetText(TEXT("Q"));
 	m_ultimateUI->SetChild(qText);
 	if (g_playerInfo.playerType == PlayerType::WARRIOR) {
-		m_skillUI->SetTexture("WARRIORSKILL");
-		m_ultimateUI->SetTexture("WARRIORULTIMATE");
+		m_skillUI->SetTexture("WARRIORSKILL1");
+		m_ultimateUI->SetTexture("WARRIORULTIMATE1");
 	}
 	if (g_playerInfo.playerType == PlayerType::ARCHER) {
-		m_skillUI->SetTexture("ARCHERSKILL");
-		m_ultimateUI->SetTexture("ARCHERULTIMATE");
+		m_skillUI->SetTexture("ARCHERSKILL1");
+		m_ultimateUI->SetTexture("ARCHERULTIMATE1");
 	}
 	m_shaders["UI"]->SetUI(m_skillUI);
 	m_player->SetSkillGauge(m_skillUI);

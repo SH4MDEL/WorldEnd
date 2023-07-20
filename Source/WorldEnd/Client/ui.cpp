@@ -230,7 +230,7 @@ void ButtonUI::OnProcessingMouseMessage(UINT message, LPARAM lParam)
 			m_uiMatrix._11 + m_uiMatrix._21 + 1.f >= (FLOAT)g_mousePosition.x / (FLOAT)g_GameFramework.GetWindowWidth() * 2.f &&
 			1.f - m_uiMatrix._12 - m_uiMatrix._22 <= (FLOAT)g_mousePosition.y / (FLOAT)g_GameFramework.GetWindowHeight() * 2.f &&
 			1.f - m_uiMatrix._12 + m_uiMatrix._22 >= (FLOAT)g_mousePosition.y / (FLOAT)g_GameFramework.GetWindowHeight() * 2.f) {
-			g_clickEventStack.push(m_clickEvent);
+			if (m_clickEvent) g_clickEventStack.push(m_clickEvent);
 			m_type = Type::BUTTON_ACTIVE;
 		}
 	}
@@ -273,7 +273,7 @@ void SwitchUI::OnProcessingMouseMessage(UINT message, LPARAM lParam)
 			m_uiMatrix._11 + m_uiMatrix._21 + 1.f >= (FLOAT)g_mousePosition.x / (FLOAT)g_GameFramework.GetWindowWidth() * 2.f &&
 			1.f - m_uiMatrix._12 - m_uiMatrix._22 <= (FLOAT)g_mousePosition.y / (FLOAT)g_GameFramework.GetWindowHeight() * 2.f &&
 			1.f - m_uiMatrix._12 + m_uiMatrix._22 >= (FLOAT)g_mousePosition.y / (FLOAT)g_GameFramework.GetWindowHeight() * 2.f) {
-			g_clickEventStack.push(m_clickEvent);
+			if (m_clickEvent) g_clickEventStack.push(m_clickEvent);
 			m_type = Type::SWITCH_ACTIVE;
 		}
 		else {
@@ -291,6 +291,11 @@ bool SwitchUI::IsActive()
 {
 	if (m_type == Type::SWITCH_ACTIVE) return true;
 	return false;
+}
+
+void SwitchUI::SetNoActive()
+{
+	m_type = Type::SWITCH_NOACTIVE;
 }
 
 HorzGaugeUI::HorzGaugeUI(XMFLOAT2 position, XMFLOAT2 size, FLOAT border) : 

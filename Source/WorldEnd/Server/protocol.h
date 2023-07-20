@@ -547,11 +547,14 @@ namespace VillageSetting
 
 	constexpr float WEST_GATE_LEFT = 60.99f - GATE_LENGTH / 2.f;
 	constexpr float WEST_GATE_RIGHT = 60.99f + GATE_LENGTH / 2.f;
-	constexpr float WEST_GATE_FRONT = -218.59 + GATE_OFFSET;
+	constexpr float WEST_GATE_FRONT = -218.59f + GATE_OFFSET;
 
 	constexpr float EAST_GATE_LEFT = 67.141f + GATE_LENGTH / 2.f;
 	constexpr float EAST_GATE_RIGHT = 67.141f - GATE_LENGTH / 2.f;
 	constexpr float EAST_GATE_FRONT = 69.09f - GATE_OFFSET;
+
+	constexpr XMFLOAT3 SKILL_NPC{ -42.7098f, 6.06544f, 75.8633f };
+	constexpr float SKILL_NPC_OFFSET = 2.f;
 }
 
 namespace RoomSetting

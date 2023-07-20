@@ -8,16 +8,19 @@ public:
 	enum class State {
 		Unused = 0x00,
 		DungeonInteract = 0x01,
-		OutputRoomUI = 0x02,
-		OutputPartyUI = 0x04,
-		SceneLeave = 0x08,
+		SkillInteract = 0x02,
+		OutputRoomUI = 0x04,
+		OutputPartyUI = 0x08,
+		OutputSkillUI = 0x10,
+		SceneLeave = 0x20,
 		BlurLevel1 = Unused,
 		BlurLevel2 = Unused,
 		BlurLevel3 = Unused,
 		BlurLevel4 = Unused,
 		BlurLevel5 = Unused,
 		Bluring = BlurLevel1 | BlurLevel2 | BlurLevel3 | BlurLevel4 | BlurLevel5,
-		CantPlayerControl = OutputRoomUI | OutputPartyUI
+		OutputUI = OutputRoomUI | OutputPartyUI | OutputSkillUI,
+		CantPlayerControl = OutputUI
 	};
 	enum class LightTag : INT {
 		Directional,
@@ -78,7 +81,7 @@ private:
 	void BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist);
 	void BuildLight(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist);
 
-	void UpdateDungeonInteract(FLOAT timeElapsed);
+	void UpdateInteract(FLOAT timeElapsed);
 
 	void DrawBoundingBox(BoundingOrientedBox boundingBox, FLOAT roll, FLOAT pitch, FLOAT yaw);
 
@@ -92,6 +95,7 @@ private:
 	bool MoveOnStairs();
 
 	void ChangeCharacter(PlayerType type, shared_ptr<Player>& player);
+	void SetSkillUI(PlayerType type);
 
 protected:
 	ComPtr<ID3D12Resource>			m_sceneBuffer;
@@ -127,6 +131,14 @@ protected:
 	array<shared_ptr<UI>, 3>		m_partyPlayerUI;
 	array<shared_ptr<TextUI>, 3>	m_partyPlayerTextUI;
 
+	// Skill UI ฐüทร
+	shared_ptr<UI>					m_skillUI;
+	shared_ptr<SwitchUI>			m_skill1SwitchUI;
+	shared_ptr<SwitchUI>			m_skill2SwitchUI;
+	shared_ptr<SwitchUI>			m_ultimate1SwitchUI;
+	shared_ptr<SwitchUI>			m_ultimate2SwitchUI;
+	shared_ptr<TextUI>				m_skillNameUI;
+	shared_ptr<TextUI>				m_skillInfoUI;
 
 	XMFLOAT4						m_directionalDiffuse;
 	XMFLOAT3						m_directionalDirection;

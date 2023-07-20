@@ -113,6 +113,7 @@ public:
 	virtual void OnProcessingMouseMessage(UINT message, LPARAM lParam) override;
 
 	bool IsActive();
+	void SetNoActive();
 };
 
 class HorzGaugeUI : public UI
