@@ -114,6 +114,9 @@ public:
 
 	bool IsActive();
 	void SetNoActive();
+
+private:
+	bool m_active;
 };
 
 class HorzGaugeUI : public UI

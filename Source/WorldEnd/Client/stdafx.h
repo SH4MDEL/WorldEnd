@@ -79,6 +79,7 @@ struct PlayerInfo {
     INT        gold;
     XMFLOAT3   position;
     PlayerType playerType;
+    pair<UCHAR, UCHAR> skill[(size_t)PlayerType::COUNT];
 };
 
 

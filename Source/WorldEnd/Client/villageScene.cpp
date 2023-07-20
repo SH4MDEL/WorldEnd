@@ -152,6 +152,8 @@ void VillageScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	m_player->SetType(g_playerInfo.playerType);
 	m_player->SetId(g_playerInfo.id);
 	m_player->SetPosition(g_playerInfo.position);
+	// 골드 정보 추가해야함
+	// 스킬 정보 추가해야함
 
 	LoadPlayerFromFile(m_player);
 	m_shaders["ANIMATION"]->SetPlayer(m_player);
@@ -189,7 +191,15 @@ void VillageScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	skybox->SetTexture("VILLAGESKYBOX");
 	m_shaders["SKYBOX"]->SetObject(skybox);
 
-	BuildUI(device, commandlist);
+	// NPC 생성
+	auto npc = make_shared<Player>();
+	LoadPlayerFromFile(npc);
+	npc->SetType(PlayerType::WARRIOR);
+	npc->SetPosition(VillageSetting::SKILL_NPC);
+	npc->Rotate(0.f, 0.f, 180.f);
+	m_shaders["ANIMATION"]->SetObject(npc);
+
+	BuildUI();
 
 	// 필터 생성
 	auto windowWidth = g_GameFramework.GetWindowWidth();
@@ -201,7 +211,15 @@ void VillageScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	BuildLight(device, commandlist);
 }
 
-void VillageScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist)
+void VillageScene::BuildUI()
+{
+	BuildInteractUI();
+	BulidRoomUI();
+	BuildPartyUI();
+	BuildSkillUI();
+}
+
+void VillageScene::BuildInteractUI()
 {
 	m_interactUI = make_shared<ImageUI>(XMFLOAT2{ 0.25f, 0.15f }, XMFLOAT2{ 0.29f, 0.1f });
 	m_interactUI->SetTexture("BUTTONUI");
@@ -211,7 +229,10 @@ void VillageScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D
 	m_interactUI->SetChild(m_interactTextUI);
 	m_interactUI->SetDisable();
 	m_shaders["UI"]->SetUI(m_interactUI);
+}
 
+void VillageScene::BulidRoomUI()
+{
 	m_roomUI = make_shared<BackgroundUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 0.8f, 0.8f });
 	m_roomUI->SetTexture("ROOMUI");
 
@@ -260,7 +281,7 @@ void VillageScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D
 	joinRoomButtonUI->SetChild(joinRoomButtonTextUI);
 	m_roomUI->SetChild(joinRoomButtonUI);
 
-	m_leftArrowUI = make_shared<ButtonUI>(XMFLOAT2{-0.8f, 0.f}, XMFLOAT2{0.1f, 0.2f});
+	m_leftArrowUI = make_shared<ButtonUI>(XMFLOAT2{ -0.8f, 0.f }, XMFLOAT2{ 0.1f, 0.2f });
 	m_leftArrowUI->SetTexture("LEFTARROWUI");
 	m_leftArrowUI->SetClickEvent([&]() {
 		if (m_roomPage != 0) {
@@ -270,7 +291,7 @@ void VillageScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D
 		});
 	m_roomUI->SetChild(m_leftArrowUI);
 
-	m_rightArrowUI = make_shared<ButtonUI>(XMFLOAT2{0.8f, 0.f}, XMFLOAT2{0.1f, 0.2f});
+	m_rightArrowUI = make_shared<ButtonUI>(XMFLOAT2{ 0.8f, 0.f }, XMFLOAT2{ 0.1f, 0.2f });
 	m_rightArrowUI->SetTexture("RIGHTARROWUI");
 	m_rightArrowUI->SetClickEvent([&]() {
 		m_roomPage += 1;
@@ -278,7 +299,7 @@ void VillageScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D
 		});
 	m_roomUI->SetChild(m_rightArrowUI);
 
-	for (size_t i = 0; auto& roomSwitchUI : m_roomSwitchUI) {
+	for (size_t i = 0; auto & roomSwitchUI : m_roomSwitchUI) {
 		roomSwitchUI = make_shared<SwitchUI>(XMFLOAT2{ 0.f, -0.4f + i * 0.2f }, XMFLOAT2{ 0.6f, 0.08f });
 		roomSwitchUI->SetTexture("TEXTBARUI");
 
@@ -295,7 +316,10 @@ void VillageScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D
 
 	m_roomUI->SetDisable();
 	m_shaders["UI"]->SetUI(m_roomUI);
+}
 
+void VillageScene::BuildPartyUI()
+{
 	m_partyUI = make_shared<BackgroundUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 0.8f, 0.8f });
 	m_partyUI->SetTexture("ROOMUI");
 
@@ -341,7 +365,10 @@ void VillageScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D
 
 	m_partyUI->SetDisable();
 	m_shaders["UI"]->SetUI(m_partyUI);
+}
 
+void VillageScene::BuildSkillUI()
+{
 	// SKILL UI
 	m_skillUI = make_shared<BackgroundUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 0.6f, 0.6f });
 	m_skillUI->SetTexture("ROOMUI");
@@ -360,44 +387,44 @@ void VillageScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D
 		});
 	m_skillUI->SetChild(skillCancelButtonUI);
 
-	m_skill1SwitchUI = make_shared<SwitchUI>(XMFLOAT2{ -0.8f, 0.4f }, XMFLOAT2{ 0.1f, 0.1f });
+	m_skill1SwitchUI = make_shared<SwitchUI>(XMFLOAT2{ -0.65f, 0.4f }, XMFLOAT2{ 0.1f, 0.1f });
 	m_skillUI->SetChild(m_skill1SwitchUI);
-	m_skill2SwitchUI = make_shared<SwitchUI>(XMFLOAT2{ -0.6f, 0.4f }, XMFLOAT2{ 0.1f, 0.1f });
+	m_skill2SwitchUI = make_shared<SwitchUI>(XMFLOAT2{ -0.4f, 0.4f }, XMFLOAT2{ 0.1f, 0.1f });
 	m_skillUI->SetChild(m_skill2SwitchUI);
-	m_ultimate1SwitchUI = make_shared<SwitchUI>(XMFLOAT2{ -0.8f, 0.2f }, XMFLOAT2{ 0.1f, 0.1f });
+	m_ultimate1SwitchUI = make_shared<SwitchUI>(XMFLOAT2{ -0.65f, 0.f }, XMFLOAT2{ 0.1f, 0.1f });
 	m_skillUI->SetChild(m_ultimate1SwitchUI);
-	m_ultimate2SwitchUI = make_shared<SwitchUI>(XMFLOAT2{ -0.6f, 0.2f }, XMFLOAT2{ 0.1f, 0.1f });
+	m_ultimate2SwitchUI = make_shared<SwitchUI>(XMFLOAT2{ -0.4f, 0.f }, XMFLOAT2{ 0.1f, 0.1f });
 	m_skillUI->SetChild(m_ultimate2SwitchUI);
 	m_skillNameUI = make_shared<TextUI>(XMFLOAT2{ 0.3f, 0.4f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 300.f, 20.f });
 	m_skillNameUI->SetText(TEXT(""));
 	m_skillNameUI->SetColorBrush("WHITE");
 	m_skillNameUI->SetTextFormat("KOPUB24");
 	m_skillUI->SetChild(m_skillNameUI);
-	m_skillInfoUI = make_shared<TextUI>(XMFLOAT2{ 0.3f, 0.f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 500.f, 800.f });
+	m_skillInfoUI = make_shared<TextUI>(XMFLOAT2{ 0.3f, -0.4f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 500.f, 200.f });
 	m_skillInfoUI->SetText(TEXT(""));
 	m_skillInfoUI->SetColorBrush("WHITE");
 	m_skillInfoUI->SetTextFormat("KOPUB21");
 	m_skillUI->SetChild(m_skillInfoUI);
 
-	auto skillChangeButtonUI = make_shared<ButtonUI>(XMFLOAT2{ 0.f, -0.75f }, XMFLOAT2{ 0.29f, 0.1f });
+	auto skillChangeButtonUI = make_shared<ButtonUI>(XMFLOAT2{ 0.f, -0.7f }, XMFLOAT2{ 0.29f, 0.1f });
 	skillChangeButtonUI->SetTexture("BUTTONUI");
 	skillChangeButtonUI->SetClickEvent([&]() {
 		// 스킬을 변경했다는 패킷 보냄..? 필요한가?
 		// 스킬 바꿀때마다 골드 깔거면 보내야 할 듯
 		if (m_skill1SwitchUI->IsActive()) {
-			cout << "1번 스킬 선택 중" << endl;
+			g_playerInfo.skill[(size_t)g_playerInfo.playerType].first = 0;
 			return;
 		}
 		if (m_skill2SwitchUI->IsActive()) {
-			cout << "2번 스킬 선택 중" << endl;
+			g_playerInfo.skill[(size_t)g_playerInfo.playerType].first = 1;
 			return;
 		}
 		if (m_ultimate1SwitchUI->IsActive()) {
-			cout << "1번 궁극기 선택 중" << endl;
+			g_playerInfo.skill[(size_t)g_playerInfo.playerType].second = 0;
 			return;
 		}
-		if (m_ultimate1SwitchUI->IsActive()) {
-			cout << "2번 궁극기 선택 중" << endl;
+		if (m_ultimate2SwitchUI->IsActive()) {
+			g_playerInfo.skill[(size_t)g_playerInfo.playerType].second = 1;
 			return;
 		}
 		});
@@ -878,6 +905,23 @@ void VillageScene::LoadPlayerFromFile(const shared_ptr<Player>& player)
 	player->SetAnimationOnTrack(0, ObjectAnimation::IDLE);
 	player->GetAnimationController()->SetTrackEnable(1, false);
 	player->GetAnimationController()->SetTrackEnable(2, false);
+}
+
+void VillageScene::LoadNPCFromFile(const shared_ptr<AnimationObject>& npc)
+{
+	wstring filePath = TEXT("./Resource/Model/Warrior.bin");
+	string animationSet = "WarriorAnimation";
+
+	LoadObjectFromFile(filePath, npc);
+
+	BoundingOrientedBox obb = BoundingOrientedBox{ npc->GetPosition(),
+		XMFLOAT3{0.37f, 0.65f, 0.37f}, XMFLOAT4{0.f, 0.f, 0.f, 1.f} };
+	npc->SetBoundingBox(obb);
+
+	npc->SetAnimationSet(m_animationSets[animationSet], animationSet);
+	npc->SetAnimationOnTrack(0, ObjectAnimation::IDLE);
+	npc->GetAnimationController()->SetTrackEnable(1, false);
+	npc->GetAnimationController()->SetTrackEnable(2, false);
 }
 
 bool VillageScene::IsBlendObject(const string& objectName)
@@ -1404,7 +1448,7 @@ void VillageScene::SetSkillUI(PlayerType type)
 		m_skill1SwitchUI->SetTexture("WARRIORSKILL1");
 		m_skill1SwitchUI->SetClickEvent([&] {
 			m_skillNameUI->SetText(TEXT("스킬1"));
-			m_skillInfoUI->SetText(TEXT("전사스킬1에 대한 설명입니다.\n전사스킬1에 대한 설명입니다.\n전사스킬1에 대한 설명입니다.\n"));
+			m_skillInfoUI->SetText(TEXT("전사스킬1에 대한 설명입니다."));
 			});
 		m_skill2SwitchUI->SetTexture("WARRIORSKILL2");
 		m_skill2SwitchUI->SetClickEvent([&] {

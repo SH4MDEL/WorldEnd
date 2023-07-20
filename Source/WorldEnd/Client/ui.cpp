@@ -244,7 +244,7 @@ void ButtonUI::OnProcessingMouseMessage(UINT message, LPARAM lParam)
 	}
 }
 
-SwitchUI::SwitchUI(XMFLOAT2 position, XMFLOAT2 size) : UI(position, size)
+SwitchUI::SwitchUI(XMFLOAT2 position, XMFLOAT2 size) : UI(position, size), m_active{false}
 {
 	m_type = Type::SWITCH_NOACTIVE;
 	XMStoreFloat4x4(&m_uiMatrix, XMMatrixIdentity());
@@ -266,6 +266,9 @@ void SwitchUI::OnProcessingMouseMessage(UINT message, LPARAM lParam)
 {
 	// 사용할 수 없다면 자식 UI까지 갈 것도 없이 return한다.
 	if (!m_enable) return;
+
+	if (m_type == Type::SWITCH_ACTIVE) m_active = true;
+	else m_active = false;
 
 	// 충돌했다면 설정된 버튼의 함수를 stack에 넣는다.
 	if (message == WM_LBUTTONDOWN) {
@@ -289,13 +292,13 @@ void SwitchUI::OnProcessingMouseMessage(UINT message, LPARAM lParam)
 
 bool SwitchUI::IsActive()
 {
-	if (m_type == Type::SWITCH_ACTIVE) return true;
-	return false;
+	return m_active;
 }
 
 void SwitchUI::SetNoActive()
 {
 	m_type = Type::SWITCH_NOACTIVE;
+	m_active = false;
 }
 
 HorzGaugeUI::HorzGaugeUI(XMFLOAT2 position, XMFLOAT2 size, FLOAT border) : 

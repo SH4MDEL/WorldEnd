@@ -69,6 +69,7 @@ public:
 	void LoadSceneFromFile(wstring fileName, wstring sceneName);
 	void LoadObjectFromFile(wstring fileName, const shared_ptr<GameObject>& object);
 	void LoadPlayerFromFile(const shared_ptr<Player>& player);
+	void LoadNPCFromFile(const shared_ptr<AnimationObject>& npc);
 
 	bool CheckState(State sceneState) const;
 	void SetState(State sceneState);
@@ -78,8 +79,12 @@ public:
 	virtual void ProcessPacket(char* ptr);
 
 private:
-	void BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist);
-	void BuildLight(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist);
+	inline void BuildUI();
+	inline void BuildInteractUI();
+	inline void BulidRoomUI();
+	inline void BuildPartyUI();
+	inline void BuildSkillUI();
+	inline void BuildLight(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist);
 
 	void UpdateInteract(FLOAT timeElapsed);
 
