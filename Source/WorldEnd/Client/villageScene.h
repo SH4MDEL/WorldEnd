@@ -9,17 +9,19 @@ public:
 		Unused = 0x00,
 		DungeonInteract = 0x01,
 		SkillInteract = 0x02,
-		OutputRoomUI = 0x04,
-		OutputPartyUI = 0x08,
-		OutputSkillUI = 0x10,
-		SceneLeave = 0x20,
+		InhenceInteract = 0x04,
+		OutputRoomUI = 0x08,
+		OutputPartyUI = 0x10,
+		OutputSkillUI = 0x20,
+		OutputInhenceUI = 0x40,
+		SceneLeave = 0x80,
 		BlurLevel1 = Unused,
 		BlurLevel2 = Unused,
 		BlurLevel3 = Unused,
 		BlurLevel4 = Unused,
 		BlurLevel5 = Unused,
 		Bluring = BlurLevel1 | BlurLevel2 | BlurLevel3 | BlurLevel4 | BlurLevel5,
-		OutputUI = OutputRoomUI | OutputPartyUI | OutputSkillUI,
+		OutputUI = OutputRoomUI | OutputPartyUI | OutputSkillUI | OutputInhenceUI,
 		CantPlayerControl = OutputUI
 	};
 	enum class LightTag : INT {
@@ -83,7 +85,9 @@ private:
 	inline void BuildInteractUI();
 	inline void BulidRoomUI();
 	inline void BuildPartyUI();
-	inline void BuildSkillUI();
+	inline void BuildSkillSettingUI();
+	inline void BuildInhenceUI();
+	inline void BuildMainUI();
 	inline void BuildLight(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist);
 
 	void UpdateInteract(FLOAT timeElapsed);
@@ -100,7 +104,8 @@ private:
 	bool MoveOnStairs();
 
 	void ChangeCharacter(PlayerType type, shared_ptr<Player>& player);
-	void SetSkillUI(PlayerType type);
+	void SetSkillSettingUI(PlayerType type);
+	void SetSkillUI();
 
 protected:
 	ComPtr<ID3D12Resource>			m_sceneBuffer;
@@ -136,14 +141,27 @@ protected:
 	array<shared_ptr<UI>, 3>		m_partyPlayerUI;
 	array<shared_ptr<TextUI>, 3>	m_partyPlayerTextUI;
 
-	// Skill UI 관련
-	shared_ptr<UI>					m_skillUI;
+	// Skill Setting UI 관련
+	shared_ptr<UI>					m_skillSettingUI;
 	shared_ptr<SwitchUI>			m_skill1SwitchUI;
 	shared_ptr<SwitchUI>			m_skill2SwitchUI;
 	shared_ptr<SwitchUI>			m_ultimate1SwitchUI;
 	shared_ptr<SwitchUI>			m_ultimate2SwitchUI;
 	shared_ptr<TextUI>				m_skillNameUI;
 	shared_ptr<TextUI>				m_skillInfoUI;
+
+	// Inhence UI 관련
+	shared_ptr<UI>					m_inhenceUI;
+	shared_ptr<SwitchUI>			m_inhenceAttackSwitchUI;
+	shared_ptr<SwitchUI>			m_inhenceCritDamageSwtichUI;
+	shared_ptr<SwitchUI>			m_inhenceCritProbSwitchUI;
+	shared_ptr<SwitchUI>			m_inhenceDefenceSwitchUI;
+	shared_ptr<SwitchUI>			m_inhenceHpSwitchUI;
+
+	// Main UI
+	shared_ptr<VertGaugeUI>			m_skillUI;
+	shared_ptr<VertGaugeUI>			m_ultimateUI;
+	shared_ptr<TextUI>				m_goldTextUI;
 
 	XMFLOAT4						m_directionalDiffuse;
 	XMFLOAT3						m_directionalDirection;

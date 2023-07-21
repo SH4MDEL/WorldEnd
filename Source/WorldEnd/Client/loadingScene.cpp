@@ -471,6 +471,27 @@ void LoadingScene::BuildTexture(const ComPtr<ID3D12Device>& device, const ComPtr
 	archerUltimate2Texture->CreateSrvDescriptorHeap(device);
 	archerUltimate2Texture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
 
+	auto inhenceAttackTexture{ make_shared<Texture>() };
+	inhenceAttackTexture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/InhenceTexture/Inhence_Attack.dds"), (INT)ShaderRegister::BaseTexture);
+	inhenceAttackTexture->CreateSrvDescriptorHeap(device);
+	inhenceAttackTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+	auto inhenceCritDamageTexture{ make_shared<Texture>() };
+	inhenceCritDamageTexture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/InhenceTexture/Inhence_Crit_Damage.dds"), (INT)ShaderRegister::BaseTexture);
+	inhenceCritDamageTexture->CreateSrvDescriptorHeap(device);
+	inhenceCritDamageTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+	auto inhenceCritProbTexture{ make_shared<Texture>() };
+	inhenceCritProbTexture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/InhenceTexture/Inhence_Crit_Prob.dds"), (INT)ShaderRegister::BaseTexture);
+	inhenceCritProbTexture->CreateSrvDescriptorHeap(device);
+	inhenceCritProbTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+	auto inhenceDefenceTexture{ make_shared<Texture>() };
+	inhenceDefenceTexture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/InhenceTexture/Inhence_Defence.dds"), (INT)ShaderRegister::BaseTexture);
+	inhenceDefenceTexture->CreateSrvDescriptorHeap(device);
+	inhenceDefenceTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+	auto inhenceHpTexture{ make_shared<Texture>() };
+	inhenceHpTexture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/InhenceTexture/Inhence_Hp.dds"), (INT)ShaderRegister::BaseTexture);
+	inhenceHpTexture->CreateSrvDescriptorHeap(device);
+	inhenceHpTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+
 	auto staminaBarTexture{ make_shared<Texture>() };
 	staminaBarTexture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/Full_StaminaBar.dds"), (INT)ShaderRegister::BaseTexture); // BaseTexture
 	staminaBarTexture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/Empty_StaminaBar.dds"), (INT)ShaderRegister::SubTexture); // SubTexture
@@ -494,6 +515,11 @@ void LoadingScene::BuildTexture(const ComPtr<ID3D12Device>& device, const ComPtr
 	m_textures.insert({ "ARCHERSKILL2", archerSkill2Texture });
 	m_textures.insert({ "ARCHERULTIMATE1", archerUltimate1Texture });
 	m_textures.insert({ "ARCHERULTIMATE2", archerUltimate1Texture });
+	m_textures.insert({ "INHENCEATTACK", inhenceAttackTexture });
+	m_textures.insert({ "INHENCECRITDAMAGE", inhenceCritDamageTexture });
+	m_textures.insert({ "INHENCECRITPROB", inhenceCritProbTexture });
+	m_textures.insert({ "INHENCEDEFENCE", inhenceDefenceTexture });
+	m_textures.insert({ "INHENCEHP", inhenceHpTexture });
 	m_textures.insert({ "STAMINABAR", staminaBarTexture });
 
 	auto titleUITexture{ make_shared<Texture>() };

@@ -294,14 +294,9 @@ void TowerScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 	qText->SetTextFormat("KOPUB24");
 	qText->SetText(TEXT("Q"));
 	m_ultimateUI->SetChild(qText);
-	if (g_playerInfo.playerType == PlayerType::WARRIOR) {
-		m_skillUI->SetTexture("WARRIORSKILL1");
-		m_ultimateUI->SetTexture("WARRIORULTIMATE1");
-	}
-	if (g_playerInfo.playerType == PlayerType::ARCHER) {
-		m_skillUI->SetTexture("ARCHERSKILL1");
-		m_ultimateUI->SetTexture("ARCHERULTIMATE1");
-	}
+
+	SetSkillUI();
+
 	m_shaders["UI"]->SetUI(m_skillUI);
 	m_player->SetSkillGauge(m_skillUI);
 	m_shaders["UI"]->SetUI(m_ultimateUI);
@@ -1606,4 +1601,39 @@ void TowerScene::CollideByStaticOBB(const shared_ptr<GameObject>& obj, const sha
 		break;
 	}
 
+}
+
+void TowerScene::SetSkillUI()
+{
+	switch (g_playerInfo.playerType)
+	{
+	case PlayerType::WARRIOR:
+		if (g_playerInfo.skill[(size_t)g_playerInfo.playerType].first == 0) {
+			m_skillUI->SetTexture("WARRIORSKILL1");
+		}
+		else if (g_playerInfo.skill[(size_t)g_playerInfo.playerType].first == 1) {
+			m_skillUI->SetTexture("WARRIORSKILL2");
+		}
+		if (g_playerInfo.skill[(size_t)g_playerInfo.playerType].second == 0) {
+			m_skillUI->SetTexture("WARRIORULTIMATE1");
+		}
+		else if (g_playerInfo.skill[(size_t)g_playerInfo.playerType].second == 1) {
+			m_skillUI->SetTexture("WARRIORULTIMATE2");
+		}
+		break;
+	case PlayerType::ARCHER:
+		if (g_playerInfo.skill[(size_t)g_playerInfo.playerType].first == 0) {
+			m_skillUI->SetTexture("ARCHERSKILL1");
+		}
+		else if (g_playerInfo.skill[(size_t)g_playerInfo.playerType].first == 1) {
+			m_skillUI->SetTexture("ARCHERSKILL2");
+		}
+		if (g_playerInfo.skill[(size_t)g_playerInfo.playerType].second == 0) {
+			m_skillUI->SetTexture("ARCHERULTIMATE1");
+		}
+		else if (g_playerInfo.skill[(size_t)g_playerInfo.playerType].second == 1) {
+			m_skillUI->SetTexture("ARCHERULTIMATE2");
+		}
+		break;
+	}
 }
