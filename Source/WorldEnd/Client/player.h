@@ -3,6 +3,9 @@
 #include "object.h"
 #include "ui.h"
 
+enum SkillType : CHAR {
+	SKILL1, SKILL2
+};
 
 class Camera;
 
@@ -84,6 +87,8 @@ private:
 	INT						m_id;			// 플레이어 고유 아이디
 
 	PlayerType				m_type = PlayerType::WARRIOR;
+	SkillType				m_skillType;
+	SkillType				m_ultimateType;
 
 	array<bool, ActionType::COUNT> m_cooldownList;	// 쿨타임이면 true, 쿨타임중이 아니면 false
 	

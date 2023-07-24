@@ -46,8 +46,8 @@ struct PLAYER_DATA
 	int crit_rate_level;
 	int crit_damage_level;
 
-	std::wstring normal_skill_name;
-	std::wstring ultimate_name;
+	int normal_skill_type;
+	int ultimate_type;
 };
 
 struct PLAYER_TABLE
@@ -65,8 +65,8 @@ struct PLAYER_TABLE
 	SQLINTEGER crit_rate_level;
 	SQLINTEGER crit_damage_level;
 
-	SQLWCHAR normal_skill_name[30];
-	SQLWCHAR ultimate_name[30];
+	SQLINTEGER normal_skill_type;
+	SQLINTEGER ultimate_type;
 	SQLCHAR logged_in;
 
 

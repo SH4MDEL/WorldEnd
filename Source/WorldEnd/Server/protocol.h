@@ -149,7 +149,7 @@ public:
 	static constexpr int ANIMATION_START = 100;
 	enum USHORT {
 		DASH = ObjectAnimation::END + ANIMATION_START,
-		SKILL, ULTIMATE, ROLL
+		SKILL, ULTIMATE, ROLL, SKILL2, ULTIMATE2
 	};
 };
 
@@ -248,6 +248,13 @@ namespace PlayerSetting
 	constexpr float ARROW_SPEED = 15.5f;
 	constexpr float AUTO_TARGET_RANGE = 12.5f;
 	constexpr float ARROW_RANGE = 12.f;
+
+	constexpr float DEFAULT_HP = 100.0f;
+	constexpr float DEFAULT_ATK = 30.0f;
+	constexpr float DEFAULT_DEF = 30.0f;
+	constexpr float DEFAULT_CRIT_RATE = 0.f;
+	constexpr float DEFAULT_CRIT_DAMAGE = 2.f;
+
 
 	constexpr auto DASH_DURATION = 300ms;
 	constexpr float MAX_STAMINA = 120.f;
@@ -611,8 +618,8 @@ struct CS_LOGIN_PACKET
 {
 	UCHAR size;
 	UCHAR type;
-	std::string id;
-	std::string password;
+	CHAR id[20];
+	CHAR password[20];
 };
 
 struct CS_PLAYER_MOVE_PACKET
@@ -726,11 +733,17 @@ struct SC_LOGIN_OK_PACKET    // 로그인 성공을 알려주는 패킷
 {
 	UCHAR size;
 	UCHAR type;
-	std::wstring name;
 	INT id;
 	DirectX::XMFLOAT3 pos;
-	FLOAT hp;
 	PlayerType player_type;
+	INT gold;
+	UCHAR hp_level;
+	UCHAR atk_level;
+	UCHAR def_level;
+	UCHAR crit_rate_level;
+	UCHAR crit_damage_level;
+	UCHAR normal_skill_type;
+	UCHAR ultimate_skill_type;
 };
 
 struct SC_ADD_PLAYER_PACKET

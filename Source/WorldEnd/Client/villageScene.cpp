@@ -150,7 +150,7 @@ void VillageScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	m_player = make_shared<Player>();
 
 	// DB 에서 받아온 플레이어 정보 입력
-	m_player->SetType(g_playerInfo.playerType);
+	m_player->SetType(PlayerType::ARCHER);
 	m_player->SetId(g_playerInfo.id);
 #ifdef USE_NETWORK
 	//m_player->SetPosition(g_playerInfo.position);

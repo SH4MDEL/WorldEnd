@@ -815,8 +815,12 @@ void Server::ProcessPacket(int id, char* p)
 		CS_LOGIN_PACKET* packet = reinterpret_cast<CS_LOGIN_PACKET*>(p);
 		
 		USER_INFO info{};
-		info.user_id.assign(packet->id.begin(), packet->id.end());
-		info.password.assign(packet->password.begin(), packet->password.end());
+
+		std::wstring user_id{ packet->id, packet->id + strlen(packet->id) };
+		std::wstring password { packet->password, packet->password + strlen(packet->password) };
+
+		info.user_id = user_id;
+		info.password = password;
 
 		PLAYER_DATA data{};
 
@@ -1044,14 +1048,23 @@ void Server::Disconnect(int id)
 
 void Server::SendLoginOk(int client_id)
 {
+	auto client = dynamic_pointer_cast<Client>(m_clients[client_id]);
+
 	SC_LOGIN_OK_PACKET packet{};
 	packet.size = sizeof(packet);
 	packet.type = SC_PACKET_LOGIN_OK;
 	packet.id = client_id;
-	packet.pos = m_clients[client_id]->GetPosition();
-	packet.hp = m_clients[client_id]->GetHp();
-	packet.player_type = m_clients[client_id]->GetPlayerType();
-	packet.name = m_clients[client_id]->GetName();
+	packet.pos = client->GetPosition();
+	packet.player_type = client->GetPlayerType();
+	
+	packet.gold = client->GetGold();
+	packet.hp_level = client->GetHpLevel();
+	packet.atk_level = client->GetAtkLevel();
+	packet.def_level = client->GetDefLevel();
+	packet.crit_rate_level = client->GetCritRateLevel();
+	packet.crit_damage_level = client->GetCritDamageLevel();
+	packet.normal_skill_type = client->GetNormalSkillType();
+	packet.ultimate_skill_type = client->GetUltimateSkillType();
 
 	m_clients[client_id]->DoSend(&packet);
 }
@@ -1786,9 +1799,19 @@ void Server::DBThread()
 						client->SetPlayerType(static_cast<PlayerType>(data.player_type));
 						client->SetPosition(data.x, data.y, data.z);
 
+						// 골드정보 Set
+						client->SetGold(data.gold);
+
 						// 강화정보 Set
+						client->SetHpLevel(data.hp_level);
+						client->SetAtkLevel(data.atk_level);
+						client->SetDefLevel(data.def_level);
+						client->SetCritRateLevel(data.crit_rate_level);
+						client->SetCritDamageLevel(data.crit_damage_level);
 
 						// 스킬 정보 Set
+						client->SetNormalSkillType(data.normal_skill_type);
+						client->SetUltimateSkillType(data.ultimate_type);
 
 						over->_comp_type = OP_LOGIN_OK;
 						PostQueuedCompletionStatus(m_handle_iocp, 1, ev.client_id, &over->_wsa_over);

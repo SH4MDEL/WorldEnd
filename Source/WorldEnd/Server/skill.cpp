@@ -24,3 +24,8 @@ void Skill::SetType(SkillType type)
 {
 	m_type = type;
 }
+
+void Skill::SetSkillType(UCHAR type)
+{
+	m_skill_type = type;
+}

@@ -32,6 +32,10 @@ ExpOver::ExpOver(char* packet, INT packet_count)
 Client::Client() : m_socket{}, m_is_ready{ false }, m_remain_size{ 0 },
 	m_recv_over{}
 {
+	for (size_t i = 0; i < static_cast<INT>(SkillType::COUNT); ++i) {
+		m_skills[i] = std::make_shared<Skill>();
+	}
+
 	Init();
 }
 
@@ -43,6 +47,7 @@ void Client::Init()
 {
 	m_id = -1;
 	m_room_num = -1;
+	m_party_num = -1;
 	m_position = XMFLOAT3(0.f, 0.f, 0.f);
 	m_velocity = XMFLOAT3(0.f, 0.f, 0.f);
 	m_yaw = 0.f;
@@ -58,9 +63,15 @@ void Client::Init()
 	SetPlayerType(PlayerType::WARRIOR);
 	m_name = std::wstring{ L"Player" };
 
-	m_status->SetAtk(90.f);
-	m_status->SetMaxHp(100.f);
-	m_status->SetHp(100.f);
+	m_status->SetAtk(PlayerSetting::DEFAULT_ATK);
+	m_status->SetMaxHp(PlayerSetting::DEFAULT_HP);
+	m_status->SetHp(PlayerSetting::DEFAULT_HP);
+	m_status->SetDef(PlayerSetting::DEFAULT_DEF);
+	m_status->SetCritRate(PlayerSetting::DEFAULT_CRIT_RATE);
+	m_status->SetCritDamage(PlayerSetting::DEFAULT_CRIT_DAMAGE);
+
+	m_skills[static_cast<INT>(SkillType::NORMAL)]->SetSkillType(0);
+	m_skills[static_cast<INT>(SkillType::ULTIMATE)]->SetSkillType(0);
 }
 
 void Client::DoRecv()
@@ -176,6 +187,41 @@ void Client::SetGold(INT gold)
 	m_gold = gold;
 }
 
+void Client::SetHpLevel(UCHAR level)
+{
+	m_status->SetHpLevel(level);
+}
+
+void Client::SetAtkLevel(UCHAR level)
+{
+	m_status->SetAtkLevel(level);
+}
+
+void Client::SetDefLevel(UCHAR level)
+{
+	m_status->SetDefLevel(level);
+}
+
+void Client::SetCritRateLevel(UCHAR level)
+{
+	m_status->SetCritRateLevel(level);
+}
+
+void Client::SetCritDamageLevel(UCHAR level)
+{
+	m_status->SetCritDamageLevel(level);
+}
+
+void Client::SetNormalSkillType(UCHAR type)
+{
+	m_skills[static_cast<INT>(SkillType::NORMAL)]->SetSkillType(type);
+}
+
+void Client::SetUltimateSkillType(UCHAR type)
+{
+	m_skills[static_cast<INT>(SkillType::ULTIMATE)]->SetSkillType(type);
+}
+
 FLOAT Client::GetSkillRatio(ActionType type) const
 {
 	FLOAT ratio{};
@@ -191,6 +237,16 @@ FLOAT Client::GetSkillRatio(ActionType type) const
 	}
 
 	return ratio;
+}
+
+UCHAR Client::GetNormalSkillType() const
+{
+	return m_skills[static_cast<INT>(SkillType::NORMAL)]->GetSkillType();
+}
+
+UCHAR Client::GetUltimateSkillType() const
+{
+	return m_skills[static_cast<INT>(SkillType::ULTIMATE)]->GetSkillType();
 }
 
 void Client::ChangeStamina(FLOAT value)

@@ -79,6 +79,13 @@ struct PlayerInfo {
     INT        gold;
     XMFLOAT3   position;
     PlayerType playerType;
+    UCHAR      hpLevel;
+    UCHAR      atkLevel;
+    UCHAR      defLevel;
+    UCHAR      critRateLevel;
+    UCHAR      critDamageLevel;
+    UCHAR      normalSkillType;
+    UCHAR      ultimateSkillType;
 };
 
 

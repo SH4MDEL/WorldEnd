@@ -53,6 +53,13 @@ public:
 	void SetReady(bool value);
 	void SetUserId(const std::wstring_view& ws);
 	void SetGold(INT gold);
+	void SetHpLevel(UCHAR level);
+	void SetAtkLevel(UCHAR level);
+	void SetDefLevel(UCHAR level);
+	void SetCritRateLevel(UCHAR level);
+	void SetCritDamageLevel(UCHAR level);
+	void SetNormalSkillType(UCHAR type);
+	void SetUltimateSkillType(UCHAR type);
 
 	const SOCKET& GetSocket() const override { return m_socket; }
 	ExpOver& GetExpOver() { return m_recv_over; }
@@ -69,6 +76,14 @@ public:
 	bool GetReady() const { return m_is_ready; }
 	std::wstring GetUserId() const { return m_user_id; }
 	INT GetGold() const { return m_gold; }
+	UCHAR GetHpLevel() const { return m_status->GetHpLevel(); }
+	UCHAR GetAtkLevel() const { return m_status->GetAtkLevel(); }
+	UCHAR GetDefLevel() const { return m_status->GetDefLevel(); }
+	UCHAR GetCritRateLevel() const { return m_status->GetCritRateLevel(); }
+	UCHAR GetCritDamageLevel() const { return m_status->GetCritDamageLevel(); }
+	UCHAR GetNormalSkillType() const;
+	UCHAR GetUltimateSkillType() const;
+	
 
 	void ChangeStamina(FLOAT value);
 	virtual void DecreaseHp(FLOAT damage, INT id) override;

@@ -9,7 +9,8 @@ Player::Player() : m_velocity{ 0.0f, 0.0f, 0.0f }, m_maxVelocity{ 10.0f }, m_fri
 	m_skillCool{ static_cast<FLOAT>(PlayerSetting::SKILL_COOLDOWN[(INT)m_type].count())}, 
 	m_ultimateCool{ static_cast<FLOAT>(PlayerSetting::ULTIMATE_COOLDOWN[(INT)m_type].count()) },
 	m_id{ -1 }, m_cooldownList{ false, }, m_dashed{ false }, m_moveSpeed{ PlayerSetting::WALK_SPEED },
-	m_interactable{ false }, m_interactableType{ InteractionType::NONE }, m_bufSize{ 0 }
+	m_interactable{ false }, m_interactableType{ InteractionType::NONE }, m_bufSize{ 0 },
+	m_skillType{ SKILL1 }, m_ultimateType{ SKILL1 }
 {
 }
 
@@ -32,10 +33,38 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 		cout << GetPosition();
 	}
 
+	if (GetAsyncKeyState('5') & 0x8000) {
+		if (SKILL1 == m_skillType) {
+			m_skillType = SKILL2;
+		}
+		else if (SKILL2 == m_skillType) {
+			m_skillType = SKILL1;
+		}
+		cout << "스킬 변경!" << endl;
+	}
+	if (GetAsyncKeyState('6') & 0x8000) {
+		if (SKILL1 == m_ultimateType) {
+			m_ultimateType = SKILL2;
+		}
+		else if (SKILL2 == m_ultimateType){
+			m_ultimateType = SKILL1;
+		}
+		cout << "궁극기 변경!" << endl;
+	}
+
+
 	if (GetAsyncKeyState('Q') & 0x8000) {
 		if (!m_cooldownList[ActionType::ULTIMATE]) {
 			m_ultimateCool = 0.f;
-			ChangeAnimation(PlayerAnimation::ULTIMATE, true);
+
+			switch (m_ultimateType) {
+			case SKILL1:
+				ChangeAnimation(PlayerAnimation::ULTIMATE, true);
+				break;
+			case SKILL2:
+				ChangeAnimation(PlayerAnimation::ULTIMATE2, true);
+				break;
+			}
 
 			XMFLOAT3 pos = Vector3::Add(Vector3::Mul(m_front, 0.8f), GetPosition());
 			
@@ -46,14 +75,18 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 	}
 
 	// 궁극기 시전중이면 아래의 키보드 입력 X
-	if (PlayerAnimation::ULTIMATE == m_currentAnimation) {
+	if (PlayerAnimation::ULTIMATE == m_currentAnimation ||
+		PlayerAnimation::ULTIMATE2 == m_currentAnimation)
+	{
 		return;
 	}
 
 	// 공격, 스킬, 궁극기, 구르기 중에는 이동 X
 	if (PlayerAnimation::ATTACK != m_currentAnimation &&
 		PlayerAnimation::SKILL != m_currentAnimation &&
+		PlayerAnimation::SKILL2 != m_currentAnimation &&
 		PlayerAnimation::ULTIMATE != m_currentAnimation &&
+		PlayerAnimation::ULTIMATE2 != m_currentAnimation &&
 		PlayerAnimation::ROLL != m_currentAnimation)
 	{
 		XMFLOAT3 eye = m_camera->GetEye(); eye.y = 0.f;
@@ -190,7 +223,15 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 	if (GetAsyncKeyState('E') & 0x8000) {
 		if (!m_cooldownList[ActionType::SKILL]) {
 			m_skillCool = 0.f;
-			ChangeAnimation(PlayerAnimation::SKILL, true);
+
+			switch (m_skillType) {
+			case SKILL1:
+				ChangeAnimation(PlayerAnimation::SKILL, true);
+				break;
+			case SKILL2:
+				ChangeAnimation(PlayerAnimation::SKILL2, true);
+				break;
+			}
 
 			XMFLOAT3 pos = Vector3::Add(Vector3::Mul(m_front, 0.8f), GetPosition());
 			CreateAttackPacket(ActionType::SKILL);
@@ -293,6 +334,34 @@ void Player::Update(FLOAT timeElapsed)
 			}
 		}
 		else if (PlayerAnimation::ULTIMATE == m_currentAnimation) {
+			auto& track = m_animationController->GetAnimationTrack(0);
+			auto& animation = m_animationController->GetAnimationSet()->GetAnimations()[track.GetAnimation()];
+
+			// 스킬 애니메이션 종료 시 IDLE 로 변경
+			if (fabs(track.GetPosition() - animation->GetLength()) <= numeric_limits<float>::epsilon()) {
+				if (m_dashed && (PlayerAnimation::RUN == m_prevAnimation))
+					ChangeAnimation(PlayerAnimation::RUN, true);
+				else
+					ChangeAnimation(ObjectAnimation::IDLE, true);
+
+				SendPacket();
+			}
+		}
+		else if (PlayerAnimation::SKILL2 == m_currentAnimation) {
+			auto& track = m_animationController->GetAnimationTrack(0);
+			auto& animation = m_animationController->GetAnimationSet()->GetAnimations()[track.GetAnimation()];
+
+			// 스킬 애니메이션 종료 시 IDLE 로 변경
+			if (fabs(track.GetPosition() - animation->GetLength()) <= numeric_limits<float>::epsilon()) {
+				if (m_dashed && (PlayerAnimation::RUN == m_prevAnimation))
+					ChangeAnimation(PlayerAnimation::RUN, true);
+				else
+					ChangeAnimation(ObjectAnimation::IDLE, true);
+
+				SendPacket();
+			}
+		}
+		else if (PlayerAnimation::ULTIMATE2 == m_currentAnimation) {
 			auto& track = m_animationController->GetAnimationTrack(0);
 			auto& animation = m_animationController->GetAnimationSet()->GetAnimations()[track.GetAnimation()];
 
@@ -547,6 +616,16 @@ void Player::ChangeAnimation(USHORT animation, bool doSend)
 			ANIMATION_TYPE_LOOP, m_currentAnimation);
 		break;
 	case PlayerAnimation::ROLL:
+		start_num = PlayerAnimation::ANIMATION_START;
+		ChangeAnimationSettings(AnimationBlending::NORMAL, ANIMATION_TYPE_ONCE,
+			ANIMATION_TYPE_LOOP, m_currentAnimation);
+		break;
+	case PlayerAnimation::SKILL2:
+		start_num = PlayerAnimation::ANIMATION_START;
+		ChangeAnimationSettings(AnimationBlending::NORMAL, ANIMATION_TYPE_ONCE,
+			ANIMATION_TYPE_LOOP, m_currentAnimation);
+		break;
+	case PlayerAnimation::ULTIMATE2:
 		start_num = PlayerAnimation::ANIMATION_START;
 		ChangeAnimationSettings(AnimationBlending::NORMAL, ANIMATION_TYPE_ONCE,
 			ANIMATION_TYPE_LOOP, m_currentAnimation);

@@ -100,8 +100,8 @@ bool DataBase::TryLogin(const USER_INFO& user_info, PLAYER_DATA& player_data)
 	ret = SQLBindCol(m_hstmt, 10, SQL_C_TINYINT, &player_table.def_level, 1, &player_table.cb_def_level);
 	ret = SQLBindCol(m_hstmt, 11, SQL_C_TINYINT, &player_table.crit_rate_level, 1, &player_table.cb_crit_rate_level);
 	ret = SQLBindCol(m_hstmt, 12, SQL_C_TINYINT, &player_table.crit_damage_level, 1, &player_table.cb_crit_damage_level);
-	ret = SQLBindCol(m_hstmt, 13, SQL_C_WCHAR, &player_table.normal_skill_name, 30, &player_table.cb_skill);
-	ret = SQLBindCol(m_hstmt, 14, SQL_C_WCHAR, &player_table.ultimate_name, 30, &player_table.cb_ultimate);
+	ret = SQLBindCol(m_hstmt, 13, SQL_C_TINYINT, &player_table.normal_skill_type, 1, &player_table.cb_skill);
+	ret = SQLBindCol(m_hstmt, 14, SQL_C_TINYINT, &player_table.ultimate_type, 1, &player_table.cb_ultimate);
 	ret = SQLBindCol(m_hstmt, 15, SQL_C_BIT, &player_table.logged_in, 1, &player_table.cb_logged_in);
 
 	while (true) {
@@ -123,11 +123,10 @@ bool DataBase::TryLogin(const USER_INFO& user_info, PLAYER_DATA& player_data)
 			player_data.crit_rate_level = player_table.crit_rate_level;
 			player_data.crit_damage_level = player_table.crit_damage_level;
 
-			player_data.normal_skill_name = player_table.normal_skill_name;
-			player_data.ultimate_name = player_table.ultimate_name;
+			player_data.normal_skill_type = player_table.normal_skill_type;
+			player_data.ultimate_type = player_table.ultimate_type;
 
 			std::wcout << player_data.user_id << ", " << player_data.name << std::endl;
-			std::wcout << player_data.normal_skill_name << ", " << player_data.ultimate_name << std::endl;
 			std::cout << "플레이어 타입 : " << (int)player_data.player_type << std::endl;
 
 

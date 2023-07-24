@@ -43,6 +43,37 @@ void Status::SetCritDamage(FLOAT value)
 	m_crit_damage = value;
 }
 
+void Status::SetHpLevel(UCHAR level)
+{
+	m_hp_level = level;
+	m_max_hp = PlayerSetting::DEFAULT_HP + 10 * level;
+	m_hp = m_max_hp;
+}
+
+void Status::SetAtkLevel(UCHAR level)
+{
+	m_atk_level = level;
+	m_atk = PlayerSetting::DEFAULT_ATK + 2 * level;
+}
+
+void Status::SetDefLevel(UCHAR level)
+{
+	m_def_level = level;
+	m_def = PlayerSetting::DEFAULT_DEF + 2 * level;
+}
+
+void Status::SetCritRateLevel(UCHAR level)
+{
+	m_crit_rate_level = level;
+	m_crit_rate = PlayerSetting::DEFAULT_CRIT_RATE + 1.f * level;
+}
+
+void Status::SetCritDamageLevel(UCHAR level)
+{
+	m_crit_damage_level = level;
+	m_crit_damage = PlayerSetting::DEFAULT_CRIT_DAMAGE + 1.f * level;
+}
+
 FLOAT Status::CalculateDamage()
 {
 	if (m_crit_rate >= urd(g_random_engine)) {

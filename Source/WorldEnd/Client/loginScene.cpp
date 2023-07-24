@@ -190,7 +190,9 @@ void LoginScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 
 	//SoundManager::GetInstance().PlayMusic(SoundManager::Music::Title);
 
+#ifdef USE_NETWORK
 	InitServer();
+#endif
 }
 
 void LoginScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist)
@@ -674,11 +676,13 @@ void LoginScene::TryLogin()
 	packet.size = sizeof(packet);
 	packet.type = CS_PACKET_LOGIN;
 	
-	wstring id{ m_idBox->GetString() };
-	packet.id.assign(id.begin(), id.end());
+	wstring idBoxString{ m_idBox->GetString() };
+	string id{ idBoxString.begin(), idBoxString.end() };
+	strcpy_s(packet.id, id.c_str());
 
-	wstring pw{ m_passwordBox->GetString() };
-	packet.password.assign(pw.begin(), pw.end());
+	wstring passwordBoxString{ m_passwordBox->GetString() };
+	string pw{ passwordBoxString.begin(), passwordBoxString.end() };
+	strcpy_s(packet.password, pw.c_str());
 
 	send(g_socket, reinterpret_cast<char*>(&packet), sizeof(packet), 0);
 #endif
@@ -690,6 +694,14 @@ void LoginScene::RecvLoginOk(char* ptr)
 	g_playerInfo.id = packet->id;
 	g_playerInfo.position = XMFLOAT3{ packet->pos.x, packet->pos.y, packet->pos.z };
 	g_playerInfo.playerType = packet->player_type;
+	g_playerInfo.gold = packet->gold;
+	g_playerInfo.hpLevel = packet->hp_level;
+	g_playerInfo.atkLevel = packet->atk_level;
+	g_playerInfo.defLevel = packet->def_level;
+	g_playerInfo.critRateLevel = packet->crit_rate_level;
+	g_playerInfo.critDamageLevel = packet->crit_damage_level;
+	g_playerInfo.normalSkillType = packet->normal_skill_type;
+	g_playerInfo.ultimateSkillType = packet->ultimate_skill_type;
 
 	m_fadeFilter->FadeOut([&]() {
 		SetState(State::SceneLeave);
