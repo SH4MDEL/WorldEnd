@@ -70,6 +70,8 @@ using namespace std;
 // 사운드 관련
 #include "fmod.hpp"
 
+#include "mapInfo.h"
+
 class GameFramework;
 class ParticleSystem;
 class TowerObjectManager;
