@@ -430,6 +430,15 @@ void LoadingScene::BuildTexture(const ComPtr<ID3D12Device>& device, const ComPtr
 	rightArrowUITexture->CreateSrvDescriptorHeap(device);
 	rightArrowUITexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
 
+	auto warriorPortraitTexture{ make_shared<Texture>() };
+	warriorPortraitTexture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/Warrior_Portrait.dds"), (INT)ShaderRegister::BaseTexture);
+	warriorPortraitTexture->CreateSrvDescriptorHeap(device);
+	warriorPortraitTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+	auto archerPortraitTexture{ make_shared<Texture>() };
+	archerPortraitTexture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/Archer_Portrait.dds"), (INT)ShaderRegister::BaseTexture);
+	archerPortraitTexture->CreateSrvDescriptorHeap(device);
+	archerPortraitTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+
 	auto warriorSkill1Texture{ make_shared<Texture>() };
 	warriorSkill1Texture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/SkillTexture/Warrior_Skill1.dds"), (INT)ShaderRegister::BaseTexture);
 	warriorSkill1Texture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/SkillTexture/Warrior_Skill1_Cool.dds"), (INT)ShaderRegister::SubTexture);
@@ -507,6 +516,8 @@ void LoadingScene::BuildTexture(const ComPtr<ID3D12Device>& device, const ComPtr
 	m_textures.insert({ "GOLDUI", goldUITexture });
 	m_textures.insert({ "LEFTARROWUI", leftArrowUITexture });
 	m_textures.insert({ "RIGHTARROWUI", rightArrowUITexture });
+	m_textures.insert({ "WARRIORPORTRAIT", warriorPortraitTexture });
+	m_textures.insert({ "ARCHERPORTRAIT", archerPortraitTexture });
 	m_textures.insert({ "WARRIORSKILL1", warriorSkill1Texture });
 	m_textures.insert({ "WARRIORSKILL2", warriorSkill2Texture });
 	m_textures.insert({ "WARRIORULTIMATE1", warriorUltimate1Texture });
@@ -804,8 +815,8 @@ void LoadingScene::BuildText()
 	Utiles::ThrowIfFailed(g_GameFramework.GetD2DDeviceContext()->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::White, 1.f), &whiteBrush));
 	Text::m_colorBrushes.insert({ "WHITE", whiteBrush });
 
-	const array<INT, 4> fontSize{ 15, 18, 21, 27 };
-	for (const auto size : fontSize) {
+	for (int i = 1; i <= 5; ++i) {
+		int size = i * 3 + 15;
 		auto koPub = ComPtr<IDWriteTextFormat>();
 		Utiles::ThrowIfFailed(g_GameFramework.GetWriteFactory()->CreateTextFormat(
 			TEXT("./Resource/Font/KoPub Dotum Bold.ttf"), nullptr,
@@ -816,11 +827,11 @@ void LoadingScene::BuildText()
 		koPub->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
 
 		string name{ "KOPUB" };
-		name += to_string(size);
+		name += to_string(i);
 		Text::m_textFormats.insert({ name, koPub });
 	}
-	const array<INT, 5> mapleFontSize{ 15, 18, 21, 24, 27 };
-	for (const auto size : mapleFontSize) {
+	for (int i = 1; i <= 5; ++i) {
+		int size = i * 3 + 15;
 		auto maple = ComPtr<IDWriteTextFormat>();
 		Utiles::ThrowIfFailed(g_GameFramework.GetWriteFactory()->CreateTextFormat(
 			TEXT("./Resource/Font/Maplestory Bold.ttf"), nullptr,

@@ -672,7 +672,7 @@ void GameFramework::ChangeScene(SCENETAG tag)
 
 void GameFramework::ResizeWindow(UINT width, UINT height)
 {
-	SetWindowPos(m_hWnd, HWND_TOP, 0, 0, width, height, SWP_SHOWWINDOW);
+	SetWindowPos(m_hWnd, HWND_TOP, 0, 0, width, height + 39, SWP_SHOWWINDOW);
 }
 
 void GameFramework::FrameAdvance()

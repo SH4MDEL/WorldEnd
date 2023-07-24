@@ -31,6 +31,8 @@ public:
 	virtual void Render(const ComPtr<ID3D12GraphicsCommandList>& commandList, const shared_ptr<UI>& parent);
 	virtual void RenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext);
 
+	virtual void Resize(FLOAT aspectRatio);
+
 	void SetEnable() { m_enable = true; }
 	void SetDisable() { m_enable = false; }
 
@@ -48,6 +50,7 @@ protected:
 
 	XMFLOAT2 m_position;
 	XMFLOAT2 m_size;
+	FLOAT m_aspectRatio;
 
 	shared_ptr<Texture> m_texture;
 

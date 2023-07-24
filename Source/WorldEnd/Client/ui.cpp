@@ -4,7 +4,7 @@
 UI::UI(XMFLOAT2 position, XMFLOAT2 size) : 
 	m_position{ position }, m_size{ size }, m_enable{ true }, m_clickEvent{ []() {} }
 {
-
+	m_aspectRatio = g_GameFramework.GetAspectRatio();
 }
 
 void UI::OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime)
@@ -107,6 +107,13 @@ void UI::RenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext)
 	for (auto& child : m_children) {
 		child->RenderText(deviceContext);
 	}
+}
+
+void UI::Resize(FLOAT aspectRatio)
+{
+	m_size.x *= m_aspectRatio;
+	m_size.x /= aspectRatio;
+	m_aspectRatio = aspectRatio;
 }
 
 void UI::SetTexture(const string& name) 

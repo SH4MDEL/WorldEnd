@@ -83,6 +83,8 @@ private:
 	void RecvLoginOk(char* ptr);
 	void RecvLoginFail(char* ptr);
 
+	void ResetFontSize(int type);
+
 private:
 	ComPtr<ID3D12Resource>					m_sceneBuffer;
 	SceneInfo* m_sceneBufferPointer;
