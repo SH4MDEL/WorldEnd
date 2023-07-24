@@ -148,7 +148,7 @@ protected:
 
 	// UI 관련
 	array<shared_ptr<HorzGaugeUI>, MAX_INGAME_USER - 1>	m_hpUI;
-	//unordered_map<INT, INT>								m_idSet;
+	unordered_map<INT, INT>								m_idSet;
 	shared_ptr<UI>										m_interactUI;
 	shared_ptr<TextUI>									m_interactTextUI;
 	shared_ptr<VertGaugeUI>								m_skillUI;
@@ -159,7 +159,7 @@ protected:
 	shared_ptr<TextUI>									m_resultRewardTextUI;
 
 	// 서버 추가 코드
-	//unordered_map<INT, shared_ptr<Player>>	            m_multiPlayers;
+	unordered_map<INT, shared_ptr<Player>>	            m_multiPlayers;
 	unordered_map<INT, shared_ptr<Monster>>             m_monsters;
 	vector<shared_ptr<GameObject>>						m_structures;
 	vector<shared_ptr<GameObject>>						m_invisibleWalls;

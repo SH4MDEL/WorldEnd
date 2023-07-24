@@ -8,7 +8,7 @@ std::uniform_int_distribution<INT> dist(0, 100);
 GameRoom::GameRoom() : m_state{ GameRoomState::EMPTY }, m_floor{ 1 },
 m_type{ EnvironmentType::FOG }, m_monster_count{ 0 }, m_arrow_id{ 0 }
 {
-	for (INT& id : m_player_ids)
+	for (INT& id : m_ingame_player_ids)
 		id = -1;
 
 	for (INT& id : m_monster_ids)
@@ -44,7 +44,7 @@ void GameRoom::InteractObject(InteractionType type)
 			if (m_state != GameRoomState::INGAME)
 				m_state = GameRoomState::INGAME;
 		}
-		m_battle_starter->SendEvent(m_player_ids, &type);
+		m_battle_starter->SendEvent(m_ingame_player_ids, &type);
 		break;
 	case InteractionType::PORTAL:
 		//
@@ -71,7 +71,7 @@ void GameRoom::WarpNextFloor(INT room_num)
 {
 	Server& server = Server::GetInstance();
 
-	m_portal->SendEvent(m_player_ids, &m_floor);
+	m_portal->SendEvent(m_ingame_player_ids, &m_floor);
 	m_battle_starter->SetValid(true);
 
 	++m_floor;
@@ -81,7 +81,7 @@ void GameRoom::WarpNextFloor(INT room_num)
 	InitGameRoom(room_num);
 
 	// 방 넘어갈 때 생성한 몬스터 정보 다시 넘기기
-	for (INT id : m_player_ids) {
+	for (INT id : m_ingame_player_ids) {
 		if (-1 == id) continue;
 
 		SendAddMonster(id);
@@ -99,7 +99,7 @@ bool GameRoom::SetPlayer(INT room_num, INT player_id)
 	// 빈자리를 찾았을 경우 id를 넣고 락을 해제하지만
 	// 빈자리를 못찾으면 락을 함수 종료시점에 해제해줌
 	std::unique_lock<std::mutex> l{ m_player_lock };
-	for (INT& id : m_player_ids) {
+	for (INT& id : m_ingame_player_ids) {
 		if (-1 == id) {
 			id = player_id;
 			server.m_clients[id]->SetRoomNum(room_num);
@@ -125,7 +125,7 @@ bool GameRoom::SetPlayer(INT room_num, INT player_id)
 
 	// 방에 참여했다면 Add 전송
 	if (join) {
-		for (INT id : m_player_ids) {
+		for (INT id : m_ingame_player_ids) {
 			if (-1 == id) continue;
 			if (id == player_id) continue;
 
@@ -180,7 +180,7 @@ void GameRoom::SendPlayerData()
 
 	SC_UPDATE_CLIENT_PACKET packet[MAX_INGAME_USER]{};
 
-	for (size_t i = 0; INT id : m_player_ids) {
+	for (size_t i = 0; INT id : m_ingame_player_ids) {
 		if (-1 == id) {
 			packet[i].size = sizeof(SC_UPDATE_CLIENT_PACKET);
 			packet[i].type = SC_PACKET_UPDATE_CLIENT;
@@ -197,7 +197,7 @@ void GameRoom::SendPlayerData()
 		++i;
 	}
 
-	for (INT id : m_player_ids) {
+	for (INT id : m_ingame_player_ids) {
 		if (-1 == id) continue;
 
 		server.m_clients[id]->DoSend(&packet, MAX_INGAME_USER);
@@ -231,7 +231,7 @@ void GameRoom::SendMonsterData()
 		++i;
 	}
 
-	for (INT id : m_player_ids){
+	for (INT id : m_ingame_player_ids){
 		if (-1 == id) continue;
 
 		server.m_clients[id]->DoSend(&packet, monster_count);
@@ -281,14 +281,14 @@ void GameRoom::RemovePlayer(INT player_id, INT room_num)
 
 	{
 		std::lock_guard<std::mutex> lock{ m_player_lock };
-		auto it = std::remove(m_player_ids.begin(), m_player_ids.end(), player_id);
-		if (it != m_player_ids.end()) {
+		auto it = std::remove(m_ingame_player_ids.begin(), m_ingame_player_ids.end(), player_id);
+		if (it != m_ingame_player_ids.end()) {
 			*it = -1;
 		}
 	}
 
 	// 방이 아예 비었다면
-	if (-1 == m_player_ids[0]) {
+	if (-1 == m_ingame_player_ids[0]) {
 		Server& server = Server::GetInstance();
 
 		TIMER_EVENT ev{ .event_time = std::chrono::system_clock::now() +
@@ -305,7 +305,7 @@ void GameRoom::RemovePlayer(INT player_id, INT room_num)
 		packet.type = SC_PACKET_REMOVE_PLAYER;
 		packet.id = player_id;
 
-		for (INT id : m_player_ids) {
+		for (INT id : m_ingame_player_ids) {
 			if (-1 == id) continue;
 			{
 				std::lock_guard<std::mutex> lock{ server.m_clients[id]->GetStateMutex() };
@@ -367,7 +367,7 @@ void GameRoom::RemoveTrigger(INT trigger_id)
 	Server& server = Server::GetInstance();
 
 	UCHAR trigger = static_cast<UCHAR>(server.m_triggers[trigger_id]->GetType());
-	for (INT id : m_player_ids) {
+	for (INT id : m_ingame_player_ids) {
 		if (-1 == id) continue;
 		if (State::INGAME != server.m_clients[id]->GetState()) continue;
 
@@ -943,7 +943,7 @@ void GameRoom::CollideWithEventObject(INT player_id, InteractionType type)
 
 INT GameRoom::GetPlayerCount()
 {
-	INT count = std::count_if(m_player_ids.begin(), m_player_ids.end(), [](INT id) {
+	INT count = std::count_if(m_ingame_player_ids.begin(), m_ingame_player_ids.end(), [](INT id) {
 		return id != -1;
 		});
 

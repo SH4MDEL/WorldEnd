@@ -54,6 +54,7 @@ public:
 	void SetUserId(const std::wstring_view& ws);
 	void SetGold(INT gold);
 	void SetInvincibleRoll(bool invincible_roll) { m_invincible_roll = invincible_roll; }
+	void SetViewList(int data) { m_view_list.insert(data);}
 
 	const SOCKET& GetSocket() const override { return m_socket; }
 	ExpOver& GetExpOver() { return m_recv_over; }
@@ -71,10 +72,13 @@ public:
 	std::wstring GetUserId() const { return m_user_id; }
 	INT GetGold() const { return m_gold; }
 	bool GetInvincibleRoll() const { return m_invincible_roll; }
+	const std::unordered_set<INT>& GetViewList() { return m_view_list;}
 
 	void ChangeStamina(FLOAT value);
 	virtual void DecreaseHp(FLOAT damage, INT id) override;
 	void RestoreCondition();
+
+	std::mutex m_vl;                             // 뷰 리스트 전용 락
 
 private:
 	// 통신 관련 변수
@@ -97,6 +101,9 @@ private:
 	std::wstring			m_user_id;
 	INT						m_gold;
 	bool                    m_invincible_roll = false;
+
+	std::unordered_set<INT> m_view_list;         // 이 클라의 뷰 리스트
+	
 
 	std::array<std::shared_ptr<Skill>, static_cast<INT>(SkillType::COUNT)>	m_skills;
 

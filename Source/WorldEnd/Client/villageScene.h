@@ -71,11 +71,14 @@ public:
 	void SetState(State sceneState);
 	void ResetState(State sceneState);
 
+	void RotateToTarget(const shared_ptr<GameObject>& object);
+	INT SetTarget(const shared_ptr<GameObject>& object);
 
 	virtual void ProcessPacket(char* ptr);
 	void RecvAddPlayer(char* ptr);
 	void RecvUpdateClient(char* ptr);
 	void RecvRemovePlayer(char* ptr);
+	void RecvChangeAnimation(char* ptr);
 
 private:
 	void BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist);
@@ -137,5 +140,9 @@ protected:
 	unique_ptr<QuadtreeFrustum>		m_quadtree;
 
 	bool							m_onTerrain;
+
+	unordered_map<INT, shared_ptr<Player>>	            m_multiPlayers;
+	unordered_map<INT, INT>								m_idSet;
+	array<shared_ptr<HorzGaugeUI>, MAX_INGAME_USER - 1>	m_hpUI;
 };
 

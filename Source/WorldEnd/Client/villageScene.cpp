@@ -655,8 +655,26 @@ void VillageScene::ResetState(State sceneState)
 	m_sceneState &= ~(INT)sceneState;
 }
 
+
+void VillageScene::RotateToTarget(const shared_ptr<GameObject>& object)
+{
+	INT target = SetTarget(object);
+}
+
+INT VillageScene::SetTarget(const shared_ptr<GameObject>& object)
+{
+	XMFLOAT3 sub{};
+	float length{}, min_length{ std::numeric_limits<float>::max() };
+	XMFLOAT3 pos{ object->GetPosition() };
+	int target{ -1 };
+
+	return target;
+}
+
 void VillageScene::ProcessPacket(char* ptr)
 {
+	cout << "[Process Packet] Packet Type: " << (int)ptr[1] << endl;//test
+
 	switch (ptr[1])
 	{
 	case SC_PACKET_ADD_PLAYER:
@@ -668,15 +686,12 @@ void VillageScene::ProcessPacket(char* ptr)
 	case SC_PACKET_UPDATE_CLIENT:
 		RecvUpdateClient(ptr);
 		break;
-	/*case SC_PACKET_CHANGE_ANIMATION:
+	case SC_PACKET_CHANGE_ANIMATION:
 		RecvChangeAnimation(ptr);
 		break;
-	case SC_PACKET_RESET_COOLDOWN:
-		RecvResetCooldown(ptr);
-		break;
-	case SC_PACKET_CHANGE_STAMINA:
-		RecvChangeStamina(ptr);
-		break;*/
+	//case SC_PACKET_RESET_COOLDOWN:
+	//	RecvResetCooldown(ptr);
+	//	break;
 	default:
 		cout << "UnDefined Packet!!" << endl;
 		break;
@@ -703,8 +718,8 @@ void VillageScene::RecvAddPlayer(char* ptr)
 	//SetHpBar(multiPlayer);
 
 	m_idSet.insert({ id, (INT)m_idSet.size() });
-	//m_hpUI[m_idSet[id]]->SetEnable();
-	//m_hpUI[m_idSet[id]]->SetGauge(packet->hp);
+	/*m_hpUI[m_idSet[id]]->SetEnable();
+	m_hpUI[m_idSet[id]]->SetGauge(packet->hp);*/
 
 	m_shaders["ANIMATION"]->SetMultiPlayer(id, multiPlayer);
 	cout << "add player" << id << endl;
@@ -729,6 +744,32 @@ void VillageScene::RecvUpdateClient(char* ptr)
 void VillageScene::RecvRemovePlayer(char* ptr)
 {
 }
+
+void VillageScene::RecvChangeAnimation(char* ptr)
+{
+	SC_CHANGE_ANIMATION_PACKET* packet = reinterpret_cast<SC_CHANGE_ANIMATION_PACKET*>(ptr);
+
+	if (packet->id == m_player->GetId()) {
+		if (PlayerType::ARCHER == m_player->GetType() &&
+			(packet->animation == ObjectAnimation::ATTACK ||
+				packet->animation == PlayerAnimation::SKILL))
+		{
+			RotateToTarget(m_player);
+		}
+	}
+	else {
+		auto& player = m_multiPlayers[packet->id];
+		player->ChangeAnimation(packet->animation, false);
+
+		if (PlayerType::ARCHER == player->GetType() &&
+			(packet->animation == ObjectAnimation::ATTACK ||
+				packet->animation == PlayerAnimation::SKILL))
+		{
+			RotateToTarget(player);
+		}
+	}
+}
+
 
 void VillageScene::LoadSceneFromFile(wstring fileName, wstring sceneName)
 {

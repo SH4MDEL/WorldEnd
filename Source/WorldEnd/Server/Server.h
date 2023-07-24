@@ -82,6 +82,8 @@ public:
 	void SendChangeHp(int client_id);
 	void SendTrigger(int client_id, TriggerType type, const XMFLOAT3& pos);
 	void SendMagicCircle(int room_num, const XMFLOAT3& pos, const XMFLOAT3& extent);
+	void SendAddPlayer(int sender, int receiver);
+	void SendMovePlayer(int client_id, int move_object);
 
 	// 기타 처리
 	bool IsPlayer(int client_id); 
@@ -120,7 +122,8 @@ public:
 	HANDLE GetIOCPHandle() const { return m_handle_iocp; }
 
 	// 플레이어 처리
-	void Move(const std::shared_ptr<Client>& client, XMFLOAT3 position);
+	void Move(const std::shared_ptr<Client>& client, XMFLOAT3 position , int cleint_id);
+	bool CanSee(int from, int to);
 
 	// 오브젝트 처리
 	int GetNearTarget(int client_id, float max_range);
@@ -143,10 +146,11 @@ public:
 	std::unordered_map<INT, Client> m_player_damage_compare;
 
 private:
-	std::unique_ptr<GameRoom> m_game_room;
 	std::unique_ptr<GameRoomManager> m_game_room_manager;
 	std::unique_ptr<PartyManager> m_party_manager;
 	std::unique_ptr<DataBase> m_database;
+
+	std::array<INT, MAX_USER>			m_player_ids;
 
 	SOCKET				m_server_socket;
 	HANDLE				m_handle_iocp;
