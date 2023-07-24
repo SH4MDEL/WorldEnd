@@ -53,7 +53,7 @@ public:
 	void InitMonsters(INT room_num);
 	void InitEnvironment();
 
-	std::array<INT, MAX_INGAME_USER>& GetPlayerIds() { return m_player_ids; }
+	std::array<INT, MAX_INGAME_USER>& GetPlayerIds() { return m_ingame_player_ids; }
 	std::array<INT, MAX_INGAME_MONSTER>& GetMonsterIds() { return m_monster_ids; }
 
 private:
@@ -61,7 +61,7 @@ private:
 	INT GetPlayerCount();
 
 private:
-	std::array<INT, MAX_INGAME_USER>			m_player_ids;
+	std::array<INT, MAX_INGAME_USER>			m_ingame_player_ids;
 	std::array<INT, MAX_INGAME_MONSTER>			m_monster_ids;
 	std::unordered_set<INT>						m_trigger_list;
 	std::mutex									m_player_lock;

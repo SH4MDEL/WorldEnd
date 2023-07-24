@@ -77,10 +77,10 @@ public:
 	void LoadPlayerFromFile(const shared_ptr<Player>& player);
 	void LoadMonsterFromFile(const shared_ptr<Monster>& monster);
 
-	void SetHpBar(const shared_ptr<AnimationObject>& object);
 	void RotateToTarget(const shared_ptr<GameObject>& object, INT targetId);
 	void RotateToTarget(const shared_ptr<GameObject>& object);
 	INT SetTarget(const shared_ptr<GameObject>& object);
+	void SetHpBar(const shared_ptr<AnimationObject>& object);
 
 	bool CheckState(State sceneState) const;
 	void SetState(State sceneState);

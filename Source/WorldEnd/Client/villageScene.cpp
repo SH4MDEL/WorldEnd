@@ -37,6 +37,12 @@ void VillageScene::OnCreate(
 {
 	m_sceneState = (INT)State::Unused;
 	BuildObjects(device, commandList, rootSignature, postRootSignature);
+#ifdef USE_NETWORK
+	CS_ENTER_VILLAGE_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = CS_PACKET_ENTER_VILLAGE;
+	send(g_socket, reinterpret_cast<char*>(&packet), sizeof(packet), 0);
+#endif // USE_NETWORK
 }
 
 void VillageScene::OnDestroy()
@@ -1016,6 +1022,22 @@ void VillageScene::ResetState(State sceneState)
 	m_sceneState &= ~(INT)sceneState;
 }
 
+
+void VillageScene::RotateToTarget(const shared_ptr<GameObject>& object)
+{
+	INT target = SetTarget(object);
+}
+
+INT VillageScene::SetTarget(const shared_ptr<GameObject>& object)
+{
+	XMFLOAT3 sub{};
+	float length{}, min_length{ std::numeric_limits<float>::max() };
+	XMFLOAT3 pos{ object->GetPosition() };
+	int target{ -1 };
+
+	return target;
+}
+
 void VillageScene::ProcessPacket(char* ptr)
 {
 	switch (ptr[1])
@@ -1034,6 +1056,18 @@ void VillageScene::ProcessPacket(char* ptr)
 		break;
 	case SC_PACKET_CREATE_FAIL:
 		RecvCreateFail(ptr);
+		break;
+	case SC_PACKET_ADD_PLAYER:
+		RecvAddPlayer(ptr);
+		break;
+	case SC_PACKET_REMOVE_PLAYER:
+		RecvRemovePlayer(ptr);
+		break;
+	case SC_PACKET_UPDATE_CLIENT:
+		RecvUpdateClient(ptr);
+		break;
+	case SC_PACKET_CHANGE_ANIMATION:
+		RecvChangeAnimation(ptr);
 		break;
 	/*default:
 		cout << "UnDefined Packet : " << (int)ptr[1] << endl;
@@ -1056,6 +1090,79 @@ void VillageScene::RecvPartyInfo(char* ptr)
 		}
 	}
 }
+
+
+void VillageScene::RecvAddPlayer(char* ptr)
+{
+	SC_ADD_PLAYER_PACKET* packet = reinterpret_cast<SC_ADD_PLAYER_PACKET*>(ptr);
+
+	INT id = packet->id;
+
+	auto multiPlayer = make_shared<Player>();
+	multiPlayer->SetType(packet->player_type);
+	LoadPlayerFromFile(multiPlayer);
+
+	// 멀티플레이어 설정
+	multiPlayer->SetPosition(packet->pos);
+	multiPlayer->SetHp(packet->hp);
+
+	m_multiPlayers.insert({ id, multiPlayer });
+
+	//SetHpBar(multiPlayer);
+
+	m_idSet.insert({ id, (INT)m_idSet.size() });
+	/*m_hpUI[m_idSet[id]]->SetEnable();
+	m_hpUI[m_idSet[id]]->SetGauge(packet->hp);*/
+
+	m_shaders["ANIMATION"]->SetMultiPlayer(id, multiPlayer);
+	cout << "add player" << id << endl;
+}
+
+void VillageScene::RecvUpdateClient(char* ptr)
+{
+	SC_UPDATE_CLIENT_PACKET* packet = reinterpret_cast<SC_UPDATE_CLIENT_PACKET*>(ptr);
+
+	if (-1 == packet->id) {
+		return;
+	}
+
+	if (packet->id != m_player->GetId()) {
+		auto& player = m_multiPlayers[packet->id];
+
+		player->SetPosition(packet->pos);
+		player->Rotate(0.f, 0.f, packet->yaw - player->GetYaw());
+	}
+}
+
+void VillageScene::RecvRemovePlayer(char* ptr)
+{
+}
+
+void VillageScene::RecvChangeAnimation(char* ptr)
+{
+	SC_CHANGE_ANIMATION_PACKET* packet = reinterpret_cast<SC_CHANGE_ANIMATION_PACKET*>(ptr);
+
+	if (packet->id == m_player->GetId()) {
+		if (PlayerType::ARCHER == m_player->GetType() &&
+			(packet->animation == ObjectAnimation::ATTACK ||
+				packet->animation == PlayerAnimation::SKILL))
+		{
+			RotateToTarget(m_player);
+		}
+	}
+	else {
+		auto& player = m_multiPlayers[packet->id];
+		player->ChangeAnimation(packet->animation, false);
+
+		if (PlayerType::ARCHER == player->GetType() &&
+			(packet->animation == ObjectAnimation::ATTACK ||
+				packet->animation == PlayerAnimation::SKILL))
+		{
+			RotateToTarget(player);
+		}
+	}
+}
+
 
 void VillageScene::RecvJoinOk(char* ptr)
 {
@@ -1363,6 +1470,11 @@ bool VillageScene::IsCollideExceptObject(const string& objectName)
 	if (objectName == "Flower_D") return true;
 	if (objectName == "Decal_A") return true;
 	if (objectName == "Bridge_A") return true;
+	if (objectName == "CastleWall_F") return true;
+	if (objectName == "Plaza_A") return true;
+	if (objectName == "GrassTile_R") return true;
+	if (objectName == "GrassTile_E") return true;
+	if (objectName == "Tree_branch_A") return true;
 
 	return false;
 }

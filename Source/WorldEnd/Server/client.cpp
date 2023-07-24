@@ -57,6 +57,7 @@ void Client::Init()
 	m_interactable = false;
 	m_latest_id = 0;
 	m_last_move_time = 0;
+	m_party_num = -1;
 	this->SetTriggerFlag();
 	m_is_ready = false;
 	m_user_id.clear();
@@ -291,12 +292,16 @@ void Client::DecreaseHp(FLOAT damage, INT id)
 	if (m_status->GetHp() <= 0)
 		return;
 
-	bool death = m_status->CalculateHitDamage(damage);
-	if (death) {
+	if (m_invincible_roll == false) 
+	{
+		bool death = m_status->CalculateHitDamage(damage);
 
-		// INGAME 에서 State를 바꾸는 것에는 경합이 필요 없으므로 lock 걸지 않음
-		m_state = State::DEATH;
-		m_current_animation = ObjectAnimation::DEATH;
+		if (death) {
+
+			// INGAME 에서 State를 바꾸는 것에는 경합이 필요 없으므로 lock 걸지 않음
+			m_state = State::DEATH;
+			m_current_animation = ObjectAnimation::DEATH;
+		}
 	}
 }
 

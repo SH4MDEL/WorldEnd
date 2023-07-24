@@ -42,21 +42,21 @@ public:
 
 	virtual void OnResize(const ComPtr<ID3D12Device>& device, UINT width, UINT height) = 0;
 
-	virtual void OnCreate(const ComPtr<ID3D12Device>& device, 
-		const ComPtr<ID3D12GraphicsCommandList>& commandList, 
-		const ComPtr<ID3D12RootSignature>& rootSignature, 
+	virtual void OnCreate(const ComPtr<ID3D12Device>& device,
+		const ComPtr<ID3D12GraphicsCommandList>& commandList,
+		const ComPtr<ID3D12RootSignature>& rootSignature,
 		const ComPtr<ID3D12RootSignature>& postRootSignature) = 0;			// 해당 씬으로 변경될 때 호출
 	virtual void OnDestroy() = 0;			// 해당 씬에서 탈출할 때 호출
-	
+
 	virtual void ReleaseUploadBuffer() = 0;
 
 	virtual void CreateShaderVariable(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList) = 0;
 	virtual void UpdateShaderVariable(const ComPtr<ID3D12GraphicsCommandList>& commandList) = 0;
 
-	virtual void BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist, 
+	virtual void BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist,
 		const ComPtr<ID3D12RootSignature>& rootsignature, const ComPtr<ID3D12RootSignature>& postRootsignature) = 0;
 	virtual void DestroyObjects() = 0;
-	
+
 	virtual void OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime) = 0;
 	virtual void OnProcessingMouseMessage(UINT message, LPARAM lParam) = 0;
 	virtual void OnProcessingKeyboardMessage(FLOAT timeElapsed) = 0;
@@ -69,14 +69,13 @@ public:
 	virtual void PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandList, const ComPtr<ID3D12Resource>& renderTarget, UINT threadIndex) = 0;
 	virtual void RenderText(const ComPtr< ID2D1DeviceContext2>& deviceContext) = 0;
 	virtual void PostRenderText(const ComPtr< ID2D1DeviceContext2>& deviceContext) = 0;
-	
+
 	virtual shared_ptr<Shadow> GetShadow() { return nullptr; }
 
 
 	virtual void RecvPacket();
 	virtual void PacketReassembly(char* net_buf, size_t io_byte);
 	virtual void ProcessPacket(char* ptr) = 0;
-
 
 	static unordered_map<string, shared_ptr<Shader>>		m_shaders;
 	static unordered_map<string, shared_ptr<Mesh>>			m_meshs;

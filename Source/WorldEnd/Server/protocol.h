@@ -46,6 +46,8 @@ constexpr int UNDEAD_GRASP_END = ARROW_RAIN_END + MAX_UNDEAD_GRASP;
 
 constexpr int MAX_TRIGGER = MAX_ARROW_RAIN + MAX_UNDEAD_GRASP;
 
+constexpr int VIEW_RANGE = 5;
+
 
 constexpr char CS_PACKET_LOGIN = 1;
 constexpr char CS_PACKET_PLAYER_MOVE = 2;
@@ -65,9 +67,10 @@ constexpr char CS_PACKET_ENTER_DUNGEON = 13;
 constexpr char CS_PACKET_CHANGE_PARTY_PAGE = 14;
 constexpr char CS_PACKET_OPEN_PARTY_UI = 15;
 constexpr char CS_PACKET_CLOSE_PARTY_UI = 16;
+constexpr char CS_PACKET_ENTER_VILLAGE = 17;
 // -----------------------------------------------------------
 
-constexpr char CS_PACKET_ENHANCE = 17;
+constexpr char CS_PACKET_ENHANCE = 18;
 
 
 
@@ -745,6 +748,12 @@ struct CS_ENHANCE_PACKET
 	UCHAR size;
 	UCHAR type;
 	EnhancementType enhancement_type;
+};
+
+struct CS_ENTER_VILLAGE_PACKET
+{
+	UCHAR size;
+	UCHAR type;
 };
 
 ///////////////////////////////////////////////////////////////////////

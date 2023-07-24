@@ -46,6 +46,9 @@ Server::Server()
 
 	m_database = std::make_unique<DataBase>();
 
+	for (INT& id : m_player_ids)
+		id = -1;
+
 	printf("Complete Initialize!\n");
 	// ----------------------- //
 }
@@ -415,6 +418,7 @@ void Server::WorkerThread()
 			FLOAT damage{ client->GetDamage() };
 			damage *= client->GetSkillRatio(attack_type);
 
+
 			if (game_room->GetFloorCount() != 4) {
 				for (int id : monster_ids) {
 					if (-1 == id) continue;
@@ -744,7 +748,7 @@ void Server::WorkerThread()
 			for (int id : ids) {
 				if (-1 == id) continue;
 
-				Move(dynamic_pointer_cast<Client>(m_clients[id]), RoomSetting::START_POSITION);
+				Move(dynamic_pointer_cast<Client>(m_clients[id]), RoomSetting::START_POSITION, id);
 			}
 
 			delete exp_over;
@@ -810,6 +814,8 @@ void Server::ProcessPacket(int id, char* p)
 	unsigned char type = p[1];
 	auto client = dynamic_pointer_cast<Client>(m_clients[id]);
 
+	std::cout << "[Process Packet] Packet Type: " << (int)type << std::endl;//test
+
 	switch (type){
 	case CS_PACKET_LOGIN: {
 		CS_LOGIN_PACKET* packet = reinterpret_cast<CS_LOGIN_PACKET*>(p);
@@ -832,16 +838,16 @@ void Server::ProcessPacket(int id, char* p)
 		ev.event_time = std::chrono::system_clock::now();
 		SetDatabaseEvent(ev);
 		std::cout << "try login!" << std::endl;
-
 		break;
+
 	}
 	case CS_PACKET_PLAYER_MOVE: {
 		CS_PLAYER_MOVE_PACKET* packet = reinterpret_cast<CS_PLAYER_MOVE_PACKET*>(p);
 
 		client->SetYaw(packet->yaw);
 		RotateBoundingBox(client);
-		Move(client, packet->pos);
-
+		Move(client, packet->pos, id);
+		
 #ifdef USER_NUM_TEST
 		client->SetLastMoveTime(packet->move_time);
 #endif	
@@ -992,8 +998,29 @@ void Server::ProcessPacket(int id, char* p)
 	case CS_PACKET_OPEN_PARTY_UI: {
 		CS_OPEN_PARTY_UI_PACKET* packet = reinterpret_cast<CS_OPEN_PARTY_UI_PACKET*>(p);
 
+
 		std::cout << "파티창 열기" << std::endl;
 		m_party_manager->OpenPartyUI(id);
+		break;
+	}
+	case CS_PACKET_ENTER_VILLAGE: {
+		CS_ENTER_VILLAGE_PACKET* packet = reinterpret_cast<CS_ENTER_VILLAGE_PACKET*>(p);
+		for (auto& id : m_player_ids) {
+			if (-1 == id) {
+				id = client->GetId();
+				m_clients[id]->SetPosition(RoomSetting::START_POSITION);
+				break;
+			}
+		}
+
+		for (auto& pl_id : m_player_ids) {
+			if (-1 == pl_id) continue;
+			if (pl_id == id) continue;
+
+			SendAddPlayer(pl_id, id);
+			// 내 정보를 기존에 방에 있던 플레이어에게 전송
+			SendAddPlayer(id, pl_id);
+		}
 		break;
 	}
 	case CS_PACKET_CLOSE_PARTY_UI: {
@@ -1161,7 +1188,11 @@ void Server::SendChangeAnimation(int client_id, USHORT animation)
 	}
 	// 마을 처리
 	else {
-		
+		for (auto id : m_player_ids) {
+			if (-1 == id) continue;
+
+			m_clients[id]->DoSend(&packet);
+		}
 	}
 }
 
@@ -1284,6 +1315,32 @@ void Server::SendMagicCircle(int room_num, const XMFLOAT3& pos, const XMFLOAT3& 
 	}
 }
 
+void Server::SendAddPlayer(int sender, int receiver)
+{
+	SC_ADD_PLAYER_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = SC_PACKET_ADD_PLAYER;
+	packet.id = sender;
+	packet.pos = m_clients[sender]->GetPosition();
+	packet.hp = m_clients[sender]->GetHp();
+	packet.player_type = m_clients[sender]->GetPlayerType();
+
+	m_clients[receiver]->DoSend(&packet);
+}
+
+void Server::SendMovePlayer(int client_id, int move_object)
+{
+	SC_UPDATE_CLIENT_PACKET packet;
+
+	packet.size = sizeof(SC_UPDATE_CLIENT_PACKET);
+	packet.type = SC_PACKET_UPDATE_CLIENT;
+	packet.id = move_object;
+	packet.pos = m_clients[move_object]->GetPosition();
+	packet.yaw = m_clients[move_object]->GetYaw();
+
+	m_clients[client_id]->DoSend(&packet);
+}
+
 bool Server::IsPlayer(int client_id)
 {
 	if (0 <= client_id && client_id < MAX_USER)
@@ -1401,7 +1458,7 @@ INT Server::GetNewTriggerId(TriggerType type)
 	return -1;
 }
 
-void Server::Move(const std::shared_ptr<Client>& client, XMFLOAT3 position)
+void Server::Move(const std::shared_ptr<Client>& client, XMFLOAT3 position, int cleint_id)
 {
 	client->SetPosition(position);
 
@@ -1415,7 +1472,74 @@ void Server::Move(const std::shared_ptr<Client>& client, XMFLOAT3 position)
 	// 게임 룸이 아닌채 움직이면 시야처리 (마을 씬)
 	else {
 
+			for (auto id : m_player_ids) {
+				if (-1 == id) continue;
+				if (id == cleint_id) continue;
+				
+				
+				SendMovePlayer(cleint_id, id);
+
+				SendMovePlayer(id, cleint_id);
+			}
+
+
+
+			//std::unordered_set<INT> near_list;
+
+			//for (auto other_player : m_clients) {
+			//	if (other_player->GetId() == id)
+			//		continue;
+			//	if (false == CanSee(id, other_player->GetId()))
+			//		continue;
+
+			//	near_list.insert(other_player->GetId());
+			//}
+
+			////lock시간을 줄이기 위해 자료를 복사해서 사용
+			//client->m_vl.lock();
+			//std::unordered_set<int> my_vl{ client->GetViewList() };
+			//client->m_vl.lock();
+
+			//// 움직일때 시야에 들어온 플레이어 추가
+			//for (INT other : near_list) {
+			//	
+			//	if (my_vl.count(other) == 0) {
+			//		
+			//		client->m_vl.lock();
+			//		client->SetViewList(other);
+			//		client->m_vl.lock();
+
+			//		// 보였으니 그리라고 패킷을 보냄.
+			//		SendAddPlayer(client->GetId(), other);
+
+			//		continue;
+			//	}
+			//	auto other_player = dynamic_pointer_cast<Client>(m_clients[other]);
+
+			//	other_player->m_vl.lock();
+
+			//	if (other_player->GetViewList().count(client->GetId())) {
+			//		other_player->SetViewList(client->GetId());
+			//		other_player->m_vl.unlock();
+			//		SendAddPlayer(other, client->GetId());
+			//	}
+			//	else {
+			//		// 상대 뷰리스트에 있으면 이동 패킷 전송
+			//		other_player->m_vl.unlock();
+			//		SendMovePlayer(other, client->GetId());
+			//	}
+			//}
+
+		
 	}
+}
+
+bool Server::CanSee(int from, int to)
+{
+	if (VIEW_RANGE - 1 < abs(m_clients[from]->GetPosition().x - m_clients[to]->GetPosition().x)) return false;
+	if (VIEW_RANGE - 1 < abs(m_clients[from]->GetPosition().z - m_clients[to]->GetPosition().z)) return false;
+
+	return true;
 }
 
 int Server::GetNearTarget(int client_id, float max_range)
@@ -1986,22 +2110,29 @@ void Server::SetCooldownTimerEvent(int id, ActionType action_type)
 
 	ev.event_time = std::chrono::system_clock::now();
 
+	auto client = dynamic_pointer_cast<Client>(m_clients[id]);
+
 	// 쿨타임 중인지 검사 필요
 	// 공격 외 쿨타임 처리
 	switch (action_type) {
 	case ActionType::NORMAL_ATTACK:
+		client->SetInvincibleRoll(false);
 		ev.event_time += PlayerSetting::ATTACK_COOLDOWN[player_type];
 		break;
 	case ActionType::SKILL:
+		client->SetInvincibleRoll(false);
 		ev.event_time += PlayerSetting::SKILL_COOLDOWN[player_type];
 		break;
 	case ActionType::ULTIMATE:
+		client->SetInvincibleRoll(false);
 		ev.event_time += PlayerSetting::ULTIMATE_COOLDOWN[player_type];
 		break;
 	case ActionType::DASH:
+		client->SetInvincibleRoll(false);
 		ev.event_time += PlayerSetting::DASH_COOLDOWN;
 		break;
 	case ActionType::ROLL:
+		client->SetInvincibleRoll(true);
 		ev.event_time += PlayerSetting::ROLL_COOLDOWN;
 		break;
 	}

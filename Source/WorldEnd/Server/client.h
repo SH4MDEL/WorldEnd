@@ -61,6 +61,8 @@ public:
 	void LevelUpEnhancement(EnhancementType type);
 	void SetNormalSkillType(PlayerType player_type, UCHAR type);
 	void SetUltimateSkillType(PlayerType player_type, UCHAR type);
+	void SetInvincibleRoll(bool invincible_roll) { m_invincible_roll = invincible_roll; }
+	void SetViewList(int data) { m_view_list.insert(data);}
 
 	const SOCKET& GetSocket() const override { return m_socket; }
 	ExpOver& GetExpOver() { return m_recv_over; }
@@ -85,11 +87,15 @@ public:
 	UCHAR GetNormalSkillType(PlayerType type) const;
 	UCHAR GetUltimateSkillType(PlayerType type) const;
 	
+	bool GetInvincibleRoll() const { return m_invincible_roll; }
+	const std::unordered_set<INT>& GetViewList() { return m_view_list;}
 
 	void ChangeStamina(FLOAT value);
 	void ChangeGold(INT value);
 	virtual void DecreaseHp(FLOAT damage, INT id) override;
 	void RestoreCondition();
+
+	std::mutex m_vl;                             // 뷰 리스트 전용 락
 
 private:
 	// 통신 관련 변수
@@ -111,6 +117,10 @@ private:
 
 	std::wstring			m_user_id;
 	INT						m_gold;
+	bool                    m_invincible_roll = false;
+
+	std::unordered_set<INT> m_view_list;         // 이 클라의 뷰 리스트
+	
 
 	std::array< std::array<std::shared_ptr<Skill>, static_cast<INT>(SkillType::COUNT)>,
 		static_cast<INT>(PlayerType::COUNT)> m_skills;
