@@ -815,8 +815,8 @@ void LoadingScene::BuildText()
 	Utiles::ThrowIfFailed(g_GameFramework.GetD2DDeviceContext()->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::White, 1.f), &whiteBrush));
 	Text::m_colorBrushes.insert({ "WHITE", whiteBrush });
 
-	const array<INT, 4> fontSize{ 15, 18, 21, 27 };
-	for (const auto size : fontSize) {
+	for (int i = 1; i <= 5; ++i) {
+		int size = i * 3 + 15;
 		auto koPub = ComPtr<IDWriteTextFormat>();
 		Utiles::ThrowIfFailed(g_GameFramework.GetWriteFactory()->CreateTextFormat(
 			TEXT("./Resource/Font/KoPub Dotum Bold.ttf"), nullptr,
@@ -827,11 +827,11 @@ void LoadingScene::BuildText()
 		koPub->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
 
 		string name{ "KOPUB" };
-		name += to_string(size);
+		name += to_string(i);
 		Text::m_textFormats.insert({ name, koPub });
 	}
-	const array<INT, 5> mapleFontSize{ 15, 18, 21, 24, 27 };
-	for (const auto size : mapleFontSize) {
+	for (int i = 1; i <= 5; ++i) {
+		int size = i * 3 + 15;
 		auto maple = ComPtr<IDWriteTextFormat>();
 		Utiles::ThrowIfFailed(g_GameFramework.GetWriteFactory()->CreateTextFormat(
 			TEXT("./Resource/Font/Maplestory Bold.ttf"), nullptr,

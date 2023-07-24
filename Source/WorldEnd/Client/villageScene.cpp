@@ -234,7 +234,7 @@ void VillageScene::BuildInteractUI()
 	m_interactUI->SetTexture("BUTTONUI");
 	m_interactTextUI = make_shared<TextUI>(XMFLOAT2{ 0.f, -0.2f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 80.f, 20.f });
 	m_interactTextUI->SetColorBrush("WHITE");
-	m_interactTextUI->SetTextFormat("KOPUB18");
+	m_interactTextUI->SetTextFormat("KOPUB2");
 	m_interactUI->SetChild(m_interactTextUI);
 	m_interactUI->SetDisable();
 	m_shaders["UI"]->SetUI(m_interactUI);
@@ -268,7 +268,7 @@ void VillageScene::BulidRoomUI()
 	auto createRoomButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.f, 0.f},XMFLOAT2{120.f, 10.f}) };
 	createRoomButtonTextUI->SetText(L"파티 생성");
 	createRoomButtonTextUI->SetColorBrush("WHITE");
-	createRoomButtonTextUI->SetTextFormat("KOPUB21");
+	createRoomButtonTextUI->SetTextFormat("KOPUB3");
 	createRoomButtonUI->SetChild(createRoomButtonTextUI);
 	m_roomUI->SetChild(createRoomButtonUI);
 
@@ -286,7 +286,7 @@ void VillageScene::BulidRoomUI()
 	auto joinRoomButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.f, 0.f},XMFLOAT2{120.f, 10.f}) };
 	joinRoomButtonTextUI->SetText(L"파티 가입");
 	joinRoomButtonTextUI->SetColorBrush("WHITE");
-	joinRoomButtonTextUI->SetTextFormat("KOPUB21");
+	joinRoomButtonTextUI->SetTextFormat("KOPUB3");
 	joinRoomButtonUI->SetChild(joinRoomButtonTextUI);
 	m_roomUI->SetChild(joinRoomButtonUI);
 
@@ -316,7 +316,7 @@ void VillageScene::BulidRoomUI()
 		m_roomSwitchTextUI[i] = make_shared<TextUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 300.f, 20.f });
 		m_roomSwitchTextUI[i]->SetText(TEXT("Empty"));
 		m_roomSwitchTextUI[i]->SetColorBrush("WHITE");
-		m_roomSwitchTextUI[i]->SetTextFormat("KOPUB21");
+		m_roomSwitchTextUI[i]->SetTextFormat("KOPUB3");
 
 		roomSwitchUI->SetChild(m_roomSwitchTextUI[i]);
 		m_roomUI->SetChild(roomSwitchUI);
@@ -352,7 +352,7 @@ void VillageScene::BuildPartyUI()
 	auto enterDungeonButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.f, 0.f},XMFLOAT2{120.f, 10.f}) };
 	enterDungeonButtonTextUI->SetText(L"던전 입장");
 	enterDungeonButtonTextUI->SetColorBrush("WHITE");
-	enterDungeonButtonTextUI->SetTextFormat("KOPUB21");
+	enterDungeonButtonTextUI->SetTextFormat("KOPUB3");
 	enterDungeonButtonUI->SetChild(enterDungeonButtonTextUI);
 	m_partyUI->SetChild(enterDungeonButtonUI);
 
@@ -367,7 +367,7 @@ void VillageScene::BuildPartyUI()
 		m_partyPlayerTextUI[i] = make_shared<TextUI>(XMFLOAT2{ 0.f, -0.8f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 300.f, 20.f });
 		m_partyPlayerTextUI[i]->SetText(TEXT("Empty"));
 		m_partyPlayerTextUI[i]->SetColorBrush("WHITE");
-		m_partyPlayerTextUI[i]->SetTextFormat("KOPUB21");
+		m_partyPlayerTextUI[i]->SetTextFormat("KOPUB3");
 		characterFrameUI->SetChild(m_partyPlayerTextUI[i]);
 
 		m_partyUI->SetChild(characterFrameUI);
@@ -385,7 +385,7 @@ void VillageScene::BuildSkillSettingUI()
 	auto skillSettingTextUI = make_shared<TextUI>(XMFLOAT2{ 0.f, 0.75f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 400.f, 20.f });
 	skillSettingTextUI->SetText(TEXT("스킬 변경"));
 	skillSettingTextUI->SetColorBrush("WHITE");
-	skillSettingTextUI->SetTextFormat("KOPUB27");
+	skillSettingTextUI->SetTextFormat("KOPUB5");
 	m_skillSettingUI->SetChild(skillSettingTextUI);
 
 	auto skillCancelButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.95f, 0.9f}, XMFLOAT2{0.06f, 0.06f}) };
@@ -408,7 +408,7 @@ void VillageScene::BuildSkillSettingUI()
 	m_skill1NameUI = make_shared<TextUI>(XMFLOAT2{ 0.f, -0.5f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 100.f, 20.f });
 	m_skill1NameUI->SetText(TEXT(""));
 	m_skill1NameUI->SetColorBrush("WHITE");
-	m_skill1NameUI->SetTextFormat("KOPUB21");
+	m_skill1NameUI->SetTextFormat("KOPUB3");
 	skill1UI->SetChild(m_skill1NameUI);
 	m_skillSettingUI->SetChild(skill1UI);
 
@@ -418,7 +418,7 @@ void VillageScene::BuildSkillSettingUI()
 	m_skill2NameUI = make_shared<TextUI>(XMFLOAT2{ 0.f, -0.5f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 100.f, 20.f });
 	m_skill2NameUI->SetText(TEXT(""));
 	m_skill2NameUI->SetColorBrush("WHITE");
-	m_skill2NameUI->SetTextFormat("KOPUB21");
+	m_skill2NameUI->SetTextFormat("KOPUB3");
 	skill2UI->SetChild(m_skill2NameUI);
 	m_skillSettingUI->SetChild(skill2UI);
 
@@ -428,7 +428,7 @@ void VillageScene::BuildSkillSettingUI()
 	m_ultimate1NameUI = make_shared<TextUI>(XMFLOAT2{ 0.f, -0.5f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 100.f, 20.f });
 	m_ultimate1NameUI->SetText(TEXT(""));
 	m_ultimate1NameUI->SetColorBrush("WHITE");
-	m_ultimate1NameUI->SetTextFormat("KOPUB21");
+	m_ultimate1NameUI->SetTextFormat("KOPUB3");
 	ultimate1UI->SetChild(m_ultimate1NameUI);
 	m_skillSettingUI->SetChild(ultimate1UI);
 
@@ -438,19 +438,19 @@ void VillageScene::BuildSkillSettingUI()
 	m_ultimate2NameUI = make_shared<TextUI>(XMFLOAT2{ 0.f, -0.5f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 100.f, 20.f });
 	m_ultimate2NameUI->SetText(TEXT(""));
 	m_ultimate2NameUI->SetColorBrush("WHITE");
-	m_ultimate2NameUI->SetTextFormat("KOPUB21");
+	m_ultimate2NameUI->SetTextFormat("KOPUB3");
 	ultimate2UI->SetChild(m_ultimate2NameUI);
 	m_skillSettingUI->SetChild(ultimate2UI);
 
 	m_skillNameUI = make_shared<TextUI>(XMFLOAT2{ 0.3f, 0.4f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 300.f, 20.f });
 	m_skillNameUI->SetText(TEXT(""));
 	m_skillNameUI->SetColorBrush("WHITE");
-	m_skillNameUI->SetTextFormat("KOPUB24");
+	m_skillNameUI->SetTextFormat("KOPUB4");
 	m_skillSettingUI->SetChild(m_skillNameUI);
 	m_skillInfoUI = make_shared<TextUI>(XMFLOAT2{ 0.3f, -0.4f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 500.f, 200.f });
 	m_skillInfoUI->SetText(TEXT(""));
 	m_skillInfoUI->SetColorBrush("WHITE");
-	m_skillInfoUI->SetTextFormat("KOPUB21");
+	m_skillInfoUI->SetTextFormat("KOPUB3");
 	m_skillSettingUI->SetChild(m_skillInfoUI);
 
 	auto skillChangeButtonUI = make_shared<ButtonUI>(XMFLOAT2{ 0.f, -0.7f }, XMFLOAT2{ 0.29f, 0.1f });
@@ -475,7 +475,7 @@ void VillageScene::BuildSkillSettingUI()
 	auto skillChangeButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.f, 0.f},XMFLOAT2{120.f, 10.f}) };
 	skillChangeButtonTextUI->SetText(L"변경");
 	skillChangeButtonTextUI->SetColorBrush("WHITE");
-	skillChangeButtonTextUI->SetTextFormat("KOPUB21");
+	skillChangeButtonTextUI->SetTextFormat("KOPUB3");
 	skillChangeButtonUI->SetChild(skillChangeButtonTextUI);
 	m_skillSettingUI->SetChild(skillChangeButtonUI);
 
@@ -488,7 +488,7 @@ void VillageScene::BuildSkillSettingUI()
 	m_skillSettingGoldTextUI = make_shared<TextUI>(XMFLOAT2{ 0.5f, 0.f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 100.f, 20.f });
 	m_skillSettingGoldTextUI->SetText(to_wstring(g_playerInfo.gold));
 	m_skillSettingGoldTextUI->SetColorBrush("WHITE");
-	m_skillSettingGoldTextUI->SetTextFormat("KOPUB27");
+	m_skillSettingGoldTextUI->SetTextFormat("KOPUB5");
 	skillSettingGoldUI->SetChild(m_skillSettingGoldTextUI);
 	m_skillSettingUI->SetChild(skillSettingGoldUI);
 
@@ -504,7 +504,7 @@ inline void VillageScene::BuildInhenceUI()
 	auto inhenceTextUI = make_shared<TextUI>(XMFLOAT2{ 0.f, 0.75f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 400.f, 20.f });
 	inhenceTextUI->SetText(TEXT("캐릭터 강화"));
 	inhenceTextUI->SetColorBrush("WHITE");
-	inhenceTextUI->SetTextFormat("KOPUB27");
+	inhenceTextUI->SetTextFormat("KOPUB5");
 	m_inhenceUI->SetChild(inhenceTextUI);
 
 	auto inhenceCancelButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.95f, 0.9f}, XMFLOAT2{0.06f, 0.06f}) };
@@ -522,7 +522,7 @@ inline void VillageScene::BuildInhenceUI()
 	auto inhenceAttackTextUI{ make_shared<TextUI>(XMFLOAT2{ 0.f, -0.5f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 100.f, 20.f }) };
 	inhenceAttackTextUI->SetText(TEXT("공격력"));
 	inhenceAttackTextUI->SetColorBrush("WHITE");
-	inhenceAttackTextUI->SetTextFormat("KOPUB21");
+	inhenceAttackTextUI->SetTextFormat("KOPUB3");
 	inhenceAttackUI->SetChild(inhenceAttackTextUI);
 	m_inhenceUI->SetChild(inhenceAttackUI);
 
@@ -533,7 +533,7 @@ inline void VillageScene::BuildInhenceUI()
 	auto inhenceCritDamageTextUI{ make_shared<TextUI>(XMFLOAT2{ 0.f, -0.5f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 100.f, 20.f }) };
 	inhenceCritDamageTextUI->SetText(TEXT("크리티컬 대미지"));
 	inhenceCritDamageTextUI->SetColorBrush("WHITE");
-	inhenceCritDamageTextUI->SetTextFormat("KOPUB21");
+	inhenceCritDamageTextUI->SetTextFormat("KOPUB3");
 	inhenceCritDamageUI->SetChild(inhenceCritDamageTextUI);
 	m_inhenceUI->SetChild(inhenceCritDamageUI);
 
@@ -544,7 +544,7 @@ inline void VillageScene::BuildInhenceUI()
 	auto inhenceCritProbTextUI{ make_shared<TextUI>(XMFLOAT2{ 0.f, -0.5f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 100.f, 20.f }) };
 	inhenceCritProbTextUI->SetText(TEXT("크리티컬 확률"));
 	inhenceCritProbTextUI->SetColorBrush("WHITE");
-	inhenceCritProbTextUI->SetTextFormat("KOPUB21");
+	inhenceCritProbTextUI->SetTextFormat("KOPUB3");
 	inhenceCritProbUI->SetChild(inhenceCritProbTextUI);
 	m_inhenceUI->SetChild(inhenceCritProbUI);
 
@@ -555,7 +555,7 @@ inline void VillageScene::BuildInhenceUI()
 	auto inhenceDefenceTextUI{ make_shared<TextUI>(XMFLOAT2{ 0.f, -0.5f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 100.f, 20.f }) };
 	inhenceDefenceTextUI->SetText(TEXT("방어력"));
 	inhenceDefenceTextUI->SetColorBrush("WHITE");
-	inhenceDefenceTextUI->SetTextFormat("KOPUB21");
+	inhenceDefenceTextUI->SetTextFormat("KOPUB3");
 	inhenceDefenceUI->SetChild(inhenceDefenceTextUI);
 	m_inhenceUI->SetChild(inhenceDefenceUI);
 
@@ -566,7 +566,7 @@ inline void VillageScene::BuildInhenceUI()
 	auto inhenceHpTextUI{ make_shared<TextUI>(XMFLOAT2{ 0.f, -0.5f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 100.f, 20.f }) };
 	inhenceHpTextUI->SetText(TEXT("최대 체력"));
 	inhenceHpTextUI->SetColorBrush("WHITE");
-	inhenceHpTextUI->SetTextFormat("KOPUB21");
+	inhenceHpTextUI->SetTextFormat("KOPUB3");
 	inhenceHpUI->SetChild(inhenceHpTextUI);
 	m_inhenceUI->SetChild(inhenceHpUI);
 
@@ -595,7 +595,7 @@ inline void VillageScene::BuildInhenceUI()
 	auto inhenceButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.f, 0.f},XMFLOAT2{120.f, 10.f}) };
 	inhenceButtonTextUI->SetText(L"강화");
 	inhenceButtonTextUI->SetColorBrush("WHITE");
-	inhenceButtonTextUI->SetTextFormat("KOPUB21");
+	inhenceButtonTextUI->SetTextFormat("KOPUB3");
 	inhenceButtonUI->SetChild(inhenceButtonTextUI);
 	m_inhenceUI->SetChild(inhenceButtonUI);
 
@@ -606,7 +606,7 @@ inline void VillageScene::BuildInhenceUI()
 	m_inhenceGoldTextUI = make_shared<TextUI>(XMFLOAT2{ 0.5f, 0.f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 100.f, 20.f });
 	m_inhenceGoldTextUI->SetText(to_wstring(g_playerInfo.gold));
 	m_inhenceGoldTextUI->SetColorBrush("WHITE");
-	m_inhenceGoldTextUI->SetTextFormat("KOPUB27");
+	m_inhenceGoldTextUI->SetTextFormat("KOPUB5");
 	inhenceGoldUI->SetChild(m_inhenceGoldTextUI);
 	m_inhenceUI->SetChild(inhenceGoldUI);
 
@@ -635,7 +635,7 @@ inline void VillageScene::BuildMainUI()
 	m_goldTextUI = make_shared<TextUI>(XMFLOAT2{ 0.5f, 0.f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 100.f, 20.f });
 	m_goldTextUI->SetText(to_wstring(g_playerInfo.gold));
 	m_goldTextUI->SetColorBrush("WHITE");
-	m_goldTextUI->SetTextFormat("KOPUB27");
+	m_goldTextUI->SetTextFormat("KOPUB5");
 	goldUI->SetChild(m_goldTextUI);
 
 	m_mainUI->SetChild(goldUI);

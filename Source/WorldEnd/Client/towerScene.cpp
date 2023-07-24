@@ -277,7 +277,7 @@ void TowerScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 	m_interactUI->SetTexture("BUTTONUI");
 	m_interactTextUI = make_shared<TextUI>(XMFLOAT2{0.f, -0.2f}, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{80.f, 20.f});
 	m_interactTextUI->SetColorBrush("WHITE");
-	m_interactTextUI->SetTextFormat("KOPUB18");
+	m_interactTextUI->SetTextFormat("KOPUB2");
 	m_interactUI->SetChild(m_interactTextUI);
 	m_interactUI->SetDisable();
 	m_shaders["UI"]->SetUI(m_interactUI);
@@ -285,13 +285,13 @@ void TowerScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 	m_skillUI = make_shared<VertGaugeUI>(XMFLOAT2{ -0.60f, -0.75f }, XMFLOAT2{ 0.15f, 0.15f }, 0.f);
 	auto eText = make_shared<TextUI>(XMFLOAT2{ 0.f, -0.8f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 0.15f, 0.15f });
 	eText->SetColorBrush("WHITE");
-	eText->SetTextFormat("KOPUB24");
+	eText->SetTextFormat("KOPUB4");
 	eText->SetText(TEXT("E"));
 	m_skillUI->SetChild(eText);
 	m_ultimateUI = make_shared<VertGaugeUI>(XMFLOAT2{ -0.85f, -0.75f }, XMFLOAT2{ 0.15f, 0.15f }, 0.f);
 	auto qText = make_shared<TextUI>(XMFLOAT2{ 0.f, -0.8f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 0.15f, 0.15f });
 	qText->SetColorBrush("WHITE");
-	qText->SetTextFormat("KOPUB24");
+	qText->SetTextFormat("KOPUB4");
 	qText->SetText(TEXT("Q"));
 	m_ultimateUI->SetChild(qText);
 
@@ -309,7 +309,7 @@ void TowerScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 	auto exitTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.f, 0.f},XMFLOAT2{120.f, 20.f}) };
 	exitTextUI->SetText(L"던전에서 나가시겠습니까?");
 	exitTextUI->SetColorBrush("WHITE");
-	exitTextUI->SetTextFormat("KOPUB18");
+	exitTextUI->SetTextFormat("KOPUB2");
 	exitUI->SetChild(exitTextUI);
 	auto exitButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.f, -0.7f}, XMFLOAT2{0.15f, 0.075f}) };
 	exitButtonUI->SetTexture("BUTTONUI");
@@ -322,7 +322,7 @@ void TowerScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 	auto exitButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.f, 0.f},XMFLOAT2{10.f, 10.f}) };
 	exitButtonTextUI->SetText(L"예");
 	exitButtonTextUI->SetColorBrush("WHITE");
-	exitButtonTextUI->SetTextFormat("KOPUB18");
+	exitButtonTextUI->SetTextFormat("KOPUB2");
 	exitButtonUI->SetChild(exitButtonTextUI);
 	exitUI->SetChild(exitButtonUI);
 
@@ -344,7 +344,7 @@ void TowerScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 	m_resultRewardTextUI = make_shared<TextUI>(XMFLOAT2{0.2f, -0.2f}, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{100.f, 20.f});
 	m_resultRewardTextUI->SetText(TEXT(""));
 	m_resultRewardTextUI->SetColorBrush("WHITE");
-	m_resultRewardTextUI->SetTextFormat("KOPUB24");
+	m_resultRewardTextUI->SetTextFormat("KOPUB4");
 	resultUI->SetChild(m_resultRewardTextUI);
 	auto resultButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.f, -0.7f}, XMFLOAT2{0.15f, 0.075f}) };
 	resultButtonUI->SetTexture("BUTTONUI");
@@ -355,7 +355,7 @@ void TowerScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 	auto ResultButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.f, 0.f}, XMFLOAT2{20.f, 10.f}) };
 	ResultButtonTextUI->SetText(L"닫기");
 	ResultButtonTextUI->SetColorBrush("WHITE");
-	ResultButtonTextUI->SetTextFormat("KOPUB18");
+	ResultButtonTextUI->SetTextFormat("KOPUB2");
 	resultButtonUI->SetChild(ResultButtonTextUI);
 	resultUI->SetChild(resultButtonUI);
 

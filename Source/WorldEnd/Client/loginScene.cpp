@@ -201,26 +201,26 @@ void LoginScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 
 	m_idBox = make_shared<InputTextUI>(XMFLOAT2{ 0.f, 0.1f }, XMFLOAT2{ 0.3f, 0.04f }, XMFLOAT2{ 120.f, 10.f }, 20);
 	m_idBox->SetColorBrush("WHITE");
-	m_idBox->SetTextFormat("KOPUB18");
+	m_idBox->SetTextFormat("KOPUB2");
 	m_idBox->SetTexture("TEXTBARUI");
 	m_titleUI->SetChild(m_idBox);
 
 	auto idTextUI{ make_shared<TextUI>(XMFLOAT2{-0.25f, 0.1f}, XMFLOAT2{0.f, 0.f}, XMFLOAT2{120.f, 10.f}) };
 	idTextUI->SetText(L"      ID : ");
 	idTextUI->SetColorBrush("WHITE");
-	idTextUI->SetTextFormat("KOPUB18");
+	idTextUI->SetTextFormat("KOPUB2");
 	m_titleUI->SetChild(idTextUI);
 
 	m_passwordBox = make_shared<InputTextUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 0.3f, 0.04f }, XMFLOAT2{ 120.f, 10.f }, 20);
 	m_passwordBox->SetColorBrush("WHITE");
-	m_passwordBox->SetTextFormat("KOPUB18");
+	m_passwordBox->SetTextFormat("KOPUB2");
 	m_passwordBox->SetTexture("TEXTBARUI");
 	m_titleUI->SetChild(m_passwordBox);
 
 	auto passwordTextUI{ make_shared<TextUI>(XMFLOAT2{-0.25f, 0.f}, XMFLOAT2{0.f, 0.f}, XMFLOAT2{120.f, 10.f}) };
 	passwordTextUI->SetText(L"PASSWORD : ");
 	passwordTextUI->SetColorBrush("WHITE");
-	passwordTextUI->SetTextFormat("KOPUB18");
+	passwordTextUI->SetTextFormat("KOPUB2");
 	m_titleUI->SetChild(passwordTextUI);
 
 
@@ -238,10 +238,10 @@ void LoginScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 			});
 	});
 #endif
-	auto loginButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.f, 0.f}, XMFLOAT2{40.f, 10.f}) };
+	auto loginButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.f, 0.f}, XMFLOAT2{120.f, 10.f}) };
 	loginButtonTextUI->SetText(L"로그인");
 	loginButtonTextUI->SetColorBrush("WHITE");
-	loginButtonTextUI->SetTextFormat("KOPUB18");
+	loginButtonTextUI->SetTextFormat("KOPUB2");
 	loginButtonUI->SetChild(loginButtonTextUI);
 	m_titleUI->SetChild(loginButtonUI);
 
@@ -259,10 +259,10 @@ void LoginScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 			});
 		});
 #endif
-	auto signinButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.f, 0.f}, XMFLOAT2{40.f, 10.f}) };
+	auto signinButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.f, 0.f}, XMFLOAT2{120.f, 10.f}) };
 	signinButtonTextUI->SetText(L"회원 가입");
 	signinButtonTextUI->SetColorBrush("WHITE");
-	signinButtonTextUI->SetTextFormat("KOPUB18");
+	signinButtonTextUI->SetTextFormat("KOPUB2");
 	signinButtonUI->SetChild(signinButtonTextUI);
 	m_titleUI->SetChild(signinButtonUI);
 
@@ -272,10 +272,10 @@ void LoginScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 		SetState(State::OutputOptionUI);
 		if (m_optionUI) m_optionUI->SetEnable();
 		});
-	auto optionButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.f, 0.f}, XMFLOAT2{40.f, 10.f}) };
+	auto optionButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.f, 0.f}, XMFLOAT2{120.f, 10.f}) };
 	optionButtonTextUI->SetText(L"옵션");
 	optionButtonTextUI->SetColorBrush("WHITE");
-	optionButtonTextUI->SetTextFormat("KOPUB18");
+	optionButtonTextUI->SetTextFormat("KOPUB2");
 	optionButtonUI->SetChild(optionButtonTextUI);
 	m_titleUI->SetChild(optionButtonUI);
 
@@ -286,16 +286,23 @@ void LoginScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 			PostMessage(NULL, WM_QUIT, 0, 0);
 			});
 		});
-	auto gameExitButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.f, 0.f}, XMFLOAT2{40.f, 10.f}) };
+	auto gameExitButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.f, 0.f}, XMFLOAT2{120.f, 10.f}) };
 	gameExitButtonTextUI->SetText(L"게임 종료");
 	gameExitButtonTextUI->SetColorBrush("WHITE");
-	gameExitButtonTextUI->SetTextFormat("KOPUB18");
+	gameExitButtonTextUI->SetTextFormat("KOPUB2");
 	gameExitButtonUI->SetChild(gameExitButtonTextUI);
 	m_titleUI->SetChild(gameExitButtonUI);
 
 	m_shaders["POSTUI"]->SetUI(m_titleUI);
 
 	BuildOptionUI(device, commandlist);
+
+	auto optionCancelButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.8f, 0.f}, XMFLOAT2{0.06f, 0.06f}) };
+	optionCancelButtonUI->SetTexture("CANCELUI");
+	optionCancelButtonUI->SetClickEvent([&]() {
+		});
+	m_titleUI->SetChild(optionCancelButtonUI);
+	m_shaders["POSTUI"]->SetUI(optionCancelButtonUI);
 }
 
 void LoginScene::BuildOptionUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist)
@@ -316,11 +323,12 @@ void LoginScene::BuildOptionUI(const ComPtr<ID3D12Device>& device, const ComPtr<
 	option1080x720ResolutionButtonUI->SetTexture("BUTTONUI");
 	option1080x720ResolutionButtonUI->SetClickEvent([&]() {
 		g_GameFramework.ResizeWindow(1080, 720);
+		ResetFontSize(1);
 		});
 	auto  option1080x720ResolutionButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.f, 0.f}, XMFLOAT2{100.f, 10.f}) };
 	option1080x720ResolutionButtonTextUI->SetText(L"1080 X 720");
 	option1080x720ResolutionButtonTextUI->SetColorBrush("WHITE");
-	option1080x720ResolutionButtonTextUI->SetTextFormat("KOPUB18");
+	option1080x720ResolutionButtonTextUI->SetTextFormat("KOPUB2");
 	option1080x720ResolutionButtonUI->SetChild(option1080x720ResolutionButtonTextUI);
 	m_optionUI->SetChild(option1080x720ResolutionButtonUI);
 
@@ -328,11 +336,12 @@ void LoginScene::BuildOptionUI(const ComPtr<ID3D12Device>& device, const ComPtr<
 	option1920x1080ResolutionButtonUI->SetTexture("BUTTONUI");
 	option1920x1080ResolutionButtonUI->SetClickEvent([&]() {
 		g_GameFramework.ResizeWindow(1920, 1080);
+		ResetFontSize(2);
 	});
 	auto  option1920x1080ResolutionButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.f, 0.f}, XMFLOAT2{100.f, 10.f}) };
 	option1920x1080ResolutionButtonTextUI->SetText(L"1920 X 1080");
 	option1920x1080ResolutionButtonTextUI->SetColorBrush("WHITE");
-	option1920x1080ResolutionButtonTextUI->SetTextFormat("KOPUB18");
+	option1920x1080ResolutionButtonTextUI->SetTextFormat("KOPUB2");
 	option1920x1080ResolutionButtonUI->SetChild(option1920x1080ResolutionButtonTextUI);
 	m_optionUI->SetChild(option1920x1080ResolutionButtonUI);
 
@@ -340,11 +349,12 @@ void LoginScene::BuildOptionUI(const ComPtr<ID3D12Device>& device, const ComPtr<
 	option2560x1440ResolutionButtonUI->SetTexture("BUTTONUI");
 	option2560x1440ResolutionButtonUI->SetClickEvent([&]() {
 		g_GameFramework.ResizeWindow(2560, 1440);
+		ResetFontSize(3);
 		});
 	auto  option2560x1440ResolutionButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.f, 0.f}, XMFLOAT2{100.f, 10.f}) };
 	option2560x1440ResolutionButtonTextUI->SetText(L"2560 X 1440");
 	option2560x1440ResolutionButtonTextUI->SetColorBrush("WHITE");
-	option2560x1440ResolutionButtonTextUI->SetTextFormat("KOPUB18");
+	option2560x1440ResolutionButtonTextUI->SetTextFormat("KOPUB2");
 	option2560x1440ResolutionButtonUI->SetChild(option2560x1440ResolutionButtonTextUI);
 	m_optionUI->SetChild(option2560x1440ResolutionButtonUI);
 
@@ -736,6 +746,114 @@ void LoginScene::RecvLoginFail(char* ptr)
 
 	cout << "FAIL" << endl;
 	// 로그인 실패 창 띄우기
+}
+
+void LoginScene::ResetFontSize(int type)
+{
+	switch (type)
+	{
+	case 1:
+		Text::m_textFormats.clear();
+		for (int i = 1; i <= 5; ++i) {
+			int size = i * 3 + 6;
+			auto koPub = ComPtr<IDWriteTextFormat>();
+			Utiles::ThrowIfFailed(g_GameFramework.GetWriteFactory()->CreateTextFormat(
+				TEXT("./Resource/Font/KoPub Dotum Bold.ttf"), nullptr,
+				DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, (FLOAT)size,
+				TEXT("ko-kr"), &koPub
+			));
+			koPub->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
+			koPub->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
+
+			string name{ "KOPUB" };
+			name += to_string(i);
+			Text::m_textFormats.insert({ name, koPub });
+		}
+		for (int i = 1; i <= 5; ++i) {
+			int size = i * 3 + 6;
+			auto maple = ComPtr<IDWriteTextFormat>();
+			Utiles::ThrowIfFailed(g_GameFramework.GetWriteFactory()->CreateTextFormat(
+				TEXT("./Resource/Font/Maplestory Bold.ttf"), nullptr,
+				DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, (FLOAT)size,
+				TEXT("ko-kr"), &maple
+			));
+			maple->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
+			maple->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
+
+			string name{ "MAPLE" };
+			name += to_string(size);
+			Text::m_textFormats.insert({ name, maple });
+		}
+		break;
+	case 2:
+		Text::m_textFormats.clear();
+		for (int i = 1; i <= 5; ++i) {
+			int size = i * 3 + 15;
+			auto koPub = ComPtr<IDWriteTextFormat>();
+			Utiles::ThrowIfFailed(g_GameFramework.GetWriteFactory()->CreateTextFormat(
+				TEXT("./Resource/Font/KoPub Dotum Bold.ttf"), nullptr,
+				DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, (FLOAT)size,
+				TEXT("ko-kr"), &koPub
+			));
+			koPub->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
+			koPub->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
+
+			string name{ "KOPUB" };
+			name += to_string(i);
+			Text::m_textFormats.insert({ name, koPub });
+		}
+		for (int i = 1; i <= 5; ++i) {
+			int size = i * 3 + 15;
+			auto maple = ComPtr<IDWriteTextFormat>();
+			Utiles::ThrowIfFailed(g_GameFramework.GetWriteFactory()->CreateTextFormat(
+				TEXT("./Resource/Font/Maplestory Bold.ttf"), nullptr,
+				DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, (FLOAT)size,
+				TEXT("ko-kr"), &maple
+			));
+			maple->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
+			maple->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
+
+			string name{ "MAPLE" };
+			name += to_string(size);
+			Text::m_textFormats.insert({ name, maple });
+		}
+		break;
+	case 3:
+		Text::m_textFormats.clear();
+		for (int i = 1; i <= 5; ++i) {
+			int size = i * 3 + 24;
+			auto koPub = ComPtr<IDWriteTextFormat>();
+			Utiles::ThrowIfFailed(g_GameFramework.GetWriteFactory()->CreateTextFormat(
+				TEXT("./Resource/Font/KoPub Dotum Bold.ttf"), nullptr,
+				DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, (FLOAT)size,
+				TEXT("ko-kr"), &koPub
+			));
+			koPub->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
+			koPub->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
+
+			string name{ "KOPUB" };
+			name += to_string(i);
+			Text::m_textFormats.insert({ name, koPub });
+		}
+		for (int i = 1; i <= 5; ++i) {
+			int size = i * 3 + 18;
+			auto maple = ComPtr<IDWriteTextFormat>();
+			Utiles::ThrowIfFailed(g_GameFramework.GetWriteFactory()->CreateTextFormat(
+				TEXT("./Resource/Font/Maplestory Bold.ttf"), nullptr,
+				DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, (FLOAT)size,
+				TEXT("ko-kr"), &maple
+			));
+			maple->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
+			maple->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
+
+			string name{ "MAPLE" };
+			name += to_string(size);
+			Text::m_textFormats.insert({ name, maple });
+		}
+		break;
+	default:
+		break;
+	}
 }
 
 
