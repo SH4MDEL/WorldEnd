@@ -106,6 +106,7 @@ private:
 	void ChangeCharacter(PlayerType type, shared_ptr<Player>& player);
 	void SetSkillSettingUI(PlayerType type);
 	void SetSkillUI();
+	void UpdateGoldUI();
 
 protected:
 	ComPtr<ID3D12Resource>			m_sceneBuffer;
@@ -147,8 +148,13 @@ protected:
 	shared_ptr<SwitchUI>			m_skill2SwitchUI;
 	shared_ptr<SwitchUI>			m_ultimate1SwitchUI;
 	shared_ptr<SwitchUI>			m_ultimate2SwitchUI;
+	shared_ptr<TextUI>				m_skill1NameUI;
+	shared_ptr<TextUI>				m_skill2NameUI;
+	shared_ptr<TextUI>				m_ultimate1NameUI;
+	shared_ptr<TextUI>				m_ultimate2NameUI;
 	shared_ptr<TextUI>				m_skillNameUI;
 	shared_ptr<TextUI>				m_skillInfoUI;
+	shared_ptr<TextUI>				m_skillSettingGoldTextUI;
 
 	// Inhence UI ฐüทร
 	shared_ptr<UI>					m_inhenceUI;
@@ -157,8 +163,10 @@ protected:
 	shared_ptr<SwitchUI>			m_inhenceCritProbSwitchUI;
 	shared_ptr<SwitchUI>			m_inhenceDefenceSwitchUI;
 	shared_ptr<SwitchUI>			m_inhenceHpSwitchUI;
+	shared_ptr<TextUI>				m_inhenceGoldTextUI;
 
 	// Main UI
+	shared_ptr<UI>					m_mainUI;
 	shared_ptr<VertGaugeUI>			m_skillUI;
 	shared_ptr<VertGaugeUI>			m_ultimateUI;
 	shared_ptr<TextUI>				m_goldTextUI;

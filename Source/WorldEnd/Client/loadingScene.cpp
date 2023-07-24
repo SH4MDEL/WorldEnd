@@ -430,6 +430,15 @@ void LoadingScene::BuildTexture(const ComPtr<ID3D12Device>& device, const ComPtr
 	rightArrowUITexture->CreateSrvDescriptorHeap(device);
 	rightArrowUITexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
 
+	auto warriorPortraitTexture{ make_shared<Texture>() };
+	warriorPortraitTexture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/Warrior_Portrait.dds"), (INT)ShaderRegister::BaseTexture);
+	warriorPortraitTexture->CreateSrvDescriptorHeap(device);
+	warriorPortraitTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+	auto archerPortraitTexture{ make_shared<Texture>() };
+	archerPortraitTexture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/Archer_Portrait.dds"), (INT)ShaderRegister::BaseTexture);
+	archerPortraitTexture->CreateSrvDescriptorHeap(device);
+	archerPortraitTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+
 	auto warriorSkill1Texture{ make_shared<Texture>() };
 	warriorSkill1Texture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/SkillTexture/Warrior_Skill1.dds"), (INT)ShaderRegister::BaseTexture);
 	warriorSkill1Texture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/SkillTexture/Warrior_Skill1_Cool.dds"), (INT)ShaderRegister::SubTexture);
@@ -507,6 +516,8 @@ void LoadingScene::BuildTexture(const ComPtr<ID3D12Device>& device, const ComPtr
 	m_textures.insert({ "GOLDUI", goldUITexture });
 	m_textures.insert({ "LEFTARROWUI", leftArrowUITexture });
 	m_textures.insert({ "RIGHTARROWUI", rightArrowUITexture });
+	m_textures.insert({ "WARRIORPORTRAIT", warriorPortraitTexture });
+	m_textures.insert({ "ARCHERPORTRAIT", archerPortraitTexture });
 	m_textures.insert({ "WARRIORSKILL1", warriorSkill1Texture });
 	m_textures.insert({ "WARRIORSKILL2", warriorSkill2Texture });
 	m_textures.insert({ "WARRIORULTIMATE1", warriorUltimate1Texture });

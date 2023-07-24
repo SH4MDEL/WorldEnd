@@ -361,6 +361,7 @@ void VillageScene::BuildPartyUI()
 		characterFrameUI->SetTexture("CHARACTERFRAMEUI");
 
 		m_partyPlayerUI[i] = make_shared<ImageUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 0.3f, 0.51f });
+		m_partyPlayerUI[i]->SetTexture("WARRIORPORTRAIT");
 		characterFrameUI->SetChild(m_partyPlayerUI[i]);
 
 		m_partyPlayerTextUI[i] = make_shared<TextUI>(XMFLOAT2{ 0.f, -0.8f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 300.f, 20.f });
@@ -381,6 +382,12 @@ void VillageScene::BuildSkillSettingUI()
 	m_skillSettingUI = make_shared<BackgroundUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 0.6f, 0.6f });
 	m_skillSettingUI->SetTexture("ROOMUI");
 
+	auto skillSettingTextUI = make_shared<TextUI>(XMFLOAT2{ 0.f, 0.75f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 400.f, 20.f });
+	skillSettingTextUI->SetText(TEXT("스킬 변경"));
+	skillSettingTextUI->SetColorBrush("WHITE");
+	skillSettingTextUI->SetTextFormat("KOPUB27");
+	m_skillSettingUI->SetChild(skillSettingTextUI);
+
 	auto skillCancelButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.95f, 0.9f}, XMFLOAT2{0.06f, 0.06f}) };
 	skillCancelButtonUI->SetTexture("CANCELUI");
 	skillCancelButtonUI->SetClickEvent([&]() {
@@ -395,14 +402,46 @@ void VillageScene::BuildSkillSettingUI()
 		});
 	m_skillSettingUI->SetChild(skillCancelButtonUI);
 
-	m_skill1SwitchUI = make_shared<SwitchUI>(XMFLOAT2{ -0.65f, 0.4f }, XMFLOAT2{ 0.1f, 0.1f });
-	m_skillSettingUI->SetChild(m_skill1SwitchUI);
-	m_skill2SwitchUI = make_shared<SwitchUI>(XMFLOAT2{ -0.4f, 0.4f }, XMFLOAT2{ 0.1f, 0.1f });
-	m_skillSettingUI->SetChild(m_skill2SwitchUI);
-	m_ultimate1SwitchUI = make_shared<SwitchUI>(XMFLOAT2{ -0.65f, 0.f }, XMFLOAT2{ 0.1f, 0.1f });
-	m_skillSettingUI->SetChild(m_ultimate1SwitchUI);
-	m_ultimate2SwitchUI = make_shared<SwitchUI>(XMFLOAT2{ -0.4f, 0.f }, XMFLOAT2{ 0.1f, 0.1f });
-	m_skillSettingUI->SetChild(m_ultimate2SwitchUI);
+	auto skill1UI{ make_shared<UI>(XMFLOAT2{-0.65f, 0.4f}, XMFLOAT2{0.2f, 0.2f}) };
+	m_skill1SwitchUI = make_shared<SwitchUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 0.1f, 0.1f });
+	skill1UI->SetChild(m_skill1SwitchUI);
+	m_skill1NameUI = make_shared<TextUI>(XMFLOAT2{ 0.f, -0.5f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 100.f, 20.f });
+	m_skill1NameUI->SetText(TEXT(""));
+	m_skill1NameUI->SetColorBrush("WHITE");
+	m_skill1NameUI->SetTextFormat("KOPUB21");
+	skill1UI->SetChild(m_skill1NameUI);
+	m_skillSettingUI->SetChild(skill1UI);
+
+	auto skill2UI{ make_shared<UI>(XMFLOAT2{-0.4f, 0.4f}, XMFLOAT2{0.2f, 0.2f}) };
+	m_skill2SwitchUI = make_shared<SwitchUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 0.1f, 0.1f });
+	skill2UI->SetChild(m_skill2SwitchUI);
+	m_skill2NameUI = make_shared<TextUI>(XMFLOAT2{ 0.f, -0.5f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 100.f, 20.f });
+	m_skill2NameUI->SetText(TEXT(""));
+	m_skill2NameUI->SetColorBrush("WHITE");
+	m_skill2NameUI->SetTextFormat("KOPUB21");
+	skill2UI->SetChild(m_skill2NameUI);
+	m_skillSettingUI->SetChild(skill2UI);
+
+	auto ultimate1UI{ make_shared<UI>(XMFLOAT2{-0.65f, -0.1f}, XMFLOAT2{0.2f, 0.2f}) };
+	m_ultimate1SwitchUI = make_shared<SwitchUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 0.1f, 0.1f });
+	ultimate1UI->SetChild(m_ultimate1SwitchUI);
+	m_ultimate1NameUI = make_shared<TextUI>(XMFLOAT2{ 0.f, -0.5f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 100.f, 20.f });
+	m_ultimate1NameUI->SetText(TEXT(""));
+	m_ultimate1NameUI->SetColorBrush("WHITE");
+	m_ultimate1NameUI->SetTextFormat("KOPUB21");
+	ultimate1UI->SetChild(m_ultimate1NameUI);
+	m_skillSettingUI->SetChild(ultimate1UI);
+
+	auto ultimate2UI{ make_shared<UI>(XMFLOAT2{-0.4f, -0.1f}, XMFLOAT2{0.2f, 0.2f}) };
+	m_ultimate2SwitchUI = make_shared<SwitchUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 0.1f, 0.1f });
+	ultimate2UI->SetChild(m_ultimate2SwitchUI);
+	m_ultimate2NameUI = make_shared<TextUI>(XMFLOAT2{ 0.f, -0.5f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 100.f, 20.f });
+	m_ultimate2NameUI->SetText(TEXT(""));
+	m_ultimate2NameUI->SetColorBrush("WHITE");
+	m_ultimate2NameUI->SetTextFormat("KOPUB21");
+	ultimate2UI->SetChild(m_ultimate2NameUI);
+	m_skillSettingUI->SetChild(ultimate2UI);
+
 	m_skillNameUI = make_shared<TextUI>(XMFLOAT2{ 0.3f, 0.4f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 300.f, 20.f });
 	m_skillNameUI->SetText(TEXT(""));
 	m_skillNameUI->SetColorBrush("WHITE");
@@ -434,13 +473,24 @@ void VillageScene::BuildSkillSettingUI()
 		SetSkillUI();
 		});
 	auto skillChangeButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.f, 0.f},XMFLOAT2{120.f, 10.f}) };
-	skillChangeButtonTextUI->SetText(L"스킬 변경");
+	skillChangeButtonTextUI->SetText(L"변경");
 	skillChangeButtonTextUI->SetColorBrush("WHITE");
 	skillChangeButtonTextUI->SetTextFormat("KOPUB21");
 	skillChangeButtonUI->SetChild(skillChangeButtonTextUI);
 	m_skillSettingUI->SetChild(skillChangeButtonUI);
 
 	SetSkillSettingUI(g_playerInfo.playerType);
+
+	auto skillSettingGoldUI = make_shared<UI>(XMFLOAT2{ 0.5f, 0.7f }, XMFLOAT2{ 0.1f, 0.05f });
+	auto goldTextureUI{ make_shared<ImageUI>(XMFLOAT2{-0.5f, 0.f}, XMFLOAT2{0.05f, 0.05f}) };
+	goldTextureUI->SetTexture("GOLDUI");
+	skillSettingGoldUI->SetChild(goldTextureUI);
+	m_skillSettingGoldTextUI = make_shared<TextUI>(XMFLOAT2{ 0.5f, 0.f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 100.f, 20.f });
+	m_skillSettingGoldTextUI->SetText(to_wstring(g_playerInfo.gold));
+	m_skillSettingGoldTextUI->SetColorBrush("WHITE");
+	m_skillSettingGoldTextUI->SetTextFormat("KOPUB27");
+	skillSettingGoldUI->SetChild(m_skillSettingGoldTextUI);
+	m_skillSettingUI->SetChild(skillSettingGoldUI);
 
 	m_skillSettingUI->SetDisable();
 	m_shaders["UI"]->SetUI(m_skillSettingUI);
@@ -451,6 +501,12 @@ inline void VillageScene::BuildInhenceUI()
 	m_inhenceUI = make_shared<BackgroundUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 0.6f, 0.6f });
 	m_inhenceUI->SetTexture("ROOMUI");
 
+	auto inhenceTextUI = make_shared<TextUI>(XMFLOAT2{ 0.f, 0.75f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 400.f, 20.f });
+	inhenceTextUI->SetText(TEXT("캐릭터 강화"));
+	inhenceTextUI->SetColorBrush("WHITE");
+	inhenceTextUI->SetTextFormat("KOPUB27");
+	m_inhenceUI->SetChild(inhenceTextUI);
+
 	auto inhenceCancelButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.95f, 0.9f}, XMFLOAT2{0.06f, 0.06f}) };
 	inhenceCancelButtonUI->SetTexture("CANCELUI");
 	inhenceCancelButtonUI->SetClickEvent([&]() {
@@ -459,7 +515,7 @@ inline void VillageScene::BuildInhenceUI()
 		});
 	m_inhenceUI->SetChild(inhenceCancelButtonUI);
 
-	auto inhenceAttackUI{ make_shared<UI>(XMFLOAT2{-0.7f, 0.5f}, XMFLOAT2{0.2f, 0.2f}) };
+	auto inhenceAttackUI{ make_shared<UI>(XMFLOAT2{-0.7f, 0.4f}, XMFLOAT2{0.2f, 0.2f}) };
 	m_inhenceAttackSwitchUI = make_shared<SwitchUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.1f, 0.1f});
 	m_inhenceAttackSwitchUI->SetTexture("INHENCEATTACK");
 	inhenceAttackUI->SetChild(m_inhenceAttackSwitchUI);
@@ -470,7 +526,7 @@ inline void VillageScene::BuildInhenceUI()
 	inhenceAttackUI->SetChild(inhenceAttackTextUI);
 	m_inhenceUI->SetChild(inhenceAttackUI);
 
-	auto inhenceCritDamageUI{ make_shared<UI>(XMFLOAT2{-0.35f, 0.5f}, XMFLOAT2{0.2f, 0.2f}) };
+	auto inhenceCritDamageUI{ make_shared<UI>(XMFLOAT2{-0.35f, 0.4f}, XMFLOAT2{0.2f, 0.2f}) };
 	m_inhenceCritDamageSwtichUI = make_shared<SwitchUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{ 0.1f, 0.1f });
 	m_inhenceCritDamageSwtichUI->SetTexture("INHENCECRITDAMAGE");
 	inhenceCritDamageUI->SetChild(m_inhenceCritDamageSwtichUI);
@@ -481,7 +537,7 @@ inline void VillageScene::BuildInhenceUI()
 	inhenceCritDamageUI->SetChild(inhenceCritDamageTextUI);
 	m_inhenceUI->SetChild(inhenceCritDamageUI);
 
-	auto inhenceCritProbUI{ make_shared<UI>(XMFLOAT2{0.f, 0.5f}, XMFLOAT2{0.2f, 0.2f}) };
+	auto inhenceCritProbUI{ make_shared<UI>(XMFLOAT2{0.f, 0.4f}, XMFLOAT2{0.2f, 0.2f}) };
 	m_inhenceCritProbSwitchUI = make_shared<SwitchUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{ 0.1f, 0.1f });
 	m_inhenceCritProbSwitchUI->SetTexture("INHENCECRITPROB");
 	inhenceCritProbUI->SetChild(m_inhenceCritProbSwitchUI);
@@ -492,7 +548,7 @@ inline void VillageScene::BuildInhenceUI()
 	inhenceCritProbUI->SetChild(inhenceCritProbTextUI);
 	m_inhenceUI->SetChild(inhenceCritProbUI);
 
-	auto inhenceDefenceUI{ make_shared<UI>(XMFLOAT2{0.35f, 0.5f}, XMFLOAT2{0.2f, 0.2f}) };
+	auto inhenceDefenceUI{ make_shared<UI>(XMFLOAT2{0.35f, 0.4f}, XMFLOAT2{0.2f, 0.2f}) };
 	m_inhenceDefenceSwitchUI = make_shared<SwitchUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{ 0.1f, 0.1f });
 	m_inhenceDefenceSwitchUI->SetTexture("INHENCEDEFENCE");
 	inhenceDefenceUI->SetChild(m_inhenceDefenceSwitchUI);
@@ -503,7 +559,7 @@ inline void VillageScene::BuildInhenceUI()
 	inhenceDefenceUI->SetChild(inhenceDefenceTextUI);
 	m_inhenceUI->SetChild(inhenceDefenceUI);
 
-	auto inhenceHpUI{ make_shared<UI>(XMFLOAT2{0.7f, 0.5f}, XMFLOAT2{0.2f, 0.2f}) };
+	auto inhenceHpUI{ make_shared<UI>(XMFLOAT2{0.7f, 0.4f}, XMFLOAT2{0.2f, 0.2f}) };
 	m_inhenceHpSwitchUI = make_shared<SwitchUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{ 0.1f, 0.1f });
 	m_inhenceHpSwitchUI->SetTexture("INHENCEHP");
 	inhenceHpUI->SetChild(m_inhenceHpSwitchUI);
@@ -518,19 +574,22 @@ inline void VillageScene::BuildInhenceUI()
 	inhenceButtonUI->SetTexture("BUTTONUI");
 	inhenceButtonUI->SetClickEvent([&]() {
 		if (m_inhenceAttackSwitchUI->IsActive()) {
-			// 공격 강화하려고 함
+			// 강화 비용과 소지 금액을 비교해서 강화 비용이 낮을 경우에만 패킷 전송
+			// 정상적으로 처리 되었다는 패킷이 오면 골드 업데이트
+			// 실제 g_playerInfo.gold를 업데이트 한 후에, UpdateGoldUI 함수를 불러야 UI에서도 정상적으로 반영됨.
+			UpdateGoldUI();
 		}
 		if (m_inhenceCritDamageSwtichUI->IsActive()) {
-			// 공격 강화하려고 함
+			// 크댐 강화하려고 함
 		}
 		if (m_inhenceCritProbSwitchUI->IsActive()) {
-			// 공격 강화하려고 함
+			// 크확 강화하려고 함
 		}
 		if (m_inhenceDefenceSwitchUI->IsActive()) {
-			// 공격 강화하려고 함
+			// 방어 강화하려고 함
 		}
 		if (m_inhenceHpSwitchUI->IsActive()) {
-			// 공격 강화하려고 함
+			// HP 강화하려고 함
 		}
 		});
 	auto inhenceButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.f, 0.f},XMFLOAT2{120.f, 10.f}) };
@@ -540,22 +599,33 @@ inline void VillageScene::BuildInhenceUI()
 	inhenceButtonUI->SetChild(inhenceButtonTextUI);
 	m_inhenceUI->SetChild(inhenceButtonUI);
 
+	auto inhenceGoldUI = make_shared<UI>(XMFLOAT2{ 0.5f, 0.7f }, XMFLOAT2{ 0.1f, 0.05f });
+	auto goldTextureUI{ make_shared<ImageUI>(XMFLOAT2{-0.5f, 0.f}, XMFLOAT2{0.05f, 0.05f}) };
+	goldTextureUI->SetTexture("GOLDUI");
+	inhenceGoldUI->SetChild(goldTextureUI);
+	m_inhenceGoldTextUI = make_shared<TextUI>(XMFLOAT2{ 0.5f, 0.f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 100.f, 20.f });
+	m_inhenceGoldTextUI->SetText(to_wstring(g_playerInfo.gold));
+	m_inhenceGoldTextUI->SetColorBrush("WHITE");
+	m_inhenceGoldTextUI->SetTextFormat("KOPUB27");
+	inhenceGoldUI->SetChild(m_inhenceGoldTextUI);
+	m_inhenceUI->SetChild(inhenceGoldUI);
+
 	m_inhenceUI->SetDisable();
 	m_shaders["UI"]->SetUI(m_inhenceUI);
 }
 
 inline void VillageScene::BuildMainUI()
 {
+	m_mainUI = make_shared<UI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 1.f, 1.f });
 	m_skillUI = make_shared<VertGaugeUI>(XMFLOAT2{ -0.60f, -0.75f }, XMFLOAT2{ 0.15f, 0.15f }, 0.f);
+	m_mainUI->SetChild(m_skillUI);
 	m_ultimateUI = make_shared<VertGaugeUI>(XMFLOAT2{ -0.85f, -0.75f }, XMFLOAT2{ 0.15f, 0.15f }, 0.f);
+	m_mainUI->SetChild(m_ultimateUI);
 
 	SetSkillUI();
 
 	m_player->SetSkillGauge(m_skillUI);
 	m_player->SetUltimateGauge(m_ultimateUI);
-
-	m_shaders["UI"]->SetUI(m_skillUI);
-	m_shaders["UI"]->SetUI(m_ultimateUI);
 	m_player->ResetAllCooldown();
 
 	auto goldUI = make_shared<UI>(XMFLOAT2{ 0.85f, 0.9f }, XMFLOAT2{ 0.1f, 0.05f });
@@ -564,12 +634,13 @@ inline void VillageScene::BuildMainUI()
 	goldUI->SetChild(goldTextureUI);
 	m_goldTextUI = make_shared<TextUI>(XMFLOAT2{ 0.5f, 0.f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 100.f, 20.f });
 	m_goldTextUI->SetText(to_wstring(g_playerInfo.gold));
-	//m_goldTextUI->SetText(to_wstring(100000));
 	m_goldTextUI->SetColorBrush("WHITE");
 	m_goldTextUI->SetTextFormat("KOPUB27");
 	goldUI->SetChild(m_goldTextUI);
 
-	m_shaders["UI"]->SetUI(goldUI);
+	m_mainUI->SetChild(goldUI);
+
+	m_shaders["UI"]->SetUI(m_mainUI);
 }
 
 void VillageScene::BuildLight(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist)
@@ -657,11 +728,9 @@ void VillageScene::OnProcessingMouseMessage(UINT message, LPARAM lParam)
 	}
 	if (CheckState(State::OutputSkillUI)) {
 		if (m_skillSettingUI) m_skillSettingUI->OnProcessingMouseMessage(message, lParam);
-		if (!g_clickEventStack.empty()) {
+		while (!g_clickEventStack.empty()) {
 			g_clickEventStack.top()();
-			while (!g_clickEventStack.empty()) {
-				g_clickEventStack.pop();
-			}
+			g_clickEventStack.pop();
 		}
 	}
 	if (CheckState(State::OutputInhenceUI)) {
@@ -733,6 +802,9 @@ void VillageScene::Update(FLOAT timeElapsed)
 
 	CollideWithMap();
 	UpdateInteract(timeElapsed);
+
+	if (CheckState(State::OutputUI)) m_mainUI->SetDisable();
+	else m_mainUI->SetEnable();
 
 	// 프러스텀 컬링을 진행하는 셰이더에 바운딩 프러스텀 전달
 	auto viewFrustum = m_camera->GetViewFrustum();
@@ -920,7 +992,7 @@ void VillageScene::RenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext)
 	if (m_partyUI) m_partyUI->RenderText(deviceContext);
 	if (m_skillSettingUI) m_skillSettingUI->RenderText(deviceContext);
 	if (m_inhenceUI) m_inhenceUI->RenderText(deviceContext);
-	if (m_goldTextUI) m_goldTextUI->RenderText(deviceContext);
+	if (m_mainUI) m_mainUI->RenderText(deviceContext);
 }
 
 void VillageScene::PostRenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext)
@@ -1613,6 +1685,10 @@ void VillageScene::SetSkillSettingUI(PlayerType type)
 	switch (type)
 	{
 	case PlayerType::WARRIOR:
+		m_skill1NameUI->SetText(TEXT("스킬1"));
+		m_skill2NameUI->SetText(TEXT("스킬2"));
+		m_ultimate1NameUI->SetText(TEXT("궁극기1"));
+		m_ultimate2NameUI->SetText(TEXT("궁극기2"));
 		m_skill1SwitchUI->SetTexture("WARRIORSKILL1");
 		m_skill1SwitchUI->SetClickEvent([&] {
 			m_skillNameUI->SetText(TEXT("스킬1"));
@@ -1635,6 +1711,10 @@ void VillageScene::SetSkillSettingUI(PlayerType type)
 			});
 		break;
 	case PlayerType::ARCHER:
+		m_skill1NameUI->SetText(TEXT("스킬1"));
+		m_skill2NameUI->SetText(TEXT("스킬2"));
+		m_ultimate1NameUI->SetText(TEXT("궁극기1"));
+		m_ultimate2NameUI->SetText(TEXT("궁극기2"));
 		m_skill1SwitchUI->SetTexture("ARCHERSKILL1");
 		m_skill1SwitchUI->SetClickEvent([&] {
 			m_skillNameUI->SetText(TEXT("스킬1"));
@@ -1692,4 +1772,11 @@ void VillageScene::SetSkillUI()
 		}
 		break;
 	}
+}
+
+void VillageScene::UpdateGoldUI()
+{
+	m_skillSettingGoldTextUI->SetText(to_wstring(g_playerInfo.gold));
+	m_inhenceGoldTextUI->SetText(to_wstring(g_playerInfo.gold));
+	m_goldTextUI->SetText(to_wstring(g_playerInfo.gold));
 }
