@@ -84,8 +84,7 @@ struct PlayerInfo {
     UCHAR      defLevel;
     UCHAR      critRateLevel;
     UCHAR      critDamageLevel;
-    UCHAR      normalSkillType;
-    UCHAR      ultimateSkillType;
+    pair<UCHAR, UCHAR> skill[(size_t)PlayerType::COUNT];
 };
 
 

@@ -45,8 +45,7 @@ enum class DBEventType : char {
 
 struct DB_EVENT {
 	std::chrono::system_clock::time_point event_time;
-	std::wstring user_id;
-	std::wstring data;
+	PLAYER_DATA data;
 	INT client_id;
 	DBEventType event_type;
 

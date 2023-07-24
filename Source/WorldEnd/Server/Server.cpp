@@ -826,8 +826,8 @@ void Server::ProcessPacket(int id, char* p)
 
 		DB_EVENT ev{};
 		ev.client_id = id;
-		ev.user_id = info.user_id;
-		ev.data = info.password;
+		ev.data.user_id = info.user_id;
+		ev.data.password = info.password;
 		ev.event_type = DBEventType::TRY_LOGIN;
 		ev.event_time = std::chrono::system_clock::now();
 		SetDatabaseEvent(ev);
@@ -1003,6 +1003,27 @@ void Server::ProcessPacket(int id, char* p)
 		m_party_manager->ClosePartyUI(id);
 		break;
 	}
+	case CS_PACKET_ENHANCE: {
+		CS_ENHANCE_PACKET* packet = reinterpret_cast<CS_ENHANCE_PACKET*>(p);
+
+		auto client = dynamic_pointer_cast<Client>(m_clients[id]);
+
+		if (PlayerSetting::ENHANCE_COST > client->GetGold()) {
+			break;
+		}
+
+		client->LevelUpEnhancement(packet->enhancement_type);
+		client->ChangeGold(-PlayerSetting::ENHANCE_COST);
+
+		std::cout << "id : " << id << " 강화레벨" << std::endl;
+		std::cout << "hp : " << (int)client->GetHpLevel() << std::endl;
+		std::cout << "atk : " << (int)client->GetAtkLevel() << std::endl;
+		std::cout << "def : " << (int)client->GetDefLevel() << std::endl;
+		std::cout << "crit_rate : " << (int)client->GetCritRateLevel() << std::endl;
+		std::cout << "crit_damage : " << (int)client->GetCritDamageLevel() << std::endl;
+
+		break;
+	}
 
 
 	}
@@ -1025,7 +1046,23 @@ void Server::Disconnect(int id)
 
 	DB_EVENT ev{};
 	ev.client_id = id;
-	ev.user_id = client->GetUserId();
+	ev.data.user_id = client->GetUserId();
+	ev.data.player_type = (char)client->GetPlayerType();
+	ev.data.gold = client->GetGold();
+	ev.data.x = client->GetPosition().x;
+	ev.data.y = client->GetPosition().y;
+	ev.data.z = client->GetPosition().z;
+	ev.data.hp_level = client->GetHpLevel();
+	ev.data.atk_level = client->GetAtkLevel();
+	ev.data.def_level = client->GetDefLevel();
+	ev.data.crit_rate_level = client->GetCritRateLevel();
+	ev.data.crit_damage_level = client->GetCritDamageLevel();
+	
+	for (size_t i = 0; i < (INT)PlayerType::COUNT; ++i) {
+		ev.data.normal_skill_type[i] = client->GetNormalSkillType((PlayerType)i);
+		ev.data.ultimate_type[i] = client->GetUltimateSkillType((PlayerType)i);
+	}
+
 	ev.event_type = DBEventType::LOGOUT;
 	ev.event_time = std::chrono::system_clock::now();
 	SetDatabaseEvent(ev);
@@ -1063,8 +1100,11 @@ void Server::SendLoginOk(int client_id)
 	packet.def_level = client->GetDefLevel();
 	packet.crit_rate_level = client->GetCritRateLevel();
 	packet.crit_damage_level = client->GetCritDamageLevel();
-	packet.normal_skill_type = client->GetNormalSkillType();
-	packet.ultimate_skill_type = client->GetUltimateSkillType();
+
+	for (size_t i = 0; i < (INT)PlayerType::COUNT; ++i) {
+		packet.skills[i].first = client->GetNormalSkillType((PlayerType)i);
+		packet.skills[i].second = client->GetUltimateSkillType((PlayerType)i);
+	}
 
 	m_clients[client_id]->DoSend(&packet);
 }
@@ -1785,15 +1825,15 @@ void Server::DBThread()
 					ExpOver* over = new ExpOver;
 
 					USER_INFO user_info{};
-					user_info.user_id = ev.user_id;
-					user_info.password = ev.data;
+					user_info.user_id = ev.data.user_id;
+					user_info.password = ev.data.password;
 
 					PLAYER_DATA data{};
 
 					if (m_database->TryLogin(user_info, data)) {
 						auto client = dynamic_pointer_cast<Client>(m_clients[ev.client_id]);
 
-						client->SetUserId(ev.user_id);
+						client->SetUserId(ev.data.user_id);
 						std::string name{};
 						client->SetName(data.name);
 						client->SetPlayerType(static_cast<PlayerType>(data.player_type));
@@ -1810,8 +1850,10 @@ void Server::DBThread()
 						client->SetCritDamageLevel(data.crit_damage_level);
 
 						// 스킬 정보 Set
-						client->SetNormalSkillType(data.normal_skill_type);
-						client->SetUltimateSkillType(data.ultimate_type);
+						for (size_t i = 0; i < (INT)PlayerType::COUNT; ++i) {
+							client->SetNormalSkillType((PlayerType)i, data.normal_skill_type[i]);
+							client->SetUltimateSkillType((PlayerType)i, data.ultimate_type[i]);
+						}
 
 						over->_comp_type = OP_LOGIN_OK;
 						PostQueuedCompletionStatus(m_handle_iocp, 1, ev.client_id, &over->_wsa_over);
@@ -1823,12 +1865,11 @@ void Server::DBThread()
 					break;
 				}
 				case DBEventType::LOGOUT:
-					m_database->Logout(ev.user_id);
+					m_database->Logout(ev.data);
 					break;
 				case DBEventType::CREATE_ACCOUNT: {
 					USER_INFO user_info{};
-					user_info.user_id = ev.user_id;
-					// data를 password 와 name 으로 split
+					user_info.user_id = ev.data.user_id;
 
 					if (!m_database->CreateAccount(user_info)) {
 
@@ -1837,8 +1878,8 @@ void Server::DBThread()
 				}
 				case DBEventType::DELETE_ACCOUNT: {
 					USER_INFO user_info{};
-					user_info.user_id = ev.user_id;
-					user_info.password = ev.data;
+					user_info.user_id = ev.data.user_id;
+					user_info.password = ev.data.password;
 
 					if (!m_database->DeleteAccount(user_info)) {
 
@@ -1871,7 +1912,7 @@ void Server::DBThread()
 				}
 				case DBEventType::UPDATE_GOLD: {
 					auto client = dynamic_pointer_cast<Client>(m_clients[ev.client_id]);
-					if (!m_database->UpdateGold(ev.user_id, client->GetGold())) {
+					if (!m_database->UpdateGold(ev.data.user_id, client->GetGold())) {
 
 					}
 					break;
@@ -1880,7 +1921,7 @@ void Server::DBThread()
 					auto client = dynamic_pointer_cast<Client>(m_clients[ev.client_id]);
 					XMFLOAT3 pos = client->GetPosition();
 
-					if (!m_database->UpdatePosition(ev.user_id, pos.x, pos.y, pos.z)) {
+					if (!m_database->UpdatePosition(ev.data.user_id, pos.x, pos.y, pos.z)) {
 
 					}
 					break;

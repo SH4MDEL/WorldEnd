@@ -34,6 +34,7 @@ struct UPGRADE_INFO
 struct PLAYER_DATA
 {
 	std::wstring user_id;
+	std::wstring password;
 	std::wstring name;
 
 	int gold;
@@ -46,8 +47,8 @@ struct PLAYER_DATA
 	int crit_rate_level;
 	int crit_damage_level;
 
-	int normal_skill_type;
-	int ultimate_type;
+	std::array<int, (int)PlayerType::COUNT> normal_skill_type;
+	std::array<int, (int)PlayerType::COUNT> ultimate_type;
 };
 
 struct PLAYER_TABLE
@@ -65,8 +66,8 @@ struct PLAYER_TABLE
 	SQLINTEGER crit_rate_level;
 	SQLINTEGER crit_damage_level;
 
-	SQLINTEGER normal_skill_type;
-	SQLINTEGER ultimate_type;
+	std::array<SQLINTEGER, (INT)PlayerType::COUNT> normal_skill_type;
+	std::array<SQLINTEGER, (INT)PlayerType::COUNT> ultimate_type;
 	SQLCHAR logged_in;
 
 
@@ -93,7 +94,7 @@ public:
 	~DataBase();
 
 	bool TryLogin(const USER_INFO& user_info, PLAYER_DATA& player_data);
-	bool Logout(const std::wstring_view& id);
+	bool Logout(const PLAYER_DATA& data);
 	bool CreateAccount(const USER_INFO& user_info);
 	bool DeleteAccount(const USER_INFO& user_info);
 	bool UpdatePlayer(const PLAYER_INFO& player_info);

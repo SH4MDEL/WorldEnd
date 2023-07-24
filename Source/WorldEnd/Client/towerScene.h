@@ -124,6 +124,8 @@ private:
 	void CollideByStatic(const shared_ptr<GameObject>& obj, const shared_ptr<GameObject>& static_obj);
 	void CollideByStaticOBB(const shared_ptr<GameObject>& obj, const shared_ptr<GameObject>& static_obj);
 
+	void SetSkillUI();
+
 protected:
 	ComPtr<ID3D12Resource>								m_sceneBuffer;
 	SceneInfo*											m_sceneBufferPointer;

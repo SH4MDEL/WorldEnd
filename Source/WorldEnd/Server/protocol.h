@@ -67,6 +67,10 @@ constexpr char CS_PACKET_OPEN_PARTY_UI = 15;
 constexpr char CS_PACKET_CLOSE_PARTY_UI = 16;
 // -----------------------------------------------------------
 
+constexpr char CS_PACKET_ENHANCE = 17;
+
+
+
 constexpr char SC_PACKET_LOGIN_FAIL = 0;
 constexpr char SC_PACKET_LOGIN_OK = 1;
 constexpr char SC_PACKET_ADD_PLAYER = 2;
@@ -131,6 +135,10 @@ enum class MonsterBehavior : char {
 enum InteractionType : char {
 	BATTLE_STARTER, PORTAL, ENHANCMENT, RECORD_BOARD, NONE
 };
+enum class EnhancementType : char {
+	HP, ATK, DEF,CRIT_RATE, CRIT_DAMAGE, COUNT
+};
+
 
 // ----- 애니메이션 enum 클래스 -----
 // 애니메이션이 100개 이하로 떨어질 것이라 생각하여 100을 단위로 잡음
@@ -254,7 +262,7 @@ namespace PlayerSetting
 	constexpr float DEFAULT_DEF = 30.0f;
 	constexpr float DEFAULT_CRIT_RATE = 0.f;
 	constexpr float DEFAULT_CRIT_DAMAGE = 2.f;
-
+	constexpr int ENHANCE_COST = 100;
 
 	constexpr auto DASH_DURATION = 300ms;
 	constexpr float MAX_STAMINA = 120.f;
@@ -559,11 +567,17 @@ namespace VillageSetting
 
 	constexpr float WEST_GATE_LEFT = 60.99f - GATE_LENGTH / 2.f;
 	constexpr float WEST_GATE_RIGHT = 60.99f + GATE_LENGTH / 2.f;
-	constexpr float WEST_GATE_FRONT = -218.59 + GATE_OFFSET;
+	constexpr float WEST_GATE_FRONT = -218.59f + GATE_OFFSET;
 
 	constexpr float EAST_GATE_LEFT = 67.141f + GATE_LENGTH / 2.f;
 	constexpr float EAST_GATE_RIGHT = 67.141f - GATE_LENGTH / 2.f;
 	constexpr float EAST_GATE_FRONT = 69.09f - GATE_OFFSET;
+
+	constexpr XMFLOAT3 SKILL_NPC{ -42.7098f, 5.7f, 75.8633f };
+	constexpr float SKILL_NPC_OFFSET = 2.f;
+
+	constexpr XMFLOAT3 INHENCE_NPC{ -40.7098f, 5.7f, 77.8633f };
+	constexpr float INHENCE_NPC_OFFSET = 2.f;
 }
 
 namespace RoomSetting
@@ -726,6 +740,13 @@ struct CS_CLOSE_PARTY_UI_PACKET
 	UCHAR type;
 };
 
+struct CS_ENHANCE_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+	EnhancementType enhancement_type;
+};
+
 ///////////////////////////////////////////////////////////////////////
 // 서버에서 클라로
 
@@ -742,8 +763,7 @@ struct SC_LOGIN_OK_PACKET    // 로그인 성공을 알려주는 패킷
 	UCHAR def_level;
 	UCHAR crit_rate_level;
 	UCHAR crit_damage_level;
-	UCHAR normal_skill_type;
-	UCHAR ultimate_skill_type;
+	std::pair<UCHAR, UCHAR> skills[static_cast<INT>(PlayerType::COUNT)];
 };
 
 struct SC_ADD_PLAYER_PACKET

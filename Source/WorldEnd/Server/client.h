@@ -58,8 +58,9 @@ public:
 	void SetDefLevel(UCHAR level);
 	void SetCritRateLevel(UCHAR level);
 	void SetCritDamageLevel(UCHAR level);
-	void SetNormalSkillType(UCHAR type);
-	void SetUltimateSkillType(UCHAR type);
+	void LevelUpEnhancement(EnhancementType type);
+	void SetNormalSkillType(PlayerType player_type, UCHAR type);
+	void SetUltimateSkillType(PlayerType player_type, UCHAR type);
 
 	const SOCKET& GetSocket() const override { return m_socket; }
 	ExpOver& GetExpOver() { return m_recv_over; }
@@ -81,11 +82,12 @@ public:
 	UCHAR GetDefLevel() const { return m_status->GetDefLevel(); }
 	UCHAR GetCritRateLevel() const { return m_status->GetCritRateLevel(); }
 	UCHAR GetCritDamageLevel() const { return m_status->GetCritDamageLevel(); }
-	UCHAR GetNormalSkillType() const;
-	UCHAR GetUltimateSkillType() const;
+	UCHAR GetNormalSkillType(PlayerType type) const;
+	UCHAR GetUltimateSkillType(PlayerType type) const;
 	
 
 	void ChangeStamina(FLOAT value);
+	void ChangeGold(INT value);
 	virtual void DecreaseHp(FLOAT damage, INT id) override;
 	void RestoreCondition();
 
@@ -110,7 +112,8 @@ private:
 	std::wstring			m_user_id;
 	INT						m_gold;
 
-	std::array<std::shared_ptr<Skill>, static_cast<INT>(SkillType::COUNT)>	m_skills;
+	std::array< std::array<std::shared_ptr<Skill>, static_cast<INT>(SkillType::COUNT)>,
+		static_cast<INT>(PlayerType::COUNT)> m_skills;
 
 	void SetBoundingBox(PlayerType type);
 };

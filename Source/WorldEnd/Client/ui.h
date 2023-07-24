@@ -7,12 +7,14 @@ class UI : public enable_shared_from_this<UI>
 {
 public:
 	enum class Type {
-		STANDARD,
+		IMAGE,
 		BACKGROUND,
 		TEXT,
 		BUTTON_NOACTIVE,
 		BUTTON_MOUSEON,
 		BUTTON_ACTIVE,
+		SWITCH_NOACTIVE,
+		SWITCH_ACTIVE,
 		HORZGAUGE,
 		VERTGAUGE,
 		TEXTBUTTON_NOACTIVE,
@@ -54,11 +56,11 @@ protected:
 	function<void()> m_clickEvent;
 };
 
-class StandardUI : public UI
+class ImageUI : public UI
 {
 public:
-	StandardUI(XMFLOAT2 position, XMFLOAT2 size);
-	~StandardUI() = default;
+	ImageUI(XMFLOAT2 position, XMFLOAT2 size);
+	~ImageUI() = default;
 
 private:
 };
@@ -99,7 +101,22 @@ public:
 
 	virtual void OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime) override;
 	virtual void OnProcessingMouseMessage(UINT message, LPARAM lParam) override;
+};
+
+class SwitchUI : public UI
+{
+public:
+	SwitchUI(XMFLOAT2 position, XMFLOAT2 size);
+	~SwitchUI() = default;
+
+	virtual void OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime) override;
+	virtual void OnProcessingMouseMessage(UINT message, LPARAM lParam) override;
+
+	bool IsActive();
+	void SetNoActive();
+
 private:
+	bool m_active;
 };
 
 class HorzGaugeUI : public UI

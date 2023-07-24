@@ -100,9 +100,11 @@ bool DataBase::TryLogin(const USER_INFO& user_info, PLAYER_DATA& player_data)
 	ret = SQLBindCol(m_hstmt, 10, SQL_C_TINYINT, &player_table.def_level, 1, &player_table.cb_def_level);
 	ret = SQLBindCol(m_hstmt, 11, SQL_C_TINYINT, &player_table.crit_rate_level, 1, &player_table.cb_crit_rate_level);
 	ret = SQLBindCol(m_hstmt, 12, SQL_C_TINYINT, &player_table.crit_damage_level, 1, &player_table.cb_crit_damage_level);
-	ret = SQLBindCol(m_hstmt, 13, SQL_C_TINYINT, &player_table.normal_skill_type, 1, &player_table.cb_skill);
-	ret = SQLBindCol(m_hstmt, 14, SQL_C_TINYINT, &player_table.ultimate_type, 1, &player_table.cb_ultimate);
-	ret = SQLBindCol(m_hstmt, 15, SQL_C_BIT, &player_table.logged_in, 1, &player_table.cb_logged_in);
+	ret = SQLBindCol(m_hstmt, 13, SQL_C_TINYINT, &player_table.normal_skill_type[0], 1, &player_table.cb_skill);
+	ret = SQLBindCol(m_hstmt, 14, SQL_C_TINYINT, &player_table.ultimate_type[0], 1, &player_table.cb_ultimate);
+	ret = SQLBindCol(m_hstmt, 15, SQL_C_TINYINT, &player_table.normal_skill_type[1], 1, &player_table.cb_skill);
+	ret = SQLBindCol(m_hstmt, 16, SQL_C_TINYINT, &player_table.ultimate_type[1], 1, &player_table.cb_ultimate);
+	ret = SQLBindCol(m_hstmt, 17, SQL_C_BIT, &player_table.logged_in, 1, &player_table.cb_logged_in);
 
 	while (true) {
 		ret = SQLFetch(m_hstmt);
@@ -123,8 +125,10 @@ bool DataBase::TryLogin(const USER_INFO& user_info, PLAYER_DATA& player_data)
 			player_data.crit_rate_level = player_table.crit_rate_level;
 			player_data.crit_damage_level = player_table.crit_damage_level;
 
-			player_data.normal_skill_type = player_table.normal_skill_type;
-			player_data.ultimate_type = player_table.ultimate_type;
+			for (size_t i = 0; i < (INT)PlayerType::COUNT; ++i) {
+				player_data.normal_skill_type[i] = player_table.normal_skill_type[i];
+				player_data.ultimate_type[i] = player_table.ultimate_type[i];
+			}
 
 			std::wcout << player_data.user_id << ", " << player_data.name << std::endl;
 			std::cout << "플레이어 타입 : " << (int)player_data.player_type << std::endl;
@@ -164,7 +168,7 @@ bool DataBase::TryLogin(const USER_INFO& user_info, PLAYER_DATA& player_data)
 	return false;
 }
 
-bool DataBase::Logout(const std::wstring_view& id)
+bool DataBase::Logout(const PLAYER_DATA& data)
 {
 	// 상태 핸들 할당
 	SQLRETURN ret = SQLAllocHandle(SQL_HANDLE_STMT, m_hdbc, &m_hstmt);
@@ -173,8 +177,10 @@ bool DataBase::Logout(const std::wstring_view& id)
 		return false;
 	}
 
-	std::wstring query = std::format(L"EXEC [WorldEnd].[dbo].[logout] '{}'",
-		id.data());
+	std::wstring query = std::format(L"EXEC [WorldEnd].[dbo].[logout] '{}' {},{},{},{},{},{},{},{},{},{},{},{},{},{}",
+		data.user_id, data.gold, data.player_type, data.x, data.y, data.z, 
+		data.hp_level, data.atk_level, data.def_level, data.crit_rate_level, data.crit_damage_level,
+		data.normal_skill_type[0], data.ultimate_type[0], data.normal_skill_type[1], data.ultimate_type[1]);
 
 	ret = SQLExecDirect(m_hstmt, (SQLWCHAR*)query.c_str(), SQL_NTS);
 	if (!(SQL_SUCCESS == ret || SQL_SUCCESS_WITH_INFO == ret)) {

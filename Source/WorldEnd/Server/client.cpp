@@ -32,8 +32,10 @@ ExpOver::ExpOver(char* packet, INT packet_count)
 Client::Client() : m_socket{}, m_is_ready{ false }, m_remain_size{ 0 },
 	m_recv_over{}
 {
-	for (size_t i = 0; i < static_cast<INT>(SkillType::COUNT); ++i) {
-		m_skills[i] = std::make_shared<Skill>();
+	for (size_t j = 0; j < static_cast<INT>(PlayerType::COUNT); ++j) {
+		for (size_t i = 0; i < static_cast<INT>(SkillType::COUNT); ++i) {
+			m_skills[j][i] = std::make_shared<Skill>();
+		}
 	}
 
 	Init();
@@ -70,8 +72,10 @@ void Client::Init()
 	m_status->SetCritRate(PlayerSetting::DEFAULT_CRIT_RATE);
 	m_status->SetCritDamage(PlayerSetting::DEFAULT_CRIT_DAMAGE);
 
-	m_skills[static_cast<INT>(SkillType::NORMAL)]->SetSkillType(0);
-	m_skills[static_cast<INT>(SkillType::ULTIMATE)]->SetSkillType(0);
+	for (int i = 0; i < (INT)PlayerType::COUNT; ++i) {
+		m_skills[i][(INT)SkillType::NORMAL]->SetSkillType(0);
+		m_skills[i][(INT)SkillType::ULTIMATE]->SetSkillType(0);
+	}
 }
 
 void Client::DoRecv()
@@ -212,14 +216,35 @@ void Client::SetCritDamageLevel(UCHAR level)
 	m_status->SetCritDamageLevel(level);
 }
 
-void Client::SetNormalSkillType(UCHAR type)
+void Client::LevelUpEnhancement(EnhancementType type)
 {
-	m_skills[static_cast<INT>(SkillType::NORMAL)]->SetSkillType(type);
+	switch (type) {
+	case EnhancementType::HP:
+		m_status->SetHpLevel(m_status->GetHpLevel() + 1);
+		break;
+	case EnhancementType::ATK:
+		m_status->SetAtkLevel(m_status->GetAtkLevel() + 1);
+		break;
+	case EnhancementType::DEF:
+		m_status->SetDefLevel(m_status->GetDefLevel() + 1);
+		break;
+	case EnhancementType::CRIT_RATE:
+		m_status->SetCritRateLevel(m_status->GetCritRateLevel() + 1);
+		break;
+	case EnhancementType::CRIT_DAMAGE:
+		m_status->SetCritDamageLevel(m_status->GetCritDamageLevel() + 1);
+		break;
+	}
 }
 
-void Client::SetUltimateSkillType(UCHAR type)
+void Client::SetNormalSkillType(PlayerType player_type, UCHAR type)
 {
-	m_skills[static_cast<INT>(SkillType::ULTIMATE)]->SetSkillType(type);
+	m_skills[(INT)player_type][(INT)SkillType::NORMAL]->SetSkillType(type);
+}
+
+void Client::SetUltimateSkillType(PlayerType player_type, UCHAR type)
+{
+	m_skills[(INT)player_type][(INT)SkillType::ULTIMATE]->SetSkillType(type);
 }
 
 FLOAT Client::GetSkillRatio(ActionType type) const
@@ -239,14 +264,14 @@ FLOAT Client::GetSkillRatio(ActionType type) const
 	return ratio;
 }
 
-UCHAR Client::GetNormalSkillType() const
+UCHAR Client::GetNormalSkillType(PlayerType type) const
 {
-	return m_skills[static_cast<INT>(SkillType::NORMAL)]->GetSkillType();
+	return m_skills[(INT)type][static_cast<INT>(SkillType::NORMAL)]->GetSkillType();
 }
 
-UCHAR Client::GetUltimateSkillType() const
+UCHAR Client::GetUltimateSkillType(PlayerType type) const
 {
-	return m_skills[static_cast<INT>(SkillType::ULTIMATE)]->GetSkillType();
+	return m_skills[(INT)type][static_cast<INT>(SkillType::ULTIMATE)]->GetSkillType();
 }
 
 void Client::ChangeStamina(FLOAT value)
@@ -254,6 +279,11 @@ void Client::ChangeStamina(FLOAT value)
 	m_stamina += value;
 	if (m_stamina <= 0)
 		m_stamina = 0;
+}
+
+void Client::ChangeGold(INT value)
+{
+	m_gold += value;
 }
 
 void Client::DecreaseHp(FLOAT damage, INT id)

@@ -145,6 +145,7 @@ void LoadingScene::BuildMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID
 {
 	LoadAnimationMeshFromFile(device, commandList, TEXT("./Resource/Mesh/WarriorMesh.bin"));
 	LoadAnimationMeshFromFile(device, commandList, TEXT("./Resource/Mesh/ArcherMesh.bin"));
+	//LoadAnimationMeshFromFile(device, commandList, TEXT("./Resource/Mesh/WizardMesh.bin"));
 
 	auto staminaBarMesh{ make_shared<PlaneMesh>(device, commandList, XMFLOAT3{ 0.f, 0.f, 0.f }, XMFLOAT2{ 0.1f, 0.89f }) };
 	m_meshs.insert({ "STAMINABAR", staminaBarMesh });
@@ -396,6 +397,10 @@ void LoadingScene::BuildTexture(const ComPtr<ID3D12Device>& device, const ComPtr
 	frameUITexture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/UI_Background.dds"), (INT)ShaderRegister::BaseTexture);
 	frameUITexture->CreateSrvDescriptorHeap(device);
 	frameUITexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+	auto characterFrameUITexture{ make_shared<Texture>() };
+	characterFrameUITexture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/UI_CharacterBackground.dds"), (INT)ShaderRegister::BaseTexture);
+	characterFrameUITexture->CreateSrvDescriptorHeap(device);
+	characterFrameUITexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
 	auto cancelUITexture{ make_shared<Texture>() };
 	cancelUITexture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/UI_Cancel.dds"), (INT)ShaderRegister::BaseTexture);
 	cancelUITexture->CreateSrvDescriptorHeap(device);
@@ -425,26 +430,67 @@ void LoadingScene::BuildTexture(const ComPtr<ID3D12Device>& device, const ComPtr
 	rightArrowUITexture->CreateSrvDescriptorHeap(device);
 	rightArrowUITexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
 
-	auto warriorSkillTexture{ make_shared<Texture>() };
-	warriorSkillTexture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/SkillTexture/Warrior_Skill.dds"), (INT)ShaderRegister::BaseTexture);
-	warriorSkillTexture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/SkillTexture/Warrior_Skill_Cool.dds"), (INT)ShaderRegister::SubTexture);
-	warriorSkillTexture->CreateSrvDescriptorHeap(device);
-	warriorSkillTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
-	auto warriorUltimateTexture{ make_shared<Texture>() };
-	warriorUltimateTexture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/SkillTexture/Warrior_Ultimate.dds"), (INT)ShaderRegister::BaseTexture);
-	warriorUltimateTexture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/SkillTexture/Warrior_Ultimate_Cool.dds"), (INT)ShaderRegister::SubTexture);
-	warriorUltimateTexture->CreateSrvDescriptorHeap(device);
-	warriorUltimateTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
-	auto archerSkillTexture{ make_shared<Texture>() };
-	archerSkillTexture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/SkillTexture/Archer_Skill.dds"), (INT)ShaderRegister::BaseTexture);
-	archerSkillTexture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/SkillTexture/Archer_Skill_Cool.dds"), (INT)ShaderRegister::SubTexture);
-	archerSkillTexture->CreateSrvDescriptorHeap(device);
-	archerSkillTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
-	auto archerUltimateTexture{ make_shared<Texture>() };
-	archerUltimateTexture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/SkillTexture/Archer_Ultimate.dds"), (INT)ShaderRegister::BaseTexture);
-	archerUltimateTexture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/SkillTexture/Archer_Ultimate_Cool.dds"), (INT)ShaderRegister::SubTexture);
-	archerUltimateTexture->CreateSrvDescriptorHeap(device);
-	archerUltimateTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+	auto warriorSkill1Texture{ make_shared<Texture>() };
+	warriorSkill1Texture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/SkillTexture/Warrior_Skill1.dds"), (INT)ShaderRegister::BaseTexture);
+	warriorSkill1Texture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/SkillTexture/Warrior_Skill1_Cool.dds"), (INT)ShaderRegister::SubTexture);
+	warriorSkill1Texture->CreateSrvDescriptorHeap(device);
+	warriorSkill1Texture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+	auto warriorSkill2Texture{ make_shared<Texture>() };
+	warriorSkill2Texture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/SkillTexture/Warrior_Skill2.dds"), (INT)ShaderRegister::BaseTexture);
+	warriorSkill2Texture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/SkillTexture/Warrior_Skill2_Cool.dds"), (INT)ShaderRegister::SubTexture);
+	warriorSkill2Texture->CreateSrvDescriptorHeap(device);
+	warriorSkill2Texture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+	auto warriorUltimate1Texture{ make_shared<Texture>() };
+	warriorUltimate1Texture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/SkillTexture/Warrior_Ultimate1.dds"), (INT)ShaderRegister::BaseTexture);
+	warriorUltimate1Texture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/SkillTexture/Warrior_Ultimate1_Cool.dds"), (INT)ShaderRegister::SubTexture);
+	warriorUltimate1Texture->CreateSrvDescriptorHeap(device);
+	warriorUltimate1Texture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+	auto warriorUltimate2Texture{ make_shared<Texture>() };
+	warriorUltimate2Texture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/SkillTexture/Warrior_Ultimate2.dds"), (INT)ShaderRegister::BaseTexture);
+	warriorUltimate2Texture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/SkillTexture/Warrior_Ultimate2_Cool.dds"), (INT)ShaderRegister::SubTexture);
+	warriorUltimate2Texture->CreateSrvDescriptorHeap(device);
+	warriorUltimate2Texture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+	auto archerSkill1Texture{ make_shared<Texture>() };
+	archerSkill1Texture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/SkillTexture/Archer_Skill1.dds"), (INT)ShaderRegister::BaseTexture);
+	archerSkill1Texture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/SkillTexture/Archer_Skill1_Cool.dds"), (INT)ShaderRegister::SubTexture);
+	archerSkill1Texture->CreateSrvDescriptorHeap(device);
+	archerSkill1Texture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+	auto archerSkill2Texture{ make_shared<Texture>() };
+	archerSkill2Texture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/SkillTexture/Archer_Skill2.dds"), (INT)ShaderRegister::BaseTexture);
+	archerSkill2Texture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/SkillTexture/Archer_Skill2_Cool.dds"), (INT)ShaderRegister::SubTexture);
+	archerSkill2Texture->CreateSrvDescriptorHeap(device);
+	archerSkill2Texture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+	auto archerUltimate1Texture{ make_shared<Texture>() };
+	archerUltimate1Texture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/SkillTexture/Archer_Ultimate1.dds"), (INT)ShaderRegister::BaseTexture);
+	archerUltimate1Texture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/SkillTexture/Archer_Ultimate1_Cool.dds"), (INT)ShaderRegister::SubTexture);
+	archerUltimate1Texture->CreateSrvDescriptorHeap(device);
+	archerUltimate1Texture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+	auto archerUltimate2Texture{ make_shared<Texture>() };
+	archerUltimate2Texture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/SkillTexture/Archer_Ultimate2.dds"), (INT)ShaderRegister::BaseTexture);
+	archerUltimate2Texture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/SkillTexture/Archer_Ultimate2_Cool.dds"), (INT)ShaderRegister::SubTexture);
+	archerUltimate2Texture->CreateSrvDescriptorHeap(device);
+	archerUltimate2Texture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+
+	auto inhenceAttackTexture{ make_shared<Texture>() };
+	inhenceAttackTexture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/InhenceTexture/Inhence_Attack.dds"), (INT)ShaderRegister::BaseTexture);
+	inhenceAttackTexture->CreateSrvDescriptorHeap(device);
+	inhenceAttackTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+	auto inhenceCritDamageTexture{ make_shared<Texture>() };
+	inhenceCritDamageTexture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/InhenceTexture/Inhence_Crit_Damage.dds"), (INT)ShaderRegister::BaseTexture);
+	inhenceCritDamageTexture->CreateSrvDescriptorHeap(device);
+	inhenceCritDamageTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+	auto inhenceCritProbTexture{ make_shared<Texture>() };
+	inhenceCritProbTexture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/InhenceTexture/Inhence_Crit_Prob.dds"), (INT)ShaderRegister::BaseTexture);
+	inhenceCritProbTexture->CreateSrvDescriptorHeap(device);
+	inhenceCritProbTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+	auto inhenceDefenceTexture{ make_shared<Texture>() };
+	inhenceDefenceTexture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/InhenceTexture/Inhence_Defence.dds"), (INT)ShaderRegister::BaseTexture);
+	inhenceDefenceTexture->CreateSrvDescriptorHeap(device);
+	inhenceDefenceTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+	auto inhenceHpTexture{ make_shared<Texture>() };
+	inhenceHpTexture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/InhenceTexture/Inhence_Hp.dds"), (INT)ShaderRegister::BaseTexture);
+	inhenceHpTexture->CreateSrvDescriptorHeap(device);
+	inhenceHpTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
 
 	auto staminaBarTexture{ make_shared<Texture>() };
 	staminaBarTexture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/Full_StaminaBar.dds"), (INT)ShaderRegister::BaseTexture); // BaseTexture
@@ -453,6 +499,7 @@ void LoadingScene::BuildTexture(const ComPtr<ID3D12Device>& device, const ComPtr
 	staminaBarTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
 
 	m_textures.insert({ "FRAMEUI", frameUITexture });
+	m_textures.insert({ "CHARACTERFRAMEUI", characterFrameUITexture });
 	m_textures.insert({ "CANCELUI", cancelUITexture });
 	m_textures.insert({ "BUTTONUI", buttonUITexture });
 	m_textures.insert({ "TEXTBARUI", textbarUITexture });
@@ -460,10 +507,19 @@ void LoadingScene::BuildTexture(const ComPtr<ID3D12Device>& device, const ComPtr
 	m_textures.insert({ "GOLDUI", goldUITexture });
 	m_textures.insert({ "LEFTARROWUI", leftArrowUITexture });
 	m_textures.insert({ "RIGHTARROWUI", rightArrowUITexture });
-	m_textures.insert({ "WARRIORSKILL", warriorSkillTexture });
-	m_textures.insert({ "WARRIORULTIMATE", warriorUltimateTexture });
-	m_textures.insert({ "ARCHERSKILL", archerSkillTexture });
-	m_textures.insert({ "ARCHERULTIMATE", archerUltimateTexture });
+	m_textures.insert({ "WARRIORSKILL1", warriorSkill1Texture });
+	m_textures.insert({ "WARRIORSKILL2", warriorSkill2Texture });
+	m_textures.insert({ "WARRIORULTIMATE1", warriorUltimate1Texture });
+	m_textures.insert({ "WARRIORULTIMATE2", warriorUltimate2Texture });
+	m_textures.insert({ "ARCHERSKILL1", archerSkill1Texture });
+	m_textures.insert({ "ARCHERSKILL2", archerSkill2Texture });
+	m_textures.insert({ "ARCHERULTIMATE1", archerUltimate1Texture });
+	m_textures.insert({ "ARCHERULTIMATE2", archerUltimate1Texture });
+	m_textures.insert({ "INHENCEATTACK", inhenceAttackTexture });
+	m_textures.insert({ "INHENCECRITDAMAGE", inhenceCritDamageTexture });
+	m_textures.insert({ "INHENCECRITPROB", inhenceCritProbTexture });
+	m_textures.insert({ "INHENCEDEFENCE", inhenceDefenceTexture });
+	m_textures.insert({ "INHENCEHP", inhenceHpTexture });
 	m_textures.insert({ "STAMINABAR", staminaBarTexture });
 
 	auto titleUITexture{ make_shared<Texture>() };
@@ -690,6 +746,7 @@ void LoadingScene::BuildMeterial(const ComPtr<ID3D12Device>& device, const ComPt
 	// 타워 씬 메테리얼 로딩
 	LoadMaterialFromFile(device, commandList, TEXT("Resource/Texture/WarriorTexture.bin"));
 	LoadMaterialFromFile(device, commandList, TEXT("Resource/Texture/ArcherTexture.bin"));
+	//LoadMaterialFromFile(device, commandList, TEXT("Resource/Texture/WizardTexture.bin"));
 
 	LoadMaterialFromFile(device, commandList, TEXT("Resource/Texture/Undead_WarriorTexture.bin"));
 	LoadMaterialFromFile(device, commandList, TEXT("Resource/Texture/Undead_ArcherTexture.bin"));
@@ -732,6 +789,7 @@ void LoadingScene::BuildAnimationSet()
 {
 	LoadAnimationSetFromFile(TEXT("./Resource/Animation/WarriorAnimation.bin"), "WarriorAnimation");
 	LoadAnimationSetFromFile(TEXT("./Resource/Animation/ArcherAnimation.bin"), "ArcherAnimation");
+	//LoadAnimationSetFromFile(TEXT("./Resource/Animation/WizardAnimation.bin"), "WizardAnimation");
 
 	LoadAnimationSetFromFile(TEXT("Resource/Animation/Undead_WarriorAnimation.bin"), "Undead_WarriorAnimation");
 	LoadAnimationSetFromFile(TEXT("Resource/Animation/Undead_ArcherAnimation.bin"), "Undead_ArcherAnimation");

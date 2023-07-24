@@ -24,7 +24,7 @@ void LoginScene::OnResize(const ComPtr<ID3D12Device>& device, UINT width, UINT h
 	if (m_fadeFilter) m_fadeFilter->OnResize(device, width, height);
 
 	XMFLOAT4X4 projMatrix;
-	XMStoreFloat4x4(&projMatrix, XMMatrixPerspectiveFovLH(0.25f * XM_PI, g_GameFramework.GetAspectRatio(), 0.1f, 100.0f));
+	XMStoreFloat4x4(&projMatrix, XMMatrixPerspectiveFovLH(0.25f * XM_PI, g_GameFramework.GetAspectRatio(), 0.1f, 500.0f));
 	if (m_camera) m_camera->SetProjMatrix(projMatrix);
 }
 
@@ -152,7 +152,7 @@ void LoginScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	m_camera->CreateShaderVariable(device, commandlist);
 
 	XMFLOAT4X4 projMatrix;
-	XMStoreFloat4x4(&projMatrix, XMMatrixPerspectiveFovLH(0.25f * XM_PI, g_GameFramework.GetAspectRatio(), 0.1f, 300.0f));
+	XMStoreFloat4x4(&projMatrix, XMMatrixPerspectiveFovLH(0.25f * XM_PI, g_GameFramework.GetAspectRatio(), 0.1f, 500.0f));
 	m_camera->SetProjMatrix(projMatrix);
 	m_shaders["OBJECTBLEND"]->SetCamera(m_camera);
 
@@ -199,43 +199,76 @@ void LoginScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 {
 	m_titleUI = make_shared<BackgroundUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 1.f, 1.f });
 
-	auto titleUI{ make_shared<UI>(XMFLOAT2{ 0.f, 0.5f }, XMFLOAT2{ 0.25f, 0.25f }) };
+	auto titleUI{ make_shared<ImageUI>(XMFLOAT2{ 0.f, 0.5f }, XMFLOAT2{ 0.61f, 0.25f }) };
 	titleUI->SetTexture("TITLE");
 	m_titleUI->SetChild(titleUI);
 
-	m_idBox = make_shared<InputTextUI>(XMFLOAT2{ -0.3f, 0.f }, XMFLOAT2{ 0.3f, 0.04f }, XMFLOAT2{ 120.f, 10.f }, 20);
+	m_idBox = make_shared<InputTextUI>(XMFLOAT2{ 0.f, 0.1f }, XMFLOAT2{ 0.3f, 0.04f }, XMFLOAT2{ 120.f, 10.f }, 20);
 	m_idBox->SetColorBrush("WHITE");
 	m_idBox->SetTextFormat("KOPUB18");
 	m_idBox->SetTexture("TEXTBARUI");
 	m_titleUI->SetChild(m_idBox);
 
-	m_passwordBox = make_shared<InputTextUI>(XMFLOAT2{ 0.3f, 0.f }, XMFLOAT2{ 0.3f, 0.04f }, XMFLOAT2{ 120.f, 10.f }, 20);
+	auto idTextUI{ make_shared<TextUI>(XMFLOAT2{-0.25f, 0.1f}, XMFLOAT2{0.f, 0.f}, XMFLOAT2{120.f, 10.f}) };
+	idTextUI->SetText(L"      ID : ");
+	idTextUI->SetColorBrush("WHITE");
+	idTextUI->SetTextFormat("KOPUB18");
+	m_titleUI->SetChild(idTextUI);
+
+	m_passwordBox = make_shared<InputTextUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 0.3f, 0.04f }, XMFLOAT2{ 120.f, 10.f }, 20);
 	m_passwordBox->SetColorBrush("WHITE");
 	m_passwordBox->SetTextFormat("KOPUB18");
 	m_passwordBox->SetTexture("TEXTBARUI");
 	m_titleUI->SetChild(m_passwordBox);
 
-	auto gameStartButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.f, -0.3f}, XMFLOAT2{0.29f, 0.1f}) };
-	gameStartButtonUI->SetTexture("BUTTONUI");
+	auto passwordTextUI{ make_shared<TextUI>(XMFLOAT2{-0.25f, 0.f}, XMFLOAT2{0.f, 0.f}, XMFLOAT2{120.f, 10.f}) };
+	passwordTextUI->SetText(L"PASSWORD : ");
+	passwordTextUI->SetColorBrush("WHITE");
+	passwordTextUI->SetTextFormat("KOPUB18");
+	m_titleUI->SetChild(passwordTextUI);
+
+
+	auto loginButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.f, -0.19f}, XMFLOAT2{0.232f, 0.08f}) };
+	loginButtonUI->SetTexture("BUTTONUI");
 #ifdef USE_NETWORK
-	gameStartButtonUI->SetClickEvent([&]() {
+	loginButtonUI->SetClickEvent([&]() {
 		TryLogin();
 		});
 #else
-	gameStartButtonUI->SetClickEvent([&]() {
+	loginButtonUI->SetClickEvent([&]() {
 		m_fadeFilter->FadeOut([&]() {
 			SetState(State::SceneLeave);
 			});
 	});
 #endif
-	auto gameStartButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.f, 0.f}, XMFLOAT2{40.f, 10.f}) };
-	gameStartButtonTextUI->SetText(L"게임 시작");
-	gameStartButtonTextUI->SetColorBrush("WHITE");
-	gameStartButtonTextUI->SetTextFormat("KOPUB18");
-	gameStartButtonUI->SetChild(gameStartButtonTextUI);
-	m_titleUI->SetChild(gameStartButtonUI);
+	auto loginButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.f, 0.f}, XMFLOAT2{40.f, 10.f}) };
+	loginButtonTextUI->SetText(L"로그인");
+	loginButtonTextUI->SetColorBrush("WHITE");
+	loginButtonTextUI->SetTextFormat("KOPUB18");
+	loginButtonUI->SetChild(loginButtonTextUI);
+	m_titleUI->SetChild(loginButtonUI);
 
-	auto optionButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.f, -0.5f}, XMFLOAT2{0.29f, 0.1f}) };
+	auto signinButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.f, -0.36f}, XMFLOAT2{0.232f, 0.08f}) };
+	signinButtonUI->SetTexture("BUTTONUI");
+#ifdef USE_NETWORK
+	signinButtonUI->SetClickEvent([&]() {
+		TryLogin();	// SignIn 처리
+		});
+#else
+	signinButtonUI->SetClickEvent([&]() {
+		m_fadeFilter->FadeOut([&]() {
+			SetState(State::SceneLeave);
+			});
+		});
+#endif
+	auto signinButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.f, 0.f}, XMFLOAT2{40.f, 10.f}) };
+	signinButtonTextUI->SetText(L"회원 가입");
+	signinButtonTextUI->SetColorBrush("WHITE");
+	signinButtonTextUI->SetTextFormat("KOPUB18");
+	signinButtonUI->SetChild(signinButtonTextUI);
+	m_titleUI->SetChild(signinButtonUI);
+
+	auto optionButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.f, -0.53f}, XMFLOAT2{0.232f, 0.08f}) };
 	optionButtonUI->SetTexture("BUTTONUI");
 	optionButtonUI->SetClickEvent([&]() {
 		SetState(State::OutputOptionUI);
@@ -248,7 +281,7 @@ void LoginScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 	optionButtonUI->SetChild(optionButtonTextUI);
 	m_titleUI->SetChild(optionButtonUI);
 
-	auto gameExitButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.f, -0.7f}, XMFLOAT2{0.29f, 0.1f}) };
+	auto gameExitButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.f, -0.7f}, XMFLOAT2{0.232f, 0.08f}) };
 	gameExitButtonUI->SetTexture("BUTTONUI");
 	gameExitButtonUI->SetClickEvent([&]() {
 		m_fadeFilter->FadeOut([&]() {
@@ -269,7 +302,7 @@ void LoginScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 
 void LoginScene::BuildOptionUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist)
 {
-	m_optionUI = make_shared<StandardUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 0.5f, 0.7f });
+	m_optionUI = make_shared<ImageUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 0.5f, 0.7f });
 	m_optionUI->SetTexture("FRAMEUI");
 	m_optionUI->SetDisable();
 
@@ -700,8 +733,14 @@ void LoginScene::RecvLoginOk(char* ptr)
 	g_playerInfo.defLevel = packet->def_level;
 	g_playerInfo.critRateLevel = packet->crit_rate_level;
 	g_playerInfo.critDamageLevel = packet->crit_damage_level;
-	g_playerInfo.normalSkillType = packet->normal_skill_type;
-	g_playerInfo.ultimateSkillType = packet->ultimate_skill_type;
+
+	for (size_t i = 0; i < (INT)PlayerType::COUNT; ++i) {
+		g_playerInfo.skill[i].first = packet->skills[i].first;
+		g_playerInfo.skill[i].second = packet->skills[i].second;
+	}
+
+	cout << "전사 : " << (INT)g_playerInfo.skill[0].first << ", " << (INT)g_playerInfo.skill[0].second << endl;
+	cout << "궁수 : " << (INT)g_playerInfo.skill[1].first << ", " << (INT)g_playerInfo.skill[1].second << endl;
 
 	m_fadeFilter->FadeOut([&]() {
 		SetState(State::SceneLeave);

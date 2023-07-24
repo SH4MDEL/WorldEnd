@@ -8,16 +8,21 @@ public:
 	enum class State {
 		Unused = 0x00,
 		DungeonInteract = 0x01,
-		OutputRoomUI = 0x02,
-		OutputPartyUI = 0x04,
-		SceneLeave = 0x08,
+		SkillInteract = 0x02,
+		InhenceInteract = 0x04,
+		OutputRoomUI = 0x08,
+		OutputPartyUI = 0x10,
+		OutputSkillUI = 0x20,
+		OutputInhenceUI = 0x40,
+		SceneLeave = 0x80,
 		BlurLevel1 = Unused,
 		BlurLevel2 = Unused,
 		BlurLevel3 = Unused,
 		BlurLevel4 = Unused,
 		BlurLevel5 = Unused,
 		Bluring = BlurLevel1 | BlurLevel2 | BlurLevel3 | BlurLevel4 | BlurLevel5,
-		CantPlayerControl = OutputRoomUI | OutputPartyUI
+		OutputUI = OutputRoomUI | OutputPartyUI | OutputSkillUI | OutputInhenceUI,
+		CantPlayerControl = OutputUI
 	};
 	enum class LightTag : INT {
 		Directional,
@@ -66,6 +71,7 @@ public:
 	void LoadSceneFromFile(wstring fileName, wstring sceneName);
 	void LoadObjectFromFile(wstring fileName, const shared_ptr<GameObject>& object);
 	void LoadPlayerFromFile(const shared_ptr<Player>& player);
+	void LoadNPCFromFile(const shared_ptr<AnimationObject>& npc);
 
 	bool CheckState(State sceneState) const;
 	void SetState(State sceneState);
@@ -84,12 +90,19 @@ public:
 	void SendClosePartyUI();
 	void SendCreateParty();
 	void SendJoinParty();
+	void SendEnhancement(EnhancementType type);
 
 private:
-	void BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist);
-	void BuildLight(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist);
+	inline void BuildUI();
+	inline void BuildInteractUI();
+	inline void BulidRoomUI();
+	inline void BuildPartyUI();
+	inline void BuildSkillSettingUI();
+	inline void BuildInhenceUI();
+	inline void BuildMainUI();
+	inline void BuildLight(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist);
 
-	void UpdateDungeonInteract(FLOAT timeElapsed);
+	void UpdateInteract(FLOAT timeElapsed);
 
 	void DrawBoundingBox(BoundingOrientedBox boundingBox, FLOAT roll, FLOAT pitch, FLOAT yaw);
 
@@ -103,6 +116,10 @@ private:
 	bool MoveOnStairs();
 
 	void ChangeCharacter(PlayerType type, shared_ptr<Player>& player);
+	void SetSkillSettingUI(PlayerType type);
+	void SetSkillUI();
+
+	void TryEnhancement(EnhancementType type);
 
 protected:
 	ComPtr<ID3D12Resource>			m_sceneBuffer;
@@ -129,14 +146,36 @@ protected:
 	shared_ptr<UI>					m_roomUI;
 	shared_ptr<ButtonUI>			m_leftArrowUI;
 	shared_ptr<ButtonUI>			m_rightArrowUI;
-	array<shared_ptr<TextUI>, 6>	m_roomButtonTextUI;
-	INT								m_roomPage;
-	INT								m_selectedRoom;
+	array<shared_ptr<SwitchUI>, 6>	m_roomSwitchUI;
+	array<shared_ptr<TextUI>, 6>	m_roomSwitchTextUI;
+	UINT							m_roomPage;
 
 	// Party UI 관련
 	shared_ptr<UI>					m_partyUI;
-	array<shared_ptr<Player>, 3>	m_partyUIPlayer;
+	array<shared_ptr<UI>, 3>		m_partyPlayerUI;
+	array<shared_ptr<TextUI>, 3>	m_partyPlayerTextUI;
 
+	// Skill Setting UI 관련
+	shared_ptr<UI>					m_skillSettingUI;
+	shared_ptr<SwitchUI>			m_skill1SwitchUI;
+	shared_ptr<SwitchUI>			m_skill2SwitchUI;
+	shared_ptr<SwitchUI>			m_ultimate1SwitchUI;
+	shared_ptr<SwitchUI>			m_ultimate2SwitchUI;
+	shared_ptr<TextUI>				m_skillNameUI;
+	shared_ptr<TextUI>				m_skillInfoUI;
+
+	// Inhence UI 관련
+	shared_ptr<UI>					m_inhenceUI;
+	shared_ptr<SwitchUI>			m_inhenceAttackSwitchUI;
+	shared_ptr<SwitchUI>			m_inhenceCritDamageSwtichUI;
+	shared_ptr<SwitchUI>			m_inhenceCritProbSwitchUI;
+	shared_ptr<SwitchUI>			m_inhenceDefenceSwitchUI;
+	shared_ptr<SwitchUI>			m_inhenceHpSwitchUI;
+
+	// Main UI
+	shared_ptr<VertGaugeUI>			m_skillUI;
+	shared_ptr<VertGaugeUI>			m_ultimateUI;
+	shared_ptr<TextUI>				m_goldTextUI;
 
 	XMFLOAT4						m_directionalDiffuse;
 	XMFLOAT3						m_directionalDirection;

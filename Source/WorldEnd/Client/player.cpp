@@ -57,18 +57,18 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 		if (!m_cooldownList[ActionType::ULTIMATE]) {
 			m_ultimateCool = 0.f;
 
-			switch (m_ultimateType) {
-			case SKILL1:
+			switch ((INT)g_playerInfo.skill[(INT)m_type].second) {
+			case 0:
 				ChangeAnimation(PlayerAnimation::ULTIMATE, true);
 				break;
-			case SKILL2:
+			case 1:
 				ChangeAnimation(PlayerAnimation::ULTIMATE2, true);
 				break;
 			}
 
 			XMFLOAT3 pos = Vector3::Add(Vector3::Mul(m_front, 0.8f), GetPosition());
 			
-			CreateAttackPacket(ActionType::ULTIMATE);
+			//CreateAttackPacket(ActionType::ULTIMATE);
 
 			SendPacket();
 		}
@@ -224,17 +224,17 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 		if (!m_cooldownList[ActionType::SKILL]) {
 			m_skillCool = 0.f;
 
-			switch (m_skillType) {
-			case SKILL1:
+			switch ((INT)g_playerInfo.skill[(INT)m_type].first) {
+			case 0:
 				ChangeAnimation(PlayerAnimation::SKILL, true);
 				break;
-			case SKILL2:
+			case 1:
 				ChangeAnimation(PlayerAnimation::SKILL2, true);
 				break;
 			}
 
 			XMFLOAT3 pos = Vector3::Add(Vector3::Mul(m_front, 0.8f), GetPosition());
-			CreateAttackPacket(ActionType::SKILL);
+			//CreateAttackPacket(ActionType::SKILL);
 
 			SendPacket();
 		}
