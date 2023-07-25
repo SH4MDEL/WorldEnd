@@ -13,6 +13,10 @@ public:
 	enum Music
 	{
 		Title,
+		Village,
+		Dungeon,
+		Battle,
+		Boss,
 		MusicCount
 	};
 	enum Sound

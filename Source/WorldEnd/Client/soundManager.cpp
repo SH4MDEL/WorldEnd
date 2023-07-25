@@ -5,9 +5,13 @@ SoundManager::SoundManager() : m_musicVolume{ 5, 0.5f }, m_soundVolume{ 5, 0.5f 
 	m_result = FMOD::System_Create(&m_system);
 	m_result = m_system->init(32, FMOD_INIT_NORMAL, nullptr);
 
-	m_result = m_system->createSound("Resource/Sound/Background.wav", FMOD_LOOP_NORMAL, 0, &m_music[Music::Title]);
+	m_result = m_system->createSound("Resource/Sound/Title.mp3", FMOD_LOOP_NORMAL, 0, &m_music[Music::Title]);
+	m_result = m_system->createSound("Resource/Sound/Village.mp3", FMOD_LOOP_NORMAL, 0, &m_music[Music::Village]);
+	m_result = m_system->createSound("Resource/Sound/Dungeon.mp3", FMOD_LOOP_NORMAL, 0, &m_music[Music::Dungeon]);
+	m_result = m_system->createSound("Resource/Sound/Battle.mp3", FMOD_LOOP_NORMAL, 0, &m_music[Music::Dungeon]);
+	m_result = m_system->createSound("Resource/Sound/Boss.mp3", FMOD_LOOP_NORMAL, 0, &m_music[Music::Boss]);
 
-	m_result = m_system->createSound("Resource/Sound/Background.wav", FMOD_LOOP_OFF, 0, &m_sound[Sound::Sample]);
+	m_result = m_system->createSound("Resource/Sound/Title.mp3", FMOD_LOOP_OFF, 0, &m_sound[Sound::Sample]);
 }
 
 SoundManager::~SoundManager()
@@ -23,6 +27,9 @@ void SoundManager::Update(FLOAT timeElapsed)
 
 void SoundManager::PlayMusic(Music tag)
 {
+	bool playing;
+	m_result = m_musicChannel->isPlaying(&playing);
+	if (playing) m_musicChannel->stop();
 	m_result = m_system->playSound(m_music[tag], 0, false, &m_musicChannel);
 }
 
@@ -50,7 +57,7 @@ void SoundManager::PlaySound(Sound tag)
 {
 	bool playing;
 	for (auto& channel : m_soundChannel) {
-		m_result =  channel->isPlaying(&playing);
+		m_result = channel->isPlaying(&playing);
 		if (!playing) {
 			m_result = m_system->playSound(m_sound[tag], 0, false, &channel);
 			break;

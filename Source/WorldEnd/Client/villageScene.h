@@ -116,6 +116,8 @@ private:
 	bool IsCollideExceptObject(const string& objectName);
 
 	void CollideWithMap();
+	void CollideWithObject();
+	void CollideByStatic(const shared_ptr<GameObject>& obj, const shared_ptr<GameObject>& static_obj);
 	void CollideByStaticOBB(const shared_ptr<GameObject>& object, const shared_ptr<GameObject>& staticObject);
 
 	bool MoveOnTerrain();

@@ -229,6 +229,8 @@ void VillageScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 
 	// 조명 생성
 	BuildLight(device, commandlist);
+
+	SoundManager::GetInstance().PlayMusic(SoundManager::Music::Village);
 }
 
 void VillageScene::BuildUI()
@@ -808,6 +810,7 @@ void VillageScene::Update(FLOAT timeElapsed)
 	m_fadeFilter->Update(timeElapsed);
 
 	CollideWithMap();
+	CollideWithObject();
 	UpdateInteract(timeElapsed);
 
 	if (CheckState(State::OutputUI)) m_mainUI->SetDisable();
@@ -1107,12 +1110,6 @@ void VillageScene::RecvAddPlayer(char* ptr)
 	multiPlayer->SetHp(packet->hp);
 
 	m_multiPlayers.insert({ id, multiPlayer });
-
-	//SetHpBar(multiPlayer);
-
-	m_idSet.insert({ id, (INT)m_idSet.size() });
-	/*m_hpUI[m_idSet[id]]->SetEnable();
-	m_hpUI[m_idSet[id]]->SetGauge(packet->hp);*/
 
 	m_shaders["ANIMATION"]->SetMultiPlayer(id, multiPlayer);
 	cout << "add player" << id << endl;
@@ -1498,6 +1495,85 @@ void VillageScene::CollideWithMap()
 	for (auto& object : m_quadtree->GetGameObjects(m_player->GetBoundingBox())) {
 		CollideByStaticOBB(m_player, object);
 	}
+}
+
+void VillageScene::CollideWithObject()
+{
+	auto& boundingBox = m_player->GetBoundingBox();
+
+	for (const auto& elm : m_multiPlayers) {
+		if (elm.second) {
+			if (boundingBox.Intersects(elm.second->GetBoundingBox())) {
+				CollideByStatic(m_player, elm.second);
+			}
+		}
+	}
+}
+
+void VillageScene::CollideByStatic(const shared_ptr<GameObject>& obj, const shared_ptr<GameObject>& static_obj)
+{
+	BoundingOrientedBox& static_obb = static_obj->GetBoundingBox();
+	BoundingOrientedBox& obb = obj->GetBoundingBox();
+
+	FLOAT obb_left = obb.Center.x - obb.Extents.x;
+	FLOAT obb_right = obb.Center.x + obb.Extents.x;
+	FLOAT obb_front = obb.Center.z + obb.Extents.z;
+	FLOAT obb_back = obb.Center.z - obb.Extents.z;
+
+	FLOAT static_obb_left = static_obb.Center.x - static_obb.Extents.x;
+	FLOAT static_obb_right = static_obb.Center.x + static_obb.Extents.x;
+	FLOAT static_obb_front = static_obb.Center.z + static_obb.Extents.z;
+	FLOAT static_obb_back = static_obb.Center.z - static_obb.Extents.z;
+
+	FLOAT x_bias{}, z_bias{};
+	bool push_out_x_plus{ false }, push_out_z_plus{ false };
+
+	// 충돌한 물체의 중심이 x가 더 크면
+	if (obb.Center.x - static_obb.Center.x <= std::numeric_limits<FLOAT>::epsilon()) {
+		x_bias = obb_right - static_obb_left;
+	}
+	else {
+		x_bias = static_obb_right - obb_left;
+		push_out_x_plus = true;
+	}
+
+	// 충돌한 물체의 중심이 z가 더 크면
+	if (obb.Center.z - static_obb.Center.z <= std::numeric_limits<FLOAT>::epsilon()) {
+		z_bias = obb_front - static_obb_back;
+	}
+	else {
+		z_bias = static_obb_front - obb_back;
+		push_out_z_plus = true;
+	}
+
+	XMFLOAT3 pos = obj->GetPosition();
+
+	// z 방향으로 밀어내기
+	if (x_bias - z_bias >= std::numeric_limits<FLOAT>::epsilon()) {
+		// object가 +z 방향으로
+		if (push_out_z_plus) {
+			pos.z += z_bias;
+		}
+		// object가 -z 방향으로
+		else {
+			pos.z -= z_bias;
+		}
+	}
+
+	// x 방향으로 밀어내기
+	else {
+		// object가 +x 방향으로
+		if (push_out_x_plus) {
+			pos.x += x_bias;
+		}
+		// object가 -x 방향으로
+		else {
+			pos.x -= x_bias;
+		}
+	}
+
+	obj->SetPosition(pos);
+	obb.Center = pos;
 }
 
 void VillageScene::CollideByStaticOBB(const shared_ptr<GameObject>& object, const shared_ptr<GameObject>& staticObject)
@@ -1912,11 +1988,12 @@ void VillageScene::ChangeCharacter(PlayerType type, shared_ptr<Player>& player)
 	if (g_playerInfo.playerType == type) return;
 	g_playerInfo.playerType = type;
 
-	//auto id = player->GetId();
+	auto id = player->GetId();
 	auto position = player->GetPosition();
 
 	player = make_shared<Player>();
 	player->SetType(g_playerInfo.playerType);
+	player->SetId(g_playerInfo.id);
 	LoadPlayerFromFile(player);
 
 	m_shaders["ANIMATION"]->SetPlayer(player);

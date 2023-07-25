@@ -221,6 +221,8 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 
 	// 조명 생성
 	BuildLight(device, commandlist);
+
+	SoundManager::GetInstance().PlayMusic(SoundManager::Music::Dungeon);
 }
 
 void TowerScene::DestroyObjects()
@@ -1456,11 +1458,11 @@ void TowerScene::CollideWithMap()
 
 void TowerScene::CollideWithObject()
 {
-	auto& player_obb = m_player->GetBoundingBox();
+	auto& boundingBox = m_player->GetBoundingBox();
 
-	for (const auto& elm : m_monsters) {
+	for (const auto& elm : m_multiPlayers) {
 		if (elm.second) {
-			if (player_obb.Intersects(elm.second->GetBoundingBox())) {
+			if (boundingBox.Intersects(elm.second->GetBoundingBox())) {
 				CollideByStatic(m_player, elm.second);
 			}
 		}
@@ -1468,7 +1470,7 @@ void TowerScene::CollideWithObject()
 
 	for (const auto& elm : m_multiPlayers) {
 		if (elm.second) {
-			if (player_obb.Intersects(elm.second->GetBoundingBox())) {
+			if (boundingBox.Intersects(elm.second->GetBoundingBox())) {
 				CollideByStatic(m_player, elm.second);
 			}
 		}

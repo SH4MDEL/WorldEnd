@@ -525,7 +525,7 @@ void LoadingScene::BuildTexture(const ComPtr<ID3D12Device>& device, const ComPtr
 	m_textures.insert({ "ARCHERSKILL1", archerSkill1Texture });
 	m_textures.insert({ "ARCHERSKILL2", archerSkill2Texture });
 	m_textures.insert({ "ARCHERULTIMATE1", archerUltimate1Texture });
-	m_textures.insert({ "ARCHERULTIMATE2", archerUltimate1Texture });
+	m_textures.insert({ "ARCHERULTIMATE2", archerUltimate2Texture });
 	m_textures.insert({ "INHENCEATTACK", inhenceAttackTexture });
 	m_textures.insert({ "INHENCECRITDAMAGE", inhenceCritDamageTexture });
 	m_textures.insert({ "INHENCECRITPROB", inhenceCritProbTexture });
