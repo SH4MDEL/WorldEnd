@@ -168,7 +168,7 @@ bool DataBase::TryLogin(const USER_INFO& user_info, PLAYER_DATA& player_data)
 	return false;
 }
 
-bool DataBase::Logout(const PLAYER_DATA& data)
+bool DataBase::SaveUserData(const PLAYER_DATA& data)
 {
 	// 상태 핸들 할당
 	SQLRETURN ret = SQLAllocHandle(SQL_HANDLE_STMT, m_hdbc, &m_hstmt);
@@ -177,8 +177,9 @@ bool DataBase::Logout(const PLAYER_DATA& data)
 		return false;
 	}
 
-	std::wstring query = std::format(L"EXEC [WorldEnd].[dbo].[logout] '{}' {},{},{},{},{},{},{},{},{},{},{},{},{},{}",
-		data.user_id, data.gold, data.player_type, data.x, data.y, data.z, 
+	using namespace std;
+	std::wstring query = std::format(L"EXEC [WorldEnd].[dbo].[save_user_data] '{0}', {1},{2},{3},{4},{5},{6},{7},{8},{9},{10},{11},{12},{13},{14}",
+		data.user_id, data.gold, (int)data.player_type, data.x, data.y, data.z, 
 		data.hp_level, data.atk_level, data.def_level, data.crit_rate_level, data.crit_damage_level,
 		data.normal_skill_type[0], data.ultimate_type[0], data.normal_skill_type[1], data.ultimate_type[1]);
 

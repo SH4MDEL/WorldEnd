@@ -155,6 +155,7 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 
 	m_shaders["ANIMATION"]->SetPlayer(m_player);
 	m_player->SetPosition(RoomSetting::START_POSITION);
+	m_player->SetId(g_playerInfo.id);
 
 	// 체력 바 생성
 	SetHpBar(m_player);

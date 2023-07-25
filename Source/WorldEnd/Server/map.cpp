@@ -274,6 +274,47 @@ void GameRoom::SendAddMonster(INT player_id)
 	}
 }
 
+void GameRoom::SendAddMonster()
+{
+	Server& server = Server::GetInstance();
+
+	SC_ADD_MONSTER_PACKET packet[MAX_INGAME_MONSTER]{};
+
+	INT monster_count{};
+	std::array<INT, MAX_INGAME_MONSTER> ids{};
+	{
+		std::lock_guard<std::mutex> lock{ m_monster_lock };
+		ids = m_monster_ids;
+		monster_count = static_cast<INT>(m_monster_count.load());
+	}
+
+	for (size_t i = 0; INT id : ids) {
+		packet[i].size = static_cast<UCHAR>(sizeof(SC_ADD_MONSTER_PACKET));
+		packet[i].type = SC_PACKET_ADD_MONSTER;
+
+		if (-1 == id) {
+			packet[i].monster_data = MONSTER_DATA{ .id = -1 };
+		}
+		else {
+			packet[i].monster_data = server.m_clients[id]->GetMonsterData();
+			packet[i].hp = server.m_clients[id]->GetHp();
+			packet[i].monster_type = server.m_clients[id]->GetMonsterType();
+		}
+		++i;
+	}
+
+	for (INT id : m_ingame_player_ids) {
+		if (-1 == id) continue;
+		
+		server.m_clients[id]->DoSend(&packet, monster_count);
+	}
+
+
+	if (GameRoomState::ONBATTLE == m_state) {
+		//m_battle_starter->SendEvent(player_id, nullptr);
+	}
+}
+
 void GameRoom::RemovePlayer(INT player_id, INT room_num)
 {
 	if (player_id < 0 || player_id >= MAX_USER)
@@ -1114,8 +1155,16 @@ bool GameRoomManager::EnterGameRoom(const std::shared_ptr<Party>& party)
 
 		auto client = dynamic_pointer_cast<Client>(server.m_clients[members[id]]);
 		m_game_rooms[room_num]->SetPlayer(room_num, id);
+
+		{
+			std::lock_guard<std::mutex> lock{ client->GetStateMutex() };
+			client->SetState(State::INGAME);
+		}
+
+		client->SetPartyNum(-1);	// 파티 번호는 -1 로 초기화
 	}
-	
+	party->Init();	// 입장한 파티는 초기화
+
 	return true;
 }
 
@@ -1192,6 +1241,11 @@ void GameRoomManager::SendMonsterData()
 void GameRoomManager::SendAddMonster(INT room_num, INT player_id)
 {
 	m_game_rooms[room_num]->SendAddMonster(player_id);
+}
+
+void GameRoomManager::SendAddMonster(INT room_num)
+{
+	m_game_rooms[room_num]->SendAddMonster();
 }
 
 INT GameRoomManager::FindEmptyRoom()

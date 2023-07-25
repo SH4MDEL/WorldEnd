@@ -48,7 +48,7 @@ constexpr int MAX_TRIGGER = MAX_ARROW_RAIN + MAX_UNDEAD_GRASP;
 
 constexpr int VIEW_RANGE = 5;
 
-
+constexpr char CS_PACKET_SIGNIN = 0;
 constexpr char CS_PACKET_LOGIN = 1;
 constexpr char CS_PACKET_PLAYER_MOVE = 2;
 constexpr char CS_PACKET_SET_COOLDOWN = 3;
@@ -71,7 +71,7 @@ constexpr char CS_PACKET_ENTER_VILLAGE = 17;
 // -----------------------------------------------------------
 
 constexpr char CS_PACKET_ENHANCE = 18;
-
+constexpr char CS_PACKET_CHNAGE_SKILL = 19;
 
 
 constexpr char SC_PACKET_LOGIN_FAIL = 0;
@@ -111,10 +111,14 @@ constexpr char SC_PACKET_REMOVE_PARTY_MEMBER = 30;
 constexpr char SC_PACKET_CHANGE_HOST = 31;
 constexpr char SC_PACKET_CHANGE_CHARACTER = 32;
 constexpr char SC_PACKET_PLAYER_READY = 33;
-constexpr char SC_PACKET_ENTER_GAME_ROOM = 34;
+constexpr char SC_PACKET_ENTER_DUNGEON = 34;
 constexpr char SC_PACKET_ENTER_FAIL = 35;
-constexpr char SC_PACKET_PARTY_INFO = 36;
+constexpr char SC_PACKET_PARTY_INFO = 36;			// 파티 ui 정보
 // -----------------------------------------------------------
+
+constexpr char SC_PACKET_SIGNIN_OK = 37;
+constexpr char SC_PACKET_SIGNIN_FAIL = 38;
+
 
 enum class PlayerType : char { WARRIOR, ARCHER, COUNT };
 enum class MonsterType : char { WARRIOR, ARCHER, WIZARD, BOSS, COUNT};
@@ -261,11 +265,13 @@ namespace PlayerSetting
 	constexpr float ARROW_RANGE = 12.f;
 
 	constexpr float DEFAULT_HP = 100.0f;
-	constexpr float DEFAULT_ATK = 30.0f;
+	constexpr float DEFAULT_ATK = 100.0f;
 	constexpr float DEFAULT_DEF = 30.0f;
 	constexpr float DEFAULT_CRIT_RATE = 0.f;
 	constexpr float DEFAULT_CRIT_DAMAGE = 2.f;
-	constexpr int ENHANCE_COST = 100;
+	constexpr int DEFAULT_ENHANCE_COST = 100;
+	constexpr int DEFAULT_NORMAL_SKILL_COST = 100;
+	constexpr int DEFAULT_ULTIMATE_COST = 300;
 	constexpr int MAX_ENHANCE_LEVEL = 20;
 
 	constexpr auto DASH_DURATION = 300ms;
@@ -347,8 +353,8 @@ namespace RoomSetting
 	constexpr auto BATTLE_DELAY_TIME = 3s;
 	constexpr auto WARP_DELAY_TIME = 1000ms;
 	constexpr float EVENT_RADIUS = 1.f;
-	constexpr DirectX::XMFLOAT3 START_POSITION { 0.f, -DOWNSIDE_STAIRS_HEIGHT, -45.f };
-	//constexpr DirectX::XMFLOAT3 START_POSITION{ 0.f, 0.f, 0.f };
+	//constexpr DirectX::XMFLOAT3 START_POSITION { 0.f, -DOWNSIDE_STAIRS_HEIGHT, -45.f };
+	constexpr DirectX::XMFLOAT3 START_POSITION{ 0.f, 0.f, 0.f };
 	constexpr DirectX::XMFLOAT3 BATTLE_STARTER_POSITION { 0.f, 0.f, 24.f };
 	constexpr DirectX::XMFLOAT3 WARP_PORTAL_POSITION { -1.f, TOPSIDE_STAIRS_HEIGHT, 60.f };
 }
@@ -364,14 +370,22 @@ struct MONSTER_DATA
 
 struct PARTY_INFO
 {
-	std::wstring	name;
 	CHAR			current_player;
 	CHAR			party_num;
+	CHAR			host_name[20];
 };
 
 
 //////////////////////////////////////////////////////
 // 클라에서 서버로
+
+struct CS_SIGNIN_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+	CHAR id[20];
+	CHAR password[20];
+};
 
 struct CS_LOGIN_PACKET 
 {
@@ -496,6 +510,15 @@ struct CS_ENTER_VILLAGE_PACKET
 {
 	UCHAR size;
 	UCHAR type;
+};
+
+struct CS_CHANGE_SKILL_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+	UCHAR skill_type;	// 기본스킬, 궁극기 구분
+	UCHAR changed_type;	// 변경된 타입
+	PlayerType player_type;
 };
 
 ///////////////////////////////////////////////////////////////////////
@@ -725,7 +748,8 @@ struct SC_ADD_PARTY_MEMBER_PACKET
 	UCHAR type;
 	PlayerType player_type;
 	INT id;
-	std::string name;
+	UCHAR locate_num;		// 파티 ui 에서의 위치
+	CHAR name[20];
 };
 
 struct SC_REMOVE_PARTY_MEMBER_PACKET
@@ -757,7 +781,7 @@ struct SC_PLAYER_READY_PACKET
 	bool is_ready;
 };
 
-struct SC_ENTER_GAME_ROOM_PACKET
+struct SC_ENTER_DUNGEON_PACKET
 {
 	UCHAR size;
 	UCHAR type;
@@ -774,6 +798,18 @@ struct SC_PARTY_INFO_PACKET
 	UCHAR size;
 	UCHAR type;
 	PARTY_INFO info;
+};
+
+struct SC_SIGNIN_OK_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+};
+
+struct SC_SIGNIN_FAIL_PACKET
+{
+	UCHAR size;
+	UCHAR type;
 };
 
 #pragma pack (pop)

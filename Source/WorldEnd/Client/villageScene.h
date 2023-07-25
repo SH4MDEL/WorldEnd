@@ -90,6 +90,8 @@ public:
 	void RecvJoinFail(char* ptr);
 	void RecvCreateOk(char* ptr);
 	void RecvCreateFail(char* ptr);
+	void RecvAddPartyMember(char* ptr);
+	void RecvEnterDungeon(char* ptr);
 
 	void SendChangePage();
 	void SendOpenPartyUI();
@@ -97,6 +99,8 @@ public:
 	void SendCreateParty();
 	void SendJoinParty();
 	void SendEnhancement(EnhancementType type);
+	void SendChangeSkill(USHORT skillType, USHORT changedType);
+	void SendEnterDungeon();
 
 private:
 	inline void BuildUI();
@@ -128,8 +132,10 @@ private:
 	void SetSkillUI();
 	void UpdateGoldUI();
 	void UpdateEnhanceUI(EnhancementType type);
+	INT CheckRoomSwitch();
 
 	void TryEnhancement(EnhancementType type);
+	void TryChangeSkill(USHORT skillType, USHORT changedType);
 
 protected:
 	ComPtr<ID3D12Resource>			m_sceneBuffer;

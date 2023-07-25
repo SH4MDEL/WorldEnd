@@ -78,10 +78,14 @@ private:
 	// 서버 코드
 	void InitServer();
 	void ProcessPacket(char* ptr);
-	void TryLogin();
+	bool TryLogin();
+	bool TrySignin();
+	bool CheckLength(const string_view& s);
 
 	void RecvLoginOk(char* ptr);
 	void RecvLoginFail(char* ptr);
+	void RecvSigninOk(char* ptr);
+	void RecvSigninFail(char* ptr);
 
 	void ResetFontSize(int type);
 

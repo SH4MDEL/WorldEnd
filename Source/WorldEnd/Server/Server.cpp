@@ -804,6 +804,16 @@ void Server::WorkerThread()
 
 			delete exp_over;
 			break;
+		case OP_SIGNIN_OK:
+			SendSigninOK(static_cast<int>(key));
+
+			delete exp_over;
+			break;
+		case OP_SIGNIN_FAIL:
+			SendSigninFail(static_cast<int>(key));
+
+			delete exp_over;
+			break;
 
 		}
 	}
@@ -814,32 +824,38 @@ void Server::ProcessPacket(int id, char* p)
 	unsigned char type = p[1];
 	auto client = dynamic_pointer_cast<Client>(m_clients[id]);
 
-	std::cout << "[Process Packet] Packet Type: " << (int)type << std::endl;//test
-
 	switch (type){
-	case CS_PACKET_LOGIN: {
-		CS_LOGIN_PACKET* packet = reinterpret_cast<CS_LOGIN_PACKET*>(p);
-		
-		USER_INFO info{};
+	case CS_PACKET_SIGNIN: {
+		CS_SIGNIN_PACKET* packet = reinterpret_cast<CS_SIGNIN_PACKET*>(p);
 
 		std::wstring user_id{ packet->id, packet->id + strlen(packet->id) };
 		std::wstring password { packet->password, packet->password + strlen(packet->password) };
 
-		info.user_id = user_id;
-		info.password = password;
+		DB_EVENT ev{};
+		ev.client_id = id;
+		ev.data.user_id = user_id;
+		ev.data.password = password;
+		ev.event_type = DBEventType::CREATE_ACCOUNT;
+		ev.event_time = std::chrono::system_clock::now();
+		SetDatabaseEvent(ev);
 
-		PLAYER_DATA data{};
+		break;
+	}
+	case CS_PACKET_LOGIN: {
+		CS_LOGIN_PACKET* packet = reinterpret_cast<CS_LOGIN_PACKET*>(p);
+		
+		std::wstring user_id{ packet->id, packet->id + strlen(packet->id) };
+		std::wstring password { packet->password, packet->password + strlen(packet->password) };
 
 		DB_EVENT ev{};
 		ev.client_id = id;
-		ev.data.user_id = info.user_id;
-		ev.data.password = info.password;
+		ev.data.user_id = user_id;
+		ev.data.password = password;
 		ev.event_type = DBEventType::TRY_LOGIN;
 		ev.event_time = std::chrono::system_clock::now();
 		SetDatabaseEvent(ev);
 		std::cout << "try login!" << std::endl;
 		break;
-
 	}
 	case CS_PACKET_PLAYER_MOVE: {
 		CS_PLAYER_MOVE_PACKET* packet = reinterpret_cast<CS_PLAYER_MOVE_PACKET*>(p);
@@ -973,18 +989,14 @@ void Server::ProcessPacket(int id, char* p)
 		CS_ENTER_DUNGEON_PACKET* packet = reinterpret_cast<CS_ENTER_DUNGEON_PACKET*>(p);
 
 		auto client = dynamic_pointer_cast<Client>(m_clients[id]);
+		auto& party = m_party_manager->GetParty(client->GetPartyNum());
 
-		// 파티원 전부 설정?
-		{
-			std::lock_guard<std::mutex> lock{ client->GetStateMutex() };
-			client->SetState(State::INGAME);
-		}
+		party->SendEnterDungeon();
 
-		if (!m_game_room_manager->FillPlayer(id)) {
-			Disconnect(id);
-			// 채우지 못할 경우 현재는 접속 종료
-		}
-		m_game_room_manager->SendAddMonster(client->GetRoomNum(), id);
+		m_game_room_manager->EnterGameRoom(party);
+
+		// 던전 내 모든 플레이어에게 보내야 함
+		m_game_room_manager->SendAddMonster(client->GetRoomNum());
 
 		break;
 	}
@@ -1035,12 +1047,12 @@ void Server::ProcessPacket(int id, char* p)
 
 		auto client = dynamic_pointer_cast<Client>(m_clients[id]);
 
-		if (PlayerSetting::ENHANCE_COST > client->GetGold()) {
+		if (PlayerSetting::DEFAULT_ENHANCE_COST > client->GetGold()) {
 			break;
 		}
 
 		client->LevelUpEnhancement(packet->enhancement_type);
-		client->ChangeGold(-PlayerSetting::ENHANCE_COST);
+		client->ChangeGold(-PlayerSetting::DEFAULT_ENHANCE_COST);
 
 		std::cout << "id : " << id << " 강화레벨" << std::endl;
 		std::cout << "hp : " << (int)client->GetHpLevel() << std::endl;
@@ -1048,6 +1060,31 @@ void Server::ProcessPacket(int id, char* p)
 		std::cout << "def : " << (int)client->GetDefLevel() << std::endl;
 		std::cout << "crit_rate : " << (int)client->GetCritRateLevel() << std::endl;
 		std::cout << "crit_damage : " << (int)client->GetCritDamageLevel() << std::endl;
+
+		break;
+	}
+	case CS_PACKET_CHNAGE_SKILL: {
+		CS_CHANGE_SKILL_PACKET* packet = reinterpret_cast<CS_CHANGE_SKILL_PACKET*>(p);
+
+		auto client = dynamic_pointer_cast<Client>(m_clients[id]);
+
+		int cost{};
+
+		switch (packet->skill_type) {
+		case static_cast<UCHAR>(SkillType::NORMAL):
+			cost = PlayerSetting::DEFAULT_NORMAL_SKILL_COST;
+			break;
+		case static_cast<UCHAR>(SkillType::ULTIMATE):
+			cost = PlayerSetting::DEFAULT_ULTIMATE_COST;
+			break;
+		}
+
+		if (cost > client->GetGold()) {
+			break;
+		}
+
+		client->ChangeSkill(packet->player_type, packet->skill_type, packet->changed_type);
+		client->ChangeGold(-cost);
 
 		break;
 	}
@@ -1069,6 +1106,10 @@ void Server::Disconnect(int id)
 	}
 	else {
 		// 마을 내 플레이어 제거
+
+
+		// 파티 UI 보고 있었다면 함수 내부에서 지움
+		m_party_manager->ClosePartyUI(id);
 	}
 
 	DB_EVENT ev{};
@@ -1076,21 +1117,25 @@ void Server::Disconnect(int id)
 	ev.data.user_id = client->GetUserId();
 	ev.data.player_type = (char)client->GetPlayerType();
 	ev.data.gold = client->GetGold();
-	ev.data.x = client->GetPosition().x;
-	ev.data.y = client->GetPosition().y;
-	ev.data.z = client->GetPosition().z;
+
+	XMFLOAT3 pos{ client->GetTownPosition() };
+	ev.data.x = pos.x;
+	ev.data.y = pos.y;
+	ev.data.z = pos.z;
+
 	ev.data.hp_level = client->GetHpLevel();
 	ev.data.atk_level = client->GetAtkLevel();
 	ev.data.def_level = client->GetDefLevel();
 	ev.data.crit_rate_level = client->GetCritRateLevel();
 	ev.data.crit_damage_level = client->GetCritDamageLevel();
+
 	
 	for (size_t i = 0; i < (INT)PlayerType::COUNT; ++i) {
 		ev.data.normal_skill_type[i] = client->GetNormalSkillType((PlayerType)i);
 		ev.data.ultimate_type[i] = client->GetUltimateSkillType((PlayerType)i);
 	}
 
-	ev.event_type = DBEventType::LOGOUT;
+	ev.event_type = DBEventType::SAVE_USER_DATA;
 	ev.event_time = std::chrono::system_clock::now();
 	SetDatabaseEvent(ev);
 
@@ -1109,6 +1154,24 @@ void Server::Disconnect(int id)
 	client->SetState(State::FREE);
 }
 
+
+void Server::SendSigninOK(int client_id)
+{
+	SC_SIGNIN_OK_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = SC_PACKET_SIGNIN_OK;
+
+	m_clients[client_id]->DoSend(&packet);
+}
+
+void Server::SendSigninFail(int client_id)
+{
+	SC_SIGNIN_FAIL_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = SC_PACKET_SIGNIN_FAIL;
+
+	m_clients[client_id]->DoSend(&packet);
+}
 
 void Server::SendLoginOk(int client_id)
 {
@@ -1471,64 +1534,67 @@ void Server::Move(const std::shared_ptr<Client>& client, XMFLOAT3 position, int 
 	}
 	// 게임 룸이 아닌채 움직이면 시야처리 (마을 씬)
 	else {
-
-			for (auto id : m_player_ids) {
-				if (-1 == id) continue;
-				if (id == cleint_id) continue;
-				
-				
-				SendMovePlayer(cleint_id, id);
-
-				SendMovePlayer(id, cleint_id);
-			}
+		// 마을 위치 갱신
+		client->SetTownPosition(position);
 
 
+		for (auto id : m_player_ids) {
+			if (-1 == id) continue;
+			if (id == cleint_id) continue;
+			
+			
+			SendMovePlayer(cleint_id, id);
 
-			//std::unordered_set<INT> near_list;
+			SendMovePlayer(id, cleint_id);
+		}
 
-			//for (auto other_player : m_clients) {
-			//	if (other_player->GetId() == id)
-			//		continue;
-			//	if (false == CanSee(id, other_player->GetId()))
-			//		continue;
 
-			//	near_list.insert(other_player->GetId());
-			//}
 
-			////lock시간을 줄이기 위해 자료를 복사해서 사용
-			//client->m_vl.lock();
-			//std::unordered_set<int> my_vl{ client->GetViewList() };
-			//client->m_vl.lock();
+		//std::unordered_set<INT> near_list;
 
-			//// 움직일때 시야에 들어온 플레이어 추가
-			//for (INT other : near_list) {
-			//	
-			//	if (my_vl.count(other) == 0) {
-			//		
-			//		client->m_vl.lock();
-			//		client->SetViewList(other);
-			//		client->m_vl.lock();
+		//for (auto other_player : m_clients) {
+		//	if (other_player->GetId() == id)
+		//		continue;
+		//	if (false == CanSee(id, other_player->GetId()))
+		//		continue;
 
-			//		// 보였으니 그리라고 패킷을 보냄.
-			//		SendAddPlayer(client->GetId(), other);
+		//	near_list.insert(other_player->GetId());
+		//}
 
-			//		continue;
-			//	}
-			//	auto other_player = dynamic_pointer_cast<Client>(m_clients[other]);
+		////lock시간을 줄이기 위해 자료를 복사해서 사용
+		//client->m_vl.lock();
+		//std::unordered_set<int> my_vl{ client->GetViewList() };
+		//client->m_vl.lock();
 
-			//	other_player->m_vl.lock();
+		//// 움직일때 시야에 들어온 플레이어 추가
+		//for (INT other : near_list) {
+		//	
+		//	if (my_vl.count(other) == 0) {
+		//		
+		//		client->m_vl.lock();
+		//		client->SetViewList(other);
+		//		client->m_vl.lock();
 
-			//	if (other_player->GetViewList().count(client->GetId())) {
-			//		other_player->SetViewList(client->GetId());
-			//		other_player->m_vl.unlock();
-			//		SendAddPlayer(other, client->GetId());
-			//	}
-			//	else {
-			//		// 상대 뷰리스트에 있으면 이동 패킷 전송
-			//		other_player->m_vl.unlock();
-			//		SendMovePlayer(other, client->GetId());
-			//	}
-			//}
+		//		// 보였으니 그리라고 패킷을 보냄.
+		//		SendAddPlayer(client->GetId(), other);
+
+		//		continue;
+		//	}
+		//	auto other_player = dynamic_pointer_cast<Client>(m_clients[other]);
+
+		//	other_player->m_vl.lock();
+
+		//	if (other_player->GetViewList().count(client->GetId())) {
+		//		other_player->SetViewList(client->GetId());
+		//		other_player->m_vl.unlock();
+		//		SendAddPlayer(other, client->GetId());
+		//	}
+		//	else {
+		//		// 상대 뷰리스트에 있으면 이동 패킷 전송
+		//		other_player->m_vl.unlock();
+		//		SendMovePlayer(other, client->GetId());
+		//	}
+		//}
 
 		
 	}
@@ -1963,6 +2029,7 @@ void Server::DBThread()
 						client->SetPlayerType(static_cast<PlayerType>(data.player_type));
 						client->SetPosition(data.x, data.y, data.z);
 
+
 						// 골드정보 Set
 						client->SetGold(data.gold);
 
@@ -1988,15 +2055,23 @@ void Server::DBThread()
 					}
 					break;
 				}
-				case DBEventType::LOGOUT:
-					m_database->Logout(ev.data);
+				case DBEventType::SAVE_USER_DATA:
+					m_database->SaveUserData(ev.data);
 					break;
 				case DBEventType::CREATE_ACCOUNT: {
+					ExpOver* over = new ExpOver;
+
 					USER_INFO user_info{};
 					user_info.user_id = ev.data.user_id;
+					user_info.password = ev.data.password;
 
-					if (!m_database->CreateAccount(user_info)) {
-
+					if (m_database->CreateAccount(user_info)) {		// 회원가입 성공
+						over->_comp_type = OP_SIGNIN_OK;
+						PostQueuedCompletionStatus(m_handle_iocp, 1, ev.client_id, &over->_wsa_over);
+					}
+					else {											// 회원가입 실패
+						over->_comp_type = OP_SIGNIN_FAIL;
+						PostQueuedCompletionStatus(m_handle_iocp, 1, ev.client_id, &over->_wsa_over);
 					}
 					break;
 				}

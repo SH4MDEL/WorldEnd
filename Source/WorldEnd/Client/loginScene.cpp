@@ -232,7 +232,8 @@ void LoginScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 	loginButtonUI->SetTexture("BUTTONUI");
 #ifdef USE_NETWORK
 	loginButtonUI->SetClickEvent([&]() {
-		TryLogin();
+		bool state = TryLogin();
+		// 로그인 글자수 제한 처리
 		});
 #else
 	loginButtonUI->SetClickEvent([&]() {
@@ -252,7 +253,8 @@ void LoginScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 	signinButtonUI->SetTexture("BUTTONUI");
 #ifdef USE_NETWORK
 	signinButtonUI->SetClickEvent([&]() {
-		TryLogin();	// SignIn 처리
+		bool state = TrySignin();
+		// 회원가입 글자수 제한 처리
 		});
 #else
 	signinButtonUI->SetClickEvent([&]() {
@@ -699,13 +701,19 @@ void LoginScene::ProcessPacket(char* ptr)
 	case SC_PACKET_LOGIN_FAIL:
 		RecvLoginFail(ptr);
 		break;
+	case SC_PACKET_SIGNIN_OK:
+		RecvSigninOk(ptr);
+		break;
+	case SC_PACKET_SIGNIN_FAIL:
+		RecvSigninFail(ptr);
+		break;
 	default:
 		cout << "UnDefined Packet!!" << endl;
 		break;
 	}
 }
 
-void LoginScene::TryLogin()
+bool LoginScene::TryLogin()
 {
 #ifdef USE_NETWORK
 	CS_LOGIN_PACKET packet{};
@@ -714,14 +722,50 @@ void LoginScene::TryLogin()
 	
 	wstring idBoxString{ m_idBox->GetString() };
 	string id{ idBoxString.begin(), idBoxString.end() };
+	if (!CheckLength(id)) return false;
+
 	strcpy_s(packet.id, id.c_str());
 
 	wstring passwordBoxString{ m_passwordBox->GetString() };
 	string pw{ passwordBoxString.begin(), passwordBoxString.end() };
+	if (!CheckLength(pw)) return false;
+
 	strcpy_s(packet.password, pw.c_str());
 
 	send(g_socket, reinterpret_cast<char*>(&packet), sizeof(packet), 0);
+	return true;
 #endif
+}
+
+bool LoginScene::TrySignin()
+{
+#ifdef USE_NETWORK
+	CS_SIGNIN_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = CS_PACKET_SIGNIN;
+
+	wstring idBoxString{ m_idBox->GetString() };
+	string id{ idBoxString.begin(), idBoxString.end() };
+	if (!CheckLength(id)) return false;
+
+	strcpy_s(packet.id, id.c_str());
+
+	wstring passwordBoxString{ m_passwordBox->GetString() };
+	string pw{ passwordBoxString.begin(), passwordBoxString.end() };
+	if (!CheckLength(pw)) return false;
+
+	strcpy_s(packet.password, pw.c_str());
+
+	send(g_socket, reinterpret_cast<char*>(&packet), sizeof(packet), 0);
+	return true;
+#endif
+}
+
+bool LoginScene::CheckLength(const string_view& s)
+{
+	if (s.size() >= NAME_SIZE)
+		return false;
+	return true;
 }
 
 void LoginScene::RecvLoginOk(char* ptr)
@@ -757,6 +801,20 @@ void LoginScene::RecvLoginFail(char* ptr)
 
 	cout << "FAIL" << endl;
 	// 로그인 실패 창 띄우기
+}
+
+void LoginScene::RecvSigninOk(char* ptr)
+{
+	SC_SIGNIN_OK_PACKET* packet = reinterpret_cast<SC_SIGNIN_OK_PACKET*>(ptr);
+
+	cout << "회원가입 성공!" << endl;
+}
+
+void LoginScene::RecvSigninFail(char* ptr)
+{
+	SC_SIGNIN_FAIL_PACKET* packet = reinterpret_cast<SC_SIGNIN_FAIL_PACKET*>(ptr);
+
+	cout << "회원가입 실패!" << endl;
 }
 
 void LoginScene::ResetFontSize(int type)

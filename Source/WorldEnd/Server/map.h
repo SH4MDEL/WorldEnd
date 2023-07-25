@@ -39,6 +39,7 @@ public:
 	void SendPlayerData();
 	void SendMonsterData();
 	void SendAddMonster(INT player_id);
+	void SendAddMonster();
 
 	void AddTrigger(INT trigger_id);
 	void RemoveTrigger(INT trigger_id);
@@ -126,6 +127,7 @@ public:
 	void SendPlayerData();
 	void SendMonsterData();
 	void SendAddMonster(INT room_num, INT player_id);
+	void SendAddMonster(INT room_num);
 
 private:
 	INT FindEmptyRoom();
