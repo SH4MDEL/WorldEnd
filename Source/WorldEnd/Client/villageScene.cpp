@@ -1,5 +1,7 @@
 #include "villageScene.h"
 
+enum SkillType : USHORT { NormalSkill, Ultimate };
+
 VillageScene::VillageScene(const ComPtr<ID3D12Device>& device, 
 	const ComPtr<ID3D12GraphicsCommandList>& commandList, 
 	const ComPtr<ID3D12RootSignature>& rootSignature, 
@@ -158,15 +160,10 @@ void VillageScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	m_player->SetType(g_playerInfo.playerType);
 	m_player->SetId(g_playerInfo.id);
 #ifdef USE_NETWORK
-	//m_player->SetPosition(g_playerInfo.position);
-	m_player->SetPosition(XMFLOAT3{ -35.f, 5.65f, 66.f });
+	m_player->SetPosition(g_playerInfo.position);
 #else
 	m_player->SetPosition(XMFLOAT3{ 25.f, 5.65f, 66.f });
 #endif
-
-	cout << "스킬 타입 : " << (INT)g_playerInfo.skill[(INT)g_playerInfo.playerType].first << endl;
-	cout << "궁극기 타입 : " << (INT)g_playerInfo.skill[(INT)g_playerInfo.playerType].second << endl;
-
 
 	LoadPlayerFromFile(m_player);
 	m_shaders["ANIMATION"]->SetPlayer(m_player);
@@ -342,6 +339,7 @@ void VillageScene::BuildPartyUI()
 		ResetState(State::OutputPartyUI);
 		if (m_partyUI) m_partyUI->SetDisable();
 		cout << "파티 UI 닫았다는 패킷 전송" << endl;
+		// SendExitParty
 
 		});
 	m_partyUI->SetChild(partyCancelButtonUI);
@@ -351,8 +349,8 @@ void VillageScene::BuildPartyUI()
 	enterDungeonButtonUI->SetClickEvent([&]() {
 		ResetState(State::OutputPartyUI);
 		if (m_partyUI) m_partyUI->SetDisable();
-		cout << "던전 입장 패킷 전송" << endl;
-		cout << "파티원이 다같이 입장해야 함" << endl;
+
+		SendEnterDungeon();
 		});
 	auto enterDungeonButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.f, 0.f},XMFLOAT2{120.f, 10.f}) };
 	enterDungeonButtonTextUI->SetText(L"던전 입장");
@@ -464,16 +462,16 @@ void VillageScene::BuildSkillSettingUI()
 		// 스킬을 변경했다는 패킷 보냄..? 필요한가?
 		// 스킬 바꿀때마다 골드 깔거면 보내야 할 듯
 		if (m_skill1SwitchUI->IsActive()) {
-			g_playerInfo.skill[(size_t)g_playerInfo.playerType].first = 0;
+			TryChangeSkill(NormalSkill, 0);
 		}
 		if (m_skill2SwitchUI->IsActive()) {
-			g_playerInfo.skill[(size_t)g_playerInfo.playerType].first = 1;
+			TryChangeSkill(NormalSkill, 1);
 		}
 		if (m_ultimate1SwitchUI->IsActive()) {
-			g_playerInfo.skill[(size_t)g_playerInfo.playerType].second = 0;
+			TryChangeSkill(Ultimate, 0);
 		}
 		if (m_ultimate2SwitchUI->IsActive()) {
-			g_playerInfo.skill[(size_t)g_playerInfo.playerType].second = 1;
+			TryChangeSkill(Ultimate, 1);
 		}
 		SetSkillUI();
 		});
@@ -757,10 +755,6 @@ void VillageScene::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 		if (GetAsyncKeyState('2') & 0x8000) {
 			ChangeCharacter(PlayerType::ARCHER, m_player);
 		}
-	}
-
-	if (GetAsyncKeyState(VK_TAB) & 0x8000) {
-		SetState(State::SceneLeave);
 	}
 }
 
@@ -1069,6 +1063,12 @@ void VillageScene::ProcessPacket(char* ptr)
 	case SC_PACKET_CHANGE_ANIMATION:
 		RecvChangeAnimation(ptr);
 		break;
+	case SC_PACKET_ADD_PARTY_MEMBER:
+		RecvAddPartyMember(ptr);
+		break;
+	case SC_PACKET_ENTER_DUNGEON:
+		RecvEnterDungeon(ptr);
+		break;
 	/*default:
 		cout << "UnDefined Packet : " << (int)ptr[1] << endl;
 		break;*/
@@ -1079,15 +1079,17 @@ void VillageScene::RecvPartyInfo(char* ptr)
 {
 	SC_PARTY_INFO_PACKET* packet = reinterpret_cast<SC_PARTY_INFO_PACKET*>(ptr);
 
-	for (INT i = 0; i < MAX_PARTIES_ON_PAGE; ++i) {
-		if (0 == packet->info.current_player) {
-			m_roomSwitchTextUI[i]->SetText(TEXT("빈 방"));
-		}
-		else {
-			m_roomSwitchTextUI[static_cast<INT>(packet->info.party_num)]->SetText(
-				packet->info.name + L"   " + to_wstring(packet->info.current_player) +
-				to_wstring(MAX_INGAME_USER));
-		}
+	if (0 == packet->info.current_player) {
+		m_roomSwitchTextUI[static_cast<INT>(packet->info.party_num)]->SetText(TEXT("빈 방"));
+	}
+	else {
+		std::string name{ packet->info.host_name };
+		std::wstring hostName{};
+		hostName.assign(name.begin(), name.end());
+
+		m_roomSwitchTextUI[static_cast<INT>(packet->info.party_num)]->SetText(
+			hostName + L"     " + to_wstring(packet->info.current_player) + L" / " +
+			to_wstring(MAX_INGAME_USER));
 	}
 }
 
@@ -1203,6 +1205,35 @@ void VillageScene::RecvCreateFail(char* ptr)
 	cout << "생성 실패!" << endl;
 }
 
+void VillageScene::RecvAddPartyMember(char* ptr)
+{
+	SC_ADD_PARTY_MEMBER_PACKET* packet = reinterpret_cast<SC_ADD_PARTY_MEMBER_PACKET*>(ptr);
+
+	switch (packet->player_type) {
+	case PlayerType::WARRIOR:
+		m_partyPlayerUI[static_cast<INT>(packet->locate_num)]->SetTexture("WARRIORPORTRAIT");
+		break;
+	case PlayerType::ARCHER:
+		m_partyPlayerUI[static_cast<INT>(packet->locate_num)]->SetTexture("ARCHERPORTRAIT");
+		break;
+	}
+
+	string id{ packet->name };
+	wstring userId{};
+	userId.assign(id.begin(), id.end());
+	
+	m_partyPlayerTextUI[static_cast<INT>(packet->locate_num)]->SetText(userId);
+	
+	// id 사용?
+}
+
+void VillageScene::RecvEnterDungeon(char* ptr)
+{
+	SC_ENTER_DUNGEON_PACKET* packet = reinterpret_cast<SC_ENTER_DUNGEON_PACKET*>(ptr);
+
+	SetState(State::SceneLeave);
+}
+
 void VillageScene::SendChangePage()
 {
 #ifdef USE_NETWORK
@@ -1237,10 +1268,12 @@ void VillageScene::SendClosePartyUI()
 void VillageScene::SendCreateParty()
 {
 #ifdef USE_NETWORK
+	INT selectedRoom{ CheckRoomSwitch() };
+
 	CS_CREATE_PARTY_PACKET packet{};
 	packet.size = sizeof(packet);
 	packet.type = CS_PACKET_CREATE_PARTY;
-	//packet.party_num = m_roomPage * MAX_PARTIES_ON_PAGE + m_selectedRoom;
+	packet.party_num = m_roomPage * MAX_PARTIES_ON_PAGE + selectedRoom;
 	send(g_socket, reinterpret_cast<char*>(&packet), sizeof(packet), 0);
 #endif
 }
@@ -1248,10 +1281,12 @@ void VillageScene::SendCreateParty()
 void VillageScene::SendJoinParty()
 {
 #ifdef USE_NETWORK
+	INT selectedRoom{ CheckRoomSwitch() };
+
 	CS_JOIN_PARTY_PACKET packet{};
 	packet.size = sizeof(packet);
 	packet.type = CS_PACKET_JOIN_PARTY;
-	//packet.party_num = m_roomPage * MAX_PARTIES_ON_PAGE + m_selectedRoom;
+	packet.party_num = m_roomPage * MAX_PARTIES_ON_PAGE + selectedRoom;
 	send(g_socket, reinterpret_cast<char*>(&packet), sizeof(packet), 0);
 #endif
 }
@@ -1263,6 +1298,29 @@ void VillageScene::SendEnhancement(EnhancementType type)
 	packet.size = sizeof(packet);
 	packet.type = CS_PACKET_ENHANCE;
 	packet.enhancement_type = type;
+	send(g_socket, reinterpret_cast<char*>(&packet), sizeof(packet), 0);
+#endif
+}
+
+void VillageScene::SendChangeSkill(USHORT skillType, USHORT changedType)
+{
+#ifdef USE_NETWORK
+	CS_CHANGE_SKILL_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = CS_PACKET_CHNAGE_SKILL;
+	packet.skill_type = skillType;
+	packet.changed_type = changedType;
+	packet.player_type = g_playerInfo.playerType;
+	send(g_socket, reinterpret_cast<char*>(&packet), sizeof(packet), 0);
+#endif
+}
+
+void VillageScene::SendEnterDungeon()
+{
+#ifdef USE_NETWORK
+	CS_ENTER_DUNGEON_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = CS_PACKET_ENTER_DUNGEON;
 	send(g_socket, reinterpret_cast<char*>(&packet), sizeof(packet), 0);
 #endif
 }
@@ -2034,12 +2092,46 @@ void VillageScene::UpdateGoldUI()
 	m_goldTextUI->SetText(to_wstring(g_playerInfo.gold));
 }
 
+INT VillageScene::CheckRoomSwitch()
+{
+	for (size_t i = 0; auto & roomSwitchUI : m_roomSwitchUI) {
+		if (roomSwitchUI->IsActive()) {
+			return i;
+		}
+		++i;
+	}
+
+	return -1;
+}
+
 void VillageScene::TryEnhancement(EnhancementType type)
 {
-	if (g_playerInfo.gold >= PlayerSetting::ENHANCE_COST) {
-		g_playerInfo.gold -= PlayerSetting::ENHANCE_COST;
+	if (g_playerInfo.gold >= PlayerSetting::DEFAULT_ENHANCE_COST) {
+		g_playerInfo.gold -= PlayerSetting::DEFAULT_ENHANCE_COST;
 		UpdateGoldUI();
 
 		SendEnhancement(type);
+	}
+}
+
+void VillageScene::TryChangeSkill(USHORT skillType, USHORT changedType)
+{
+	if (NormalSkill == skillType) {
+		if (g_playerInfo.gold >= PlayerSetting::DEFAULT_NORMAL_SKILL_COST) {
+			g_playerInfo.gold -= PlayerSetting::DEFAULT_NORMAL_SKILL_COST;
+			g_playerInfo.skill[(size_t)g_playerInfo.playerType].first = changedType;
+			UpdateGoldUI();
+
+			SendChangeSkill(skillType, changedType);
+		}
+	}
+	else if (Ultimate == skillType) {
+		if (g_playerInfo.gold >= PlayerSetting::DEFAULT_ULTIMATE_COST) {
+			g_playerInfo.gold -= PlayerSetting::DEFAULT_ULTIMATE_COST;
+			g_playerInfo.skill[(size_t)g_playerInfo.playerType].second = changedType;
+			UpdateGoldUI();
+
+			SendChangeSkill(skillType, changedType);
+		}
 	}
 }

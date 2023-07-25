@@ -10,7 +10,7 @@ enum CompType
 	OP_ATTACK_COLLISION, OP_MONSTER_ATTACK_COLLISION, OP_STAMINA_CHANGE,
 	OP_HIT_SCAN, OP_ARROW_SHOOT, OP_ARROW_REMOVE, OP_GAME_ROOM_RESET,
 	OP_BATTLE_START, OP_PORTAL_WARP, OP_TRIGGER_COOLDOWN, OP_MULTIPLE_TRIGGER_SET,
-	OP_LOGIN_OK, OP_LOGIN_FAIL
+	OP_LOGIN_OK, OP_LOGIN_FAIL, OP_SIGNIN_OK, OP_SIGNIN_FAIL
 };
 
 class ExpOver {
@@ -58,11 +58,11 @@ public:
 	void SetDefLevel(UCHAR level);
 	void SetCritRateLevel(UCHAR level);
 	void SetCritDamageLevel(UCHAR level);
-	void LevelUpEnhancement(EnhancementType type);
 	void SetNormalSkillType(PlayerType player_type, UCHAR type);
 	void SetUltimateSkillType(PlayerType player_type, UCHAR type);
 	void SetInvincibleRoll(bool invincible_roll) { m_invincible_roll = invincible_roll; }
 	void SetViewList(int data) { m_view_list.insert(data);}
+	void SetTownPosition(const XMFLOAT3& position);
 
 	const SOCKET& GetSocket() const override { return m_socket; }
 	ExpOver& GetExpOver() { return m_recv_over; }
@@ -86,12 +86,15 @@ public:
 	UCHAR GetCritDamageLevel() const { return m_status->GetCritDamageLevel(); }
 	UCHAR GetNormalSkillType(PlayerType type) const;
 	UCHAR GetUltimateSkillType(PlayerType type) const;
-	
+	XMFLOAT3 GetTownPosition() const { return m_town_position; }
+
 	bool GetInvincibleRoll() const { return m_invincible_roll; }
 	const std::unordered_set<INT>& GetViewList() { return m_view_list;}
 
 	void ChangeStamina(FLOAT value);
 	void ChangeGold(INT value);
+	void LevelUpEnhancement(EnhancementType type);
+	void ChangeSkill(PlayerType player_type, USHORT skill_type, USHORT changed_type);
 	virtual void DecreaseHp(FLOAT damage, INT id) override;
 	void RestoreCondition();
 
@@ -107,6 +110,7 @@ private:
 	SHORT					m_party_num;
 	bool					m_is_ready;      // 로비에서 준비 
 
+	XMFLOAT3				m_town_position;
 	PlayerType				m_player_type;      // 플레이어 종류
 	BoundingOrientedBox		m_weapon_bounding_box;
 
@@ -122,7 +126,7 @@ private:
 	std::unordered_set<INT> m_view_list;         // 이 클라의 뷰 리스트
 	
 
-	std::array< std::array<std::shared_ptr<Skill>, static_cast<INT>(SkillType::COUNT)>,
+	std::array<std::array<std::shared_ptr<Skill>, static_cast<INT>(SkillType::COUNT)>,
 		static_cast<INT>(PlayerType::COUNT)> m_skills;
 
 	void SetBoundingBox(PlayerType type);
@@ -148,18 +152,20 @@ public:
 	INT GetHostId() const { return m_host_id; }
 	CHAR GetMemberCount() const { return m_member_count; }
 
-	bool Join(INT player_id);
+	bool TryJoin(INT player_id);
 	void Exit(INT player_id);
 	void PlayerReady(INT player_id);
+	void AddMember(INT sender);
 
 	void SendChangeCharacter(INT player_id);
+	void SendEnterDungeon();
 
 private:
 	void SendJoinOk(INT receiver);
+	void SendAddMember(INT sender, INT receiver, INT locate_num);
 	void SendChangeHost(INT receiver);
 	void SendExitParty(INT exited_id);
 	void SendReady(INT sender);
-	void SendEnterGameRoom();
 	void SendEnterFail();
 
 private:
@@ -178,6 +184,7 @@ public:
 	~PartyManager() = default;
 
 	INT GetHostId(INT party_num);
+	std::shared_ptr<Party>& GetParty(INT party_num);
 
 	bool CreateParty(INT player_id);
 	bool JoinParty(INT party_num, INT player_id);
@@ -193,6 +200,7 @@ public:
 private:
 	INT FindEmptyParty();
 	void SendCreateOk(INT receiver);
+
 	INT GetStartNum(INT page);
 
 private:

@@ -9,8 +9,7 @@ Player::Player() : m_velocity{ 0.0f, 0.0f, 0.0f }, m_maxVelocity{ 10.0f }, m_fri
 	m_skillCool{ static_cast<FLOAT>(PlayerSetting::SKILL_COOLDOWN[(INT)m_type].count())}, 
 	m_ultimateCool{ static_cast<FLOAT>(PlayerSetting::ULTIMATE_COOLDOWN[(INT)m_type].count()) },
 	m_id{ -1 }, m_cooldownList{ false, }, m_dashed{ false }, m_moveSpeed{ PlayerSetting::WALK_SPEED },
-	m_interactable{ false }, m_interactableType{ InteractionType::NONE }, m_bufSize{ 0 },
-	m_skillType{ SKILL1 }, m_ultimateType{ SKILL1 }
+	m_interactable{ false }, m_interactableType{ InteractionType::NONE }, m_bufSize{ 0 }
 {
 }
 
@@ -32,26 +31,6 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 		SetPosition(Vector3::Add(GetPosition(), { 0.f, -0.1f, 0.f }));
 		cout << GetPosition();
 	}
-
-	if (GetAsyncKeyState('5') & 0x8000) {
-		if (SKILL1 == m_skillType) {
-			m_skillType = SKILL2;
-		}
-		else if (SKILL2 == m_skillType) {
-			m_skillType = SKILL1;
-		}
-		cout << "스킬 변경!" << endl;
-	}
-	if (GetAsyncKeyState('6') & 0x8000) {
-		if (SKILL1 == m_ultimateType) {
-			m_ultimateType = SKILL2;
-		}
-		else if (SKILL2 == m_ultimateType){
-			m_ultimateType = SKILL1;
-		}
-		cout << "궁극기 변경!" << endl;
-	}
-
 
 	if (GetAsyncKeyState('Q') & 0x8000) {
 		if (!m_cooldownList[ActionType::ULTIMATE]) {
@@ -725,7 +704,7 @@ void Player::CreateChangeAnimation(USHORT animation)
 	CS_CHANGE_ANIMATION_PACKET packet{};
 	packet.size = sizeof(packet);
 	packet.type = CS_PACKET_CHANGE_ANIMATION;
-	packet.animation = m_currentAnimation;
+	packet.animation = animation;
 	SetBuffer(&packet, packet.size);
 #endif
 }

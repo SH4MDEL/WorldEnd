@@ -1,7 +1,7 @@
 #pragma once
 #include "stdafx.h"
 
-enum class SkillType : CHAR {
+enum class SkillType : UCHAR {
 	NORMAL, ULTIMATE, COUNT
 };
 
@@ -27,8 +27,8 @@ private:
 	std::string					m_name;
 	FLOAT						m_damage;
 	std::chrono::milliseconds	m_cooldown;
-	SkillType					m_type;
-	UCHAR						m_skill_type;
+	SkillType					m_type;				// 일반, 궁극기 구분
+	UCHAR						m_skill_type;		// 스킬1, 스킬2, ... 구분
 
 };
 

@@ -38,7 +38,7 @@ struct TIMER_EVENT {
 };
 
 enum class DBEventType : char {
-	TRY_LOGIN, LOGOUT, CREATE_ACCOUNT, DELETE_ACCOUNT,
+	TRY_LOGIN, SAVE_USER_DATA, CREATE_ACCOUNT, DELETE_ACCOUNT,
 	UPDATE_PLAYER_INFO, UPDATE_SKILL_INFO, UPDATE_UPGRADE_INFO,
 	UPDATE_GOLD, UPDATE_POSITION
 };
@@ -72,6 +72,8 @@ public:
 	void Disconnect(int id);
 
 	// Send
+	void SendSigninOK(int client_id);
+	void SendSigninFail(int client_id);
 	void SendLoginOk(int client_id);
 	void SendLoginFail(int client_id);
 	void SendPlayerDeath(int client_id);
