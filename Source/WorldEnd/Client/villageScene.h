@@ -9,11 +9,11 @@ public:
 		Unused = 0x00,
 		DungeonInteract = 0x01,
 		SkillInteract = 0x02,
-		InhenceInteract = 0x04,
+		EnhenceInteract = 0x04,
 		OutputRoomUI = 0x08,
 		OutputPartyUI = 0x10,
 		OutputSkillUI = 0x20,
-		OutputInhenceUI = 0x40,
+		OutputEnhenceUI = 0x40,
 		SceneLeave = 0x80,
 		BlurLevel1 = Unused,
 		BlurLevel2 = Unused,
@@ -21,7 +21,7 @@ public:
 		BlurLevel4 = Unused,
 		BlurLevel5 = Unused,
 		Bluring = BlurLevel1 | BlurLevel2 | BlurLevel3 | BlurLevel4 | BlurLevel5,
-		OutputUI = OutputRoomUI | OutputPartyUI | OutputSkillUI | OutputInhenceUI,
+		OutputUI = OutputRoomUI | OutputPartyUI | OutputSkillUI | OutputEnhenceUI,
 		CantPlayerControl = OutputUI
 	};
 	enum class LightTag : INT {
@@ -104,7 +104,7 @@ private:
 	inline void BulidRoomUI();
 	inline void BuildPartyUI();
 	inline void BuildSkillSettingUI();
-	inline void BuildInhenceUI();
+	inline void BuildEnhenceUI();
 	inline void BuildMainUI();
 	inline void BuildLight(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist);
 
@@ -127,6 +127,7 @@ private:
 	void SetSkillSettingUI(PlayerType type);
 	void SetSkillUI();
 	void UpdateGoldUI();
+	void UpdateEnhanceUI(EnhancementType type);
 
 	void TryEnhancement(EnhancementType type);
 
@@ -178,14 +179,15 @@ protected:
 	shared_ptr<TextUI>				m_skillInfoUI;
 	shared_ptr<TextUI>				m_skillSettingGoldTextUI;
 
-	// Inhence UI 관련
-	shared_ptr<UI>					m_inhenceUI;
-	shared_ptr<SwitchUI>			m_inhenceAttackSwitchUI;
-	shared_ptr<SwitchUI>			m_inhenceCritDamageSwtichUI;
-	shared_ptr<SwitchUI>			m_inhenceCritProbSwitchUI;
-	shared_ptr<SwitchUI>			m_inhenceDefenceSwitchUI;
-	shared_ptr<SwitchUI>			m_inhenceHpSwitchUI;
-	shared_ptr<TextUI>				m_inhenceGoldTextUI;
+	// Enhence UI 관련
+	shared_ptr<UI>					m_enhenceUI;
+	shared_ptr<SwitchUI>			m_enhenceAttackSwitchUI;
+	shared_ptr<SwitchUI>			m_enhenceCritDamageSwtichUI;
+	shared_ptr<SwitchUI>			m_enhenceCritProbSwitchUI;
+	shared_ptr<SwitchUI>			m_enhenceDefenceSwitchUI;
+	shared_ptr<SwitchUI>			m_enhenceHpSwitchUI;
+	shared_ptr<TextUI>				m_enhenceGoldTextUI;
+	shared_ptr<TextUI>				m_enhenceInfoTextUI;
 
 	// Main UI
 	shared_ptr<UI>					m_mainUI;

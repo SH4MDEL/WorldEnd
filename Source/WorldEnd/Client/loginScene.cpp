@@ -298,13 +298,6 @@ void LoginScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 	m_shaders["POSTUI"]->SetUI(m_titleUI);
 
 	BuildOptionUI(device, commandlist);
-
-	auto optionCancelButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.8f, 0.f}, XMFLOAT2{0.06f, 0.06f}) };
-	optionCancelButtonUI->SetTexture("CANCELUI");
-	optionCancelButtonUI->SetClickEvent([&]() {
-		});
-	m_titleUI->SetChild(optionCancelButtonUI);
-	m_shaders["POSTUI"]->SetUI(optionCancelButtonUI);
 }
 
 void LoginScene::BuildOptionUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist)

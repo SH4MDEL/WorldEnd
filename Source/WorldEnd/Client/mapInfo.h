@@ -255,6 +255,6 @@ namespace VillageSetting
 	constexpr XMFLOAT3 SKILL_NPC{ -42.7098f, 5.7f, 75.8633f };
 	constexpr float SKILL_NPC_OFFSET = 2.f;
 
-	constexpr XMFLOAT3 INHENCE_NPC{ -40.7098f, 5.7f, 77.8633f };
-	constexpr float INHENCE_NPC_OFFSET = 2.f;
+	constexpr XMFLOAT3 ENHENCE_NPC{ -40.7098f, 5.7f, 77.8633f };
+	constexpr float ENHENCE_NPC_OFFSET = 2.f;
 }

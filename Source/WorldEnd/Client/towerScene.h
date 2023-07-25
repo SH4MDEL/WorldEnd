@@ -81,6 +81,7 @@ public:
 	void RotateToTarget(const shared_ptr<GameObject>& object);
 	INT SetTarget(const shared_ptr<GameObject>& object);
 	void SetHpBar(const shared_ptr<AnimationObject>& object);
+	void SetBossHpUI(const shared_ptr<AnimationObject>& object);
 
 	bool CheckState(State sceneState) const;
 	void SetState(State sceneState);
@@ -151,6 +152,8 @@ protected:
 	// UI 관련
 	array<shared_ptr<HorzGaugeUI>, MAX_INGAME_USER - 1>	m_hpUI;
 	unordered_map<INT, INT>								m_idSet;
+	shared_ptr<HorzGaugeUI>								m_bossHpUI;
+	INT													m_bossId;
 	shared_ptr<UI>										m_interactUI;
 	shared_ptr<TextUI>									m_interactTextUI;
 	shared_ptr<VertGaugeUI>								m_skillUI;

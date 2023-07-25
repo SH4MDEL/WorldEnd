@@ -526,11 +526,11 @@ void LoadingScene::BuildTexture(const ComPtr<ID3D12Device>& device, const ComPtr
 	m_textures.insert({ "ARCHERSKILL2", archerSkill2Texture });
 	m_textures.insert({ "ARCHERULTIMATE1", archerUltimate1Texture });
 	m_textures.insert({ "ARCHERULTIMATE2", archerUltimate2Texture });
-	m_textures.insert({ "INHENCEATTACK", inhenceAttackTexture });
-	m_textures.insert({ "INHENCECRITDAMAGE", inhenceCritDamageTexture });
-	m_textures.insert({ "INHENCECRITPROB", inhenceCritProbTexture });
-	m_textures.insert({ "INHENCEDEFENCE", inhenceDefenceTexture });
-	m_textures.insert({ "INHENCEHP", inhenceHpTexture });
+	m_textures.insert({ "ENHENCEATTACK", inhenceAttackTexture });
+	m_textures.insert({ "ENHENCECRITDAMAGE", inhenceCritDamageTexture });
+	m_textures.insert({ "ENHENCECRITPROB", inhenceCritProbTexture });
+	m_textures.insert({ "ENHENCEDEFENCE", inhenceDefenceTexture });
+	m_textures.insert({ "ENHENCEHP", inhenceHpTexture });
 	m_textures.insert({ "STAMINABAR", staminaBarTexture });
 
 	auto titleUITexture{ make_shared<Texture>() };

@@ -266,6 +266,7 @@ namespace PlayerSetting
 	constexpr float DEFAULT_CRIT_RATE = 0.f;
 	constexpr float DEFAULT_CRIT_DAMAGE = 2.f;
 	constexpr int ENHANCE_COST = 100;
+	constexpr int MAX_ENHANCE_LEVEL = 20;
 
 	constexpr auto DASH_DURATION = 300ms;
 	constexpr float MAX_STAMINA = 120.f;

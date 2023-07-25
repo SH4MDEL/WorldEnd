@@ -268,12 +268,18 @@ void TowerScene::DestroyObjects()
 void TowerScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist)
 {
 	for (int i = 0; i < m_hpUI.size(); ++i) {
-		m_hpUI[i] = make_shared<HorzGaugeUI>(XMFLOAT2{ -0.75f, 0.75f - i * 0.3f }, XMFLOAT2{ 0.4f, 0.08f }, 0.f);
+		m_hpUI[i] = make_shared<HorzGaugeUI>(XMFLOAT2{ -0.75f, 0.75f - i * 0.3f }, XMFLOAT2{ 0.4f, 0.08f }, 0.16f);
 		m_hpUI[i]->SetTexture("HPBAR");
 		m_hpUI[i]->SetMaxGauge(100.f);
 		m_hpUI[i]->SetDisable();
 		m_shaders["UI"]->SetUI(m_hpUI[i]);
 	}
+
+	m_bossHpUI = make_shared<HorzGaugeUI>(XMFLOAT2{ 0.f, 0.8f, }, XMFLOAT2{ 0.8f, 0.16f }, 0.16f);
+	m_bossHpUI->SetTexture("HPBAR");
+	m_bossHpUI->SetMaxGauge(100.f);
+	m_bossHpUI->SetDisable();
+	m_shaders["UI"]->SetUI(m_bossHpUI);
 
 	m_interactUI = make_shared<ImageUI>(XMFLOAT2{ 0.25f, 0.15f }, XMFLOAT2{ 0.24f, 0.08f });
 	m_interactUI->SetTexture("BUTTONUI");
@@ -535,6 +541,9 @@ void TowerScene::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 	}
 	if (!CheckState(State::CantPlayerControl)) {
 		if (m_player) m_player->OnProcessingKeyboardMessage(timeElapsed);
+	}
+	if (GetAsyncKeyState(VK_F1) & 0x8000) {
+		// 무적 패킷 보냄
 	}
 }
 
@@ -875,6 +884,14 @@ void TowerScene::SetHpBar(const shared_ptr<AnimationObject>& object)
 	object->SetHpBar(hpBar);
 }
 
+void TowerScene::SetBossHpUI(const shared_ptr<AnimationObject>& object)
+{
+	m_bossHpUI->SetEnable();
+	m_bossHpUI->SetMaxGauge(object->GetMaxHp());
+	m_bossHpUI->SetGauge(object->GetHp());
+	m_bossHpUI->SetEnable();
+}
+
 void TowerScene::RotateToTarget(const shared_ptr<GameObject>& object, INT targetId)
 {
 	if (-1 == targetId) {
@@ -1110,7 +1127,11 @@ void TowerScene::RecvAddMonster(char* ptr)
 		packet->monster_data.pos.y, packet->monster_data.pos.z });
 	m_monsters.insert({ static_cast<INT>(packet->monster_data.id), monster });
 
-	SetHpBar(monster);
+	if (packet->monster_type != MonsterType::BOSS) SetHpBar(monster);
+	else {
+		m_bossId = packet->monster_data.id;
+		SetBossHpUI(monster);
+	}
 	m_shaders["ANIMATION"]->SetMonster(packet->monster_data.id, monster);
 }
 
@@ -1342,6 +1363,15 @@ void TowerScene::RecvChangeHp(char* ptr)
 			m_multiPlayers[packet->id]->SetHp(packet->hp);
 			m_hpUI[m_idSet[packet->id]]->SetGauge(packet->hp);
 		}
+	}
+	else if (packet->id == m_bossId) {
+		auto& monster = m_monsters[packet->id];
+		m_monsters[packet->id]->SetHp(packet->hp);
+		m_bossHpUI->SetGauge(packet->hp);
+
+		XMFLOAT3 particlePosition = monster->GetPosition();
+		particlePosition.y += 1.f;
+		g_particleSystem->CreateParticle(ParticleSystem::Type::EMITTER, particlePosition);
 	}
 	else {
 		auto& monster = m_monsters[packet->id];
