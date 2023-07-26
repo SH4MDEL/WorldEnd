@@ -47,7 +47,7 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 
 			XMFLOAT3 pos = Vector3::Add(Vector3::Mul(m_front, 0.8f), GetPosition());
 			
-			//CreateAttackPacket(ActionType::ULTIMATE);
+			CreateAttackPacket(ActionType::ULTIMATE);
 
 			SendPacket();
 		}
@@ -213,7 +213,7 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 			}
 
 			XMFLOAT3 pos = Vector3::Add(Vector3::Mul(m_front, 0.8f), GetPosition());
-			//CreateAttackPacket(ActionType::SKILL);
+			CreateAttackPacket(ActionType::SKILL);
 
 			SendPacket();
 		}
@@ -511,6 +511,14 @@ void Player::SetHp(FLOAT hp)
 	if (m_hpBar)
 		m_hpBar->SetGauge(m_hp);
 }
+
+void Player::SetMaxHp(FLOAT hp)
+{
+	m_maxHp = hp;
+
+	if (m_hpBar)
+		m_hpBar->SetMaxGauge(hp);
+}	
 
 void Player::SetStamina(FLOAT stamina)
 {

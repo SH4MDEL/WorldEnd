@@ -64,6 +64,30 @@ DataBase::~DataBase()
 	SQLFreeHandle(SQL_HANDLE_ENV, m_henv);
 }
 
+void DataBase::InitDataBase()
+{
+	// 상태 핸들 할당
+	SQLRETURN ret = SQLAllocHandle(SQL_HANDLE_STMT, m_hdbc, &m_hstmt);
+	if (!(SQL_SUCCESS == ret || SQL_SUCCESS_WITH_INFO == ret)) {
+		std::cout << "Statement Handle 할당 실패" << std::endl;
+		return;
+	}
+
+	std::wstring query = std::format(L"EXEC [WorldEnd].[dbo].[init_database]");
+
+	ret = SQLExecDirect(m_hstmt, (SQLWCHAR*)query.c_str(), SQL_NTS);
+	if (!(SQL_SUCCESS == ret || SQL_SUCCESS_WITH_INFO == ret)) {
+		HandleDiagnosticRecord(m_hstmt, SQL_HANDLE_STMT, ret);
+		SQLCancel(m_hstmt);
+		SQLFreeHandle(SQL_HANDLE_STMT, m_hstmt);
+		return;
+	}
+
+	SQLCancel(m_hstmt);
+	SQLFreeHandle(SQL_HANDLE_STMT, m_hstmt);
+	return;
+}
+
 bool DataBase::TryLogin(const USER_INFO& user_info, PLAYER_DATA& player_data)
 {
 	// 상태 핸들 할당
@@ -177,7 +201,6 @@ bool DataBase::SaveUserData(const PLAYER_DATA& data)
 		return false;
 	}
 
-	using namespace std;
 	std::wstring query = std::format(L"EXEC [WorldEnd].[dbo].[save_user_data] '{0}', {1},{2},{3},{4},{5},{6},{7},{8},{9},{10},{11},{12},{13},{14}",
 		data.user_id, data.gold, (int)data.player_type, data.x, data.y, data.z, 
 		data.hp_level, data.atk_level, data.def_level, data.crit_rate_level, data.crit_damage_level,

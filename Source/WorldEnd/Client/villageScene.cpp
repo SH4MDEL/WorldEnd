@@ -39,12 +39,6 @@ void VillageScene::OnCreate(
 {
 	m_sceneState = (INT)State::Unused;
 	BuildObjects(device, commandList, rootSignature, postRootSignature);
-#ifdef USE_NETWORK
-	CS_ENTER_VILLAGE_PACKET packet{};
-	packet.size = sizeof(packet);
-	packet.type = CS_PACKET_ENTER_VILLAGE;
-	send(g_socket, reinterpret_cast<char*>(&packet), sizeof(packet), 0);
-#endif // USE_NETWORK
 }
 
 void VillageScene::OnDestroy()
@@ -228,6 +222,14 @@ void VillageScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	BuildLight(device, commandlist);
 
 	SoundManager::GetInstance().PlayMusic(SoundManager::Music::Village);
+
+	// Build 가 끝나면 마을에 진입했음을 알림
+#ifdef USE_NETWORK
+	CS_ENTER_VILLAGE_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = CS_PACKET_ENTER_VILLAGE;
+	send(g_socket, reinterpret_cast<char*>(&packet), sizeof(packet), 0);
+#endif // USE_NETWORK
 }
 
 void VillageScene::BuildUI()
@@ -312,7 +314,7 @@ void VillageScene::BulidRoomUI()
 	m_roomUI->SetChild(m_rightArrowUI);
 
 	for (size_t i = 0; auto & roomSwitchUI : m_roomSwitchUI) {
-		roomSwitchUI = make_shared<SwitchUI>(XMFLOAT2{ 0.f, -0.4f + i * 0.2f }, XMFLOAT2{ 0.6f, 0.08f });
+		roomSwitchUI = make_shared<SwitchUI>(XMFLOAT2{ 0.f, 0.6f - i * 0.2f }, XMFLOAT2{ 0.6f, 0.08f });
 		roomSwitchUI->SetTexture("TEXTBARUI");
 
 		// i번 방의 정보를 갱신하는 패킷이 날아왔을 때 m_roomSwitchTextUI[i]의 Text를 갱신해 주자.
@@ -340,9 +342,8 @@ void VillageScene::BuildPartyUI()
 	partyCancelButtonUI->SetClickEvent([&]() {
 		ResetState(State::OutputPartyUI);
 		if (m_partyUI) m_partyUI->SetDisable();
-		cout << "파티 UI 닫았다는 패킷 전송" << endl;
-		// SendExitParty
 
+		SendExitParty();
 		});
 	m_partyUI->SetChild(partyCancelButtonUI);
 
@@ -367,6 +368,7 @@ void VillageScene::BuildPartyUI()
 
 		m_partyPlayerUI[i] = make_shared<ImageUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 0.3f, 0.51f });
 		m_partyPlayerUI[i]->SetTexture("WARRIORPORTRAIT");
+		m_partyPlayerUI[i]->SetDisable();
 		characterFrameUI->SetChild(m_partyPlayerUI[i]);
 
 		m_partyPlayerTextUI[i] = make_shared<TextUI>(XMFLOAT2{ 0.f, -0.8f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 300.f, 20.f });
@@ -745,6 +747,7 @@ void VillageScene::OnProcessingMouseMessage(UINT message, LPARAM lParam)
 				g_clickEventStack.pop();
 			}
 		}
+		cout << CheckRoomSwitch() << endl;
 	}
 	if (CheckState(State::OutputPartyUI)) {
 		if (m_partyUI) m_partyUI->OnProcessingMouseMessage(message, lParam);
@@ -817,6 +820,7 @@ void VillageScene::OnProcessingKeyboardMessage(HWND hWnd, UINT message, WPARAM w
 void VillageScene::Update(FLOAT timeElapsed)
 {
 	if (CheckState(State::SceneLeave)) {
+		//m_fadeFilter->FadeOut([&]() { g_GameFramework.ChangeScene(SCENETAG::TowerScene); });
 		g_GameFramework.ChangeScene(SCENETAG::TowerScene);
 		return;
 	}
@@ -1096,8 +1100,17 @@ void VillageScene::ProcessPacket(char* ptr)
 	case SC_PACKET_ADD_PARTY_MEMBER:
 		RecvAddPartyMember(ptr);
 		break;
+	case SC_PACKET_REMOVE_PARTY_MEMBER:
+		RecvRemovePartyMember(ptr);
+		break;
 	case SC_PACKET_ENTER_DUNGEON:
 		RecvEnterDungeon(ptr);
+		break;
+	case SC_PACKET_ENHANCE_OK:
+		RecvEnhanceOk(ptr);
+		break;
+	case SC_PACKET_RESET_COOLDOWN:
+		RecvResetCooldown(ptr);
 		break;
 	/*default:
 		cout << "UnDefined Packet : " << (int)ptr[1] << endl;
@@ -1110,7 +1123,7 @@ void VillageScene::RecvPartyInfo(char* ptr)
 	SC_PARTY_INFO_PACKET* packet = reinterpret_cast<SC_PARTY_INFO_PACKET*>(ptr);
 
 	if (0 == packet->info.current_player) {
-		m_roomSwitchTextUI[static_cast<INT>(packet->info.party_num)]->SetText(TEXT("빈 방"));
+		m_roomSwitchTextUI[static_cast<INT>(packet->info.party_num)]->SetText(TEXT("빈 방") + to_wstring((INT)packet->info.party_num));
 	}
 	else {
 		std::string name{ packet->info.host_name };
@@ -1141,7 +1154,7 @@ void VillageScene::RecvAddPlayer(char* ptr)
 	m_multiPlayers.insert({ id, multiPlayer });
 
 	m_shaders["ANIMATION"]->SetMultiPlayer(id, multiPlayer);
-	cout << "add player" << id << endl;
+	cout << "add player village scene" << id << endl;
 }
 
 void VillageScene::RecvUpdateClient(char* ptr)
@@ -1153,6 +1166,9 @@ void VillageScene::RecvUpdateClient(char* ptr)
 	}
 
 	if (packet->id != m_player->GetId()) {
+		if (!m_multiPlayers.contains(packet->id))
+			return;
+
 		auto& player = m_multiPlayers[packet->id];
 
 		player->SetPosition(packet->pos);
@@ -1177,6 +1193,9 @@ void VillageScene::RecvChangeAnimation(char* ptr)
 		}
 	}
 	else {
+		if (!m_multiPlayers.contains(packet->id))
+			return;
+
 		auto& player = m_multiPlayers[packet->id];
 		player->ChangeAnimation(packet->animation, false);
 
@@ -1241,6 +1260,7 @@ void VillageScene::RecvAddPartyMember(char* ptr)
 		m_partyPlayerUI[static_cast<INT>(packet->locate_num)]->SetTexture("ARCHERPORTRAIT");
 		break;
 	}
+	m_partyPlayerUI[static_cast<INT>(packet->locate_num)]->SetEnable();
 
 	string id{ packet->name };
 	wstring userId{};
@@ -1251,11 +1271,51 @@ void VillageScene::RecvAddPartyMember(char* ptr)
 	// id 사용?
 }
 
+void VillageScene::RecvRemovePartyMember(char* ptr)
+{
+	SC_REMOVE_PARTY_MEMBER_PACKET* packet = reinterpret_cast<SC_REMOVE_PARTY_MEMBER_PACKET*>(ptr);
+
+	m_partyPlayerUI[static_cast<INT>(packet->locate_num)]->SetDisable();
+	m_partyPlayerTextUI[static_cast<INT>(packet->locate_num)]->SetText(TEXT("EMPTY"));
+}
+
 void VillageScene::RecvEnterDungeon(char* ptr)
 {
 	SC_ENTER_DUNGEON_PACKET* packet = reinterpret_cast<SC_ENTER_DUNGEON_PACKET*>(ptr);
 
 	SetState(State::SceneLeave);
+}
+
+void VillageScene::RecvEnhanceOk(char* ptr)
+{
+	SC_ENHANCE_OK_PACKET* packet = reinterpret_cast<SC_ENHANCE_OK_PACKET*>(ptr);
+
+
+	switch (packet->enhancement_type) {
+	case EnhancementType::HP:
+		g_playerInfo.hpLevel = packet->level;
+		break;
+	case EnhancementType::ATK:
+		g_playerInfo.atkLevel = packet->level;
+		break;
+	case EnhancementType::DEF:
+		g_playerInfo.defLevel = packet->level;
+		break;
+	case EnhancementType::CRIT_RATE:
+		g_playerInfo.critRateLevel = packet->level;
+		break;
+	case EnhancementType::CRIT_DAMAGE:
+		g_playerInfo.critDamageLevel = packet->level;
+		break;
+	}
+
+	UpdateEnhanceUI(packet->enhancement_type);
+}
+
+void VillageScene::RecvResetCooldown(char* ptr)
+{
+	SC_RESET_COOLDOWN_PACKET* packet = reinterpret_cast<SC_RESET_COOLDOWN_PACKET*>(ptr);
+	m_player->ResetCooldown(packet->cooldown_type);
 }
 
 void VillageScene::SendChangePage()
@@ -1311,6 +1371,16 @@ void VillageScene::SendJoinParty()
 	packet.size = sizeof(packet);
 	packet.type = CS_PACKET_JOIN_PARTY;
 	packet.party_num = m_roomPage * MAX_PARTIES_ON_PAGE + selectedRoom;
+	send(g_socket, reinterpret_cast<char*>(&packet), sizeof(packet), 0);
+#endif
+}
+
+void VillageScene::SendExitParty()
+{
+#ifdef USE_NETWORK
+	CS_EXIT_PARTY_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = CS_PACKET_EXIT_PARTY;
 	send(g_socket, reinterpret_cast<char*>(&packet), sizeof(packet), 0);
 #endif
 }
@@ -2217,61 +2287,61 @@ void VillageScene::UpdateEnhanceUI(EnhancementType type)
 	case EnhancementType::HP:
 		if (g_playerInfo.hpLevel == PlayerSetting::MAX_ENHANCE_LEVEL) {
 			m_enhenceInfoTextUI->SetText(TEXT("현재 레벨 : ") + to_wstring(g_playerInfo.hpLevel) +
-				TEXT("\n체력 증가량 : ") + to_wstring(PlayerSetting::DEFAULT_HP) + // 강화당 증가량 Protocol 필요
+				TEXT("\n체력 증가량 : ") + to_wstring(PlayerSetting::DEFAULT_HP + (INT)(PlayerSetting::HP_INCREASEMENT * g_playerInfo.hpLevel)) +
 				TEXT("\n더 강화할 수 없습니다."));
 		}
 		else {
 			m_enhenceInfoTextUI->SetText(TEXT("현재 레벨 : ") + to_wstring(g_playerInfo.hpLevel) +
-				TEXT("\n체력 증가량 : ") + to_wstring(PlayerSetting::DEFAULT_HP) + // 강화당 증가량 Protocol 필요
-				TEXT("\n강화 비용 : " + to_wstring(PlayerSetting::DEFAULT_ENHANCE_COST)));
+				TEXT("\n체력 증가량 : ") + to_wstring(PlayerSetting::DEFAULT_HP + (INT)(PlayerSetting::HP_INCREASEMENT * g_playerInfo.hpLevel)) +
+				TEXT("\n강화 비용 : " + to_wstring(PlayerSetting::DEFAULT_ENHANCE_COST + PlayerSetting::ENHANCE_INCREASEMENT * g_playerInfo.hpLevel)));
 		}
 		break;
 	case EnhancementType::ATK:
 		if (g_playerInfo.atkLevel == PlayerSetting::MAX_ENHANCE_LEVEL) {
 			m_enhenceInfoTextUI->SetText(TEXT("현재 레벨 : ") + to_wstring(g_playerInfo.atkLevel) +
-				TEXT("\n공격력 증가량 : ") + to_wstring(PlayerSetting::DEFAULT_ATK) + // 강화당 증가량 Protocol 필요
+				TEXT("\n공격력 증가량 : ") + to_wstring(PlayerSetting::DEFAULT_ATK + (INT)(PlayerSetting::ATK_INCREASEMENT * g_playerInfo.atkLevel)) +
 				TEXT("\n더 강화할 수 없습니다."));
 		}
 		else {
 			m_enhenceInfoTextUI->SetText(TEXT("현재 레벨 : ") + to_wstring(g_playerInfo.atkLevel) +
-				TEXT("\n공격력 증가량 : ") + to_wstring(PlayerSetting::DEFAULT_ATK) + // 강화당 증가량 Protocol 필요
-				TEXT("\n강화 비용 : " + to_wstring(PlayerSetting::DEFAULT_ENHANCE_COST)));
+				TEXT("\n공격력 증가량 : ") + to_wstring(PlayerSetting::DEFAULT_ATK + (INT)(PlayerSetting::ATK_INCREASEMENT * g_playerInfo.atkLevel)) +
+				TEXT("\n강화 비용 : " + to_wstring(PlayerSetting::DEFAULT_ENHANCE_COST + PlayerSetting::ENHANCE_INCREASEMENT * g_playerInfo.atkLevel)));
 		}
 		break;
 	case EnhancementType::DEF:
 		if (g_playerInfo.defLevel == PlayerSetting::MAX_ENHANCE_LEVEL) {
 			m_enhenceInfoTextUI->SetText(TEXT("현재 레벨 : ") + to_wstring(g_playerInfo.defLevel) +
-				TEXT("\n방어력 증가량 : ") + to_wstring(PlayerSetting::DEFAULT_DEF) + // 강화당 증가량 Protocol 필요
+				TEXT("\n방어력 증가량 : ") + to_wstring(PlayerSetting::DEFAULT_DEF + (INT)(PlayerSetting::DEF_INCREASEMENT * g_playerInfo.defLevel)) +
 				TEXT("\n더 강화할 수 없습니다."));
 		}
 		else {
 			m_enhenceInfoTextUI->SetText(TEXT("현재 레벨 : ") + to_wstring(g_playerInfo.defLevel) +
-				TEXT("\n방어력 증가량 : ") + to_wstring(PlayerSetting::DEFAULT_DEF) + // 강화당 증가량 Protocol 필요
-				TEXT("\n강화 비용 : " + to_wstring(PlayerSetting::DEFAULT_ENHANCE_COST)));
+				TEXT("\n방어력 증가량 : ") + to_wstring(PlayerSetting::DEFAULT_DEF + (INT)(PlayerSetting::DEF_INCREASEMENT * g_playerInfo.defLevel)) +
+				TEXT("\n강화 비용 : " + to_wstring(PlayerSetting::DEFAULT_ENHANCE_COST + PlayerSetting::ENHANCE_INCREASEMENT * g_playerInfo.defLevel)));
 		}
 		break;
 	case EnhancementType::CRIT_RATE:
 		if (g_playerInfo.critRateLevel == PlayerSetting::MAX_ENHANCE_LEVEL) {
 			m_enhenceInfoTextUI->SetText(TEXT("현재 레벨 : ") + to_wstring(g_playerInfo.critRateLevel) +
-				TEXT("\n크리티컬 확률 증가량 : ") + to_wstring(PlayerSetting::DEFAULT_CRIT_RATE) + // 강화당 증가량 Protocol 필요
+				TEXT("\n크리티컬 확률 증가량 : ") + to_wstring(PlayerSetting::DEFAULT_CRIT_RATE + PlayerSetting::CRIT_RATE_INCREASEMENT * g_playerInfo.critRateLevel) +
 				TEXT("\n더 강화할 수 없습니다."));
 		}
 		else {
 			m_enhenceInfoTextUI->SetText(TEXT("현재 레벨 : ") + to_wstring(g_playerInfo.critRateLevel) +
-				TEXT("\n크리티컬 확률 증가량 : ") + to_wstring(PlayerSetting::DEFAULT_CRIT_RATE) + // 강화당 증가량 Protocol 필요
-				TEXT("\n강화 비용 : " + to_wstring(PlayerSetting::DEFAULT_ENHANCE_COST)));
+				TEXT("\n크리티컬 확률 증가량 : ") + to_wstring(PlayerSetting::DEFAULT_CRIT_RATE + PlayerSetting::CRIT_RATE_INCREASEMENT * g_playerInfo.critRateLevel) +
+				TEXT("\n강화 비용 : " + to_wstring(PlayerSetting::DEFAULT_ENHANCE_COST + PlayerSetting::ENHANCE_INCREASEMENT * g_playerInfo.critRateLevel)));
 		}
 		break;
 	case EnhancementType::CRIT_DAMAGE:
 		if (g_playerInfo.critDamageLevel == PlayerSetting::MAX_ENHANCE_LEVEL) {
 			m_enhenceInfoTextUI->SetText(TEXT("현재 레벨 : ") + to_wstring(g_playerInfo.critDamageLevel) +
-				TEXT("\n크리티컬 대미지 증가량 : ") + to_wstring(PlayerSetting::DEFAULT_CRIT_DAMAGE) + // 강화당 증가량 Protocol 필요
+				TEXT("\n크리티컬 대미지 증가량 : ") + to_wstring(PlayerSetting::DEFAULT_CRIT_DAMAGE + PlayerSetting::CRIT_RATE_INCREASEMENT * g_playerInfo.critDamageLevel) +
 				TEXT("\n더 강화할 수 없습니다."));
 		}
 		else {
 			m_enhenceInfoTextUI->SetText(TEXT("현재 레벨 : ") + to_wstring(g_playerInfo.critDamageLevel) +
-				TEXT("\n크리티컬 대미지 증가량 : ") + to_wstring(PlayerSetting::DEFAULT_CRIT_DAMAGE) + // 강화당 증가량 Protocol 필요
-				TEXT("\n강화 비용 : " + to_wstring(PlayerSetting::DEFAULT_ENHANCE_COST)));
+				TEXT("\n크리티컬 대미지 증가량 : ") + to_wstring(PlayerSetting::DEFAULT_CRIT_DAMAGE + PlayerSetting::CRIT_RATE_INCREASEMENT * g_playerInfo.critDamageLevel) +
+				TEXT("\n강화 비용 : " + to_wstring(PlayerSetting::DEFAULT_ENHANCE_COST + PlayerSetting::ENHANCE_INCREASEMENT * g_playerInfo.critDamageLevel)));
 		}
 		break;
 	}
@@ -2279,8 +2349,28 @@ void VillageScene::UpdateEnhanceUI(EnhancementType type)
 
 void VillageScene::TryEnhancement(EnhancementType type)
 {
-	if (g_playerInfo.gold >= PlayerSetting::DEFAULT_ENHANCE_COST) {
-		g_playerInfo.gold -= PlayerSetting::DEFAULT_ENHANCE_COST;
+	INT cost{ PlayerSetting::DEFAULT_ENHANCE_COST };
+	switch (type) {
+	case EnhancementType::HP:
+		cost += PlayerSetting::ENHANCE_INCREASEMENT * g_playerInfo.hpLevel;
+		break;
+	case EnhancementType::ATK:
+		cost += PlayerSetting::ENHANCE_INCREASEMENT * g_playerInfo.atkLevel;
+		break;
+	case EnhancementType::DEF:
+		cost += PlayerSetting::ENHANCE_INCREASEMENT * g_playerInfo.defLevel;
+		break;
+	case EnhancementType::CRIT_RATE:
+		cost += PlayerSetting::ENHANCE_INCREASEMENT * g_playerInfo.critRateLevel;
+		break;
+	case EnhancementType::CRIT_DAMAGE:
+		cost += PlayerSetting::ENHANCE_INCREASEMENT * g_playerInfo.critDamageLevel;
+		break;
+	}
+
+
+	if (g_playerInfo.gold >= cost) {
+		g_playerInfo.gold -= cost;
 		UpdateGoldUI();
 
 		SendEnhancement(type);

@@ -5,14 +5,9 @@
 
 std::uniform_int_distribution<INT> dist(0, 100);
 
-GameRoom::GameRoom() : m_state{ GameRoomState::EMPTY }, m_floor{ 1 },
-m_type{ EnvironmentType::FOG }, m_monster_count{ 0 }, m_arrow_id{ 0 }
+GameRoom::GameRoom()
 {
-	for (INT& id : m_ingame_player_ids)
-		id = -1;
-
-	for (INT& id : m_monster_ids)
-		id = -1;
+	Init();
 
 	m_battle_starter = std::make_shared<BattleStarter>();
 	m_portal = std::make_shared<WarpPortal>();
@@ -75,9 +70,6 @@ void GameRoom::WarpNextFloor(INT room_num)
 	m_battle_starter->SetValid(true);
 
 	++m_floor;
-	if (RoomSetting::BOSS_FLOOR == m_floor) {
-		// 보스 룸 진입
-	}
 	InitGameRoom(room_num);
 
 	// 방 넘어갈 때 생성한 몬스터 정보 다시 넘기기
@@ -86,6 +78,25 @@ void GameRoom::WarpNextFloor(INT room_num)
 
 		SendAddMonster(id);
 	}
+}
+
+void GameRoom::DungeonClear()
+{
+	Server& server = Server::GetInstance();
+
+	SC_DUNGEON_CLEAR_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = SC_PACKET_DUNGEON_CLEAR;
+
+	for (INT id : m_ingame_player_ids) {
+		if (-1 == id) continue;
+
+		server.m_clients[id]->SetHp(server.m_clients[id]->GetMaxHp());
+		server.m_clients[id]->DoSend(&packet);
+	}
+
+	// 방 초기화
+	Init();
 }
 
 // 빈자리를 찾아 진입
@@ -123,19 +134,19 @@ bool GameRoom::SetPlayer(INT room_num, INT player_id)
 		}
 	}
 
-	// 방에 참여했다면 Add 전송
-	if (join) {
-		for (INT id : m_ingame_player_ids) {
-			if (-1 == id) continue;
-			if (id == player_id) continue;
+	//// 방에 참여했다면 Add 전송
+	//if (join) {
+	//	for (INT id : m_ingame_player_ids) {
+	//		if (-1 == id) continue;
+	//		if (id == player_id) continue;
 
-			// 내 정보를 기존에 방에 있던 플레이어에게 전송
-			SendAddPlayer(player_id, id);
+	//		// 내 정보를 기존에 방에 있던 플레이어에게 전송
+	//		SendAddPlayer(player_id, id);
 
-			// 방에 있던 id가 내가 아니면 해당id의 정보를 나에게 전송
-			SendAddPlayer(id, player_id);
-		}
-	}
+	//		// 방에 있던 id가 내가 아니면 해당id의 정보를 나에게 전송
+	//		SendAddPlayer(id, player_id);
+	//	}
+	//}
 	return join;
 }
 
@@ -426,7 +437,10 @@ void GameRoom::CheckEventCollision(INT player_id)
 	}
 	// 포탈과 충돌검사
 	else if (GameRoomState::CLEAR == m_state) {
-		CollideWithEventObject(player_id, InteractionType::PORTAL);
+		if(m_floor == RoomSetting::BOSS_FLOOR)
+			CollideWithEventObject(player_id, InteractionType::DUNGEON_CLEAR);
+		else
+			CollideWithEventObject(player_id, InteractionType::PORTAL);
 	}
 }
 
@@ -469,6 +483,25 @@ INT GameRoom::GenerateRandomRoom(std::set<INT>& save_room, INT min, INT max)
 	return rand_value;
 }
 
+void GameRoom::Init()
+{
+	{
+		std::lock_guard<std::mutex> l{ m_state_lock };
+		m_state = GameRoomState::EMPTY;
+	}
+	m_floor = RoomSetting::BOSS_FLOOR;
+	// m_floor = 1;
+	m_type = EnvironmentType::FOG;
+	m_monster_count = 0;
+	m_arrow_id = 0;
+
+	for (INT& id : m_ingame_player_ids)
+		id = -1;
+
+	for (INT& id : m_monster_ids)
+		id = -1;
+}
+
 void GameRoom::InitGameRoom(INT room_num)
 {
 	InitMonsters(room_num);
@@ -502,8 +535,9 @@ void GameRoom::InitMonsters(INT room_num)
 	INT new_wizard_id{};
 	INT new_boss_id{};
 
-	if (m_floor_cnt == 4)         // 보스방 진입
+	if ((INT)m_floor == (INT)RoomSetting::BOSS_FLOOR)         // 보스방 진입
 	{
+
 		random_map = 10;
 
 		new_boss_id = server.GetNewMonsterId(MonsterType::BOSS);
@@ -949,6 +983,7 @@ void GameRoom::CollideWithEventObject(INT player_id, InteractionType type)
 		object = m_battle_starter;
 		break;
 	case InteractionType::PORTAL:
+	case InteractionType::DUNGEON_CLEAR:
 		object = m_portal;
 		break;
 	}
@@ -1120,7 +1155,7 @@ void GameRoomManager::StartBattle(INT room_num)
 		room->SetState(GameRoomState::ONBATTLE);
 		l.unlock();
 
-		m_game_rooms[room_num]->StartBattle();
+		room->StartBattle();
 	}
 }
 
@@ -1136,9 +1171,18 @@ void GameRoomManager::WarpNextFloor(INT room_num)
 		room->SetState(GameRoomState::INGAME);
 		l.unlock();
 
-		m_game_rooms[room_num]->WarpNextFloor(room_num);
+		room->WarpNextFloor(room_num);
 	}
 }
+
+void GameRoomManager::DungeonClear(INT room_num)
+{
+	if (!IsValidRoomNum(room_num))
+		return;
+
+	m_game_rooms[room_num]->DungeonClear();
+}
+
 
 bool GameRoomManager::EnterGameRoom(const std::shared_ptr<Party>& party)
 {
@@ -1153,7 +1197,7 @@ bool GameRoomManager::EnterGameRoom(const std::shared_ptr<Party>& party)
 	for (INT id : members) {
 		if (-1 == id) continue;
 
-		auto client = dynamic_pointer_cast<Client>(server.m_clients[members[id]]);
+		auto client = dynamic_pointer_cast<Client>(server.m_clients[id]);
 		m_game_rooms[room_num]->SetPlayer(room_num, id);
 
 		{

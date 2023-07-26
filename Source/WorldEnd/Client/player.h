@@ -24,6 +24,7 @@ public:
 	void AddVelocity(const XMFLOAT3& increase);
 	void SetCamera(const shared_ptr<Camera>& camera) { m_camera = camera; }
 	void SetHp(FLOAT hp);
+	void SetMaxHp(FLOAT hp);
 	void SetStamina(FLOAT stamina);
 	void SetHpBar(const shared_ptr<GaugeBar>& hpBar) override { m_hpBar = hpBar; }
 	void SetStaminaBar(const shared_ptr<GaugeBar>& staminaBar) { m_staminaBar = staminaBar; }

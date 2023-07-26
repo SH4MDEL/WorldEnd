@@ -158,7 +158,11 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	m_player->SetId(g_playerInfo.id);
 
 	// 체력 바 생성
+	FLOAT playerHp{ PlayerSetting::DEFAULT_HP + g_playerInfo.hpLevel * PlayerSetting::HP_INCREASEMENT };
+	m_player->SetHp(playerHp);
+	m_player->SetMaxHp(playerHp);
 	SetHpBar(m_player);
+
 
 	// 스테미나 바 생성
 	auto staminaBar = make_shared<GaugeBar>(0.015f);
@@ -224,6 +228,14 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	BuildLight(device, commandlist);
 
 	SoundManager::GetInstance().PlayMusic(SoundManager::Music::Dungeon);
+
+	// Build 가 끝나면 던전에 진입했음을 알림
+#ifdef USE_NETWORK
+	CS_DUNGEON_SCENE_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = CS_PACKET_DUNGEON_SCENE;
+	send(g_socket, reinterpret_cast<char*>(&packet), sizeof(packet), 0);
+#endif // USE_NETWORK
 }
 
 void TowerScene::DestroyObjects()
@@ -345,7 +357,7 @@ void TowerScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 	m_resultTextUI = make_shared<TextUI>(XMFLOAT2{ 0.f, 0.2f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 100.f, 20.f });
 	m_resultTextUI->SetText(L"클리어!");
 	m_resultTextUI->SetColorBrush("WHITE");
-	m_resultTextUI->SetTextFormat("MAPLE27");
+	m_resultTextUI->SetTextFormat("KOPUB5");
 	resultUI->SetChild(m_resultTextUI);
 	auto resultRewardTextureUI{ make_shared<ImageUI>(XMFLOAT2{-0.2f, -0.2f}, XMFLOAT2{0.05f, 0.05f}) };
 	resultRewardTextureUI->SetTexture("GOLDUI");
@@ -554,7 +566,6 @@ void TowerScene::Update(FLOAT timeElapsed)
 {
 	if (CheckState(State::SceneLeave)) {
 		g_GameFramework.ChangeScene(SCENETAG::VillageScene);
-		closesocket(g_socket);
 		return;
 	}
 	RecvPacket();
@@ -880,6 +891,7 @@ void TowerScene::SetHpBar(const shared_ptr<AnimationObject>& object)
 	hpBar->SetTexture("HPBAR");
 	hpBar->SetMaxGauge(object->GetMaxHp());
 	hpBar->SetGauge(object->GetHp());
+
 	hpBar->SetPosition(XMFLOAT3{ FAR_POSITION, FAR_POSITION, FAR_POSITION });
 	m_shaders["HORZGAUGE"]->SetObject(hpBar);
 	object->SetHpBar(hpBar);
@@ -899,9 +911,9 @@ void TowerScene::RotateToTarget(const shared_ptr<GameObject>& object, INT target
 		return;
 	}
 
-	auto& monster = m_monsters[targetId];
-	if (!monster)
+	if (!m_monsters.contains(targetId))
 		return;
+	auto& monster = m_monsters[targetId];
 
 	XMFLOAT3 dir = Vector3::Normalize(
 		Vector3::Sub(monster->GetPosition(), object->GetPosition()));
@@ -1040,6 +1052,9 @@ void TowerScene::ProcessPacket(char* ptr)
 	case SC_PACKET_ADD_MAGIC_CIRCLE:
 		RecvAddMagicCircle(ptr);
 		break;
+	case SC_PACKET_DUNGEON_CLEAR:
+		RecvDungeonClear(ptr);
+		break;
 	default:
 		cout << "UnDefined Packet!!" << endl;
 		break;
@@ -1058,6 +1073,7 @@ void TowerScene::RecvAddPlayer(char* ptr)
 
 	// 멀티플레이어 설정
 	multiPlayer->SetPosition(packet->pos);
+	multiPlayer->SetMaxHp(packet->hp);
 	multiPlayer->SetHp(packet->hp);
 
 	m_multiPlayers.insert({ id, multiPlayer });
@@ -1069,7 +1085,7 @@ void TowerScene::RecvAddPlayer(char* ptr)
 	m_hpUI[m_idSet[id]]->SetGauge(packet->hp);
 
 	m_shaders["ANIMATION"]->SetMultiPlayer(id, multiPlayer);
-	cout << "add player" << id << endl;
+	cout << "add player tower scene" << id << endl;
 }
 
 void TowerScene::RecvRemovePlayer(char* ptr)
@@ -1085,10 +1101,10 @@ void TowerScene::RecvRemovePlayer(char* ptr)
 void TowerScene::RecvRemoveMonster(char* ptr)
 {
 	SC_REMOVE_MONSTER_PACKET* packet = reinterpret_cast<SC_REMOVE_MONSTER_PACKET*>(ptr);
-	if (!m_monsters[packet->id])
+	if (!m_monsters.contains(packet->id))
 		return;
 	
-	// 임시 삭제
+	m_monsters[packet->id]->SetPosition(XMFLOAT3(FAR_POSITION, FAR_POSITION, FAR_POSITION));
 	m_monsters[packet->id]->SetEnable(false);
 }
 
@@ -1101,6 +1117,9 @@ void TowerScene::RecvUpdateClient(char* ptr)
 	}
 
 	if (packet->id != m_player->GetId()) {
+		if (!m_multiPlayers.contains(packet->id))
+			return;
+
 		auto& player = m_multiPlayers[packet->id];
 
 		player->SetPosition(packet->pos);
@@ -1206,6 +1225,9 @@ void TowerScene::RecvChangeAnimation(char* ptr)
 	}
 	else {
 		auto& player = m_multiPlayers[packet->id];
+		if (!player)
+			return;
+
 		player->ChangeAnimation(packet->animation, false);
 
 		if (PlayerType::ARCHER == player->GetType() &&
@@ -1245,6 +1267,9 @@ void TowerScene::RecvSetInteractable(char* ptr)
 	case PORTAL:
 		m_interactTextUI->SetText(TEXT("F : 다음 층 이동"));
 		break;
+	case DUNGEON_CLEAR:
+		m_interactTextUI->SetText(TEXT("F : 마을로 귀환"));
+		break;
 	}
 }
 
@@ -1267,6 +1292,7 @@ void TowerScene::RecvWarpNextFloor(char* ptr)
 			elm.second->SetHp(m_player->GetMaxHp());
 		}
 
+		m_gate->SetPosition(RoomSetting::BATTLE_STARTER_POSITION);
 		m_shaders["OBJECT1"]->SetObject(m_gate);
 
 		for (int i = 1; i < 8; ++i) {
@@ -1336,6 +1362,7 @@ void TowerScene::RecvInteractObject(char* ptr)
 
 		m_interactUI->SetDisable();
 		m_gate->SetInterect([&]() {
+			m_gate->SetPosition(XMFLOAT3(FAR_POSITION, FAR_POSITION, FAR_POSITION));
 			m_shaders["OBJECT1"]->RemoveObject(m_gate);
 		m_lightSystem->m_lights[4].m_enable = true;
 		m_lightSystem->m_lights[5].m_enable = true;
@@ -1361,11 +1388,17 @@ void TowerScene::RecvChangeHp(char* ptr)
 			m_player->SetHp(packet->hp);
 		}
 		else {
+			if (!m_multiPlayers.contains(packet->id))
+				return;
+
 			m_multiPlayers[packet->id]->SetHp(packet->hp);
 			m_hpUI[m_idSet[packet->id]]->SetGauge(packet->hp);
 		}
 	}
 	else if (packet->id == m_bossId) {
+		if (!m_monsters.contains(packet->id))
+			return;
+
 		auto& monster = m_monsters[packet->id];
 		m_monsters[packet->id]->SetHp(packet->hp);
 		m_bossHpUI->SetGauge(packet->hp);
@@ -1375,6 +1408,9 @@ void TowerScene::RecvChangeHp(char* ptr)
 		g_particleSystem->CreateParticle(ParticleSystem::Type::EMITTER, particlePosition);
 	}
 	else {
+		if (!m_monsters.contains(packet->id))
+			return;
+
 		auto& monster = m_monsters[packet->id];
 		m_monsters[packet->id]->SetHp(packet->hp);
 
@@ -1402,6 +1438,16 @@ void TowerScene::RecvAddMagicCircle(char* ptr)
 {
 	SC_ADD_MAGIC_CIRCLE_PACKET* packet = reinterpret_cast<SC_ADD_MAGIC_CIRCLE_PACKET*>(ptr);
 	m_towerObjectManager->CreateMonsterMagicCircle(packet->pos);
+}
+
+void TowerScene::RecvDungeonClear(char* ptr)
+{
+	SC_DUNGEON_CLEAR_PACKET* packet = reinterpret_cast<SC_DUNGEON_CLEAR_PACKET*>(ptr);
+
+	SetState(State::Fading);
+	m_fadeFilter->FadeOut([&]() {
+		SetState(State::SceneLeave);
+		});
 }
 
 void TowerScene::LoadMap()
@@ -1648,10 +1694,10 @@ void TowerScene::SetSkillUI()
 			m_skillUI->SetTexture("WARRIORSKILL2");
 		}
 		if (g_playerInfo.skill[(size_t)g_playerInfo.playerType].second == 0) {
-			m_skillUI->SetTexture("WARRIORULTIMATE1");
+			m_ultimateUI->SetTexture("WARRIORULTIMATE1");
 		}
 		else if (g_playerInfo.skill[(size_t)g_playerInfo.playerType].second == 1) {
-			m_skillUI->SetTexture("WARRIORULTIMATE2");
+			m_ultimateUI->SetTexture("WARRIORULTIMATE2");
 		}
 		break;
 	case PlayerType::ARCHER:
@@ -1662,10 +1708,10 @@ void TowerScene::SetSkillUI()
 			m_skillUI->SetTexture("ARCHERSKILL2");
 		}
 		if (g_playerInfo.skill[(size_t)g_playerInfo.playerType].second == 0) {
-			m_skillUI->SetTexture("ARCHERULTIMATE1");
+			m_ultimateUI->SetTexture("ARCHERULTIMATE1");
 		}
 		else if (g_playerInfo.skill[(size_t)g_playerInfo.playerType].second == 1) {
-			m_skillUI->SetTexture("ARCHERULTIMATE2");
+			m_ultimateUI->SetTexture("ARCHERULTIMATE2");
 		}
 		break;
 	}

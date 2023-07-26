@@ -87,6 +87,7 @@ public:
 	UCHAR GetNormalSkillType(PlayerType type) const;
 	UCHAR GetUltimateSkillType(PlayerType type) const;
 	XMFLOAT3 GetTownPosition() const { return m_town_position; }
+	INT GetCost(EnhancementType type) const;
 
 	bool GetInvincibleRoll() const { return m_invincible_roll; }
 	const std::unordered_set<INT>& GetViewList() { return m_view_list;}
@@ -155,7 +156,8 @@ public:
 	bool TryJoin(INT player_id);
 	void Exit(INT player_id);
 	void PlayerReady(INT player_id);
-	void AddMember(INT sender);
+	void AddMember(INT player_id);
+	bool IsExist();
 
 	void SendChangeCharacter(INT player_id);
 	void SendEnterDungeon();
@@ -164,7 +166,7 @@ private:
 	void SendJoinOk(INT receiver);
 	void SendAddMember(INT sender, INT receiver, INT locate_num);
 	void SendChangeHost(INT receiver);
-	void SendExitParty(INT exited_id);
+	void SendExitParty(INT exited_id, INT located_num);
 	void SendReady(INT sender);
 	void SendEnterFail();
 
@@ -186,7 +188,7 @@ public:
 	INT GetHostId(INT party_num);
 	std::shared_ptr<Party>& GetParty(INT party_num);
 
-	bool CreateParty(INT player_id);
+	bool CreateParty(INT party_num, INT player_id);
 	bool JoinParty(INT party_num, INT player_id);
 	void ExitParty(INT party_num, INT player_id);
 	void ChangeCharacter(INT party_num, INT player_id);
@@ -200,6 +202,8 @@ public:
 private:
 	INT FindEmptyParty();
 	void SendCreateOk(INT receiver);
+	void SendCreateFail(INT receiver);
+	void SendJoinFail(INT receiver);
 
 	INT GetStartNum(INT page);
 

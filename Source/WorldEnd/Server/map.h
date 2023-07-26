@@ -16,6 +16,7 @@ public:
 	void InteractObject(InteractionType type);
 	void StartBattle();
 	void WarpNextFloor(INT room_num);
+	void DungeonClear();
 
 	void SetType(EnvironmentType type) { m_type = type; }
 	bool SetPlayer(INT room_num, INT player_id);
@@ -33,7 +34,6 @@ public:
 	std::shared_ptr<BattleStarter> GetBattleStarter() const;
 	std::shared_ptr<WarpPortal> GetWarpPortal() const;
 	INT GetArrowId();
-	INT GetFloorCount() { return m_floor_cnt; }
 
 	void SendAddPlayer(INT sender, INT receiver);
 	void SendPlayerData();
@@ -50,6 +50,7 @@ public:
 
 	INT GenerateRandomRoom(std::set<INT>& history, INT min, INT max);
 
+	void Init();
 	void InitGameRoom(INT room_num);
 	void InitMonsters(INT room_num);
 	void InitEnvironment();
@@ -81,7 +82,6 @@ private:
 	std::mutex				m_state_lock;
 	INT						m_arrow_id;
 	std::mutex				m_arrow_lock;
-	INT                     m_floor_cnt;
 	//INT                     m_floor_cnt = 4;                       // 보스 방 치트
 };
 
@@ -117,7 +117,8 @@ public:
 	void InteractObject(INT room_num, InteractionType type);
 	void StartBattle(INT room_num);
 	void WarpNextFloor(INT room_num);
-
+	void DungeonClear(INT room_num);
+		
 	bool EnterGameRoom(const std::shared_ptr<Party>& party);
 	void RemovePlayer(INT player_id);
 	void RemoveMonster(INT monster_id);
