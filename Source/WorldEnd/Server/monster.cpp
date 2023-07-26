@@ -30,7 +30,8 @@ void Monster::Init()
 	m_last_behavior_id = 1;	// 0은 유효하지 않은 행동 id
 	m_room_num = -1;	// FREE 되자마자 몬스터 가져갈 시 
 						// 타이머 이벤트가 남아있을 수 있으므로 초기화
-	m_status->Init();
+
+	m_status->Init();		// 체력 초기화
 }
 
 void Monster::Update(FLOAT elapsed_time)
@@ -1164,7 +1165,7 @@ BossMonster::BossMonster()
 {
 	m_bounding_box.Center = XMFLOAT3(6.556f, 1.032f, 2.018f);
 	m_bounding_box.Extents = XMFLOAT3(1.648f, 2.214f, 2.018f);
-	m_status->SetMaxHp(3000.f);
+	m_status->SetMaxHp(300.f);
 	m_status->SetAtk(30.f);
 	m_attack_range = 5.f;
 	m_boundary_range = 4.f;
@@ -1421,6 +1422,10 @@ void BossMonster::DecreaseHp(FLOAT damage, INT id)
 		return;
 
 	bool death = m_status->CalculateHitDamage(damage);
+
+	if (-1 == id) {
+		return;
+	}
 	server.m_clients[id]->SetSaveDamage(0);
 
 	if (death) {

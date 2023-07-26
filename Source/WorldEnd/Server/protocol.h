@@ -72,6 +72,7 @@ constexpr char CS_PACKET_ENTER_VILLAGE = 17;
 
 constexpr char CS_PACKET_ENHANCE = 18;
 constexpr char CS_PACKET_CHNAGE_SKILL = 19;
+constexpr char CS_PACKET_DUNGEON_SCENE = 20;
 
 
 constexpr char SC_PACKET_LOGIN_FAIL = 0;
@@ -118,6 +119,8 @@ constexpr char SC_PACKET_PARTY_INFO = 36;			// 파티 ui 정보
 
 constexpr char SC_PACKET_SIGNIN_OK = 37;
 constexpr char SC_PACKET_SIGNIN_FAIL = 38;
+constexpr char SC_PACKET_ENHANCE_OK = 39;
+constexpr char SC_PACKET_DUNGEON_CLEAR = 40;
 
 
 enum class PlayerType : char { WARRIOR, ARCHER, COUNT };
@@ -140,7 +143,7 @@ enum class MonsterBehavior : char {
 	COUNT
 };
 enum InteractionType : char {
-	BATTLE_STARTER, PORTAL, ENHANCMENT, RECORD_BOARD, NONE
+	BATTLE_STARTER, PORTAL, ENHANCMENT, RECORD_BOARD, DUNGEON_CLEAR ,NONE
 };
 enum class EnhancementType : char {
 	HP, ATK, DEF,CRIT_RATE, CRIT_DAMAGE, COUNT
@@ -266,13 +269,21 @@ namespace PlayerSetting
 
 	constexpr float DEFAULT_HP = 100.0f;
 	constexpr float DEFAULT_ATK = 100.0f;
-	constexpr float DEFAULT_DEF = 30.0f;
+	constexpr float DEFAULT_DEF = 0.0f;
 	constexpr float DEFAULT_CRIT_RATE = 0.f;
 	constexpr float DEFAULT_CRIT_DAMAGE = 2.f;
 	constexpr int DEFAULT_ENHANCE_COST = 100;
 	constexpr int DEFAULT_NORMAL_SKILL_COST = 100;
 	constexpr int DEFAULT_ULTIMATE_COST = 300;
 	constexpr int MAX_ENHANCE_LEVEL = 20;
+
+	// 스탯 레벨 당 증가량
+	constexpr FLOAT HP_INCREASEMENT = 10.f;
+	constexpr FLOAT ATK_INCREASEMENT = 2.f;
+	constexpr FLOAT DEF_INCREASEMENT = 2.f;
+	constexpr FLOAT CRIT_RATE_INCREASEMENT = 1.f;
+	constexpr FLOAT CRIT_DAMAGE_INCREASEMENT = 1.f;
+	constexpr INT ENHANCE_INCREASEMENT = 10;
 
 	constexpr auto DASH_DURATION = 300ms;
 	constexpr float MAX_STAMINA = 120.f;
@@ -521,6 +532,12 @@ struct CS_CHANGE_SKILL_PACKET
 	PlayerType player_type;
 };
 
+struct CS_DUNGEON_SCENE_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+};
+
 ///////////////////////////////////////////////////////////////////////
 // 서버에서 클라로
 
@@ -757,6 +774,7 @@ struct SC_REMOVE_PARTY_MEMBER_PACKET
 	UCHAR size;
 	UCHAR type;
 	INT id;
+	UCHAR locate_num;		// 파티 ui 에서의 위치
 };
 
 struct SC_CHANGE_HOST_PACKET
@@ -807,6 +825,20 @@ struct SC_SIGNIN_OK_PACKET
 };
 
 struct SC_SIGNIN_FAIL_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+};
+
+struct SC_ENHANCE_OK_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+	EnhancementType enhancement_type;
+	UCHAR level;
+};
+
+struct SC_DUNGEON_CLEAR_PACKET
 {
 	UCHAR size;
 	UCHAR type;

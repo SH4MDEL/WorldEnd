@@ -45,6 +45,8 @@ Server::Server()
 	m_party_manager = std::make_unique <PartyManager>();
 
 	m_database = std::make_unique<DataBase>();
+	m_database->InitDataBase();
+
 
 	for (INT& id : m_player_ids)
 		id = -1;
@@ -318,7 +320,9 @@ void Server::WorkerThread()
 			for (int id : ids) {
 				if (-1 == id) continue;
 
-				m_clients[id]->DoSend(&packet);
+				auto client = std::dynamic_pointer_cast<Client>(m_clients[id]);
+				client->ChangeGold(reward);
+				client->DoSend(&packet);
 			}
 
 			{
@@ -419,7 +423,17 @@ void Server::WorkerThread()
 			damage *= client->GetSkillRatio(attack_type);
 
 
-			if (game_room->GetFloorCount() != 4) {
+			for (int id : monster_ids) {
+				if (-1 == id) continue;
+				if (State::INGAME != m_clients[id]->GetState()) continue;
+
+				if (m_clients[id]->GetBoundingBox().Intersects(obb)) {
+					auto monster = dynamic_pointer_cast<Monster>(m_clients[id]);
+					monster->DecreaseHp(damage, client->GetId());
+					v.push_back(id);
+				}
+			}
+			/*if (game_room->GetFloorCount() != 4) {
 				for (int id : monster_ids) {
 					if (-1 == id) continue;
 					if (State::INGAME != m_clients[id]->GetState()) continue;
@@ -442,7 +456,7 @@ void Server::WorkerThread()
 						v.push_back(id);
 					}
 				}
-			}
+			}*/
 
 			for (int monster_id : v) {
 				SendChangeHp(monster_id);
@@ -918,7 +932,7 @@ void Server::ProcessPacket(int id, char* p)
 			break;
 		case InteractionType::PORTAL:
 			client->SetInteractable(false);
-			m_game_room_manager->WarpNextFloor(m_clients[id]->GetRoomNum());
+			m_game_room_manager->WarpNextFloor(client->GetRoomNum());
 			SetWarpTimerEvent(id);
 			break;
 		case InteractionType::ENHANCMENT:
@@ -927,6 +941,10 @@ void Server::ProcessPacket(int id, char* p)
 		case InteractionType::RECORD_BOARD:
 
 			break;
+		case InteractionType::DUNGEON_CLEAR:
+			client->SetInteractable(false);
+			m_game_room_manager->DungeonClear(client->GetRoomNum());
+			break;
 		}
 
 		break;
@@ -934,27 +952,13 @@ void Server::ProcessPacket(int id, char* p)
 	case CS_PACKET_JOIN_PARTY: {
 		CS_JOIN_PARTY_PACKET* packet = reinterpret_cast<CS_JOIN_PARTY_PACKET*>(p);
 
-		if (!m_party_manager->JoinParty(packet->party_num, id)) {
-			SC_JOIN_FAIL_PACKET p{};
-			p.size = sizeof(p);
-			p.type = SC_PACKET_JOIN_FAIL;
-
-			m_clients[id]->DoSend(&p);
-		}
-
+		m_party_manager->JoinParty(packet->party_num, id);
 		break;
 	}
 	case CS_PACKET_CREATE_PARTY: {
 		CS_CREATE_PARTY_PACKET* packet = reinterpret_cast<CS_CREATE_PARTY_PACKET*>(p);
 
-		if (!m_party_manager->CreateParty(id)) {
-			SC_CREATE_FAIL_PACKET p{};
-			p.size = sizeof(p);
-			p.type = SC_PACKET_CREATE_FAIL;
-
-			m_clients[id]->DoSend(&p);
-		}
-
+		m_party_manager->CreateParty(packet->party_num, id);
 		break;
 	}
 	case CS_PACKET_EXIT_PARTY: {
@@ -988,10 +992,16 @@ void Server::ProcessPacket(int id, char* p)
 
 		party->SendEnterDungeon();
 
+		for (INT party_member : party->GetMembers()) {
+			for (INT& player_id : m_player_ids) {
+				if (party_member == player_id) {
+					player_id = -1;
+				}
+			}
+		}
+
 		m_game_room_manager->EnterGameRoom(party);
 
-		// 던전 내 모든 플레이어에게 보내야 함
-		m_game_room_manager->SendAddMonster(client->GetRoomNum());
 
 		break;
 	}
@@ -1042,19 +1052,16 @@ void Server::ProcessPacket(int id, char* p)
 
 		auto client = dynamic_pointer_cast<Client>(m_clients[id]);
 
-		if (PlayerSetting::DEFAULT_ENHANCE_COST > client->GetGold()) {
+		int cost{ client->GetCost(packet->enhancement_type) };
+
+		if (cost > client->GetGold()) {
 			break;
 		}
 
 		client->LevelUpEnhancement(packet->enhancement_type);
-		client->ChangeGold(-PlayerSetting::DEFAULT_ENHANCE_COST);
+		client->ChangeGold(-cost);
 
-		std::cout << "id : " << id << " 강화레벨" << std::endl;
-		std::cout << "hp : " << (int)client->GetHpLevel() << std::endl;
-		std::cout << "atk : " << (int)client->GetAtkLevel() << std::endl;
-		std::cout << "def : " << (int)client->GetDefLevel() << std::endl;
-		std::cout << "crit_rate : " << (int)client->GetCritRateLevel() << std::endl;
-		std::cout << "crit_damage : " << (int)client->GetCritDamageLevel() << std::endl;
+		SendEnhanceOk(id, packet->enhancement_type);
 
 		break;
 	}
@@ -1083,7 +1090,33 @@ void Server::ProcessPacket(int id, char* p)
 
 		break;
 	}
+	case CS_PACKET_DUNGEON_SCENE: {		// 타워 씬으로 전환했음을 받고 플레이어, 몬스터를 ADD
+		CS_DUNGEON_SCENE_PACKET* packet = reinterpret_cast<CS_DUNGEON_SCENE_PACKET*>(p);
 
+		auto client = dynamic_pointer_cast<Client>(m_clients[id]);
+
+		int room_num = client->GetRoomNum();
+		if (-1 == room_num) {
+			break;
+		}
+
+		auto& ids = m_game_room_manager->GetGameRoom(room_num)->GetPlayerIds();
+
+		// Add Player
+		for (INT player_id : ids) {
+			if (-1 == player_id) continue;
+			if (id == player_id) continue;
+
+			// 다른 플레이어 정보를 씬 전환이 된 플레이어에게 전송
+			SendAddPlayer(player_id, id);
+		}
+
+		// Add Monster
+		m_game_room_manager->SendAddMonster(client->GetRoomNum(), id);
+
+
+		break;
+	}
 
 	}
 }
@@ -1102,6 +1135,13 @@ void Server::Disconnect(int id)
 	else {
 		// 마을 내 플레이어 제거
 
+
+		// 마을에 있다는 내용을 날림
+		for (INT& player_id : m_player_ids) {
+			if (player_id == id) {
+				player_id = -1;
+			}
+		}
 
 		// 파티 UI 보고 있었다면 함수 내부에서 지움
 		m_party_manager->ClosePartyUI(id);
@@ -1390,11 +1430,43 @@ void Server::SendMovePlayer(int client_id, int move_object)
 {
 	SC_UPDATE_CLIENT_PACKET packet;
 
-	packet.size = sizeof(SC_UPDATE_CLIENT_PACKET);
+	packet.size = sizeof(packet);
 	packet.type = SC_PACKET_UPDATE_CLIENT;
 	packet.id = move_object;
 	packet.pos = m_clients[move_object]->GetPosition();
 	packet.yaw = m_clients[move_object]->GetYaw();
+
+	m_clients[client_id]->DoSend(&packet);
+}
+
+void Server::SendEnhanceOk(int client_id, EnhancementType type)
+{
+	auto client = std::dynamic_pointer_cast<Client>(m_clients[client_id]);
+
+	SC_ENHANCE_OK_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = SC_PACKET_ENHANCE_OK;
+	packet.enhancement_type = type;
+
+	int level{};
+	switch (type) {
+	case EnhancementType::HP:
+		level = client->GetHpLevel();
+		break;
+	case EnhancementType::ATK:
+		level = client->GetAtkLevel();
+		break;
+	case EnhancementType::DEF:
+		level = client->GetDefLevel();
+		break;
+	case EnhancementType::CRIT_RATE:
+		level = client->GetCritRateLevel();
+		break;
+	case EnhancementType::CRIT_DAMAGE:
+		level = client->GetCritDamageLevel();
+		break;
+	}
+	packet.level = level;
 
 	m_clients[client_id]->DoSend(&packet);
 }

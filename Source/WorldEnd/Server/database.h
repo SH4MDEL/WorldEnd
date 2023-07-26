@@ -93,6 +93,7 @@ public:
 	DataBase();
 	~DataBase();
 
+	void InitDataBase();
 	bool TryLogin(const USER_INFO& user_info, PLAYER_DATA& player_data);
 	bool SaveUserData(const PLAYER_DATA& data);
 	bool CreateAccount(const USER_INFO& user_info);

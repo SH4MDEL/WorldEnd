@@ -85,6 +85,7 @@ public:
 	void SendMagicCircle(int room_num, const XMFLOAT3& pos, const XMFLOAT3& extent);
 	void SendAddPlayer(int sender, int receiver);
 	void SendMovePlayer(int client_id, int move_object);
+	void SendEnhanceOk(int client_id, EnhancementType type);
 
 	// 기타 처리
 	bool IsPlayer(int client_id); 

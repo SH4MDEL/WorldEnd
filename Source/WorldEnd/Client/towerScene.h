@@ -90,7 +90,6 @@ public:
     // 서버 추가 코드
 	void SendPlayerData();
 	void ProcessPacket(char* ptr);
-	void RecvLoginOk(char* ptr);
 	void RecvAddPlayer(char* ptr);
 	void RecvRemovePlayer(char* ptr);
 	void RecvRemoveMonster(char* ptr);
@@ -112,6 +111,7 @@ public:
 	void RecvChangeHp(char* ptr);
 	void RecvAddTrigger(char* ptr);
 	void RecvAddMagicCircle(char* ptr);
+	void RecvDungeonClear(char* ptr);
 
 private:
 	void BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist);

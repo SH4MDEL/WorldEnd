@@ -91,13 +91,17 @@ public:
 	void RecvCreateOk(char* ptr);
 	void RecvCreateFail(char* ptr);
 	void RecvAddPartyMember(char* ptr);
+	void RecvRemovePartyMember(char* ptr);
 	void RecvEnterDungeon(char* ptr);
+	void RecvEnhanceOk(char* ptr);
+	void RecvResetCooldown(char* ptr);
 
 	void SendChangePage();
 	void SendOpenPartyUI();
 	void SendClosePartyUI();
 	void SendCreateParty();
 	void SendJoinParty();
+	void SendExitParty();
 	void SendEnhancement(EnhancementType type);
 	void SendChangeSkill(USHORT skillType, USHORT changedType);
 	void SendEnterDungeon();

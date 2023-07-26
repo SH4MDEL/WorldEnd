@@ -46,32 +46,32 @@ void Status::SetCritDamage(FLOAT value)
 void Status::SetHpLevel(UCHAR level)
 {
 	m_hp_level = level;
-	m_max_hp = PlayerSetting::DEFAULT_HP + 10 * level;
+	m_max_hp = PlayerSetting::DEFAULT_HP + PlayerSetting::HP_INCREASEMENT * level;
 	m_hp = m_max_hp;
 }
 
 void Status::SetAtkLevel(UCHAR level)
 {
 	m_atk_level = level;
-	m_atk = PlayerSetting::DEFAULT_ATK + 2 * level;
+	m_atk = PlayerSetting::DEFAULT_ATK + PlayerSetting::ATK_INCREASEMENT * level;
 }
 
 void Status::SetDefLevel(UCHAR level)
 {
 	m_def_level = level;
-	m_def = PlayerSetting::DEFAULT_DEF + 2 * level;
+	m_def = PlayerSetting::DEFAULT_DEF + PlayerSetting::DEF_INCREASEMENT * level;
 }
 
 void Status::SetCritRateLevel(UCHAR level)
 {
 	m_crit_rate_level = level;
-	m_crit_rate = PlayerSetting::DEFAULT_CRIT_RATE + 1.f * level;
+	m_crit_rate = PlayerSetting::DEFAULT_CRIT_RATE + PlayerSetting::CRIT_RATE_INCREASEMENT * level;
 }
 
 void Status::SetCritDamageLevel(UCHAR level)
 {
 	m_crit_damage_level = level;
-	m_crit_damage = PlayerSetting::DEFAULT_CRIT_DAMAGE + 1.f * level;
+	m_crit_damage = PlayerSetting::DEFAULT_CRIT_DAMAGE + PlayerSetting::CRIT_DAMAGE_INCREASEMENT * level;
 }
 
 FLOAT Status::CalculateDamage()
@@ -85,8 +85,12 @@ FLOAT Status::CalculateDamage()
 
 bool Status::CalculateHitDamage(FLOAT damage)
 {
-	m_hp -= (damage - m_def);
+	FLOAT result_damage{ damage - m_def };
+	if (result_damage <= 0.f)
+		result_damage = 1.0f;
 
+	m_hp -= result_damage;
+	
 	if (m_hp <= 0.f) {
 		m_hp = 0.f;
 		return true;
