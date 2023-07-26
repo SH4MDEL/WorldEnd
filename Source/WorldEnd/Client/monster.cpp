@@ -2,8 +2,15 @@
 
 Monster::Monster() : m_hp{ 200.f }, m_maxHp{ 200.f }, m_enable{ false }
 {
-	m_boundingBox.Center = XMFLOAT3(0.028f, 1.27f, 0.f);
-	m_boundingBox.Extents = XMFLOAT3(0.8f, 1.3f, 0.6f);
+	if (GetType() == MonsterType::BOSS) {
+		m_boundingBox.Center = XMFLOAT3(6.556f, 1.032f, 2.018f);
+		m_boundingBox.Extents = XMFLOAT3(1.648f, 2.214f, 2.018f);
+	}
+	else {
+		m_boundingBox.Center = XMFLOAT3(0.028f, 1.27f, 0.f);
+		m_boundingBox.Extents = XMFLOAT3(0.8f, 1.3f, 0.6f);
+	}
+
 	m_boundingBox.Orientation = XMFLOAT4(0.f, 0.f, 0.f, 1.f);
 }
 
@@ -64,6 +71,8 @@ void Monster::ChangeAnimation(USHORT animation, bool doSend)
 	m_animationController->SetTrackSpeed(0, 1.f);
 	switch (animation) {
 	case ObjectAnimation::IDLE:
+		if(GetType() == MonsterType::BOSS)
+			m_boundingBox.Extents = XMFLOAT3(1.648f, 2.214f, 2.018f);
 		ChangeAnimationSettings(AnimationBlending::BLENDING, ANIMATION_TYPE_LOOP,
 			ANIMATION_TYPE_LOOP, m_currentAnimation);
 		break;
@@ -142,8 +151,6 @@ void Monster::ChangeAnimation(USHORT animation, bool doSend)
 			ANIMATION_TYPE_LOOP, m_currentAnimation);
 		break;
 	case BossMonsterAnimation::PREPARE_WIDE_SKILL:
-	case BossMonsterAnimation::WIDE_SKILL:
-	case BossMonsterAnimation::RUCH_SKILL:
 	case BossMonsterAnimation::ENHANCE_WIDE_SKILL:
 	case BossMonsterAnimation::ULTIMATE_SKILL:
 	case BossMonsterAnimation::ENHANCE:
@@ -154,6 +161,17 @@ void Monster::ChangeAnimation(USHORT animation, bool doSend)
 	case BossMonsterAnimation::NORMAL_ATTACK:
 		start_num = BossMonsterAnimation::ANIMATION_START;
 		ChangeAnimationSettings(AnimationBlending::NORMAL, ANIMATION_TYPE_ONCE,
+			ANIMATION_TYPE_LOOP, m_currentAnimation);
+		break;
+	case BossMonsterAnimation::ENHANCE_RUN:
+		start_num = BossMonsterAnimation::ANIMATION_START;
+		ChangeAnimationSettings(AnimationBlending::BLENDING, ANIMATION_TYPE_LOOP,
+			ANIMATION_TYPE_LOOP, m_currentAnimation);
+		break;
+	case BossMonsterAnimation::WIDE_SKILL:
+		m_boundingBox.Extents = XMFLOAT3(3.648f, 2.214f, 4.018f);
+		start_num = BossMonsterAnimation::ANIMATION_START;
+		ChangeAnimationSettings(AnimationBlending::BLENDING, ANIMATION_TYPE_LOOP,
 			ANIMATION_TYPE_LOOP, m_currentAnimation);
 		break;
 	/*case BossMonsterAnimation::DASH:

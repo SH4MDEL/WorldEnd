@@ -506,11 +506,6 @@ void Server::WorkerThread()
 					obb.Center = Vector3::Add(*pos, Vector3::Mul(temp, 2.0f));
 					obb.Extents = XMFLOAT3{ 1.7f, 1.7f, 1.7f };
 				}
-				else if (monster->GetBehavior() == MonsterBehavior::RUCH_SKILL) {
-					XMFLOAT3 temp = Vector3::Normalize(Vector3::Sub(*pos, monster->GetPosition()));
-					obb.Center = Vector3::Add(*pos, Vector3::Mul(temp, 2.0f));
-					obb.Extents = XMFLOAT3{ 0.8f, 0.8f, 0.8f };
-				}
 				else if (monster->GetBehavior() == MonsterBehavior::ULTIMATE_SKILL) {
 					XMFLOAT3 temp = Vector3::Normalize(Vector3::Sub(*pos, monster->GetPosition()));
 					obb.Center = Vector3::Add(*pos, Vector3::Mul(temp, 1.5f));
@@ -1537,7 +1532,6 @@ void Server::Move(const std::shared_ptr<Client>& client, XMFLOAT3 position, int 
 		// 마을 위치 갱신
 		client->SetTownPosition(position);
 
-
 		for (auto id : m_player_ids) {
 			if (-1 == id) continue;
 			if (id == cleint_id) continue;
@@ -1808,7 +1802,7 @@ void Server::ProcessTimerEvent(const TIMER_EVENT& ev)
 			m_timer_queue.push(trigger_ev);
 		}
 		else if (MonsterBehavior::WIDE_SKILL == ev.next_behavior_type || MonsterBehavior::ENHANCE_WIDE_SKILL == ev.next_behavior_type ||
-			     MonsterBehavior::RUCH_SKILL == ev.next_behavior_type) {
+			     MonsterBehavior::ENHANCE_RUN == ev.next_behavior_type) {
 			TIMER_EVENT attack_ev{ .event_time = system_clock::now() + MonsterSetting::ATK_COLLISION_TIME[static_cast<int>(monster->GetMonsterType())],
 					.obj_id = ev.obj_id, .target_id = monster->GetRoomNum(),
 					.position = Vector3::Add(monster->GetPosition(), monster->GetFront()),

@@ -402,7 +402,7 @@ void Monster::ChasePlayer(FLOAT elapsed_time)
 		return;
 
 	if (m_monster_type == MonsterType::BOSS) {
-		if(!(m_status->GetHp() <= m_status->GetMaxHp() / 2.5))
+		if(!(m_status->GetHp() <= m_status->GetMaxHp() / 1.6))
 			UpdatePosition(player_dir, elapsed_time, MonsterSetting::BOSD_RUN_SPEED);
 		else
 			UpdatePosition(player_dir, elapsed_time, MonsterSetting::BOSD_DASH_SPEED);
@@ -1190,18 +1190,18 @@ void BossMonster::Update(FLOAT elapsed_time)
 		m_pl_random_id.push_back(id);
 	}
 
-	if (!(m_status->GetHp() <= m_status->GetMaxHp() / 2.5)) {                               // 일반 상태
+	if (!(m_status->GetHp() <= m_status->GetMaxHp() / 1.6)) {                               // 일반 상태
 		if (CanSwapAttackBehavior()) {                                                      // 경계 범위 내에 들어오면 일반 공격
 			if (IsInRange(m_boundary_range) && m_behavior_cnt == 0) {
 				ChangeBehavior(MonsterBehavior::PREPARE_NORMAL_ATTACK);
 				RandomTarget();
-				m_status->SetAtk(40.f);
+				m_status->SetAtk(30.f);
 				m_behavior_cnt++;
 			}
 			else if (IsInRange(m_attack_range) && m_behavior_cnt == 1) {                    // 공격 범위 내에 들어오면 스킬 공격
 				ChangeBehavior(MonsterBehavior::PREPARE_WIDE_SKILL);
 				RandomTarget();
-				m_status->SetAtk(30.f);
+				m_status->SetAtk(40.f);
 				m_behavior_cnt = 0;
 			}
 		}
@@ -1211,27 +1211,21 @@ void BossMonster::Update(FLOAT elapsed_time)
 			if (IsInRange(m_boundary_range) && m_enhance_behavior_cnt == 0) {
 				ChangeBehavior(MonsterBehavior::PREPARE_ATTACK);
 				PlayerHighestDamageTarget();
-				m_status->SetAtk(45.f);
+				m_status->SetAtk(35.f);
 				m_attack_range = 5.f;
 				m_enhance_behavior_cnt++;
 			}
 			else if (IsInRange(m_attack_range) && m_enhance_behavior_cnt == 1) {                    // 공격 범위 내에 들어오면 강화된 스킬 공격
 				ChangeBehavior(MonsterBehavior::PREPARE_ENHANCE_WIDE_SKILL);
 				PlayerHighestDamageTarget();
-				m_status->SetAtk(55.f);
-				m_enhance_behavior_cnt++;
-			}
-			else if (IsInRange(m_attack_range) && m_enhance_behavior_cnt == 2) {                    // 공격 범위 내에 들어오면 돌진 스킬 공격
-				ChangeBehavior(MonsterBehavior::PREPARE_RUCH_SKILL);
-				PlayerHighestDamageTarget();
-				m_status->SetAtk(30.f);
+				m_status->SetAtk(45.f);
 				m_attack_range = 3.f;
 				m_enhance_behavior_cnt++;
 			}
-			else if (IsInRange(m_attack_range) && m_enhance_behavior_cnt == 3) {                    // 공격 범위 내에 들어오면 필살기 스킬 공격
+			else if (IsInRange(m_attack_range) && m_enhance_behavior_cnt == 2) {                    // 공격 범위 내에 들어오면 필살기 스킬 공격
 				ChangeBehavior(MonsterBehavior::PREPARE_ULTIMATE_SKILL);
 				PlayerHighestDamageTarget();
-				m_status->SetAtk(35.f);
+				m_status->SetAtk(55.f);
 				m_enhance_behavior_cnt = 0;
 			}
 		}
@@ -1252,7 +1246,7 @@ MonsterBehavior BossMonster::SetNextBehavior(MonsterBehavior behavior)
 	MonsterBehavior temp{};
 	switch (behavior) {
 	case MonsterBehavior::CHASE:{
-		if ((m_status->GetHp() <= m_status->GetMaxHp() / 2.5) && m_enhance_check == true) {
+		if ((m_status->GetHp() <= m_status->GetMaxHp() / 1.6) && m_enhance_check == true) {
 			ChangeBehavior(MonsterBehavior::ENHANCE);
 			m_enhance_check = false;
 		}
@@ -1286,10 +1280,7 @@ MonsterBehavior BossMonster::SetNextBehavior(MonsterBehavior behavior)
 	case MonsterBehavior::ENHANCE_WIDE_SKILL:
 		temp = MonsterBehavior::DELAY;
 		break;
-	case MonsterBehavior::PREPARE_RUCH_SKILL:
-		temp = MonsterBehavior::RUCH_SKILL;
-		break;
-	case MonsterBehavior::RUCH_SKILL:
+	case MonsterBehavior::ENHANCE_RUN:
 		temp = MonsterBehavior::DELAY;
 		break;
 	case MonsterBehavior::PREPARE_ULTIMATE_SKILL:
@@ -1316,7 +1307,10 @@ void BossMonster::SetBehaviorAnimation(MonsterBehavior behavior)
 {
 	switch (behavior) {
 	case MonsterBehavior::CHASE:
-		m_current_animation = BossMonsterAnimation::RUN;
+		if ((m_status->GetHp() <= m_status->GetMaxHp() / 1.6))
+			m_current_animation = BossMonsterAnimation::ENHANCE_RUN;
+		else
+			m_current_animation = BossMonsterAnimation::RUN;
 		break;
 	case MonsterBehavior::PREPARE_ATTACK:
 		m_current_animation = BossMonsterAnimation::IDLE;               // 이때 Idle01 애니메이션 넣으면 될듯
@@ -1345,11 +1339,8 @@ void BossMonster::SetBehaviorAnimation(MonsterBehavior behavior)
 	case MonsterBehavior::ENHANCE_WIDE_SKILL:
 		m_current_animation = BossMonsterAnimation::ENHANCE_WIDE_SKILL;
 		break;
-	case MonsterBehavior::PREPARE_RUCH_SKILL:
-		m_current_animation = BossMonsterAnimation::IDLE;
-		break;
-	case MonsterBehavior::RUCH_SKILL:
-		m_current_animation = BossMonsterAnimation::RUCH_SKILL;
+	case MonsterBehavior::ENHANCE_RUN:
+		m_current_animation = BossMonsterAnimation::ENHANCE_RUN;
 		break;
 	case MonsterBehavior::PREPARE_ULTIMATE_SKILL:
 		m_current_animation = BossMonsterAnimation::IDLE;
@@ -1403,10 +1394,7 @@ std::chrono::milliseconds BossMonster::SetBehaviorTime(MonsterBehavior behavior)
 	case MonsterBehavior::ENHANCE_WIDE_SKILL:
 		time = 1066ms;
 		break;
-	case MonsterBehavior::PREPARE_RUCH_SKILL:
-		time = 400ms;
-		break;
-	case MonsterBehavior::RUCH_SKILL:
+	case MonsterBehavior::ENHANCE_RUN:
 		time = 700ms;
 		break;
 	case MonsterBehavior::PREPARE_ULTIMATE_SKILL:
@@ -1416,7 +1404,7 @@ std::chrono::milliseconds BossMonster::SetBehaviorTime(MonsterBehavior behavior)
 		time = 2066ms;
 		break;
 	case MonsterBehavior::DELAY:
-		time = 1900ms;
+		time = 900ms;
 		break;
 	case MonsterBehavior::DEATH:
 		time = 2233ms;
@@ -1483,7 +1471,7 @@ void BossMonster::PlayerHighestDamageTarget()
 {
 	INT pl_highest_damage_id{};
 
-	if (m_status->GetHp() <= m_status->GetMaxHp() / 2.5) {
+	if (m_status->GetHp() <= m_status->GetMaxHp() / 1.6) {
 		pl_highest_damage_id = GetPlayerHighestDamage();
 		SetTarget(pl_highest_damage_id);
 		//std::cout << "변경된 플레이어 id - " << pl_highest_damage_id << std::endl;

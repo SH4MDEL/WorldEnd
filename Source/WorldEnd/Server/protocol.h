@@ -135,7 +135,7 @@ enum class MonsterBehavior : char {
 	DASH, PREPARE_WIDE_SKILL, WIDE_SKILL, ENHANCE,                           // 보스 몬스터
 	PREPARE_NORMAL_ATTACK, NORMAL_ATTACK,                              // 보스 몬스터
 	PREPARE_ENHANCE_WIDE_SKILL, ENHANCE_WIDE_SKILL,                    // 보스 몬스터
-	PREPARE_RUCH_SKILL, RUCH_SKILL,                                    // 보스 몬스터
+	ENHANCE_RUN,                                                       // 보스 몬스터
 	PREPARE_ULTIMATE_SKILL, ULTIMATE_SKILL,                            // 보스 몬스터
 	COUNT
 };
@@ -214,7 +214,7 @@ public:
 	static constexpr int ANIMATION_START = 600;
 	enum USHORT {
 		PREPARE_WIDE_SKILL = ObjectAnimation::END + ANIMATION_START,
-		NORMAL_ATTACK, RUCH_SKILL, WIDE_SKILL, ENHANCE_WIDE_SKILL, ULTIMATE_SKILL, ENHANCE
+		NORMAL_ATTACK, ENHANCE_RUN, WIDE_SKILL, ENHANCE_WIDE_SKILL, ULTIMATE_SKILL, ENHANCE
 	};
 };
 

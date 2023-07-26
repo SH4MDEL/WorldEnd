@@ -277,13 +277,13 @@ void TowerScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 		m_shaders["UI"]->SetUI(m_hpUI[i]);
 	}
 
-	m_bossHpUI = make_shared<HorzGaugeUI>(XMFLOAT2{ 0.f, 0.8f, }, XMFLOAT2{ 0.42f, 0.05f }, 0.023f);
+	m_bossHpUI = make_shared<HorzGaugeUI>(XMFLOAT2{ 0.f, 0.95f, }, XMFLOAT2{ 0.63f, 0.02f }, 0.023f);
 	m_bossHpUI->SetTexture("BOSSHPBAR");
 	m_bossHpUI->SetMaxGauge(100.f);
 	m_bossHpUI->SetDisable();
 	m_shaders["UI"]->SetUI(m_bossHpUI);
 
-	m_bossIconUI = make_shared<ImageUI>(XMFLOAT2{ -0.43f, 0.8f, }, XMFLOAT2{ 0.08f, 0.08f });
+	m_bossIconUI = make_shared<ImageUI>(XMFLOAT2{ -0.39f, 0.91f, }, XMFLOAT2{ 0.08f, 0.08f });
 	m_bossIconUI->SetTexture("BOSSICON");
 	m_bossIconUI->SetDisable();
 	m_shaders["UI"]->SetUI(m_bossIconUI);
@@ -1512,7 +1512,7 @@ void TowerScene::CollideWithObject()
 		}
 	}
 
-	for (const auto& elm : m_multiPlayers) {
+	for (const auto& elm : m_monsters) {
 		if (elm.second) {
 			if (boundingBox.Intersects(elm.second->GetBoundingBox())) {
 				CollideByStatic(m_player, elm.second);
