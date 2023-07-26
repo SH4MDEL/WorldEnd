@@ -86,6 +86,7 @@ public:
 	void SendAddPlayer(int sender, int receiver);
 	void SendMovePlayer(int client_id, int move_object);
 	void SendEnhanceOk(int client_id, EnhancementType type);
+	void SendChangeCharacter(int client_id, PlayerType type);
 
 	// 기타 처리
 	bool IsPlayer(int client_id); 

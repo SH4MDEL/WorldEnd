@@ -974,7 +974,8 @@ void Server::ProcessPacket(int id, char* p)
 
 		auto client = dynamic_pointer_cast<Client>(m_clients[id]);
 		client->SetPlayerType(packet->player_type);
-		m_party_manager->ChangeCharacter(client->GetPartyNum(), id);
+		
+		SendChangeCharacter(id, packet->player_type);
 		break;
 	}
 	case CS_PACKET_READY: {
@@ -1118,6 +1119,7 @@ void Server::ProcessPacket(int id, char* p)
 		break;
 	}
 
+
 	}
 }
 
@@ -1134,12 +1136,20 @@ void Server::Disconnect(int id)
 	}
 	else {
 		// 마을 내 플레이어 제거
+		SC_REMOVE_PLAYER_PACKET packet{};
+		packet.size = sizeof(packet);
+		packet.type = SC_PACKET_REMOVE_PLAYER;
+		packet.id = id;
 
 
-		// 마을에 있다는 내용을 날림
+		// 마을에 있다는 내용을 날리고 나머지 플레이어들에게 remove
 		for (INT& player_id : m_player_ids) {
 			if (player_id == id) {
 				player_id = -1;
+			}
+			if (-1 == player_id) continue;
+			else {
+				m_clients[player_id]->DoSend(&packet);
 			}
 		}
 
@@ -1469,6 +1479,22 @@ void Server::SendEnhanceOk(int client_id, EnhancementType type)
 	packet.level = level;
 
 	m_clients[client_id]->DoSend(&packet);
+}
+
+void Server::SendChangeCharacter(int client_id, PlayerType type)
+{
+	SC_CHANGE_CHARACTER_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = SC_PACKET_CHANGE_CHARACTER;
+	packet.id = client_id;
+	packet.player_type = type;
+
+	for (INT id : m_player_ids) {
+		if (-1 == id) continue;
+		if (client_id == id) continue;
+
+		m_clients[id]->DoSend(&packet);
+	}
 }
 
 bool Server::IsPlayer(int client_id)
@@ -2094,7 +2120,7 @@ void Server::DBThread()
 						client->SetName(data.name);
 						client->SetPlayerType(static_cast<PlayerType>(data.player_type));
 						client->SetPosition(data.x, data.y, data.z);
-
+						client->SetTownPosition(data.x, data.y, data.z);
 
 						// 골드정보 Set
 						client->SetGold(data.gold);

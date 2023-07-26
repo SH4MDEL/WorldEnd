@@ -259,6 +259,11 @@ void Client::SetTownPosition(const XMFLOAT3& position)
 	m_town_position = position;
 }
 
+void Client::SetTownPosition(FLOAT x, FLOAT y, FLOAT z)
+{
+	SetTownPosition(XMFLOAT3{ x, y, z });
+}
+
 FLOAT Client::GetSkillRatio(ActionType type) const
 {
 	FLOAT ratio{};

@@ -63,6 +63,7 @@ public:
 	void SetInvincibleRoll(bool invincible_roll) { m_invincible_roll = invincible_roll; }
 	void SetViewList(int data) { m_view_list.insert(data);}
 	void SetTownPosition(const XMFLOAT3& position);
+	void SetTownPosition(FLOAT x, FLOAT y, FLOAT z);
 
 	const SOCKET& GetSocket() const override { return m_socket; }
 	ExpOver& GetExpOver() { return m_recv_over; }

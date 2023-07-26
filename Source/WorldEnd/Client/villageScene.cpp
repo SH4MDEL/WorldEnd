@@ -1113,6 +1113,9 @@ void VillageScene::ProcessPacket(char* ptr)
 	case SC_PACKET_RESET_COOLDOWN:
 		RecvResetCooldown(ptr);
 		break;
+	case SC_PACKET_CHANGE_CHARACTER:
+		RecvChangeCharacter(ptr);
+		break;
 	/*default:
 		cout << "UnDefined Packet : " << (int)ptr[1] << endl;
 		break;*/
@@ -1142,20 +1145,19 @@ void VillageScene::RecvAddPlayer(char* ptr)
 {
 	SC_ADD_PLAYER_PACKET* packet = reinterpret_cast<SC_ADD_PLAYER_PACKET*>(ptr);
 
-	INT id = packet->id;
-
 	auto multiPlayer = make_shared<Player>();
 	multiPlayer->SetType(packet->player_type);
+	multiPlayer->SetId(packet->id);
 	LoadPlayerFromFile(multiPlayer);
 
 	// 멀티플레이어 설정
 	multiPlayer->SetPosition(packet->pos);
 	multiPlayer->SetHp(packet->hp);
 
-	m_multiPlayers.insert({ id, multiPlayer });
+	m_multiPlayers.insert({ packet->id, multiPlayer });
 
-	m_shaders["ANIMATION"]->SetMultiPlayer(id, multiPlayer);
-	cout << "add player village scene" << id << endl;
+	m_shaders["ANIMATION"]->SetMultiPlayer(packet->id, multiPlayer);
+	cout << "add player village scene" << packet->id << endl;
 }
 
 void VillageScene::RecvUpdateClient(char* ptr)
@@ -1179,6 +1181,12 @@ void VillageScene::RecvUpdateClient(char* ptr)
 
 void VillageScene::RecvRemovePlayer(char* ptr)
 {
+	SC_REMOVE_PLAYER_PACKET* packet = reinterpret_cast<SC_REMOVE_PLAYER_PACKET*>(ptr);
+
+	if (!m_multiPlayers.contains(packet->id))
+		return;
+
+	m_multiPlayers.erase(packet->id);
 }
 
 void VillageScene::RecvChangeAnimation(char* ptr)
@@ -1319,6 +1327,16 @@ void VillageScene::RecvResetCooldown(char* ptr)
 	m_player->ResetCooldown(packet->cooldown_type);
 }
 
+void VillageScene::RecvChangeCharacter(char* ptr)
+{
+	SC_CHANGE_CHARACTER_PACKET* packet = reinterpret_cast<SC_CHANGE_CHARACTER_PACKET*>(ptr);
+
+	if (!m_multiPlayers.contains(packet->id))
+		return;
+
+	ChangeCharacter(packet->player_type, m_multiPlayers[packet->id]);
+}
+
 void VillageScene::SendChangePage()
 {
 #ifdef USE_NETWORK
@@ -1416,6 +1434,17 @@ void VillageScene::SendEnterDungeon()
 	CS_ENTER_DUNGEON_PACKET packet{};
 	packet.size = sizeof(packet);
 	packet.type = CS_PACKET_ENTER_DUNGEON;
+	send(g_socket, reinterpret_cast<char*>(&packet), sizeof(packet), 0);
+#endif
+}
+
+void VillageScene::SendChangeCharacter(PlayerType type)
+{
+#ifdef USE_NETWORK
+	CS_CHANGE_CHARACTER_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = CS_PACKET_CHANGE_CHARACTER;
+	packet.player_type = type;
 	send(g_socket, reinterpret_cast<char*>(&packet), sizeof(packet), 0);
 #endif
 }
@@ -2141,29 +2170,45 @@ bool VillageScene::MoveOnStairs()
 
 void VillageScene::ChangeCharacter(PlayerType type, shared_ptr<Player>& player)
 {
-	if (g_playerInfo.playerType == type) return;
-	g_playerInfo.playerType = type;
+	if (player->GetId() == g_playerInfo.id) {
+		if (g_playerInfo.playerType == type) return;
+		g_playerInfo.playerType = type;
 
-	auto id = player->GetId();
-	auto position = player->GetPosition();
+		auto id = player->GetId();
+		auto position = player->GetPosition();
 
-	player = make_shared<Player>();
-	player->SetType(g_playerInfo.playerType);
-	player->SetId(g_playerInfo.id);
-	LoadPlayerFromFile(player);
+		player = make_shared<Player>();
+		player->SetType(type);
+		player->SetId(id);
+		LoadPlayerFromFile(player);
 
-	m_shaders["ANIMATION"]->SetPlayer(player);
-	player->SetPosition(position);
+		m_shaders["ANIMATION"]->SetPlayer(player);
+		player->SetPosition(position);
 
-	m_camera->SetPlayer(player);
-	player->SetCamera(m_camera);
+		m_camera->SetPlayer(player);
+		player->SetCamera(m_camera);
 
-	SetSkillSettingUI(g_playerInfo.playerType);
-	SetSkillUI();
+		SetSkillSettingUI(g_playerInfo.playerType);
+		SetSkillUI();
 
-	m_player->SetSkillGauge(m_skillUI);
-	m_player->SetUltimateGauge(m_ultimateUI);
-	m_player->ResetAllCooldown();
+		m_player->SetSkillGauge(m_skillUI);
+		m_player->SetUltimateGauge(m_ultimateUI);
+		m_player->ResetAllCooldown();
+
+		SendChangeCharacter(type);
+	}
+	else {
+		auto id = player->GetId();
+		auto position = player->GetPosition();
+
+		player = make_shared<Player>();
+		player->SetType(type);
+		player->SetId(id);
+		LoadPlayerFromFile(player);
+
+		m_shaders["ANIMATION"]->SetMultiPlayer(id, player);
+		player->SetPosition(position);
+	}
 }
 
 void VillageScene::SetSkillSettingUI(PlayerType type)

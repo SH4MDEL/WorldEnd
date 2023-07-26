@@ -95,6 +95,7 @@ public:
 	void RecvEnterDungeon(char* ptr);
 	void RecvEnhanceOk(char* ptr);
 	void RecvResetCooldown(char* ptr);
+	void RecvChangeCharacter(char* ptr);
 
 	void SendChangePage();
 	void SendOpenPartyUI();
@@ -105,6 +106,7 @@ public:
 	void SendEnhancement(EnhancementType type);
 	void SendChangeSkill(USHORT skillType, USHORT changedType);
 	void SendEnterDungeon();
+	void SendChangeCharacter(PlayerType type);
 
 private:
 	inline void BuildUI();

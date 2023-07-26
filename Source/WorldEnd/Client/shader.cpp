@@ -135,7 +135,8 @@ void Shader::SetObject(const shared_ptr<GameObject>& object)
 
 void Shader::SetMultiPlayer(INT ID, const shared_ptr<Player>& player)
 {
-	m_multiPlayers.insert({ ID, player });
+	//m_multiPlayers.insert({ ID, player });
+	m_multiPlayers[ID] = player;
 }
 
 void Shader::SetMonster(INT ID, const shared_ptr<Monster>& monster)
