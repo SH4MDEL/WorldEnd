@@ -1107,6 +1107,7 @@ void TowerScene::RecvRemovePlayer(char* ptr)
 void TowerScene::RecvRemoveMonster(char* ptr)
 {
 	SC_REMOVE_MONSTER_PACKET* packet = reinterpret_cast<SC_REMOVE_MONSTER_PACKET*>(ptr);
+	
 	if (!m_monsters.contains(packet->id))
 		return;
 	
@@ -1213,6 +1214,12 @@ void TowerScene::RecvClearFloor(char* ptr)
 	m_resultRewardTextUI->SetText(to_wstring(packet->reward));
 	SetState(State::OutputResult);
 	m_resultUI->SetEnable();
+
+	if (-1 != m_bossId) {
+		m_bossHpUI->SetDisable();
+		m_bossIconUI->SetDisable();
+		m_bossId = -1;
+	}
 
 	m_shaders["ANIMATION"]->GetMonsters().clear();
 	m_monsters.clear();
