@@ -560,6 +560,17 @@ void LoadingScene::BuildTexture(const ComPtr<ID3D12Device>& device, const ComPtr
 	hpBarTexture->CreateSrvDescriptorHeap(device);
 	hpBarTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
 
+	auto bossHpBarTexture{ make_shared<Texture>() };
+	bossHpBarTexture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/Boss_Full_HpBar.dds"), (INT)ShaderRegister::BaseTexture); // BaseTexture
+	bossHpBarTexture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/Boss_Empty_HpBar.dds"), (INT)ShaderRegister::SubTexture); // SubTexture
+	bossHpBarTexture->CreateSrvDescriptorHeap(device);
+	bossHpBarTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+
+	auto bossIconTexture{ make_shared<Texture>() };
+	bossIconTexture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/Boss_Icon.dds"), (INT)ShaderRegister::BaseTexture); // BaseTexture
+	bossIconTexture->CreateSrvDescriptorHeap(device);
+	bossIconTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+
 	auto towerSkyboxTexture{ make_shared<Texture>() };
 	towerSkyboxTexture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/Skybox/TowerSkyBox.dds"), (INT)ShaderRegister::SkyboxTexture);	// Skybox
 	towerSkyboxTexture->CreateSrvDescriptorHeap(device);
@@ -576,6 +587,8 @@ void LoadingScene::BuildTexture(const ComPtr<ID3D12Device>& device, const ComPtr
 
 	m_textures.insert({ "TOWERSKYBOX", towerSkyboxTexture });
 	m_textures.insert({ "HPBAR", hpBarTexture });
+	m_textures.insert({ "BOSSHPBAR", bossHpBarTexture });
+	m_textures.insert({ "BOSSICON", bossIconTexture });
 	m_textures.insert({ "MAGICCIRCLE", magicCircleTexture });
 	m_textures.insert({ "MONSTERMAGICCIRCLE", monsterMagicCircleTexture });
 }

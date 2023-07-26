@@ -154,6 +154,7 @@ protected:
 	unordered_map<INT, INT>								m_idSet;
 	shared_ptr<HorzGaugeUI>								m_bossHpUI;
 	INT													m_bossId;
+	shared_ptr<ImageUI>									m_bossIconUI;
 	shared_ptr<UI>										m_interactUI;
 	shared_ptr<TextUI>									m_interactTextUI;
 	shared_ptr<VertGaugeUI>								m_skillUI;

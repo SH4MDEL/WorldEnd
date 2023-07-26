@@ -210,7 +210,5 @@ protected:
 	bool							m_onTerrain;
 
 	unordered_map<INT, shared_ptr<Player>>	            m_multiPlayers;
-	unordered_map<INT, INT>								m_idSet;
-	array<shared_ptr<HorzGaugeUI>, MAX_INGAME_USER - 1>	m_hpUI;
 };
 

@@ -366,7 +366,7 @@ void VillageScene::BuildPartyUI()
 		characterFrameUI->SetTexture("CHARACTERFRAMEUI");
 
 		m_partyPlayerUI[i] = make_shared<ImageUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 0.3f, 0.51f });
-		m_partyPlayerUI[i]->SetTexture("WARRIORPORTRAIT");
+		//m_partyPlayerUI[i]->SetTexture("WARRIORPORTRAIT");
 		characterFrameUI->SetChild(m_partyPlayerUI[i]);
 
 		m_partyPlayerTextUI[i] = make_shared<TextUI>(XMFLOAT2{ 0.f, -0.8f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 300.f, 20.f });
@@ -704,6 +704,8 @@ void VillageScene::DestroyObjects()
 	m_fadeFilter.reset();
 
 	m_quadtree.reset();
+
+	m_multiPlayers.clear();
 }
 
 

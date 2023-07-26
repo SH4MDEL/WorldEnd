@@ -11,7 +11,8 @@ TowerScene::TowerScene(const ComPtr<ID3D12Device>&device,
 		0.0f, 0.0f, 1.0f, 0.0f,
 		0.5f, 0.5f, 0.0f, 1.0f),
 	m_sceneState{ (INT)State::Unused },
-	m_accumulatedTime{ 0 }
+	m_accumulatedTime{ 0 },
+	m_bossId{-1}
 {
 	OnCreate(device, commandList, rootSignature, postRootSignature);
 }
@@ -276,11 +277,16 @@ void TowerScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 		m_shaders["UI"]->SetUI(m_hpUI[i]);
 	}
 
-	m_bossHpUI = make_shared<HorzGaugeUI>(XMFLOAT2{ 0.f, 0.8f, }, XMFLOAT2{ 0.8f, 0.16f }, 0.16f);
-	m_bossHpUI->SetTexture("HPBAR");
+	m_bossHpUI = make_shared<HorzGaugeUI>(XMFLOAT2{ 0.f, 0.8f, }, XMFLOAT2{ 0.42f, 0.05f }, 0.023f);
+	m_bossHpUI->SetTexture("BOSSHPBAR");
 	m_bossHpUI->SetMaxGauge(100.f);
 	m_bossHpUI->SetDisable();
 	m_shaders["UI"]->SetUI(m_bossHpUI);
+
+	m_bossIconUI = make_shared<ImageUI>(XMFLOAT2{ -0.43f, 0.8f, }, XMFLOAT2{ 0.08f, 0.08f });
+	m_bossIconUI->SetTexture("BOSSICON");
+	m_bossIconUI->SetDisable();
+	m_shaders["UI"]->SetUI(m_bossIconUI);
 
 	m_interactUI = make_shared<ImageUI>(XMFLOAT2{ 0.25f, 0.15f }, XMFLOAT2{ 0.24f, 0.08f });
 	m_interactUI->SetTexture("BUTTONUI");
@@ -890,7 +896,7 @@ void TowerScene::SetBossHpUI(const shared_ptr<AnimationObject>& object)
 	m_bossHpUI->SetEnable();
 	m_bossHpUI->SetMaxGauge(object->GetMaxHp());
 	m_bossHpUI->SetGauge(object->GetHp());
-	m_bossHpUI->SetEnable();
+	m_bossIconUI->SetEnable();
 }
 
 void TowerScene::RotateToTarget(const shared_ptr<GameObject>& object, INT targetId)
@@ -1089,6 +1095,13 @@ void TowerScene::RecvRemoveMonster(char* ptr)
 		return;
 	
 	// 임시 삭제
+	if (packet->id == m_bossId) {
+		m_bossHpUI->SetDisable();
+		m_bossIconUI->SetDisable();
+		m_bossId = -1;
+	}
+
+	m_monsters[packet->id]->SetPosition(XMFLOAT3(FAR_POSITION, FAR_POSITION, FAR_POSITION));
 	m_monsters[packet->id]->SetEnable(false);
 }
 
