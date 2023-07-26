@@ -1478,6 +1478,8 @@ void TowerScene::LoadMap()
 
 void TowerScene::CollideWithMap()
 {
+	MoveOnStairs();
+
 	auto& player_obb = m_player->GetBoundingBox();
 
 	for (const auto& obj : m_structures) {
@@ -1649,6 +1651,29 @@ void TowerScene::CollideByStaticOBB(const shared_ptr<GameObject>& obj, const sha
 
 }
 
+void TowerScene::MoveOnStairs()
+{
+	XMFLOAT3 pos = m_player->GetPosition();
+
+	float ratio{};
+	if (pos.z <= RoomSetting::DOWNSIDE_STAIRS_FRONT &&
+		pos.z >= RoomSetting::DOWNSIDE_STAIRS_BACK) {
+		ratio = (RoomSetting::DOWNSIDE_STAIRS_FRONT - pos.z) /
+			(RoomSetting::DOWNSIDE_STAIRS_FRONT - RoomSetting::DOWNSIDE_STAIRS_BACK);
+		pos.y = RoomSetting::DEFAULT_HEIGHT -
+			(RoomSetting::DOWNSIDE_STAIRS_HEIGHT - RoomSetting::DEFAULT_HEIGHT) * ratio;
+		m_player->SetPosition(pos);
+	}
+	if (pos.z <= RoomSetting::TOPSIDE_STAIRS_FRONT &&
+		pos.z >= RoomSetting::TOPSIDE_STAIRS_BACK) {
+		ratio = (RoomSetting::TOPSIDE_STAIRS_FRONT - pos.z) /
+			(RoomSetting::TOPSIDE_STAIRS_FRONT - RoomSetting::TOPSIDE_STAIRS_BACK);
+		pos.y = RoomSetting::DEFAULT_HEIGHT +
+			(RoomSetting::TOPSIDE_STAIRS_HEIGHT - RoomSetting::DEFAULT_HEIGHT) * (1.f - ratio);
+		m_player->SetPosition(pos);
+	}
+}
+
 void TowerScene::SetSkillUI()
 {
 	switch (g_playerInfo.playerType)
@@ -1661,10 +1686,10 @@ void TowerScene::SetSkillUI()
 			m_skillUI->SetTexture("WARRIORSKILL2");
 		}
 		if (g_playerInfo.skill[(size_t)g_playerInfo.playerType].second == 0) {
-			m_skillUI->SetTexture("WARRIORULTIMATE1");
+			m_ultimateUI->SetTexture("WARRIORULTIMATE1");
 		}
 		else if (g_playerInfo.skill[(size_t)g_playerInfo.playerType].second == 1) {
-			m_skillUI->SetTexture("WARRIORULTIMATE2");
+			m_ultimateUI->SetTexture("WARRIORULTIMATE2");
 		}
 		break;
 	case PlayerType::ARCHER:
@@ -1675,10 +1700,10 @@ void TowerScene::SetSkillUI()
 			m_skillUI->SetTexture("ARCHERSKILL2");
 		}
 		if (g_playerInfo.skill[(size_t)g_playerInfo.playerType].second == 0) {
-			m_skillUI->SetTexture("ARCHERULTIMATE1");
+			m_ultimateUI->SetTexture("ARCHERULTIMATE1");
 		}
 		else if (g_playerInfo.skill[(size_t)g_playerInfo.playerType].second == 1) {
-			m_skillUI->SetTexture("ARCHERULTIMATE2");
+			m_ultimateUI->SetTexture("ARCHERULTIMATE2");
 		}
 		break;
 	}

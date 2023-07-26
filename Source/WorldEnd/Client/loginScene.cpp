@@ -733,8 +733,8 @@ bool LoginScene::TryLogin()
 	strcpy_s(packet.password, pw.c_str());
 
 	send(g_socket, reinterpret_cast<char*>(&packet), sizeof(packet), 0);
-	return true;
 #endif
+	return true;
 }
 
 bool LoginScene::TrySignin()
@@ -757,8 +757,8 @@ bool LoginScene::TrySignin()
 	strcpy_s(packet.password, pw.c_str());
 
 	send(g_socket, reinterpret_cast<char*>(&packet), sizeof(packet), 0);
-	return true;
 #endif
+	return true;
 }
 
 bool LoginScene::CheckLength(const string_view& s)

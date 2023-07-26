@@ -125,6 +125,8 @@ private:
 	void CollideByStatic(const shared_ptr<GameObject>& obj, const shared_ptr<GameObject>& static_obj);
 	void CollideByStaticOBB(const shared_ptr<GameObject>& obj, const shared_ptr<GameObject>& static_obj);
 
+	void MoveOnStairs();
+
 	void SetSkillUI();
 
 protected:
