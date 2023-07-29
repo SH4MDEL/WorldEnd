@@ -234,7 +234,7 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 #ifdef USE_NETWORK
 	CS_DUNGEON_SCENE_PACKET packet{};
 	packet.size = sizeof(packet);
-	packet.type = CS_PACKET_DUNGEON_SCENE;
+	packet.type = CS_PACKET_TOWER_SCENE;
 	send(g_socket, reinterpret_cast<char*>(&packet), sizeof(packet), 0);
 #endif // USE_NETWORK
 }
@@ -1094,6 +1094,7 @@ void TowerScene::RecvAddPlayer(char* ptr)
 	multiPlayer->SetPosition(packet->pos);
 	multiPlayer->SetMaxHp(packet->hp);
 	multiPlayer->SetHp(packet->hp);
+	multiPlayer->SetId(id);
 
 	m_multiPlayers.insert({ id, multiPlayer });
 
@@ -1114,6 +1115,9 @@ void TowerScene::RecvAddPlayer(char* ptr)
 void TowerScene::RecvRemovePlayer(char* ptr)
 {
 	SC_REMOVE_PLAYER_PACKET* packet = reinterpret_cast<SC_REMOVE_PLAYER_PACKET*>(ptr);
+
+	if (!m_multiPlayers.contains(packet->id))
+		return;
 
 	m_multiPlayers[packet->id]->SetPosition(XMFLOAT3(FAR_POSITION, FAR_POSITION, FAR_POSITION));
 	m_multiPlayers[packet->id]->SetId(-1);
@@ -1177,6 +1181,7 @@ void TowerScene::RecvAddMonster(char* ptr)
 	monster->SetPosition(XMFLOAT3{ packet->monster_data.pos.x,
 		packet->monster_data.pos.y, packet->monster_data.pos.z });
 	m_monsters.insert({ static_cast<INT>(packet->monster_data.id), monster });
+	monster->SetEnable(false);
 
 	if (packet->monster_type != MonsterType::BOSS) SetHpBar(monster);
 	else {
@@ -1260,7 +1265,10 @@ void TowerScene::RecvChangeAnimation(char* ptr)
 	if (packet->id == m_player->GetId()) {
 		if (PlayerType::ARCHER == m_player->GetType() &&
 			(packet->animation == ObjectAnimation::ATTACK ||
-				packet->animation == PlayerAnimation::SKILL))
+				packet->animation == PlayerAnimation::SKILL ||
+				packet->animation == PlayerAnimation::SKILL2 ||
+				packet->animation == PlayerAnimation::ULTIMATE ||
+				packet->animation == PlayerAnimation::ULTIMATE2))
 		{
 			RotateToTarget(m_player);
 		}
@@ -1331,7 +1339,7 @@ void TowerScene::RecvWarpNextFloor(char* ptr)
 
 			elm.second->SetPosition(RoomSetting::START_POSITION);
 			elm.second->ChangeAnimation(ObjectAnimation::IDLE, false);
-			elm.second->SetHp(m_player->GetMaxHp());
+			elm.second->SetHp(elm.second->GetMaxHp());
 		}
 
 		m_gate->SetPosition(RoomSetting::BATTLE_STARTER_POSITION);
@@ -1368,6 +1376,8 @@ void TowerScene::RecvPlayerDeath(char* ptr)
 void TowerScene::RecvArrowShoot(char* ptr)
 {
 	SC_ARROW_SHOOT_PACKET* packet = reinterpret_cast<SC_ARROW_SHOOT_PACKET*>(ptr);
+
+	cout << "화살 생성" << endl;
 
 	if (0 <= packet->id && packet->id < MAX_USER) {
 		if (packet->id == m_player->GetId()) {
@@ -1594,7 +1604,7 @@ void TowerScene::CollideWithObject()
 	}
 
 	for (const auto& elm : m_monsters) {
-		if (elm.second) {
+		if (elm.second && elm.second->GetEnable()) {
 			if (boundingBox.Intersects(elm.second->GetBoundingBox())) {
 				CollideByStatic(m_player, elm.second);
 			}

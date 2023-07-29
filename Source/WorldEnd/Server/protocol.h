@@ -72,7 +72,7 @@ constexpr char CS_PACKET_ENTER_VILLAGE = 17;
 
 constexpr char CS_PACKET_ENHANCE = 18;
 constexpr char CS_PACKET_CHNAGE_SKILL = 19;
-constexpr char CS_PACKET_DUNGEON_SCENE = 20;
+constexpr char CS_PACKET_TOWER_SCENE = 20;
 
 
 constexpr char SC_PACKET_LOGIN_FAIL = 0;
@@ -123,7 +123,7 @@ constexpr char SC_PACKET_ENHANCE_OK = 39;
 constexpr char SC_PACKET_DUNGEON_CLEAR = 40;
 
 
-enum class PlayerType : char { WARRIOR, ARCHER, COUNT };
+enum class PlayerType : char { WARRIOR, ARCHER, WIZARD, COUNT };
 enum class MonsterType : char { WARRIOR, ARCHER, WIZARD, BOSS, COUNT};
 enum class EnvironmentType : char { RAIN, FOG, GAS, TRAP, COUNT };
 
@@ -267,6 +267,8 @@ namespace PlayerSetting
 	constexpr float AUTO_TARGET_RANGE = 12.5f;
 	constexpr float ARROW_RANGE = 12.f;
 
+	constexpr int MAX_ENHANCEMENT_LEVEL = 20;
+
 	constexpr float DEFAULT_HP = 100.0f;
 	constexpr float DEFAULT_ATK = 100.0f;
 	constexpr float DEFAULT_DEF = 0.0f;
@@ -278,12 +280,12 @@ namespace PlayerSetting
 	constexpr int MAX_ENHANCE_LEVEL = 20;
 
 	// 스탯 레벨 당 증가량
-	constexpr FLOAT HP_INCREASEMENT = 10.f;
-	constexpr FLOAT ATK_INCREASEMENT = 2.f;
-	constexpr FLOAT DEF_INCREASEMENT = 2.f;
-	constexpr FLOAT CRIT_RATE_INCREASEMENT = 1.f;
-	constexpr FLOAT CRIT_DAMAGE_INCREASEMENT = 1.f;
-	constexpr INT ENHANCE_INCREASEMENT = 10;
+	constexpr float HP_INCREASEMENT = 10.f;
+	constexpr float ATK_INCREASEMENT = 2.f;
+	constexpr float DEF_INCREASEMENT = 2.f;
+	constexpr float CRIT_RATE_INCREASEMENT = 1.f;
+	constexpr float CRIT_DAMAGE_INCREASEMENT = 1.f;
+	constexpr int ENHANCE_COST_INCREASEMENT = 10;
 
 	constexpr auto DASH_DURATION = 300ms;
 	constexpr float MAX_STAMINA = 120.f;
@@ -295,15 +297,32 @@ namespace PlayerSetting
 	constexpr auto ROLL_COOLDOWN = 3s;
 	constexpr auto DASH_COOLDOWN = 1200ms;
 
-	constexpr float SKILL_RATIO[static_cast<int>(PlayerType::COUNT)]{ 1.5f, 1.2f };
-	constexpr float ULTIMATE_RATIO[static_cast<int>(PlayerType::COUNT)]{ 2.f, 0.2f };
+	constexpr auto EXPLOSION_ARROW_FLIGHT_TIME = 600ms;
 
+	constexpr float SKILL_RATIO[static_cast<int>(PlayerType::COUNT)][2]		// 캐릭별, 스킬 개수별 계수
+	{ 
+		{ 1.5f, 1.5f },  // 전사 스킬 계수
+		{ 1.2f, 0.4f }	 // 궁수 스킬 계수
+	};
+	constexpr float ULTIMATE_RATIO[static_cast<int>(PlayerType::COUNT)][2]
+	{
+		{ 2.f,  2.2f },	// 전사 궁극기 계수
+		{ 0.2f, 1.5f }	// 궁수 궁극기 계수
+	};
 	constexpr std::chrono::milliseconds
 		ATTACK_COLLISION_TIME[static_cast<int>(PlayerType::COUNT)]{ 210ms, 360ms };
 	constexpr std::chrono::milliseconds
-		SKILL_COLLISION_TIME[static_cast<int>(PlayerType::COUNT)]{ 340ms, 560ms };
+		SKILL_COLLISION_TIME[static_cast<int>(PlayerType::COUNT)][2]
+	{
+		{ 340ms, 340ms },	// 전사 스킬 충돌 시간
+		{ 560ms, 260ms }	// 궁수 스킬 충돌 시간
+	};
 	constexpr std::chrono::milliseconds
-		ULTIMATE_COLLISION_TIME[static_cast<int>(PlayerType::COUNT)]{ 930ms, 860ms };
+		ULTIMATE_COLLISION_TIME[static_cast<int>(PlayerType::COUNT)][2]
+	{
+		{ 930ms, 450ms },	// 전사 궁극기 충돌 시간
+		{ 860ms, 500ms } 	// 궁수 궁극기 충돌 시간
+	};
 	constexpr std::chrono::milliseconds
 		ATTACK_COOLDOWN[static_cast<int>(PlayerType::COUNT)]{ 1000ms, 1000ms };
 	constexpr std::chrono::seconds
@@ -311,10 +330,17 @@ namespace PlayerSetting
 	constexpr std::chrono::seconds
 		ULTIMATE_COOLDOWN[static_cast<int>(PlayerType::COUNT)]{ 20s, 15s };
 	constexpr DirectX::XMFLOAT3
-		ULTIMATE_EXTENT[static_cast<int>(PlayerType::COUNT)]{
+		ULTIMATE_EXTENT[static_cast<int>(PlayerType::COUNT)][2]
+	{
+		{
 			DirectX::XMFLOAT3{ 2.f, 2.f, 2.f },
-			DirectX::XMFLOAT3{ 0.f, 0.f, 0.f }
-		};
+			DirectX::XMFLOAT3{ 0.5f, 0.5f, 0.5f }
+		},
+		{
+			DirectX::XMFLOAT3{ 1.5f, 1.5f, 1.5f },
+			DirectX::XMFLOAT3{ 1.f, 1.f, 1.f }
+		}
+	};
 
 }
 
@@ -364,8 +390,8 @@ namespace RoomSetting
 	constexpr auto BATTLE_DELAY_TIME = 3s;
 	constexpr auto WARP_DELAY_TIME = 1000ms;
 	constexpr float EVENT_RADIUS = 1.f;
-	constexpr DirectX::XMFLOAT3 START_POSITION { 0.f, -DOWNSIDE_STAIRS_HEIGHT, -45.f };
-	//constexpr DirectX::XMFLOAT3 START_POSITION{ 0.f, 0.f, 0.f };
+	//constexpr DirectX::XMFLOAT3 START_POSITION { 0.f, -DOWNSIDE_STAIRS_HEIGHT, -45.f };
+	constexpr DirectX::XMFLOAT3 START_POSITION{ 0.f, 0.f, 0.f };
 	constexpr DirectX::XMFLOAT3 BATTLE_STARTER_POSITION { 0.f, 0.f, 24.f };
 	constexpr DirectX::XMFLOAT3 WARP_PORTAL_POSITION { -1.f, TOPSIDE_STAIRS_HEIGHT, 60.f };
 }
@@ -561,7 +587,7 @@ struct SC_ADD_PLAYER_PACKET
 {
 	UCHAR size;
 	UCHAR type;
-	CHAR  name[NAME_SIZE];
+	CHAR name[NAME_SIZE];
 	INT id;
 	DirectX::XMFLOAT3 pos;
 	FLOAT hp;

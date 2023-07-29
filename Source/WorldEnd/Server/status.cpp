@@ -74,6 +74,30 @@ void Status::SetCritDamageLevel(UCHAR level)
 	m_crit_damage = PlayerSetting::DEFAULT_CRIT_DAMAGE + PlayerSetting::CRIT_DAMAGE_INCREASEMENT * level;
 }
 
+UCHAR Status::GetLevel(EnhancementType type) const
+{
+	UCHAR level{};
+	
+	switch(type) {
+	case EnhancementType::HP:
+		level = m_hp_level;
+		break;
+	case EnhancementType::ATK:
+		level = m_atk_level;
+		break;
+	case EnhancementType::DEF:
+		level = m_def_level;
+		break;
+	case EnhancementType::CRIT_RATE:
+		level = m_crit_rate_level;
+		break;
+	case EnhancementType::CRIT_DAMAGE:
+		level = m_crit_damage_level;
+		break;
+	}
+	return level;
+}
+
 FLOAT Status::CalculateDamage()
 {
 	if (m_crit_rate >= urd(g_random_engine)) {

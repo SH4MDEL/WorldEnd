@@ -197,15 +197,15 @@ void VillageScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 
 	// NPC 생성
 	auto skillNpc = make_shared<Player>();
+	skillNpc->SetType(PlayerType::WIZARD);
 	LoadPlayerFromFile(skillNpc);
-	skillNpc->SetType(PlayerType::WARRIOR);
 	skillNpc->SetPosition(VillageSetting::SKILL_NPC);
 	skillNpc->Rotate(0.f, 0.f, 180.f);
 	m_shaders["ANIMATION"]->SetObject(skillNpc);
 
 	auto enhenceNpc = make_shared<Player>();
+	enhenceNpc->SetType(PlayerType::WIZARD);
 	LoadPlayerFromFile(enhenceNpc);
-	enhenceNpc->SetType(PlayerType::WARRIOR);
 	enhenceNpc->SetPosition(VillageSetting::ENHENCE_NPC);
 	enhenceNpc->Rotate(0.f, 0.f, 180.f);
 	m_shaders["ANIMATION"]->SetObject(enhenceNpc);
@@ -1558,6 +1558,11 @@ void VillageScene::LoadPlayerFromFile(const shared_ptr<Player>& player)
 		filePath = TEXT("./Resource/Model/Archer.bin");
 		animationSet = "ArcherAnimation";
 		break;
+
+	case PlayerType::WIZARD:
+		filePath = TEXT("./Resource/Model/Wizard.bin");
+		animationSet = "WizardAnimation";
+		break;
 	}
 
 	LoadObjectFromFile(filePath, player);
@@ -1574,8 +1579,8 @@ void VillageScene::LoadPlayerFromFile(const shared_ptr<Player>& player)
 
 void VillageScene::LoadNPCFromFile(const shared_ptr<AnimationObject>& npc)
 {
-	wstring filePath = TEXT("./Resource/Model/Warrior.bin");
-	string animationSet = "WarriorAnimation";
+	wstring filePath = TEXT("./Resource/Model/Wizard.bin");
+	string animationSet = "WizardAnimation";
 
 	LoadObjectFromFile(filePath, npc);
 
@@ -2362,7 +2367,7 @@ void VillageScene::UpdateEnhanceUI(EnhancementType type)
 		else {
 			m_enhenceInfoTextUI->SetText(TEXT("현재 레벨 : ") + to_wstring(g_playerInfo.hpLevel) +
 				TEXT("\n체력 증가량 : ") + to_wstring(PlayerSetting::DEFAULT_HP + (INT)(PlayerSetting::HP_INCREASEMENT * g_playerInfo.hpLevel)) +
-				TEXT("\n강화 비용 : " + to_wstring(PlayerSetting::DEFAULT_ENHANCE_COST + PlayerSetting::ENHANCE_INCREASEMENT * g_playerInfo.hpLevel)));
+				TEXT("\n강화 비용 : " + to_wstring(PlayerSetting::DEFAULT_ENHANCE_COST + PlayerSetting::ENHANCE_COST_INCREASEMENT * g_playerInfo.hpLevel)));
 		}
 		break;
 	case EnhancementType::ATK:
@@ -2374,7 +2379,7 @@ void VillageScene::UpdateEnhanceUI(EnhancementType type)
 		else {
 			m_enhenceInfoTextUI->SetText(TEXT("현재 레벨 : ") + to_wstring(g_playerInfo.atkLevel) +
 				TEXT("\n공격력 증가량 : ") + to_wstring(PlayerSetting::DEFAULT_ATK + (INT)(PlayerSetting::ATK_INCREASEMENT * g_playerInfo.atkLevel)) +
-				TEXT("\n강화 비용 : " + to_wstring(PlayerSetting::DEFAULT_ENHANCE_COST + PlayerSetting::ENHANCE_INCREASEMENT * g_playerInfo.atkLevel)));
+				TEXT("\n강화 비용 : " + to_wstring(PlayerSetting::DEFAULT_ENHANCE_COST + PlayerSetting::ENHANCE_COST_INCREASEMENT * g_playerInfo.atkLevel)));
 		}
 		break;
 	case EnhancementType::DEF:
@@ -2386,7 +2391,7 @@ void VillageScene::UpdateEnhanceUI(EnhancementType type)
 		else {
 			m_enhenceInfoTextUI->SetText(TEXT("현재 레벨 : ") + to_wstring(g_playerInfo.defLevel) +
 				TEXT("\n방어력 증가량 : ") + to_wstring(PlayerSetting::DEFAULT_DEF + (INT)(PlayerSetting::DEF_INCREASEMENT * g_playerInfo.defLevel)) +
-				TEXT("\n강화 비용 : " + to_wstring(PlayerSetting::DEFAULT_ENHANCE_COST + PlayerSetting::ENHANCE_INCREASEMENT * g_playerInfo.defLevel)));
+				TEXT("\n강화 비용 : " + to_wstring(PlayerSetting::DEFAULT_ENHANCE_COST + PlayerSetting::ENHANCE_COST_INCREASEMENT * g_playerInfo.defLevel)));
 		}
 		break;
 	case EnhancementType::CRIT_RATE:
@@ -2398,7 +2403,7 @@ void VillageScene::UpdateEnhanceUI(EnhancementType type)
 		else {
 			m_enhenceInfoTextUI->SetText(TEXT("현재 레벨 : ") + to_wstring(g_playerInfo.critRateLevel) +
 				TEXT("\n크리티컬 확률 증가량 : ") + to_wstring(PlayerSetting::DEFAULT_CRIT_RATE + PlayerSetting::CRIT_RATE_INCREASEMENT * g_playerInfo.critRateLevel) +
-				TEXT("\n강화 비용 : " + to_wstring(PlayerSetting::DEFAULT_ENHANCE_COST + PlayerSetting::ENHANCE_INCREASEMENT * g_playerInfo.critRateLevel)));
+				TEXT("\n강화 비용 : " + to_wstring(PlayerSetting::DEFAULT_ENHANCE_COST + PlayerSetting::ENHANCE_COST_INCREASEMENT * g_playerInfo.critRateLevel)));
 		}
 		break;
 	case EnhancementType::CRIT_DAMAGE:
@@ -2410,7 +2415,7 @@ void VillageScene::UpdateEnhanceUI(EnhancementType type)
 		else {
 			m_enhenceInfoTextUI->SetText(TEXT("현재 레벨 : ") + to_wstring(g_playerInfo.critDamageLevel) +
 				TEXT("\n크리티컬 대미지 증가량 : ") + to_wstring(PlayerSetting::DEFAULT_CRIT_DAMAGE + PlayerSetting::CRIT_RATE_INCREASEMENT * g_playerInfo.critDamageLevel) +
-				TEXT("\n강화 비용 : " + to_wstring(PlayerSetting::DEFAULT_ENHANCE_COST + PlayerSetting::ENHANCE_INCREASEMENT * g_playerInfo.critDamageLevel)));
+				TEXT("\n강화 비용 : " + to_wstring(PlayerSetting::DEFAULT_ENHANCE_COST + PlayerSetting::ENHANCE_COST_INCREASEMENT * g_playerInfo.critDamageLevel)));
 		}
 		break;
 	}
@@ -2419,24 +2424,34 @@ void VillageScene::UpdateEnhanceUI(EnhancementType type)
 void VillageScene::TryEnhancement(EnhancementType type)
 {
 	INT cost{ PlayerSetting::DEFAULT_ENHANCE_COST };
+	UCHAR level{};
 	switch (type) {
 	case EnhancementType::HP:
-		cost += PlayerSetting::ENHANCE_INCREASEMENT * g_playerInfo.hpLevel;
+		cost += PlayerSetting::ENHANCE_COST_INCREASEMENT * g_playerInfo.hpLevel;
+		level = g_playerInfo.hpLevel;
 		break;
 	case EnhancementType::ATK:
-		cost += PlayerSetting::ENHANCE_INCREASEMENT * g_playerInfo.atkLevel;
+		cost += PlayerSetting::ENHANCE_COST_INCREASEMENT * g_playerInfo.atkLevel;
+		level = g_playerInfo.atkLevel;
 		break;
 	case EnhancementType::DEF:
-		cost += PlayerSetting::ENHANCE_INCREASEMENT * g_playerInfo.defLevel;
+		cost += PlayerSetting::ENHANCE_COST_INCREASEMENT * g_playerInfo.defLevel;
+		level = g_playerInfo.defLevel;
 		break;
 	case EnhancementType::CRIT_RATE:
-		cost += PlayerSetting::ENHANCE_INCREASEMENT * g_playerInfo.critRateLevel;
+		cost += PlayerSetting::ENHANCE_COST_INCREASEMENT * g_playerInfo.critRateLevel;
+		level = g_playerInfo.critRateLevel;
 		break;
 	case EnhancementType::CRIT_DAMAGE:
-		cost += PlayerSetting::ENHANCE_INCREASEMENT * g_playerInfo.critDamageLevel;
+		cost += PlayerSetting::ENHANCE_COST_INCREASEMENT * g_playerInfo.critDamageLevel;
+		level = g_playerInfo.critDamageLevel;
 		break;
 	}
 
+	if (level >= PlayerSetting::MAX_ENHANCEMENT_LEVEL) {
+		// 최대 레벨 도달로 인한 강화 실패
+		return;
+	}
 
 	if (g_playerInfo.gold >= cost) {
 		g_playerInfo.gold -= cost;

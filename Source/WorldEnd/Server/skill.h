@@ -29,6 +29,5 @@ private:
 	std::chrono::milliseconds	m_cooldown;
 	SkillType					m_type;				// 일반, 궁극기 구분
 	UCHAR						m_skill_type;		// 스킬1, 스킬2, ... 구분
-
 };
 

@@ -145,7 +145,7 @@ void LoadingScene::BuildMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID
 {
 	LoadAnimationMeshFromFile(device, commandList, TEXT("./Resource/Mesh/WarriorMesh.bin"));
 	LoadAnimationMeshFromFile(device, commandList, TEXT("./Resource/Mesh/ArcherMesh.bin"));
-	//LoadAnimationMeshFromFile(device, commandList, TEXT("./Resource/Mesh/WizardMesh.bin"));
+	LoadAnimationMeshFromFile(device, commandList, TEXT("./Resource/Mesh/WizardMesh.bin"));
 
 	auto staminaBarMesh{ make_shared<PlaneMesh>(device, commandList, XMFLOAT3{ 0.f, 0.f, 0.f }, XMFLOAT2{ 0.1f, 0.89f }) };
 	m_meshs.insert({ "STAMINABAR", staminaBarMesh });
@@ -595,10 +595,6 @@ void LoadingScene::BuildTexture(const ComPtr<ID3D12Device>& device, const ComPtr
 
 void LoadingScene::BuildMeterial(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandList)
 {
-	// 캐릭터 메테리얼 로딩
-	LoadMaterialFromFile(device, commandList, TEXT("./Resource/Texture/WarriorTexture.bin"));
-	LoadMaterialFromFile(device, commandList, TEXT("./Resource/Texture/ArcherTexture.bin"));
-
 	// 마을 씬 메테리얼 로딩
 	LoadMaterialFromFile(device, commandList, TEXT("./Resource/Texture/VillageSceneTexture/Barrel_A_01Texture.bin"));
 	LoadMaterialFromFile(device, commandList, TEXT("./Resource/Texture/VillageSceneTexture/Basket_A_01Texture.bin"));
@@ -766,11 +762,10 @@ void LoadingScene::BuildMeterial(const ComPtr<ID3D12Device>& device, const ComPt
 	LoadMaterialFromFile(device, commandList, TEXT("./Resource/Texture/VillageSceneTexture/BlockingTexture.bin"));
 	LoadMaterialFromFile(device, commandList, TEXT("./Resource/Texture/VillageSceneTexture/NonblockingTexture.bin"));
 
-
 	// 타워 씬 메테리얼 로딩
 	LoadMaterialFromFile(device, commandList, TEXT("Resource/Texture/WarriorTexture.bin"));
 	LoadMaterialFromFile(device, commandList, TEXT("Resource/Texture/ArcherTexture.bin"));
-	//LoadMaterialFromFile(device, commandList, TEXT("Resource/Texture/WizardTexture.bin"));
+	LoadMaterialFromFile(device, commandList, TEXT("Resource/Texture/WizardTexture.bin"));
 
 	LoadMaterialFromFile(device, commandList, TEXT("Resource/Texture/Undead_WarriorTexture.bin"));
 	LoadMaterialFromFile(device, commandList, TEXT("Resource/Texture/Undead_ArcherTexture.bin"));
@@ -813,7 +808,7 @@ void LoadingScene::BuildAnimationSet()
 {
 	LoadAnimationSetFromFile(TEXT("./Resource/Animation/WarriorAnimation.bin"), "WarriorAnimation");
 	LoadAnimationSetFromFile(TEXT("./Resource/Animation/ArcherAnimation.bin"), "ArcherAnimation");
-	//LoadAnimationSetFromFile(TEXT("./Resource/Animation/WizardAnimation.bin"), "WizardAnimation");
+	LoadAnimationSetFromFile(TEXT("./Resource/Animation/WizardAnimation.bin"), "WizardAnimation");
 
 	LoadAnimationSetFromFile(TEXT("Resource/Animation/Undead_WarriorAnimation.bin"), "Undead_WarriorAnimation");
 	LoadAnimationSetFromFile(TEXT("Resource/Animation/Undead_ArcherAnimation.bin"), "Undead_ArcherAnimation");

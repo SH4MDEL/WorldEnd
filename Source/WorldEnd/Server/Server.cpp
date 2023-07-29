@@ -374,16 +374,6 @@ void Server::WorkerThread()
 			ActionType attack_type = static_cast<ActionType>(exp_over->_send_buf[0]);
 			XMFLOAT3* pos = reinterpret_cast<XMFLOAT3*>(&exp_over->_send_buf[1]);
 
-			int room_num = client->GetRoomNum();
-			auto game_room = m_game_room_manager->GetGameRoom(room_num);
-			if (!game_room) {
-				delete exp_over;
-				break;
-			}
-
-			auto& monster_ids = game_room->GetMonsterIds();
-			auto& player_ids = game_room->GetPlayerIds();
-
 			BoundingOrientedBox obb{};
 
 			// 전사 공격은 무기 바운드 박스 따라가도록 하면 됨
@@ -402,65 +392,33 @@ void Server::WorkerThread()
 					obb.Center = *pos;
 					break;
 
-				case ActionType::SKILL:
+				case ActionType::SKILL:	
 					obb = client->GetWeaponBoundingBox();
 					obb.Center = *pos;
 					break;
 
-				case ActionType::ULTIMATE:
+				case ActionType::ULTIMATE:	
 					obb = client->GetWeaponBoundingBox();
-					obb.Center = *pos;
-					obb.Extents = PlayerSetting::
-						ULTIMATE_EXTENT[static_cast<int>(client->GetPlayerType())];
+
+					switch (client->GetCurrentAnimation()) {
+					case PlayerAnimation::ULTIMATE: {
+						obb.Center = *pos;
+						obb.Extents = PlayerSetting::
+							ULTIMATE_EXTENT[(int)(client->GetPlayerType())][(int)client->GetUltimateSkillType()];
+						break;
+					}
+
+					case PlayerAnimation::ULTIMATE2: {
+						obb = client->GetWeaponBoundingBox();
+						obb.Center = *pos;
+						break; 
+					}
+					}
 					break;
 				}
 			}
 
-			// 충돌된 몬스터 빼내는 컨테이너
-			std::vector<int> v;
-			v.reserve(MAX_INGAME_MONSTER);
-			FLOAT damage{ client->GetDamage() };
-			damage *= client->GetSkillRatio(attack_type);
-
-
-			for (int id : monster_ids) {
-				if (-1 == id) continue;
-				if (State::INGAME != m_clients[id]->GetState()) continue;
-
-				if (m_clients[id]->GetBoundingBox().Intersects(obb)) {
-					auto monster = dynamic_pointer_cast<Monster>(m_clients[id]);
-					monster->DecreaseHp(damage, client->GetId());
-					v.push_back(id);
-				}
-			}
-			/*if (game_room->GetFloorCount() != 4) {
-				for (int id : monster_ids) {
-					if (-1 == id) continue;
-					if (State::INGAME != m_clients[id]->GetState()) continue;
-
-					if (m_clients[id]->GetBoundingBox().Intersects(obb)) {
-						auto monster = dynamic_pointer_cast<Monster>(m_clients[id]);
-						monster->DecreaseHp(damage, client->GetId());
-						v.push_back(id);
-					}
-				}
-			}
-			else {
-				for (int id : monster_ids) {
-					if (-1 == id) continue;
-					if (State::INGAME != m_clients[id]->GetState()) continue;
-
-					if (m_clients[id]->GetBoundingBox().Intersects(obb)) {
-						auto monster = dynamic_pointer_cast<BossMonster>(m_clients[id]);
-						monster->DecreaseHp(damage, client->GetId());
-						v.push_back(id);
-					}
-				}
-			}*/
-
-			for (int monster_id : v) {
-				SendChangeHp(monster_id);
-			}
+			AttackCollisionWithMonster(static_cast<int>(key), obb, attack_type);
 
 			delete exp_over;
 			break;
@@ -651,6 +609,17 @@ void Server::WorkerThread()
 
 			// 빗나감
 			if (-1 == near_id) {
+				if (ActionType::ULTIMATE == *action_type) {		// 궁극기의 경우 빗나가도 주변 폭발 충돌되도록
+					BoundingOrientedBox obb{};
+
+					obb.Center = Vector3::Add(*position, Vector3::Mul(*direction, PlayerSetting::ARROW_RANGE));
+					// position + dir * 거리 에서 폭발 충돌 처리
+					obb.Extents = PlayerSetting::ULTIMATE_EXTENT
+						[(int)PlayerType::ARCHER][std::dynamic_pointer_cast<Client>(m_clients[id])->GetUltimateSkillType()];
+					AttackCollisionWithMonster(id, obb, *action_type);
+					AttackCollisionWithMonster(id, obb, *action_type);
+				}
+
 				delete exp_over;
 				break;
 			}
@@ -659,9 +628,22 @@ void Server::WorkerThread()
 
 			float damage = m_clients[id]->GetDamage();
 			if (IsPlayer(id)) {
-				damage *= m_clients[id]->GetSkillRatio(*action_type);
-				m_clients[near_id]->DecreaseHp(damage, id);
-				SendChangeHp(near_id);
+				if (ActionType::SKILL == *action_type || 
+					ActionType::NORMAL_ATTACK == *action_type) {
+					damage *= m_clients[id]->GetSkillRatio(*action_type);
+					m_clients[near_id]->DecreaseHp(damage, id);
+					SendChangeHp(near_id);
+				}
+				else if (ActionType::ULTIMATE == *action_type) {
+					// 주변 폭발 충돌
+					BoundingOrientedBox obb{};
+
+					obb.Center = m_clients[near_id]->GetPosition();
+					// position + dir * 거리 에서 폭발 충돌 처리
+					obb.Extents = PlayerSetting::ULTIMATE_EXTENT
+						[(int)PlayerType::ARCHER][std::dynamic_pointer_cast<Client>(m_clients[id])->GetUltimateSkillType()];
+					AttackCollisionWithMonster(id, obb, *action_type);
+				}
 			}
 			else {
 				m_clients[near_id]->DecreaseHp(damage, id);
@@ -686,16 +668,25 @@ void Server::WorkerThread()
 				break;
 			case ActionType::SKILL:
 				if (IsPlayer(id)) {
-					if (m_clients[id]->GetCurrentAnimation() != PlayerAnimation::SKILL)
+					if (m_clients[id]->GetCurrentAnimation() != PlayerAnimation::SKILL &&
+						m_clients[id]->GetCurrentAnimation() != PlayerAnimation::SKILL2)
 						break;
 				}
 				ProcessArrow(id, *target_id, *type);
-
-				break;
 			case ActionType::ULTIMATE: {
 				XMFLOAT3* pos = reinterpret_cast<XMFLOAT3*>((exp_over->_send_buf +
 					sizeof(ActionType) + sizeof(int)));
-				SetTrigger(id, TriggerType::ARROW_RAIN, *pos);
+				
+				switch(m_clients[id]->GetCurrentAnimation()) {
+				case PlayerAnimation::ULTIMATE:
+					SetTrigger(id, TriggerType::ARROW_RAIN, *pos);
+					break;
+
+				case PlayerAnimation::ULTIMATE2: {
+					ProcessArrow(id, *target_id, *type);
+					break; 
+				}
+				}
 				break;
 			}
 			}
@@ -863,7 +854,6 @@ void Server::ProcessPacket(int id, char* p)
 		ev.event_type = DBEventType::TRY_LOGIN;
 		ev.event_time = std::chrono::system_clock::now();
 		SetDatabaseEvent(ev);
-		std::cout << "try login!" << std::endl;
 		break;
 	}
 	case CS_PACKET_PLAYER_MOVE: {
@@ -1009,7 +999,6 @@ void Server::ProcessPacket(int id, char* p)
 	case CS_PACKET_CHANGE_PARTY_PAGE: {
 		CS_CHANGE_PARTY_PAGE_PACKET* packet = reinterpret_cast<CS_CHANGE_PARTY_PAGE_PACKET*>(p);
 		
-		std::cout << "페이지 변경" << std::endl;
 		m_party_manager->ChangePage(id, packet->page);
 		break;
 	}
@@ -1017,7 +1006,6 @@ void Server::ProcessPacket(int id, char* p)
 		CS_OPEN_PARTY_UI_PACKET* packet = reinterpret_cast<CS_OPEN_PARTY_UI_PACKET*>(p);
 
 
-		std::cout << "파티창 열기" << std::endl;
 		m_party_manager->OpenPartyUI(id);
 		break;
 	}
@@ -1026,7 +1014,6 @@ void Server::ProcessPacket(int id, char* p)
 		for (auto& id : m_player_ids) {
 			if (-1 == id) {
 				id = client->GetId();
-				m_clients[id]->SetPosition(RoomSetting::START_POSITION);
 				break;
 			}
 		}
@@ -1044,7 +1031,6 @@ void Server::ProcessPacket(int id, char* p)
 	case CS_PACKET_CLOSE_PARTY_UI: {
 		CS_CLOSE_PARTY_UI_PACKET* packet = reinterpret_cast<CS_CLOSE_PARTY_UI_PACKET*>(p);
 
-		std::cout << "파티창 닫기" << std::endl;
 		m_party_manager->ClosePartyUI(id);
 		break;
 	}
@@ -1056,6 +1042,10 @@ void Server::ProcessPacket(int id, char* p)
 		int cost{ client->GetCost(packet->enhancement_type) };
 
 		if (cost > client->GetGold()) {
+			break;
+		}
+
+		if (client->GetLevel(packet->enhancement_type) >= PlayerSetting::MAX_ENHANCEMENT_LEVEL) {
 			break;
 		}
 
@@ -1091,7 +1081,7 @@ void Server::ProcessPacket(int id, char* p)
 
 		break;
 	}
-	case CS_PACKET_DUNGEON_SCENE: {		// 타워 씬으로 전환했음을 받고 플레이어, 몬스터를 ADD
+	case CS_PACKET_TOWER_SCENE: {		// 타워 씬으로 전환했음을 받고 플레이어, 몬스터를 ADD
 		CS_DUNGEON_SCENE_PACKET* packet = reinterpret_cast<CS_DUNGEON_SCENE_PACKET*>(p);
 
 		auto client = dynamic_pointer_cast<Client>(m_clients[id]);
@@ -1428,21 +1418,22 @@ void Server::SendAddPlayer(int sender, int receiver)
 	SC_ADD_PLAYER_PACKET packet{};
 	packet.size = sizeof(packet);
 	packet.type = SC_PACKET_ADD_PLAYER;
-	std::wstring ws = std::dynamic_pointer_cast<Client>(m_clients[sender])->GetUserId();
-	std::string s{};
-	s.assign(ws.begin(), ws.end());
-	strcpy_s(packet.name, s.c_str());
 	packet.id = sender;
 	packet.pos = m_clients[sender]->GetPosition();
 	packet.hp = m_clients[sender]->GetHp();
 	packet.player_type = m_clients[sender]->GetPlayerType();
+
+	std::wstring ws = std::dynamic_pointer_cast<Client>(m_clients[sender])->GetUserId();
+	std::string s{};
+	s.assign(ws.begin(), ws.end());
+	strcpy_s(packet.name, s.c_str());
 
 	m_clients[receiver]->DoSend(&packet);
 }
 
 void Server::SendMovePlayer(int client_id, int move_object)
 {
-	SC_UPDATE_CLIENT_PACKET packet;
+	SC_UPDATE_CLIENT_PACKET packet{};
 
 	packet.size = sizeof(packet);
 	packet.type = SC_PACKET_UPDATE_CLIENT;
@@ -1531,11 +1522,11 @@ void Server::GameRoomObjectCollisionCheck(const std::shared_ptr<MovementObject>&
 	}
 }
 
-void Server::ProcessArrow(int client_id, int target_id, ActionType type)
+int Server::MakeArrow(int client_id, ActionType type)
 {
 	auto game_room = m_game_room_manager->GetGameRoom(m_clients[client_id]->GetRoomNum());
 	if (!game_room) {
-		return;
+		return -1;
 	}
 
 	int arrow_id = game_room->GetArrowId();
@@ -1543,7 +1534,17 @@ void Server::ProcessArrow(int client_id, int target_id, ActionType type)
 	SetRemoveArrowTimerEvent(client_id, arrow_id);
 
 	SendArrowShoot(client_id, arrow_id, type);
-	SetHitScanTimerEvent(client_id, target_id, type, arrow_id);
+
+	return arrow_id;
+}
+
+void Server::ProcessArrow(int client_id, int target_id, ActionType type)
+{
+	int arrow_id = MakeArrow(client_id, type);
+	if (-1 == arrow_id)
+		return;
+
+	SetHitScanTimerEvent(client_id, type, arrow_id, target_id);
 }
 
 INT Server::GetNewId()
@@ -1952,19 +1953,23 @@ void Server::ProcessTimerEvent(const TIMER_EVENT& ev)
 	case EventType::ATTACK_COLLISION: {
 		auto client = dynamic_pointer_cast<Client>(m_clients[ev.obj_id]);
 
-		switch (ev.action_type) {
-		case ActionType::NORMAL_ATTACK:
-			if (ObjectAnimation::ATTACK != client->GetCurrentAnimation())
-				return;
-			break;
-		case ActionType::SKILL:
-			if (PlayerAnimation::SKILL != client->GetCurrentAnimation())
-				return;
-			break;
-		case ActionType::ULTIMATE:
-			if (PlayerAnimation::ULTIMATE != client->GetCurrentAnimation())
-				return;
-			break;
+		if (PlayerType::WARRIOR == client->GetPlayerType()) {	// 전사의 경우 모션중에 타격이 일어나야 함
+			switch (ev.action_type) {
+			case ActionType::NORMAL_ATTACK:
+				if (ObjectAnimation::ATTACK != client->GetCurrentAnimation())
+					return;
+				break;
+			case ActionType::SKILL:
+				if (PlayerAnimation::SKILL != client->GetCurrentAnimation() &&
+					PlayerAnimation::SKILL2 != client->GetCurrentAnimation())
+					return;
+				break;
+			case ActionType::ULTIMATE:
+				if (PlayerAnimation::ULTIMATE != client->GetCurrentAnimation() &&
+					PlayerAnimation::ULTIMATE2 != client->GetCurrentAnimation())
+					return;
+				break;
+			}
 		}
 
 		ExpOver* over = new ExpOver;
@@ -2248,10 +2253,10 @@ void Server::SetAttackTimerEvent(int id, ActionType attack_type,
 	int player_type = static_cast<int>(client->GetPlayerType());
 
 	TIMER_EVENT ev{ .obj_id = id, .action_type = attack_type };
+	ev.event_type = EventType::ATTACK_COLLISION;
 
 	switch (client->GetPlayerType()) {
 	case PlayerType::WARRIOR:
-		ev.event_type = EventType::ATTACK_COLLISION;
 
 		switch (attack_type) {
 		case ActionType::NORMAL_ATTACK:
@@ -2259,16 +2264,19 @@ void Server::SetAttackTimerEvent(int id, ActionType attack_type,
 			ev.position = Vector3::Add(client->GetPosition(), Vector3::Mul(client->GetFront(), 0.8f));
 			break;
 		case ActionType::SKILL:
-			ev.event_time = attack_time + PlayerSetting::SKILL_COLLISION_TIME[player_type];
+			ev.event_time = attack_time + 
+				PlayerSetting::SKILL_COLLISION_TIME[player_type][client->GetNormalSkillType()];
 			ev.position = Vector3::Add(client->GetPosition(), Vector3::Mul(client->GetFront(), 0.8f));
 			break;
 		case ActionType::ULTIMATE:
-			ev.event_time = attack_time + PlayerSetting::ULTIMATE_COLLISION_TIME[player_type];
+			ev.event_time = attack_time + 
+				PlayerSetting::ULTIMATE_COLLISION_TIME[player_type][client->GetUltimateSkillType()];
 			ev.position = Vector3::Add(client->GetPosition(), Vector3::Mul(client->GetFront(), 0.8f));
 			break;
 		}
 		break;
 	}
+
 	m_timer_queue.push(ev);
 }
 
@@ -2350,16 +2358,23 @@ void Server::SetStaminaTimerEvent(int client_id, bool is_increase)
 	}
 }
 
-void Server::SetHitScanTimerEvent(int id, int target_id, ActionType action_type,
-	int arrow_id)
+// 타겟을 향해 날림
+void Server::SetHitScanTimerEvent(int id, ActionType action_type, int arrow_id, int target_id)
 {
-	if (-1 == target_id)
+	if(-1 == target_id)
 		return;
-
-	auto now = std::chrono::system_clock::now();
 
 	XMFLOAT3 dir = Vector3::Sub(m_clients[target_id]->GetPosition(),
 		m_clients[id]->GetPosition());
+
+	SetHitScanTimerEvent(id, action_type, arrow_id, dir);
+}
+
+// 방향을 향해 날림 
+void Server::SetHitScanTimerEvent(int id, ActionType action_type, int arrow_id, const XMFLOAT3& dir)
+{
+	auto now = std::chrono::system_clock::now();
+
 	float length = Vector3::Length(dir);
 	float speed{};
 
@@ -2373,9 +2388,9 @@ void Server::SetHitScanTimerEvent(int id, int target_id, ActionType action_type,
 	std::chrono::milliseconds ms{static_cast<long long>(time)};
 
 	TIMER_EVENT ev{ .event_time = now + ms, .obj_id = id, .target_id = arrow_id,
-		.position = m_clients[id]->GetPosition(), .direction = Vector3::Normalize(dir), 
+		.position = m_clients[id]->GetPosition(), .direction = Vector3::Normalize(dir),
 		.event_type = EventType::HIT_SCAN, .action_type = action_type };
-	
+
 	m_timer_queue.push(ev);
 }
 
@@ -2393,7 +2408,9 @@ void Server::SetArrowShootTimerEvent(int id, ActionType attack_type,
 	}
 
 	int target = GetNearTarget(id, target_range);
-	if (-1 != target) {
+
+	// 타겟방향 회전
+	if (-1 != target) {									
 		XMVECTOR z_axis{ XMVectorSet(0.0f, 0.0f, 1.0f, 1.0f) };
 
 		XMFLOAT3 sub = Vector3::Sub(m_clients[target]->GetPosition(), m_clients[id]->GetPosition());
@@ -2407,7 +2424,7 @@ void Server::SetArrowShootTimerEvent(int id, ActionType attack_type,
 		XMStoreFloat4(&q, vec);
 		m_clients[id]->SetBoundingBoxOrientation(XMFLOAT4{ q.x, q.y, q.z, q.w });
 		m_clients[id]->SetYaw(sub.x < 0 ? -angle : angle);
-	}
+	}	
 
 	TIMER_EVENT ev{ .obj_id = id, .target_id = target,
 		.event_type = EventType::ARROW_SHOOT, .action_type = attack_type };
@@ -2418,10 +2435,27 @@ void Server::SetArrowShootTimerEvent(int id, ActionType attack_type,
 		ev.event_time = attack_time + PlayerSetting::ATTACK_COLLISION_TIME[type];
 		break;
 	case ActionType::SKILL:
-		ev.event_time = attack_time + PlayerSetting::SKILL_COLLISION_TIME[type];
+		switch (client->GetNormalSkillType()) {
+		case 0:
+			ev.event_time = attack_time +
+				PlayerSetting::SKILL_COLLISION_TIME[type][client->GetNormalSkillType()];
+			break;
+
+		case 1:
+			using namespace std::literals;
+
+			for (size_t i = 0; i < 3; ++i) {
+				ev.event_time = attack_time +
+					PlayerSetting::SKILL_COLLISION_TIME[type][client->GetNormalSkillType()] +
+					(100ms * i);
+				m_timer_queue.push(ev);
+			}
+			return;
+		}
 		break;
 	case ActionType::ULTIMATE:
-		ev.event_time = attack_time + PlayerSetting::ULTIMATE_COLLISION_TIME[type];
+		ev.event_time = attack_time + 
+			PlayerSetting::ULTIMATE_COLLISION_TIME[type][client->GetUltimateSkillType()];
 		ev.position = Vector3::Add(m_clients[id]->GetPosition(),
 			Vector3::Mul(m_clients[id]->GetFront(), TriggerSetting::ARROWRAIN_DIST));
 		break;
@@ -2654,4 +2688,55 @@ void Server::CollideByStaticOBB(const std::shared_ptr<GameObject>& object,
 	}
 
 }
+
+void Server::AttackCollisionWithMonster(int client_id, const BoundingOrientedBox& obb, ActionType type)
+{
+	auto client = dynamic_pointer_cast<Client>(m_clients[client_id]);
+
+	int room_num = client->GetRoomNum();
+
+	auto game_room = m_game_room_manager->GetGameRoom(room_num);
+	if (!game_room) {
+		return;
+	}
+
+	// 충돌된 몬스터 빼내는 컨테이너
+	std::vector<int> v;
+	v.reserve(MAX_INGAME_MONSTER);
+	FLOAT damage{ client->GetDamage() };
+
+	damage *= client->GetSkillRatio(type);
+
+	auto& monster_ids = game_room->GetMonsterIds();
+
+	for (int id : monster_ids) {
+		if (-1 == id) continue;
+		if (State::INGAME != m_clients[id]->GetState()) continue;
+
+		if (m_clients[id]->GetBoundingBox().Intersects(obb)) {
+			auto monster = dynamic_pointer_cast<Monster>(m_clients[id]);
+			monster->DecreaseHp(damage, client->GetId());
+			v.push_back(id);
+		}
+	}
+
+	for (int monster_id : v) {
+		SendChangeHp(monster_id);
+	}
+}
  
+
+XMFLOAT3 Server::GetRotateDirection(int client_id, FLOAT value) const
+{
+	XMFLOAT3 pos = m_clients[client_id]->GetPosition();
+	XMFLOAT3 front = m_clients[client_id]->GetFront();
+	XMFLOAT3 dir = Vector3::Normalize(Vector3::Sub(front, pos));
+
+	XMFLOAT4 q{};
+	XMStoreFloat4(&q, XMQuaternionRotationRollPitchYaw(0.f, value, 0.f));
+	XMVECTOR rotation = XMVector3Rotate(XMLoadFloat3(&dir), XMLoadFloat4(&q));
+	
+	XMFLOAT3 result{};
+	XMStoreFloat3(&result, rotation);
+	return result;
+}
