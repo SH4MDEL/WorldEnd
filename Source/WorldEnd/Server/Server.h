@@ -92,6 +92,7 @@ public:
 	bool IsPlayer(int client_id); 
 	void GameRoomObjectCollisionCheck(const std::shared_ptr<MovementObject>& object,
 		int room_num);
+	int MakeArrow(int client_id, ActionType type);
 	void ProcessArrow(int client_id, int target_id, ActionType type);
 
 	// 타이머 쓰레드 및 처리
@@ -108,7 +109,8 @@ public:
 		std::chrono::system_clock::time_point attack_time);
 	void SetCooldownTimerEvent(int id, ActionType action_type);
 	void SetStaminaTimerEvent(int client_id, bool is_increase);
-	void SetHitScanTimerEvent(int id, int target_id, ActionType action_type, int arrow_id);
+	void SetHitScanTimerEvent(int id, ActionType action_type, int arrow_id, int target_id);
+	void SetHitScanTimerEvent(int id, ActionType action_type, int arrow_id, const XMFLOAT3& dir);
 	void SetArrowShootTimerEvent(int id, ActionType attack_type,
 		std::chrono::system_clock::time_point attack_time);
 	void SetRemoveArrowTimerEvent(int client_id, int arrow_id);
@@ -143,6 +145,9 @@ public:
 	static void CollideByStaticOBB(const std::shared_ptr<GameObject>& object,
 		const std::shared_ptr<GameObject>& static_object);
 
+	void AttackCollisionWithMonster(int client_id, const BoundingOrientedBox& obb, ActionType type);
+
+
 public:
 	std::array<std::shared_ptr<MovementObject>, MAX_OBJECT> m_clients;
 	std::array<std::shared_ptr<Trigger>, MAX_TRIGGER> m_triggers;
@@ -164,5 +169,9 @@ private:
 	concurrency::concurrent_priority_queue<TIMER_EVENT> m_timer_queue;
 	concurrency::concurrent_priority_queue<DB_EVENT> m_db_queue;
 
+
+private:
 	Server();
+
+	XMFLOAT3 GetRotateDirection(int client_id, FLOAT value) const;
 };

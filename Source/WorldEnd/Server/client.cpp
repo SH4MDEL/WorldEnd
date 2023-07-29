@@ -78,6 +78,7 @@ void Client::Init()
 		m_skills[i][(INT)SkillType::NORMAL]->SetSkillType(0);
 		m_skills[i][(INT)SkillType::ULTIMATE]->SetSkillType(0);
 	}
+
 }
 
 void Client::DoRecv()
@@ -268,12 +269,16 @@ FLOAT Client::GetSkillRatio(ActionType type) const
 {
 	FLOAT ratio{};
 	switch (type) {
-	case ActionType::SKILL:
-		ratio = PlayerSetting::SKILL_RATIO[static_cast<int>(m_player_type)];
+	case ActionType::SKILL: {
+		INT skill_type = GetNormalSkillType(m_player_type);
+		ratio = PlayerSetting::SKILL_RATIO[static_cast<int>(m_player_type)][skill_type];
 		break;
-	case ActionType::ULTIMATE:
-		ratio = PlayerSetting::ULTIMATE_RATIO[static_cast<int>(m_player_type)];
+	}
+	case ActionType::ULTIMATE: {
+		INT skill_type = GetUltimateSkillType(m_player_type);
+		ratio = PlayerSetting::ULTIMATE_RATIO[static_cast<int>(m_player_type)][skill_type];
 		break;
+	}
 	default:
 		return 1.f;
 	}
@@ -286,9 +291,19 @@ UCHAR Client::GetNormalSkillType(PlayerType type) const
 	return m_skills[(INT)type][static_cast<INT>(SkillType::NORMAL)]->GetSkillType();
 }
 
+UCHAR Client::GetNormalSkillType() const
+{
+	return GetNormalSkillType(m_player_type);
+}
+
 UCHAR Client::GetUltimateSkillType(PlayerType type) const
 {
 	return m_skills[(INT)type][static_cast<INT>(SkillType::ULTIMATE)]->GetSkillType();
+}
+
+UCHAR Client::GetUltimateSkillType() const
+{
+	return GetUltimateSkillType(m_player_type);
 }
 
 INT Client::GetCost(EnhancementType type) const
@@ -297,23 +312,28 @@ INT Client::GetCost(EnhancementType type) const
 
 	switch (type) {
 	case EnhancementType::HP:
-		cost += PlayerSetting::ENHANCE_INCREASEMENT * m_status->GetHpLevel();
+		cost += PlayerSetting::ENHANCE_COST_INCREASEMENT * m_status->GetHpLevel();
 		break;
 	case EnhancementType::ATK:
-		cost += PlayerSetting::ENHANCE_INCREASEMENT * m_status->GetAtkLevel();
+		cost += PlayerSetting::ENHANCE_COST_INCREASEMENT * m_status->GetAtkLevel();
 		break;
 	case EnhancementType::DEF:
-		cost += PlayerSetting::ENHANCE_INCREASEMENT * m_status->GetDefLevel();
+		cost += PlayerSetting::ENHANCE_COST_INCREASEMENT * m_status->GetDefLevel();
 		break;
 	case EnhancementType::CRIT_RATE:
-		cost += PlayerSetting::ENHANCE_INCREASEMENT * m_status->GetCritRateLevel();
+		cost += PlayerSetting::ENHANCE_COST_INCREASEMENT * m_status->GetCritRateLevel();
 		break;
 	case EnhancementType::CRIT_DAMAGE:
-		cost += PlayerSetting::ENHANCE_INCREASEMENT * m_status->GetCritDamageLevel();
+		cost += PlayerSetting::ENHANCE_COST_INCREASEMENT * m_status->GetCritDamageLevel();
 		break;
 	}
 
 	return cost;
+}
+
+INT Client::GetLevel(EnhancementType type) const
+{
+	return static_cast<INT>(GetLevel(type));
 }
 
 void Client::ChangeStamina(FLOAT value)

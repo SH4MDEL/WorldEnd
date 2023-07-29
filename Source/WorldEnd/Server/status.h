@@ -34,6 +34,7 @@ public:
 	UCHAR GetDefLevel() const { return m_def_level; }
 	UCHAR GetCritRateLevel() const { return m_crit_rate_level; }
 	UCHAR GetCritDamageLevel() const { return m_crit_damage_level; }
+	UCHAR GetLevel(EnhancementType type) const;
 
 	FLOAT CalculateDamage();
 	bool CalculateHitDamage(FLOAT damage);

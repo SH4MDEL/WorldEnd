@@ -67,6 +67,10 @@ void TowerObjectManager::CreateArrow(const shared_ptr<GameObject>& parent, INT a
 		pos = { 0.f, 0.5f, 0.f };
 		vel = Vector3::Add(vel, { 0.f, 0.185f * SPEED, 0.f });
 	}
+	else if (ActionType::ULTIMATE == type) {
+		pos = { 0.f, 0.9f, 0.f };
+		vel = Vector3::Add(vel, { 0.f, 0.15f * SPEED, 0.f });
+	}
 	m_arrows[arrowId]->SetPosition(Vector3::Add(parent->GetPosition(), pos));
 	
 	

@@ -76,6 +76,7 @@ void GameRoom::WarpNextFloor(INT room_num)
 	for (INT id : m_ingame_player_ids) {
 		if (-1 == id) continue;
 
+		server.m_clients[id]->SetHp(server.m_clients[id]->GetMaxHp());
 		SendAddMonster(id);
 	}
 }

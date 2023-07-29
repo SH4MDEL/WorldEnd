@@ -379,7 +379,7 @@ void TowerScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 		m_resultUI->SetDisable();
 		ResetState(State::OutputResult);
 		});
-	auto ResultButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.f, 0.f}, XMFLOAT2{20.f, 10.f}) };
+	auto ResultButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.f, 0.f}, XMFLOAT2{40.f, 10.f}) };
 	ResultButtonTextUI->SetText(L"닫기");
 	ResultButtonTextUI->SetColorBrush("WHITE");
 	ResultButtonTextUI->SetTextFormat("KOPUB2");
@@ -1081,6 +1081,7 @@ void TowerScene::RecvAddPlayer(char* ptr)
 	multiPlayer->SetPosition(packet->pos);
 	multiPlayer->SetMaxHp(packet->hp);
 	multiPlayer->SetHp(packet->hp);
+	multiPlayer->SetId(id);
 
 	m_multiPlayers.insert({ id, multiPlayer });
 
@@ -1160,6 +1161,7 @@ void TowerScene::RecvAddMonster(char* ptr)
 	monster->SetPosition(XMFLOAT3{ packet->monster_data.pos.x,
 		packet->monster_data.pos.y, packet->monster_data.pos.z });
 	m_monsters.insert({ static_cast<INT>(packet->monster_data.id), monster });
+	monster->SetEnable(false);
 
 	if (packet->monster_type != MonsterType::BOSS) SetHpBar(monster);
 	else {
@@ -1238,7 +1240,10 @@ void TowerScene::RecvChangeAnimation(char* ptr)
 	if (packet->id == m_player->GetId()) {
 		if (PlayerType::ARCHER == m_player->GetType() &&
 			(packet->animation == ObjectAnimation::ATTACK ||
-				packet->animation == PlayerAnimation::SKILL))
+				packet->animation == PlayerAnimation::SKILL ||
+				packet->animation == PlayerAnimation::SKILL2 ||
+				packet->animation == PlayerAnimation::ULTIMATE ||
+				packet->animation == PlayerAnimation::ULTIMATE2))
 		{
 			RotateToTarget(m_player);
 		}
@@ -1309,7 +1314,7 @@ void TowerScene::RecvWarpNextFloor(char* ptr)
 
 			elm.second->SetPosition(RoomSetting::START_POSITION);
 			elm.second->ChangeAnimation(ObjectAnimation::IDLE, false);
-			elm.second->SetHp(m_player->GetMaxHp());
+			elm.second->SetHp(elm.second->GetMaxHp());
 		}
 
 		m_gate->SetPosition(RoomSetting::BATTLE_STARTER_POSITION);
@@ -1346,6 +1351,8 @@ void TowerScene::RecvPlayerDeath(char* ptr)
 void TowerScene::RecvArrowShoot(char* ptr)
 {
 	SC_ARROW_SHOOT_PACKET* packet = reinterpret_cast<SC_ARROW_SHOOT_PACKET*>(ptr);
+
+	cout << "화살 생성" << endl;
 
 	if (0 <= packet->id && packet->id < MAX_USER) {
 		if (packet->id == m_player->GetId()) {
@@ -1568,7 +1575,7 @@ void TowerScene::CollideWithObject()
 	}
 
 	for (const auto& elm : m_monsters) {
-		if (elm.second) {
+		if (elm.second && elm.second->GetEnable()) {
 			if (boundingBox.Intersects(elm.second->GetBoundingBox())) {
 				CollideByStatic(m_player, elm.second);
 			}

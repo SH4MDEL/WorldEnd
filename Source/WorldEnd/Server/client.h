@@ -86,9 +86,12 @@ public:
 	UCHAR GetCritRateLevel() const { return m_status->GetCritRateLevel(); }
 	UCHAR GetCritDamageLevel() const { return m_status->GetCritDamageLevel(); }
 	UCHAR GetNormalSkillType(PlayerType type) const;
+	UCHAR GetNormalSkillType() const;
 	UCHAR GetUltimateSkillType(PlayerType type) const;
+	UCHAR GetUltimateSkillType() const;
 	XMFLOAT3 GetTownPosition() const { return m_town_position; }
 	INT GetCost(EnhancementType type) const;
+	INT GetLevel(EnhancementType type) const;
 
 	bool GetInvincibleRoll() const { return m_invincible_roll; }
 	const std::unordered_set<INT>& GetViewList() { return m_view_list;}
