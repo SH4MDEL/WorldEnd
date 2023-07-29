@@ -7,7 +7,7 @@
 Player::Player() : m_velocity{ 0.0f, 0.0f, 0.0f }, m_maxVelocity{ 10.0f }, m_friction{ 0.5f }, 
 	m_hp{ 250.f }, m_maxHp{ 250.f }, m_stamina{ PlayerSetting::MAX_STAMINA }, m_maxStamina{ PlayerSetting::MAX_STAMINA }, 
 	m_skillCool{ static_cast<FLOAT>(PlayerSetting::SKILL_COOLDOWN[(INT)m_type].count())}, 
-	m_ultimateCool{ static_cast<FLOAT>(PlayerSetting::ULTIMATE_COOLDOWN[(INT)m_type].count()) },
+	m_ultimateCool{ static_cast<FLOAT>(PlayerSetting::ULTIMATE_COOLDOWN[(INT)m_type].count()) }, m_voiceCool{ 0.f },
 	m_id{ -1 }, m_cooldownList{ false, }, m_dashed{ false }, m_moveSpeed{ PlayerSetting::WALK_SPEED },
 	m_interactable{ false }, m_interactableType{ InteractionType::NONE }, m_bufSize{ 0 }
 {
@@ -39,9 +39,25 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 			switch ((INT)g_playerInfo.skill[(INT)m_type].second) {
 			case 0:
 				ChangeAnimation(PlayerAnimation::ULTIMATE, true);
+				if (g_playerInfo.playerType == PlayerType::WARRIOR && m_voiceCool >= m_voiceCoolTime) {
+					m_voiceCool = 0.f;
+					SoundManager::GetInstance().PlaySound(SoundManager::Sound::WarriorSkill2);
+				}
+				if (g_playerInfo.playerType == PlayerType::ARCHER && m_voiceCool >= m_voiceCoolTime) {
+					m_voiceCool = 0.f;
+					SoundManager::GetInstance().PlaySound(SoundManager::Sound::ArcherSkill2);
+				}
 				break;
 			case 1:
 				ChangeAnimation(PlayerAnimation::ULTIMATE2, true);
+				if (g_playerInfo.playerType == PlayerType::WARRIOR && m_voiceCool >= m_voiceCoolTime) {
+					m_voiceCool = 0.f;
+					SoundManager::GetInstance().PlaySound(SoundManager::Sound::WarriorSkill3);
+				}
+				if (g_playerInfo.playerType == PlayerType::ARCHER && m_voiceCool >= m_voiceCoolTime) {
+					m_voiceCool = 0.f;
+					SoundManager::GetInstance().PlaySound(SoundManager::Sound::ArcherSkill1);
+				}
 				break;
 			}
 
@@ -206,9 +222,25 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 			switch ((INT)g_playerInfo.skill[(INT)m_type].first) {
 			case 0:
 				ChangeAnimation(PlayerAnimation::SKILL, true);
+				if (g_playerInfo.playerType == PlayerType::WARRIOR && m_voiceCool >= m_voiceCoolTime) {
+					m_voiceCool = 0.f;
+					SoundManager::GetInstance().PlaySound(SoundManager::Sound::WarriorSkill1);
+				}
+				if (g_playerInfo.playerType == PlayerType::ARCHER && m_voiceCool >= m_voiceCoolTime) {
+					m_voiceCool = 0.f;
+					SoundManager::GetInstance().PlaySound(SoundManager::Sound::ArcherSkill1);
+				}
 				break;
 			case 1:
 				ChangeAnimation(PlayerAnimation::SKILL2, true);
+				if (g_playerInfo.playerType == PlayerType::WARRIOR && m_voiceCool >= m_voiceCoolTime) {
+					m_voiceCool = 0.f;
+					SoundManager::GetInstance().PlaySound(SoundManager::Sound::WarriorSkill3);
+				}
+				if (g_playerInfo.playerType == PlayerType::ARCHER && m_voiceCool >= m_voiceCoolTime) {
+					m_voiceCool = 0.f;
+					SoundManager::GetInstance().PlaySound(SoundManager::Sound::ArcherSkill1);
+				}
 				break;
 			}
 
@@ -258,6 +290,15 @@ void Player::OnProcessingMouseMessage(UINT message, LPARAM lParam)
 
 					CreateCooldownPacket(ActionType::DASH);
 					CreateChangeStaminaPacket(false);
+
+					if (g_playerInfo.playerType == PlayerType::WARRIOR && m_voiceCool >= m_voiceCoolTime) {
+						m_voiceCool = 0.f;
+						SoundManager::GetInstance().PlaySound(SoundManager::Sound::WarriorDash);
+					}
+					if (g_playerInfo.playerType == PlayerType::ARCHER && m_voiceCool >= m_voiceCoolTime) {
+						m_voiceCool = 0.f;
+						SoundManager::GetInstance().PlaySound(SoundManager::Sound::ArcherDash);
+					}
 				}
 			}
 		}
@@ -431,9 +472,8 @@ void Player::Update(FLOAT timeElapsed)
 		XMFLOAT3 staminaBarPosition = GetPosition();
 		XMFLOAT3 cameraRight = m_camera->GetRight();
 		staminaBarPosition.x += cameraRight.x;
-		staminaBarPosition.y += cameraRight.y;
+		staminaBarPosition.y += cameraRight.y + 1.f;
 		staminaBarPosition.z += cameraRight.z;
-		staminaBarPosition.y += 1.f;
 		m_staminaBar->SetPosition(staminaBarPosition);
 
 		if (m_currentAnimation == PlayerAnimation::RUN || 
@@ -456,7 +496,7 @@ void Player::Update(FLOAT timeElapsed)
 		m_ultimateGauge->SetMaxGauge(static_cast<FLOAT>(PlayerSetting::ULTIMATE_COOLDOWN[(INT)m_type].count()));
 		m_ultimateGauge->SetGauge(m_ultimateCool);
 	}
-
+	if (m_voiceCoolTime > m_voiceCool) m_voiceCool += timeElapsed;
 
 //#ifndef USE_NETWORK
 	Move(m_velocity);
@@ -624,35 +664,6 @@ void Player::ChangeAnimation(USHORT animation, bool doSend)
 
 	if (doSend)
 		CreateChangeAnimation(animation);
-}
-
-void Player::MoveOnStairs()
-{
-	XMFLOAT3 pos = GetPosition();
-	float ratio{};
-	if (pos.z >= RoomSetting::DOWNSIDE_STAIRS_BACK &&
-		pos.z <= RoomSetting::DOWNSIDE_STAIRS_FRONT)
-	{
-		ratio = RoomSetting::DOWNSIDE_STAIRS_FRONT - pos.z;
-		pos.y = RoomSetting::DEFAULT_HEIGHT -
-			RoomSetting::DOWNSIDE_STAIRS_HEIGHT * ratio / 10.f;
-	}
-	else if (pos.z >= RoomSetting::TOPSIDE_STAIRS_BACK &&
-		pos.z <= RoomSetting::TOPSIDE_STAIRS_FRONT)
-	{
-		ratio = pos.z - RoomSetting::TOPSIDE_STAIRS_BACK;
-		pos.y = RoomSetting::DEFAULT_HEIGHT +
-			RoomSetting::TOPSIDE_STAIRS_HEIGHT * ratio / 10.f;
-	}
-	else if (pos.z >= RoomSetting::DOWNSIDE_STAIRS_FRONT &&
-		pos.z <= RoomSetting::TOPSIDE_STAIRS_BACK)
-	{
-		if (std::fabs(pos.y - RoomSetting::DEFAULT_HEIGHT) <= std::numeric_limits<float>::epsilon()) {
-			return;
-		}
-		pos.y = RoomSetting::DEFAULT_HEIGHT;
-	}
-	SetPosition(pos);
 }
 
 void Player::CreateMovePacket()

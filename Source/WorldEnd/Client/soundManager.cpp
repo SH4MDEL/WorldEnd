@@ -8,10 +8,15 @@ SoundManager::SoundManager() : m_musicVolume{ 5, 0.5f }, m_soundVolume{ 5, 0.5f 
 	m_result = m_system->createSound("Resource/Sound/Title.mp3", FMOD_LOOP_NORMAL, 0, &m_music[Music::Title]);
 	m_result = m_system->createSound("Resource/Sound/Village.mp3", FMOD_LOOP_NORMAL, 0, &m_music[Music::Village]);
 	m_result = m_system->createSound("Resource/Sound/Dungeon.mp3", FMOD_LOOP_NORMAL, 0, &m_music[Music::Dungeon]);
-	m_result = m_system->createSound("Resource/Sound/Battle.mp3", FMOD_LOOP_NORMAL, 0, &m_music[Music::Dungeon]);
 	m_result = m_system->createSound("Resource/Sound/Boss.mp3", FMOD_LOOP_NORMAL, 0, &m_music[Music::Boss]);
 
-	m_result = m_system->createSound("Resource/Sound/Title.mp3", FMOD_LOOP_OFF, 0, &m_sound[Sound::Sample]);
+	m_result = m_system->createSound("Resource/Sound/Warrior_Skill1.wav", FMOD_LOOP_OFF, 0, &m_sound[Sound::WarriorSkill1]);
+	m_result = m_system->createSound("Resource/Sound/Warrior_Skill2.wav", FMOD_LOOP_OFF, 0, &m_sound[Sound::WarriorSkill2]);
+	m_result = m_system->createSound("Resource/Sound/Warrior_Skill3.wav", FMOD_LOOP_OFF, 0, &m_sound[Sound::WarriorSkill3]);
+	m_result = m_system->createSound("Resource/Sound/Warrior_Dash.wav", FMOD_LOOP_OFF, 0, &m_sound[Sound::WarriorDash]);
+	m_result = m_system->createSound("Resource/Sound/Archer_Skill1.wav", FMOD_LOOP_OFF, 0, &m_sound[Sound::ArcherSkill1]);
+	m_result = m_system->createSound("Resource/Sound/Archer_Skill2.wav", FMOD_LOOP_OFF, 0, &m_sound[Sound::ArcherSkill2]);
+	m_result = m_system->createSound("Resource/Sound/Archer_Dash.wav", FMOD_LOOP_OFF, 0, &m_sound[Sound::ArcherDash]);
 }
 
 SoundManager::~SoundManager()

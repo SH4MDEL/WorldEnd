@@ -59,16 +59,20 @@ void Camera::SetPlayer(const shared_ptr<Player>& player)
 	SetEye(m_player->GetPosition());
 }
 
-ThirdPersonCamera::ThirdPersonCamera() : Camera{}, m_offset{ 0.0f, 1.0f, -9.0f }, m_delay{ 0.1f }
+ThirdPersonCamera::ThirdPersonCamera() : Camera{}, m_offset{ CameraSetting::DEFAULT_OFFSET }, m_delay{ 0.1f },
+m_shakeValue{ 0.f, 0.f, 0.f }, m_shakingTime{ 0.f }, m_shakingLifeTime{ 0.f }, m_isShaking {false}
 {
 
 }
 
 void ThirdPersonCamera::Update(FLOAT timeElapsed)
 {
-	XMFLOAT3 destination{ Vector3::Add(m_player->GetPosition(), m_offset) };
+	UpdateCameraShaking(timeElapsed);
+
+	XMFLOAT3 offset{ Vector3::Add(m_offset, m_shakeValue) };
+	XMFLOAT3 destination{ Vector3::Add(m_player->GetPosition(), offset) };
 	XMFLOAT3 direction{ Vector3::Sub(destination, GetEye()) };
-	XMFLOAT3 shift{ Vector3::Mul(direction, timeElapsed * 1 / m_delay) };
+	XMFLOAT3 shift{ Vector3::Mul(direction, timeElapsed / m_delay) };
 	SetEye(Vector3::Add(GetEye(), shift));
 
 	// 뷰 프러스텀 업데이트
@@ -120,53 +124,101 @@ void ThirdPersonCamera::Update(FLOAT timeElapsed)
 	m_viewFrustum.Transform(m_viewFrustum, XMMatrixInverse(nullptr, XMLoadFloat4x4(&m_viewMatrix)));
 }
 
-void ThirdPersonCamera::Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw)
+void ThirdPersonCamera::UpdateCameraShaking(FLOAT timeElapsed)
 {
+	if (m_isShaking) {
+		m_shakingTime += timeElapsed;
+		if (m_shakingTime < m_shakingLifeTime) {
+			int sign = Utiles::GetRandomINT(0, 1);
+			if (sign) {
+				m_shakeValue = Vector3::Add(m_shakeValue, Vector3::Mul(GetRight(), Utiles::GetRandomFLOAT(20.f * timeElapsed, 30.f * timeElapsed)));
+			}
+			else {
+				m_shakeValue = Vector3::Sub(m_shakeValue, Vector3::Mul(GetRight(), Utiles::GetRandomFLOAT(20.f * timeElapsed, 30.f * timeElapsed)));
+			}
+			sign = Utiles::GetRandomINT(0, 1);
+			if (sign) {
+				m_shakeValue = Vector3::Add(m_shakeValue, Vector3::Mul(GetUp(), Utiles::GetRandomFLOAT(20.f * timeElapsed, 30.f * timeElapsed)));
+			}
+			else {
+				m_shakeValue = Vector3::Sub(m_shakeValue, Vector3::Mul(GetUp(), Utiles::GetRandomFLOAT(20.f * timeElapsed, 30.f * timeElapsed)));
+			}
+		}
+		else {
+			m_shakingTime = 0.f;
+			m_shakingLifeTime = 0.f;
+			m_isShaking = false;
+			m_shakeValue = { 0.f, 0.f, 0.f };
+		}
+	}
+}
+
+void ThirdPersonCamera::Reset()
+{
+	m_offset = CameraSetting::DEFAULT_OFFSET;
+	m_pitch = { 0.f };
+	m_yaw = { 0.f };
+	cout << "reset" << endl;
+}
+
+void ThirdPersonCamera::Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw, FLOAT timeElapsed)
+{
+	if (timeElapsed >= CameraSetting::CAMERA_WAITING_TIME) return;
+	roll *= timeElapsed; pitch *= timeElapsed; yaw *= timeElapsed;
+
 	XMMATRIX rotate{ XMMatrixIdentity() };
-	if (roll != 0.0f)
-	{
+	if (roll != 0.f) {
 		m_roll += roll;
 		rotate *= XMMatrixRotationAxis(XMLoadFloat3(&m_look), XMConvertToRadians(roll));
 	}
-	if (pitch != 0.0f)
-	{
-		if (m_pitch + pitch > MAX_PITCH)
+	if (pitch != 0.f) {
+		if (m_pitch + pitch > CameraSetting::MAX_PITCH)
 		{
-			rotate *= XMMatrixRotationAxis(XMLoadFloat3(&m_right), XMConvertToRadians(MAX_PITCH - m_pitch));
-			m_pitch = MAX_PITCH;
+			rotate *= XMMatrixRotationAxis(XMLoadFloat3(&m_right), XMConvertToRadians(CameraSetting::MAX_PITCH - m_pitch));
+			m_pitch = CameraSetting::MAX_PITCH;
 		}
-		else if (m_pitch + pitch < MIN_PITCH)
+		else if (m_pitch + pitch < CameraSetting::MIN_PITCH)
 		{
-			rotate *= XMMatrixRotationAxis(XMLoadFloat3(&m_right), XMConvertToRadians(MIN_PITCH - m_pitch));
-			m_pitch = MIN_PITCH;
+			rotate *= XMMatrixRotationAxis(XMLoadFloat3(&m_right), XMConvertToRadians(CameraSetting::MIN_PITCH - m_pitch));
+			m_pitch = CameraSetting::MIN_PITCH;
 		}
 		else {
 			rotate *= XMMatrixRotationAxis(XMLoadFloat3(&m_right), XMConvertToRadians(pitch));
 			m_pitch += pitch;
 		}
 	}
-	if (yaw != 0.0f)
-	{
+	if (yaw != 0.f) {
 		m_yaw += yaw;
 		rotate *= XMMatrixRotationAxis(XMLoadFloat3(&m_up), XMConvertToRadians(yaw));
 	}
+
+	if (m_offset.y < CameraSetting::DEFAULT_OFFSET.y || 
+		m_offset.y > CameraSetting::DEFAULT_OFFSET.y + Vector3::Length(CameraSetting::DEFAULT_OFFSET) * sin(XMConvertToRadians(CameraSetting::MAX_PITCH) + 2.f)) Reset();
+
 	XMStoreFloat3(&m_offset, XMVector3TransformNormal(XMLoadFloat3(&m_offset), rotate));
 	XMFLOAT3 look{ Vector3::Sub(m_player->GetPosition(), m_eye) };
 	if (Vector3::Length(look)) m_look = look;
 }
 
-ViewingCamera::ViewingCamera() : Camera{}
+void ThirdPersonCamera::CameraShaking(FLOAT shakingLifeTime)
+{
+	if (!m_isShaking) {
+		m_isShaking = true;
+		m_shakingLifeTime = shakingLifeTime;
+	}
+}
+
+ViewingCamera::ViewingCamera() : Camera{}, m_viewingValue{0.f}
 {
 }
 
 void ViewingCamera::Update(FLOAT timeElapsed)
 {
-
-	static float a = 0.f;
-	a += timeElapsed / 10.f;
+	m_viewingValue += timeElapsed / 10.f;
 	XMFLOAT3 destination{ 
-		LoginSetting::EyeOffset * cos(a) + LoginSetting::Direction.x, LoginSetting::Direction.y + 20.f,
-		LoginSetting::EyeOffset * sin(a) + LoginSetting::Direction.z 
+		LoginSetting::EyeOffset * cos(m_viewingValue) + LoginSetting::Direction.x, 
+		LoginSetting::Direction.y + 20.f,
+		LoginSetting::EyeOffset * sin(m_viewingValue) + LoginSetting::Direction.z
 	};
 	SetEye(destination);
 	SetLook(Vector3::Sub(LoginSetting::Direction, m_eye));
@@ -220,7 +272,7 @@ void ViewingCamera::Update(FLOAT timeElapsed)
 	m_viewFrustum.Transform(m_viewFrustum, XMMatrixInverse(nullptr, XMLoadFloat4x4(&m_viewMatrix)));
 }
 
-void ViewingCamera::Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw)
+void ViewingCamera::Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw, FLOAT timeElapsed)
 {
 
 }

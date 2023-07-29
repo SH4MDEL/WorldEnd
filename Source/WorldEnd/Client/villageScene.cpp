@@ -725,7 +725,8 @@ void VillageScene::OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, 
 		int dx = nextPosition.x - prevPosition.x;
 		int dy = nextPosition.y - prevPosition.y;
 
-		if (m_camera) m_camera->Rotate(0.f, dy * 5.0f * deltaTime, dx * 5.0f * deltaTime);
+		if (m_camera) m_camera->Rotate(0.f, dy * 5.0f, dx * 5.0f, deltaTime);
+
 		SetCursorPos(prevPosition.x, prevPosition.y);
 	}
 
@@ -768,11 +769,15 @@ void VillageScene::OnProcessingMouseMessage(UINT message, LPARAM lParam)
 	}
 	if (CheckState(State::OutputEnhenceUI)) {
 		if (m_enhenceUI) m_enhenceUI->OnProcessingMouseMessage(message, lParam);
-		if (!g_clickEventStack.empty()) {
+		//if (!g_clickEventStack.empty()) {
+		//	g_clickEventStack.top()();
+		//	while (!g_clickEventStack.empty()) {
+		//		g_clickEventStack.pop();
+		//	}
+		//}
+		while (!g_clickEventStack.empty()) {
 			g_clickEventStack.top()();
-			while (!g_clickEventStack.empty()) {
-				g_clickEventStack.pop();
-			}
+			g_clickEventStack.pop();
 		}
 	}
 }
@@ -789,6 +794,7 @@ void VillageScene::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 			ChangeCharacter(PlayerType::ARCHER, m_player);
 		}
 	}
+	if (GetAsyncKeyState('5') & 0x8000) static_pointer_cast<ThirdPersonCamera>(m_camera)->CameraShaking(0.5f);
 }
 
 void VillageScene::OnProcessingKeyboardMessage(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
@@ -1157,7 +1163,6 @@ void VillageScene::RecvAddPlayer(char* ptr)
 	m_multiPlayers.insert({ packet->id, multiPlayer });
 
 	m_shaders["ANIMATION"]->SetMultiPlayer(packet->id, multiPlayer);
-	cout << "add player village scene" << packet->id << endl;
 }
 
 void VillageScene::RecvUpdateClient(char* ptr)
@@ -1222,7 +1227,6 @@ void VillageScene::RecvJoinOk(char* ptr)
 {
 	SC_JOIN_OK_PACKET* packet = reinterpret_cast<SC_JOIN_OK_PACKET*>(ptr);
 
-	cout << "참가 성공!" << endl;
 	// 파티원 추가
 
 	ResetState(State::OutputRoomUI);
@@ -1234,15 +1238,11 @@ void VillageScene::RecvJoinOk(char* ptr)
 void VillageScene::RecvJoinFail(char* ptr)
 {
 	SC_JOIN_FAIL_PACKET* packet = reinterpret_cast<SC_JOIN_FAIL_PACKET*>(ptr);
-
-	cout << "참가 실패!" << endl;
 }
 
 void VillageScene::RecvCreateOk(char* ptr)
 {
 	SC_CREATE_OK_PACKET* packet = reinterpret_cast<SC_CREATE_OK_PACKET*>(ptr);
-
-	cout << "생성 성공!" << endl;
 
 	ResetState(State::OutputRoomUI);
 	if (m_roomUI) m_roomUI->SetDisable();
@@ -1253,8 +1253,6 @@ void VillageScene::RecvCreateOk(char* ptr)
 void VillageScene::RecvCreateFail(char* ptr)
 {
 	SC_CREATE_FAIL_PACKET* packet = reinterpret_cast<SC_CREATE_FAIL_PACKET*>(ptr);
-
-	cout << "생성 실패!" << endl;
 }
 
 void VillageScene::RecvAddPartyMember(char* ptr)
@@ -1276,8 +1274,6 @@ void VillageScene::RecvAddPartyMember(char* ptr)
 	userId.assign(id.begin(), id.end());
 	
 	m_partyPlayerTextUI[static_cast<INT>(packet->locate_num)]->SetText(userId);
-	
-	// id 사용?
 }
 
 void VillageScene::RecvRemovePartyMember(char* ptr)
@@ -1373,6 +1369,8 @@ void VillageScene::SendCreateParty()
 #ifdef USE_NETWORK
 	INT selectedRoom{ CheckRoomSwitch() };
 
+	if (selectedRoom == -1) return;
+
 	CS_CREATE_PARTY_PACKET packet{};
 	packet.size = sizeof(packet);
 	packet.type = CS_PACKET_CREATE_PARTY;
@@ -1385,6 +1383,8 @@ void VillageScene::SendJoinParty()
 {
 #ifdef USE_NETWORK
 	INT selectedRoom{ CheckRoomSwitch() };
+
+	if (selectedRoom == -1) return;
 
 	CS_JOIN_PARTY_PACKET packet{};
 	packet.size = sizeof(packet);
@@ -1796,7 +1796,6 @@ void VillageScene::CollideByStaticOBB(const shared_ptr<GameObject>& object, cons
 
 	for (const XMFLOAT3& playerPoint : playerPoints) {
 		if (!staticBoundingBox.Contains(XMLoadFloat3(&playerPoint))) continue;
-		cout << staticObject->GetFrameName() << " 충돌" << endl;
 
 		std::array<float, 4> dist{};
 		dist[0] = XMVectorGetX(XMVector3LinePointDistance(XMLoadFloat3(&objectPoints[0]), 
@@ -2165,6 +2164,30 @@ bool VillageScene::MoveOnStairs()
 		m_player->SetPosition(pos);
 		return true;
 	}
+	if (pos.z >= VillageSetting::GROUND_TILE.z &&
+		pos.z <= VillageSetting::GROUND_TILE.z + VillageSetting::GROUND_TILE_OFFSET.z &&
+		pos.x >= VillageSetting::GROUND_TILE.x &&
+		pos.x <= VillageSetting::GROUND_TILE.x + VillageSetting::GROUND_TILE_OFFSET.x) {
+		pos.y = VillageSetting::STAIRS9_TOP;
+		m_player->SetPosition(pos);
+		return true;
+	}
+	if (pos.z < VillageSetting::GROUND_TILE.z &&
+		pos.z >= VillageSetting::GROUND_TILE.z - 2.f &&
+		pos.x >= VillageSetting::GROUND_TILE.x &&
+		pos.x <= VillageSetting::GROUND_TILE.x + VillageSetting::GROUND_TILE_OFFSET.x) {
+		pos.y = VillageSetting::STAIRS13_TOP;
+		m_player->SetPosition(pos);
+		return true;
+	}
+	if (pos.z >= VillageSetting::GROUND_TILE.z &&
+		pos.z <= VillageSetting::GROUND_TILE.z + VillageSetting::GROUND_TILE_OFFSET.z &&
+		pos.x < VillageSetting::GROUND_TILE.x &&
+		pos.x >= VillageSetting::GROUND_TILE.x - 2.f) {
+		pos.y = VillageSetting::STAIRS13_TOP;
+		m_player->SetPosition(pos);
+		return true;
+	}
 	return false;
 }
 
@@ -2216,55 +2239,55 @@ void VillageScene::SetSkillSettingUI(PlayerType type)
 	switch (type)
 	{
 	case PlayerType::WARRIOR:
-		m_skill1NameUI->SetText(TEXT("스킬1"));
-		m_skill2NameUI->SetText(TEXT("스킬2"));
-		m_ultimate1NameUI->SetText(TEXT("궁극기1"));
-		m_ultimate2NameUI->SetText(TEXT("궁극기2"));
+		m_skill1NameUI->SetText(TEXT("올려치기"));
+		m_skill2NameUI->SetText(TEXT("찌르기"));
+		m_ultimate1NameUI->SetText(TEXT("내려찍기"));
+		m_ultimate2NameUI->SetText(TEXT("뛰어들어 찌르기"));
 		m_skill1SwitchUI->SetTexture("WARRIORSKILL1");
 		m_skill1SwitchUI->SetClickEvent([&] {
-			m_skillNameUI->SetText(TEXT("스킬1"));
-			m_skillInfoUI->SetText(TEXT("전사스킬1에 대한 설명입니다."));
+			m_skillNameUI->SetText(TEXT("올려치기"));
+			m_skillInfoUI->SetText(TEXT("검을 올려쳐 적에게 피해를 줍니다."));
 			});
 		m_skill2SwitchUI->SetTexture("WARRIORSKILL2");
 		m_skill2SwitchUI->SetClickEvent([&] {
-			m_skillNameUI->SetText(TEXT("스킬2"));
-			m_skillInfoUI->SetText(TEXT("전사스킬2에 대한 설명입니다.\n전사스킬2에 대한 설명입니다.\n전사스킬2에 대한 설명입니다.\n"));
+			m_skillNameUI->SetText(TEXT("찌르기"));
+			m_skillInfoUI->SetText(TEXT("전방의 적에게 찌르기 공격을 가합니다."));
 			});
 		m_ultimate1SwitchUI->SetTexture("WARRIORULTIMATE1");
 		m_ultimate1SwitchUI->SetClickEvent([&] {
-			m_skillNameUI->SetText(TEXT("궁극기1"));
-			m_skillInfoUI->SetText(TEXT("전사궁1에 대한 설명입니다.\n전사궁1에 대한 설명입니다.\n전사궁1에 대한 설명입니다.\n"));
+			m_skillNameUI->SetText(TEXT("내려찍기"));
+			m_skillInfoUI->SetText(TEXT("적을 향해 강하게 내려 찍습니다."));
 			});
 		m_ultimate2SwitchUI->SetTexture("WARRIORULTIMATE2");
 		m_ultimate2SwitchUI->SetClickEvent([&] {
-			m_skillNameUI->SetText(TEXT("궁극기2"));
-			m_skillInfoUI->SetText(TEXT("전사궁2에 대한 설명입니다.\n전사궁2에 대한 설명입니다.\n전사궁2에 대한 설명입니다.\n"));
+			m_skillNameUI->SetText(TEXT("뛰어들어 찌르기"));
+			m_skillInfoUI->SetText(TEXT("힘을 모아 강하게 찌릅니다."));
 			});
 		break;
 	case PlayerType::ARCHER:
-		m_skill1NameUI->SetText(TEXT("스킬1"));
-		m_skill2NameUI->SetText(TEXT("스킬2"));
-		m_ultimate1NameUI->SetText(TEXT("궁극기1"));
-		m_ultimate2NameUI->SetText(TEXT("궁극기2"));
+		m_skill1NameUI->SetText(TEXT("차지샷"));
+		m_skill2NameUI->SetText(TEXT("멀티샷"));
+		m_ultimate1NameUI->SetText(TEXT("화살비"));
+		m_ultimate2NameUI->SetText(TEXT("폭발 화살"));
 		m_skill1SwitchUI->SetTexture("ARCHERSKILL1");
 		m_skill1SwitchUI->SetClickEvent([&] {
-			m_skillNameUI->SetText(TEXT("스킬1"));
-			m_skillInfoUI->SetText(TEXT("궁수스킬1에 대한 설명입니다.\n궁수스킬1에 대한 설명입니다.\n궁수스킬1에 대한 설명입니다.\n"));
+			m_skillNameUI->SetText(TEXT("차지샷"));
+			m_skillInfoUI->SetText(TEXT("강한 화살 한 발을 전방에 발사합니다."));
 			});
 		m_skill2SwitchUI->SetTexture("ARCHERSKILL2");
 		m_skill2SwitchUI->SetClickEvent([&] {
-			m_skillNameUI->SetText(TEXT("스킬2"));
-			m_skillInfoUI->SetText(TEXT("궁수스킬2에 대한 설명입니다.\n궁수스킬2에 대한 설명입니다.\n궁수스킬2에 대한 설명입니다.\n"));
+			m_skillNameUI->SetText(TEXT("멀티샷"));
+			m_skillInfoUI->SetText(TEXT("화살 여러 발을 흩뿌려 공격합니다."));
 			});
 		m_ultimate1SwitchUI->SetTexture("ARCHERULTIMATE1");
 		m_ultimate1SwitchUI->SetClickEvent([&] {
-			m_skillNameUI->SetText(TEXT("궁극기1"));
-			m_skillInfoUI->SetText(TEXT("궁수궁1에 대한 설명입니다.\n궁수궁1에 대한 설명입니다.\n궁수궁1에 대한 설명입니다.\n"));
+			m_skillNameUI->SetText(TEXT("화살비"));
+			m_skillInfoUI->SetText(TEXT("전방에 무수한 화살 세례를 퍼붓습니다."));
 			});
 		m_ultimate2SwitchUI->SetTexture("ARCHERULTIMATE2");
 		m_ultimate2SwitchUI->SetClickEvent([&] {
-			m_skillNameUI->SetText(TEXT("궁극기2"));
-			m_skillInfoUI->SetText(TEXT("궁수궁2에 대한 설명입니다.\n궁수궁2에 대한 설명입니다.\n궁수궁2에 대한 설명입니다.\n"));
+			m_skillNameUI->SetText(TEXT("폭발 화살"));
+			m_skillInfoUI->SetText(TEXT("폭발하는 화살을 발사합니다."));
 			});
 		break;
 	}

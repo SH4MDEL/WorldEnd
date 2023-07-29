@@ -8,13 +8,14 @@ public:
 	enum class State {
 		Unused = 0x00,
 		OutputOptionUI = 0x01,
-		SceneLeave = 0x02,
+		OutputNoticeUI = 0x02,
+		SceneLeave = 0x04,
 		BlurLevel1 = Unused,
 		BlurLevel2 = Unused,
 		BlurLevel3 = Unused,
 		BlurLevel4 = Unused,
 		BlurLevel5 = Unused,
-		Bluring = BlurLevel1 | BlurLevel2 | BlurLevel3 | BlurLevel4 | BlurLevel5
+		Bluring = BlurLevel1 | BlurLevel2 | BlurLevel3 | BlurLevel4 | BlurLevel5,
 	};
 	enum class LightTag : INT {
 		Directional,
@@ -113,5 +114,7 @@ private:
 	shared_ptr<UI>							m_optionUI;
 	shared_ptr<InputTextUI>					m_idBox;
 	shared_ptr<InputTextUI>					m_passwordBox;
+	shared_ptr<UI>							m_noticeUI;
+	shared_ptr<TextUI>						m_noticeTextUI;
 };
 

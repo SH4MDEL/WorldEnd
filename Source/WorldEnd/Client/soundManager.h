@@ -15,13 +15,18 @@ public:
 		Title,
 		Village,
 		Dungeon,
-		Battle,
 		Boss,
 		MusicCount
 	};
 	enum Sound
 	{
-		Sample,
+		WarriorSkill1,
+		WarriorSkill2,
+		WarriorSkill3,
+		WarriorDash,
+		ArcherSkill1,
+		ArcherSkill2,
+		ArcherDash,
 		SoundCount
 	};
 

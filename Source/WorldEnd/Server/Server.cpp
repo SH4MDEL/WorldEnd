@@ -1428,6 +1428,10 @@ void Server::SendAddPlayer(int sender, int receiver)
 	SC_ADD_PLAYER_PACKET packet{};
 	packet.size = sizeof(packet);
 	packet.type = SC_PACKET_ADD_PLAYER;
+	std::wstring ws = std::dynamic_pointer_cast<Client>(m_clients[sender])->GetUserId();
+	std::string s{};
+	s.assign(ws.begin(), ws.end());
+	strcpy_s(packet.name, s.c_str());
 	packet.id = sender;
 	packet.pos = m_clients[sender]->GetPosition();
 	packet.hp = m_clients[sender]->GetHp();

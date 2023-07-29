@@ -328,9 +328,15 @@ void StaticObjectBlendShader::Render(const ComPtr<ID3D12GraphicsCommandList>& co
 {
 	Shader::UpdateShaderVariable(commandList);
 
-	for (const auto& elm : m_quadtreeFrustum->GetGameObjects(m_boundingFrustum)) {
-		if (elm) elm->Render(commandList);
+	auto objects = m_quadtreeFrustum->GetGameObjects(m_boundingFrustum);
+	for (const auto& elm : m_gameObjects) {
+		if (objects.contains(elm)) {
+			elm->Render(commandList);
+		}
 	}
+	//for (const auto& elm : m_quadtreeFrustum->GetGameObjects(m_boundingFrustum)) {
+	//	if (elm) elm->Render(commandList);
+	//}
 }
 
 void StaticObjectBlendShader::Clear()

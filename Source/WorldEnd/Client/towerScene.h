@@ -153,6 +153,7 @@ protected:
 
 	// UI 관련
 	array<shared_ptr<HorzGaugeUI>, MAX_INGAME_USER - 1>	m_hpUI;
+	array<shared_ptr<TextUI>, MAX_INGAME_USER - 1>		m_hpTextUI;
 	unordered_map<INT, INT>								m_idSet;
 	shared_ptr<HorzGaugeUI>								m_bossHpUI;
 	INT													m_bossId;

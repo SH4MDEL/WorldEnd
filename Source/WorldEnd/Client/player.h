@@ -47,7 +47,6 @@ public:
 	virtual void ChangeAnimation(USHORT animation, bool doSend) override;
 
 	// 추가
-	void MoveOnStairs();
 
 	void SetId(INT id) { m_id = id; }
 	INT GetId() const { return m_id; }
@@ -73,6 +72,8 @@ private:
 
 	FLOAT					m_skillCool;
 	FLOAT					m_ultimateCool;
+	const FLOAT				m_voiceCoolTime = 4.f;
+	FLOAT					m_voiceCool;
 
 	shared_ptr<Camera>		m_camera;		// 카메라
 	shared_ptr<GaugeBar>	m_hpBar;		// HP바

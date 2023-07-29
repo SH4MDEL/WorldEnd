@@ -252,6 +252,9 @@ namespace VillageSetting
 	constexpr float EAST_GATE_RIGHT = 67.141f - GATE_LENGTH / 2.f;
 	constexpr float EAST_GATE_FRONT = 69.09f - GATE_OFFSET;
 
+	constexpr XMFLOAT3 GROUND_TILE{ -109.8f, 0.f, 116.28f };
+	constexpr XMFLOAT3 GROUND_TILE_OFFSET{ 12.f, 0.f, 27.f };
+
 	constexpr XMFLOAT3 SKILL_NPC{ -42.7098f, 5.7f, 75.8633f };
 	constexpr float SKILL_NPC_OFFSET = 2.f;
 

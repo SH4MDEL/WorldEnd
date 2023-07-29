@@ -6,8 +6,16 @@
 // 1. 카메라 좌표계를 정의하는 속성
 // 2. 사야 절두체를 정의하는 속성
 
-#define MAX_PITCH +30
-#define MIN_PITCH -15
+namespace CameraSetting
+{
+	using namespace DirectX;
+
+	constexpr float MAX_PITCH = 30.f;
+	constexpr float MIN_PITCH = 0.f;
+	constexpr XMFLOAT3 DEFAULT_OFFSET = { 0.f, 1.f, -9.f };
+
+	constexpr float CAMERA_WAITING_TIME = 1.f;
+}
 
 struct CameraInfo
 {
@@ -27,7 +35,7 @@ public:
 	void UpdateLocalAxis();
 
 	virtual void Update(FLOAT timeElapsed) = 0;
-	virtual void Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw) = 0;
+	virtual void Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw, FLOAT timeElapsed) = 0;
 
 	void Move(const XMFLOAT3& shift);
 
@@ -77,15 +85,26 @@ public:
 	~ThirdPersonCamera() = default;
 
 	void Update(FLOAT timeElapsed) override;
-	void Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw) override;
+	void Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw, FLOAT timeElapsed) override;
 
 	XMFLOAT3 GetOffset() const { return m_offset; }
 	void SetOffset(const XMFLOAT3& offset) { m_offset = offset; }
 	void SetDelay(FLOAT delay) { m_delay = delay; }
 
+	void CameraShaking(FLOAT shakingLifeTime);
+	void Reset();
+private:
+	void UpdateCameraShaking(FLOAT timeElapsed);
+
+
 private:
 	XMFLOAT3	m_offset;
 	FLOAT		m_delay;
+
+	XMFLOAT3	m_shakeValue;
+	FLOAT		m_shakingLifeTime = 0.5f;
+	FLOAT		m_shakingTime;
+	BOOL		m_isShaking;
 };
 
 class ViewingCamera : public Camera
@@ -95,9 +114,10 @@ public:
 	~ViewingCamera() = default;
 
 	void Update(FLOAT timeElapsed) override;
-	void Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw) override;
+	void Rotate(FLOAT roll, FLOAT pitch, FLOAT yaw, FLOAT timeElapsed) override;
 
 private:
 	bool m_direction;
 
+	float m_viewingValue;
 };

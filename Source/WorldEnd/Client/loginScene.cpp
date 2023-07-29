@@ -300,6 +300,29 @@ void LoginScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 	m_shaders["POSTUI"]->SetUI(m_titleUI);
 
 	BuildOptionUI(device, commandlist);
+
+	m_noticeUI = make_shared<ImageUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 0.5f, 0.7f });
+	m_noticeUI->SetTexture("FRAMEUI");
+	m_noticeTextUI = make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.f, 0.f},XMFLOAT2{ 300.f, 20.f});
+	m_noticeTextUI->SetText(L"");
+	m_noticeTextUI->SetColorBrush("WHITE");
+	m_noticeTextUI->SetTextFormat("KOPUB2");
+	m_noticeUI->SetChild(m_noticeTextUI);
+	auto noticeButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.f, -0.7f}, XMFLOAT2{0.15f, 0.075f}) };
+	noticeButtonUI->SetTexture("BUTTONUI");
+	noticeButtonUI->SetClickEvent([&]() {
+		m_noticeUI->SetDisable();
+		ResetState(State::OutputNoticeUI);
+		});
+	auto noticeButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.f, 0.f},XMFLOAT2{120.f, 10.f}) };
+	noticeButtonTextUI->SetText(L"확인");
+	noticeButtonTextUI->SetColorBrush("WHITE");
+	noticeButtonTextUI->SetTextFormat("KOPUB2");
+	noticeButtonUI->SetChild(noticeButtonTextUI);
+	m_noticeUI->SetChild(noticeButtonUI);
+
+	m_noticeUI->SetDisable();
+	m_shaders["POSTUI"]->SetUI(m_noticeUI);
 }
 
 void LoginScene::BuildOptionUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist)
@@ -390,18 +413,21 @@ void LoginScene::DestroyObjects()
 
 	m_titleUI.reset();
 	m_optionUI.reset();
+	m_noticeUI.reset();
 }
 
 void LoginScene::OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FLOAT deltaTime) 
 {
 	if (m_titleUI) m_titleUI->OnProcessingMouseMessage(hWnd, width, height, deltaTime);
 	if (m_optionUI) m_optionUI->OnProcessingMouseMessage(hWnd, width, height, deltaTime);
+	if (m_noticeUI) m_noticeUI->OnProcessingMouseMessage(hWnd, width, height, deltaTime);
 }
 
 void LoginScene::OnProcessingMouseMessage(UINT message, LPARAM lParam)
 {
 	if (m_titleUI) m_titleUI->OnProcessingMouseMessage(message, lParam);
 	if (m_optionUI) m_optionUI->OnProcessingMouseMessage(message, lParam);
+	if (m_noticeUI) m_noticeUI->OnProcessingMouseMessage(message, lParam);
 	if (!g_clickEventStack.empty()) {
 		g_clickEventStack.top()();
 		while (!g_clickEventStack.empty()) {
@@ -536,11 +562,12 @@ void LoginScene::RenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext)
 void LoginScene::PostRenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext)
 {
 	if (CheckState(State::SceneLeave)) return;
-	if (!CheckState(State::OutputOptionUI)) {
+	if (!CheckState(State::OutputOptionUI) && !CheckState(State::OutputNoticeUI)) {
 		if (m_titleUI) m_titleUI->RenderText(deviceContext);
 	}
 	else {
 		if (m_optionUI) m_optionUI->RenderText(deviceContext);
+		if (m_noticeUI) m_noticeUI->RenderText(deviceContext);
 	}
 }
 
@@ -786,35 +813,36 @@ void LoginScene::RecvLoginOk(char* ptr)
 		g_playerInfo.skill[i].second = packet->skills[i].second;
 	}
 
-	cout << "전사 : " << (INT)g_playerInfo.skill[0].first << ", " << (INT)g_playerInfo.skill[0].second << endl;
-	cout << "궁수 : " << (INT)g_playerInfo.skill[1].first << ", " << (INT)g_playerInfo.skill[1].second << endl;
-
 	m_fadeFilter->FadeOut([&]() {
 		SetState(State::SceneLeave);
 		});
-	cout << "OK" << endl;
 }
 
 void LoginScene::RecvLoginFail(char* ptr)
 {
 	SC_LOGIN_FAIL_PACKET* packet = reinterpret_cast<SC_LOGIN_FAIL_PACKET*>(ptr);
 
-	cout << "FAIL" << endl;
-	// 로그인 실패 창 띄우기
+	m_noticeUI->SetEnable();
+	SetState(State::OutputNoticeUI);
+	m_noticeTextUI->SetText(TEXT("로그인에 실패했습니다."));
 }
 
 void LoginScene::RecvSigninOk(char* ptr)
 {
 	SC_SIGNIN_OK_PACKET* packet = reinterpret_cast<SC_SIGNIN_OK_PACKET*>(ptr);
 
-	cout << "회원가입 성공!" << endl;
+	m_noticeUI->SetEnable();
+	SetState(State::OutputNoticeUI);
+	m_noticeTextUI->SetText(TEXT("회원 가입 성공!"));
 }
 
 void LoginScene::RecvSigninFail(char* ptr)
 {
 	SC_SIGNIN_FAIL_PACKET* packet = reinterpret_cast<SC_SIGNIN_FAIL_PACKET*>(ptr);
 
-	cout << "회원가입 실패!" << endl;
+	m_noticeUI->SetEnable();
+	SetState(State::OutputNoticeUI);
+	m_noticeTextUI->SetText(TEXT("회원 가입에 실패했습니다."));
 }
 
 void LoginScene::ResetFontSize(int type)

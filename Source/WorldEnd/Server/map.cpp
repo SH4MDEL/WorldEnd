@@ -490,8 +490,8 @@ void GameRoom::Init()
 		std::lock_guard<std::mutex> l{ m_state_lock };
 		m_state = GameRoomState::EMPTY;
 	}
-	//m_floor = RoomSetting::BOSS_FLOOR;
-	m_floor = 4;
+	m_floor = RoomSetting::BOSS_FLOOR;
+	//m_floor = 4;
 	m_type = EnvironmentType::FOG;
 	m_monster_count = 0;
 	m_arrow_id = 0;

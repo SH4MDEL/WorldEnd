@@ -260,6 +260,9 @@ void TowerScene::DestroyObjects()
 	for (auto& hpUI : m_hpUI) {
 		hpUI.reset();
 	}
+	for (auto& hpUI : m_hpTextUI) {
+		hpUI.reset();
+	}
 	m_idSet.clear();
 	m_interactUI.reset();
 	m_interactTextUI.reset();
@@ -282,10 +285,17 @@ void TowerScene::DestroyObjects()
 void TowerScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist)
 {
 	for (int i = 0; i < m_hpUI.size(); ++i) {
-		m_hpUI[i] = make_shared<HorzGaugeUI>(XMFLOAT2{ -0.75f, 0.75f - i * 0.3f }, XMFLOAT2{ 0.4f, 0.08f }, 0.16f);
-		m_hpUI[i]->SetTexture("HPBAR");
+		m_hpUI[i] = make_shared<HorzGaugeUI>(XMFLOAT2{ -0.75f, 0.75f - i * 0.3f }, XMFLOAT2{ 0.4f, 0.08f }, 0.f);
+		m_hpUI[i]->SetTexture("BOSSHPBAR");
 		m_hpUI[i]->SetMaxGauge(100.f);
 		m_hpUI[i]->SetDisable();
+
+		m_hpTextUI[i] = make_shared<TextUI>(XMFLOAT2{ -0.5f, 0.f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 120.f, 20.f });
+		m_hpTextUI[i]->SetColorBrush("BLACK");
+		m_hpTextUI[i]->SetTextFormat("KOPUB4");
+		m_hpTextUI[i]->SetText(TEXT(""));
+		m_hpUI[i]->SetChild(m_hpTextUI[i]);
+
 		m_shaders["UI"]->SetUI(m_hpUI[i]);
 	}
 
@@ -360,7 +370,7 @@ void TowerScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 	m_resultUI = make_shared<BackgroundUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 1.f, 1.f });
 	auto resultUI{ make_shared<ImageUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.4f, 0.5f}) };
 	resultUI->SetTexture("FRAMEUI");
-	m_resultTextUI = make_shared<TextUI>(XMFLOAT2{ 0.f, 0.2f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 100.f, 20.f });
+	m_resultTextUI = make_shared<TextUI>(XMFLOAT2{ 0.f, 0.2f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 120.f, 20.f });
 	m_resultTextUI->SetText(L"클리어!");
 	m_resultTextUI->SetColorBrush("WHITE");
 	m_resultTextUI->SetTextFormat("KOPUB5");
@@ -379,7 +389,7 @@ void TowerScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 		m_resultUI->SetDisable();
 		ResetState(State::OutputResult);
 		});
-	auto ResultButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.f, 0.f}, XMFLOAT2{20.f, 10.f}) };
+	auto ResultButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.f, 0.f}, XMFLOAT2{120.f, 10.f}) };
 	ResultButtonTextUI->SetText(L"닫기");
 	ResultButtonTextUI->SetColorBrush("WHITE");
 	ResultButtonTextUI->SetTextFormat("KOPUB2");
@@ -518,7 +528,7 @@ void TowerScene::OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, FL
 		int dx = nextPosition.x - prevPosition.x;
 		int dy = nextPosition.y - prevPosition.y;
 
-		if (m_camera) m_camera->Rotate(0.f, dy * 5.0f * deltaTime, dx * 5.0f * deltaTime);
+		if (m_camera) m_camera->Rotate(0.f, dy * 5.0f, dx * 5.0f, deltaTime);
 		SetCursorPos(prevPosition.x, prevPosition.y);
 	}
 }
@@ -757,13 +767,18 @@ void TowerScene::PostProcess(const ComPtr<ID3D12GraphicsCommandList>& commandLis
 
 void TowerScene::RenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext)
 {
+	if (CheckState(State::SceneLeave)) return;
 	if (m_interactUI) m_interactUI->RenderText(deviceContext);
 	if (m_skillUI) m_skillUI->RenderText(deviceContext);
 	if (m_ultimateUI) m_ultimateUI->RenderText(deviceContext);
+	for (auto& ui : m_hpUI) {
+		if (ui) ui->RenderText(deviceContext);
+	}
 }
 
 void TowerScene::PostRenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext)
 {
+	if (CheckState(State::SceneLeave)) return;
 	if (m_exitUI) m_exitUI->RenderText(deviceContext);
 	if (m_resultUI) m_resultUI->RenderText(deviceContext);
 }
@@ -892,9 +907,9 @@ void TowerScene::LoadMonsterFromFile(const shared_ptr<Monster>& monster)
 
 void TowerScene::SetHpBar(const shared_ptr<AnimationObject>& object)
 {
-	auto hpBar = make_shared<GaugeBar>(0.16f);
+	auto hpBar = make_shared<GaugeBar>(0.f);
 	hpBar->SetMesh("HPBAR");
-	hpBar->SetTexture("HPBAR");
+	hpBar->SetTexture("BOSSHPBAR");
 	hpBar->SetMaxGauge(object->GetMaxHp());
 	hpBar->SetGauge(object->GetHp());
 
@@ -905,10 +920,8 @@ void TowerScene::SetHpBar(const shared_ptr<AnimationObject>& object)
 
 void TowerScene::SetBossHpUI(const shared_ptr<AnimationObject>& object)
 {
-	m_bossHpUI->SetEnable();
 	m_bossHpUI->SetMaxGauge(object->GetMaxHp());
 	m_bossHpUI->SetGauge(object->GetHp());
-	m_bossIconUI->SetEnable();
 }
 
 void TowerScene::RotateToTarget(const shared_ptr<GameObject>& object, INT targetId)
@@ -1090,8 +1103,12 @@ void TowerScene::RecvAddPlayer(char* ptr)
 	m_hpUI[m_idSet[id]]->SetEnable();
 	m_hpUI[m_idSet[id]]->SetGauge(packet->hp);
 
+	string name{ packet->name };
+	wstring wname;
+	wname.assign(name.begin(), name.end());
+	m_hpTextUI[m_idSet[id]]->SetText(wname.c_str());
+
 	m_shaders["ANIMATION"]->SetMultiPlayer(id, multiPlayer);
-	cout << "add player tower scene" << id << endl;
 }
 
 void TowerScene::RecvRemovePlayer(char* ptr)
@@ -1165,6 +1182,7 @@ void TowerScene::RecvAddMonster(char* ptr)
 	else {
 		m_bossId = packet->monster_data.id;
 		SetBossHpUI(monster);
+		SoundManager::GetInstance().PlayMusic(SoundManager::Music::Boss);
 	}
 	m_shaders["ANIMATION"]->SetMonster(packet->monster_data.id, monster);
 }
@@ -1200,6 +1218,10 @@ void TowerScene::RecvChangeMonsterBehavior(char* ptr)
 
 	monster->ChangeAnimation(packet->animation, false);
 	//monster->ChangeBehavior(packet->behavior);
+
+	if (packet->animation == BossMonsterAnimation::WIDE_SKILL) {
+		static_pointer_cast<ThirdPersonCamera>(m_camera)->CameraShaking(0.8f);
+	}
 }
 
 void TowerScene::RecvResetCooldown(char* ptr)
@@ -1392,8 +1414,12 @@ void TowerScene::RecvInteractObject(char* ptr)
 		for (auto& monster : m_monsters) {
 			monster.second->SetEnable(true);
 		}
+		if (m_bossId != -1) {
+			m_bossHpUI->SetEnable();
+			m_bossIconUI->SetEnable();
+		}
 
-			});
+		});
 
 		break;
 	}

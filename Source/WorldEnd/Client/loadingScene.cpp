@@ -828,6 +828,10 @@ void LoadingScene::BuildText()
 	Utiles::ThrowIfFailed(g_GameFramework.GetD2DDeviceContext()->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::White, 1.f), &whiteBrush));
 	Text::m_colorBrushes.insert({ "WHITE", whiteBrush });
 
+	auto blackBrush = ComPtr<ID2D1SolidColorBrush>();
+	Utiles::ThrowIfFailed(g_GameFramework.GetD2DDeviceContext()->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Black, 1.f), &blackBrush));
+	Text::m_colorBrushes.insert({ "BLACK", blackBrush });
+
 	for (int i = 1; i <= 5; ++i) {
 		int size = i * 3 + 15;
 		auto koPub = ComPtr<IDWriteTextFormat>();
