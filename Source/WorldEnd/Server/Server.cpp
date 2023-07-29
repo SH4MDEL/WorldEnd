@@ -417,7 +417,6 @@ void Server::WorkerThread()
 					break;
 				}
 			}
-			std::cout << "ATTACK" << std::endl;
 
 			AttackCollisionWithMonster(static_cast<int>(key), obb, attack_type);
 
@@ -1015,7 +1014,6 @@ void Server::ProcessPacket(int id, char* p)
 		for (auto& id : m_player_ids) {
 			if (-1 == id) {
 				id = client->GetId();
-				m_clients[id]->SetPosition(RoomSetting::START_POSITION);
 				break;
 			}
 		}
@@ -1083,7 +1081,7 @@ void Server::ProcessPacket(int id, char* p)
 
 		break;
 	}
-	case CS_PACKET_DUNGEON_SCENE: {		// 타워 씬으로 전환했음을 받고 플레이어, 몬스터를 ADD
+	case CS_PACKET_TOWER_SCENE: {		// 타워 씬으로 전환했음을 받고 플레이어, 몬스터를 ADD
 		CS_DUNGEON_SCENE_PACKET* packet = reinterpret_cast<CS_DUNGEON_SCENE_PACKET*>(p);
 
 		auto client = dynamic_pointer_cast<Client>(m_clients[id]);

@@ -234,7 +234,7 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 #ifdef USE_NETWORK
 	CS_DUNGEON_SCENE_PACKET packet{};
 	packet.size = sizeof(packet);
-	packet.type = CS_PACKET_DUNGEON_SCENE;
+	packet.type = CS_PACKET_TOWER_SCENE;
 	send(g_socket, reinterpret_cast<char*>(&packet), sizeof(packet), 0);
 #endif // USE_NETWORK
 }
@@ -1098,6 +1098,9 @@ void TowerScene::RecvAddPlayer(char* ptr)
 void TowerScene::RecvRemovePlayer(char* ptr)
 {
 	SC_REMOVE_PLAYER_PACKET* packet = reinterpret_cast<SC_REMOVE_PLAYER_PACKET*>(ptr);
+
+	if (!m_multiPlayers.contains(packet->id))
+		return;
 
 	m_multiPlayers[packet->id]->SetPosition(XMFLOAT3(FAR_POSITION, FAR_POSITION, FAR_POSITION));
 	m_multiPlayers[packet->id]->SetId(-1);

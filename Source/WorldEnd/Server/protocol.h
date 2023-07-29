@@ -72,7 +72,7 @@ constexpr char CS_PACKET_ENTER_VILLAGE = 17;
 
 constexpr char CS_PACKET_ENHANCE = 18;
 constexpr char CS_PACKET_CHNAGE_SKILL = 19;
-constexpr char CS_PACKET_DUNGEON_SCENE = 20;
+constexpr char CS_PACKET_TOWER_SCENE = 20;
 
 
 constexpr char SC_PACKET_LOGIN_FAIL = 0;

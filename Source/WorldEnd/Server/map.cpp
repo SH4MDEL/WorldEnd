@@ -126,7 +126,7 @@ bool GameRoom::SetPlayer(INT room_num, INT player_id)
 				}
 			}
 			l.unlock();
-			server.m_clients[id]->SetPosition(RoomSetting::BATTLE_STARTER_POSITION);
+			server.m_clients[id]->SetPosition(RoomSetting::START_POSITION);
 			join = true;
 
 			if (GameRoomState::ONBATTLE == m_state) {
@@ -136,19 +136,6 @@ bool GameRoom::SetPlayer(INT room_num, INT player_id)
 		}
 	}
 
-	//// 방에 참여했다면 Add 전송
-	//if (join) {
-	//	for (INT id : m_ingame_player_ids) {
-	//		if (-1 == id) continue;
-	//		if (id == player_id) continue;
-
-	//		// 내 정보를 기존에 방에 있던 플레이어에게 전송
-	//		SendAddPlayer(player_id, id);
-
-	//		// 방에 있던 id가 내가 아니면 해당id의 정보를 나에게 전송
-	//		SendAddPlayer(id, player_id);
-	//	}
-	//}
 	return join;
 }
 
