@@ -1195,14 +1195,13 @@ void BossMonster::Update(FLOAT elapsed_time)
 	if (!(m_status->GetHp() <= m_status->GetMaxHp() / 1.6)) {                               // 일반 상태
 		if (CanSwapAttackBehavior()) {                                                      // 경계 범위 내에 들어오면 일반 공격
 			if (IsInRange(m_boundary_range) && m_behavior_cnt == 0) {
-				ChangeBehavior(MonsterBehavior::PREPARE_NORMAL_ATTACK);
-				RandomTarget();
+				ChangeBehavior(MonsterBehavior::PREPARE_ATTACK);
 				m_status->SetAtk(30.f);
 				m_behavior_cnt++;
 			}
 			else if (IsInRange(m_attack_range) && m_behavior_cnt == 1) {                    // 공격 범위 내에 들어오면 스킬 공격
+				//RandomTarget();
 				ChangeBehavior(MonsterBehavior::PREPARE_WIDE_SKILL);
-				RandomTarget();
 				m_status->SetAtk(40.f);
 				m_behavior_cnt = 0;
 			}
@@ -1210,23 +1209,23 @@ void BossMonster::Update(FLOAT elapsed_time)
 	}     
 	else {                                                                                  // 광폭화 상태
 		if (CanSwapAttackBehavior()) {                                                      // 경계 범위 내에 들어오면 강화된 일반 공격
-			if (IsInRange(m_boundary_range) && m_enhance_behavior_cnt == 0) {
-				ChangeBehavior(MonsterBehavior::PREPARE_ATTACK);
-				PlayerHighestDamageTarget();
+			if (IsInRange(m_boundary_range) && m_enhance_behavior_cnt == 0 && m_enhance_check == false) {
+			//	PlayerHighestDamageTarget();
+				ChangeBehavior(MonsterBehavior::PREPARE_NORMAL_ATTACK);
 				m_status->SetAtk(35.f);
 				m_attack_range = 5.f;
 				m_enhance_behavior_cnt++;
 			}
 			else if (IsInRange(m_attack_range) && m_enhance_behavior_cnt == 1) {                    // 공격 범위 내에 들어오면 강화된 스킬 공격
+			//	PlayerHighestDamageTarget();
 				ChangeBehavior(MonsterBehavior::PREPARE_ENHANCE_WIDE_SKILL);
-				PlayerHighestDamageTarget();
 				m_status->SetAtk(45.f);
 				m_attack_range = 3.f;
 				m_enhance_behavior_cnt++;
 			}
 			else if (IsInRange(m_attack_range) && m_enhance_behavior_cnt == 2) {                    // 공격 범위 내에 들어오면 필살기 스킬 공격
+			//	PlayerHighestDamageTarget();
 				ChangeBehavior(MonsterBehavior::PREPARE_ULTIMATE_SKILL);
-				PlayerHighestDamageTarget();
 				m_status->SetAtk(55.f);
 				m_enhance_behavior_cnt = 0;
 			}
@@ -1262,7 +1261,6 @@ MonsterBehavior BossMonster::SetNextBehavior(MonsterBehavior behavior)
 		break;
 	case MonsterBehavior::PREPARE_WIDE_SKILL:
 		temp = MonsterBehavior::WIDE_SKILL;
-		m_bounding_box.Extents = XMFLOAT3(3.648f, 2.214f, 4.018f);
 		break;
 	case MonsterBehavior::WIDE_SKILL:
 		temp = MonsterBehavior::DELAY;
@@ -1292,7 +1290,10 @@ MonsterBehavior BossMonster::SetNextBehavior(MonsterBehavior behavior)
 		temp = MonsterBehavior::DELAY;
 		break;
 	case MonsterBehavior::DELAY:
-		m_bounding_box.Extents = XMFLOAT3(1.648f, 2.214f, 2.018f);
+		if ((m_status->GetHp() <= m_status->GetMaxHp() / 1.6))
+			PlayerHighestDamageTarget();
+		else
+			RandomTarget();
 		temp = MonsterBehavior::CHASE;
 		break;
 	case MonsterBehavior::DEATH:
@@ -1436,6 +1437,9 @@ DecreaseState BossMonster::DecreaseHp(FLOAT damage, INT id)
 		}
 		// 죽은것 전송
 		ChangeBehavior(MonsterBehavior::DEATH);
+		m_enhance_check = true;
+		m_behavior_cnt = 0;
+		m_enhance_behavior_cnt = 0;
 		return DecreaseState::DECREASE;
 	}
 
