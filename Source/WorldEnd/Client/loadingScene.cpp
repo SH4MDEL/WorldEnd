@@ -136,7 +136,6 @@ void LoadingScene::BuildShader(const ComPtr<ID3D12Device>& device, const ComPtr<
 	m_shaders.insert({ "SOBEL", sobelShader });
 	m_shaders.insert({ "COMPOSITE", compositeShader });
 	m_shaders.insert({ "FADE", fadeShader });
-	//m_globalShaders.insert({ "DEBUG", debugShader });
 
 	m_shaders.insert({ "ARROW_INSTANCE", arrowInstance });
 }
@@ -313,40 +312,6 @@ void LoadingScene::BuildMesh(const ComPtr<ID3D12Device>& device, const ComPtr<ID
 	LoadMeshFromFile(device, commandList, TEXT("./Resource/Mesh/VillageSceneMesh/BlockingMesh.bin"));
 	LoadMeshFromFile(device, commandList, TEXT("./Resource/Mesh/VillageSceneMesh/NonblockingMesh.bin"));
 
-	vector<Vertex> vertices;
-	vertices.emplace_back(XMFLOAT3{ -1.f, +1.f, +1.f });
-	vertices.emplace_back(XMFLOAT3{ +1.f, +1.f, +1.f });
-	vertices.emplace_back(XMFLOAT3{ +1.f, +1.f, -1.f });
-	vertices.emplace_back(XMFLOAT3{ -1.f, +1.f, -1.f });
-
-	vertices.emplace_back(XMFLOAT3{ -1.f, -1.f, +1.f });
-	vertices.emplace_back(XMFLOAT3{ +1.f, -1.f, +1.f });
-	vertices.emplace_back(XMFLOAT3{ +1.f, -1.f, -1.f });
-	vertices.emplace_back(XMFLOAT3{ -1.f, -1.f, -1.f });
-
-	vector<UINT> indices;
-	indices.push_back(0); indices.push_back(1); indices.push_back(2);
-	indices.push_back(0); indices.push_back(2); indices.push_back(3);
-
-	indices.push_back(3); indices.push_back(2); indices.push_back(6);
-	indices.push_back(3); indices.push_back(6); indices.push_back(7);
-
-	indices.push_back(7); indices.push_back(6); indices.push_back(5);
-	indices.push_back(7); indices.push_back(5); indices.push_back(4);
-
-	indices.push_back(1); indices.push_back(0); indices.push_back(4);
-	indices.push_back(1); indices.push_back(4); indices.push_back(5);
-
-	indices.push_back(0); indices.push_back(3); indices.push_back(7);
-	indices.push_back(0); indices.push_back(7); indices.push_back(4);
-
-	indices.push_back(2); indices.push_back(1); indices.push_back(5);
-	indices.push_back(2); indices.push_back(5); indices.push_back(6);
-
-	shared_ptr<Mesh> wireFrame{ make_shared<Mesh>(device, commandList, vertices ,indices) };
-	m_meshs.insert({ "WIREFRAME", wireFrame });
-
-
 	// 타워 씬 메쉬 로딩
 	LoadMeshFromFile(device, commandList, TEXT("./Resource/Mesh/TowerSceneMesh/AD_ArchDeco_A_01Mesh.bin"));
 	LoadMeshFromFile(device, commandList, TEXT("./Resource/Mesh/TowerSceneMesh/AD_ArchPillar_A_01Mesh.bin"));
@@ -480,26 +445,26 @@ void LoadingScene::BuildTexture(const ComPtr<ID3D12Device>& device, const ComPtr
 	archerUltimate2Texture->CreateSrvDescriptorHeap(device);
 	archerUltimate2Texture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
 
-	auto inhenceAttackTexture{ make_shared<Texture>() };
-	inhenceAttackTexture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/InhenceTexture/Inhence_Attack.dds"), (INT)ShaderRegister::BaseTexture);
-	inhenceAttackTexture->CreateSrvDescriptorHeap(device);
-	inhenceAttackTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
-	auto inhenceCritDamageTexture{ make_shared<Texture>() };
-	inhenceCritDamageTexture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/InhenceTexture/Inhence_Crit_Damage.dds"), (INT)ShaderRegister::BaseTexture);
-	inhenceCritDamageTexture->CreateSrvDescriptorHeap(device);
-	inhenceCritDamageTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
-	auto inhenceCritProbTexture{ make_shared<Texture>() };
-	inhenceCritProbTexture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/InhenceTexture/Inhence_Crit_Prob.dds"), (INT)ShaderRegister::BaseTexture);
-	inhenceCritProbTexture->CreateSrvDescriptorHeap(device);
-	inhenceCritProbTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
-	auto inhenceDefenceTexture{ make_shared<Texture>() };
-	inhenceDefenceTexture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/InhenceTexture/Inhence_Defence.dds"), (INT)ShaderRegister::BaseTexture);
-	inhenceDefenceTexture->CreateSrvDescriptorHeap(device);
-	inhenceDefenceTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
-	auto inhenceHpTexture{ make_shared<Texture>() };
-	inhenceHpTexture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/InhenceTexture/Inhence_Hp.dds"), (INT)ShaderRegister::BaseTexture);
-	inhenceHpTexture->CreateSrvDescriptorHeap(device);
-	inhenceHpTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+	auto enhanceAttackTexture{ make_shared<Texture>() };
+	enhanceAttackTexture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/InhenceTexture/Inhence_Attack.dds"), (INT)ShaderRegister::BaseTexture);
+	enhanceAttackTexture->CreateSrvDescriptorHeap(device);
+	enhanceAttackTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+	auto enhanceCritDamageTexture{ make_shared<Texture>() };
+	enhanceCritDamageTexture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/InhenceTexture/Inhence_Crit_Damage.dds"), (INT)ShaderRegister::BaseTexture);
+	enhanceCritDamageTexture->CreateSrvDescriptorHeap(device);
+	enhanceCritDamageTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+	auto enhanceCritProbTexture{ make_shared<Texture>() };
+	enhanceCritProbTexture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/InhenceTexture/Inhence_Crit_Prob.dds"), (INT)ShaderRegister::BaseTexture);
+	enhanceCritProbTexture->CreateSrvDescriptorHeap(device);
+	enhanceCritProbTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+	auto enhanceDefenceTexture{ make_shared<Texture>() };
+	enhanceDefenceTexture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/InhenceTexture/Inhence_Defence.dds"), (INT)ShaderRegister::BaseTexture);
+	enhanceDefenceTexture->CreateSrvDescriptorHeap(device);
+	enhanceDefenceTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
+	auto enhanceHpTexture{ make_shared<Texture>() };
+	enhanceHpTexture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/InhenceTexture/Inhence_Hp.dds"), (INT)ShaderRegister::BaseTexture);
+	enhanceHpTexture->CreateSrvDescriptorHeap(device);
+	enhanceHpTexture->CreateShaderResourceView(device, D3D12_SRV_DIMENSION_TEXTURE2D);
 
 	auto staminaBarTexture{ make_shared<Texture>() };
 	staminaBarTexture->LoadTextureFile(device, commandList, TEXT("Resource/Texture/Full_StaminaBar.dds"), (INT)ShaderRegister::BaseTexture); // BaseTexture
@@ -526,11 +491,11 @@ void LoadingScene::BuildTexture(const ComPtr<ID3D12Device>& device, const ComPtr
 	m_textures.insert({ "ARCHERSKILL2", archerSkill2Texture });
 	m_textures.insert({ "ARCHERULTIMATE1", archerUltimate1Texture });
 	m_textures.insert({ "ARCHERULTIMATE2", archerUltimate2Texture });
-	m_textures.insert({ "ENHENCEATTACK", inhenceAttackTexture });
-	m_textures.insert({ "ENHENCECRITDAMAGE", inhenceCritDamageTexture });
-	m_textures.insert({ "ENHENCECRITPROB", inhenceCritProbTexture });
-	m_textures.insert({ "ENHENCEDEFENCE", inhenceDefenceTexture });
-	m_textures.insert({ "ENHENCEHP", inhenceHpTexture });
+	m_textures.insert({ "ENHENCEATTACK", enhanceAttackTexture });
+	m_textures.insert({ "ENHENCECRITDAMAGE", enhanceCritDamageTexture });
+	m_textures.insert({ "ENHENCECRITPROB", enhanceCritProbTexture });
+	m_textures.insert({ "ENHENCEDEFENCE", enhanceDefenceTexture });
+	m_textures.insert({ "ENHENCEHP", enhanceHpTexture });
 	m_textures.insert({ "STAMINABAR", staminaBarTexture });
 
 	auto titleUITexture{ make_shared<Texture>() };

@@ -333,7 +333,7 @@ INT Client::GetCost(EnhancementType type) const
 
 INT Client::GetLevel(EnhancementType type) const
 {
-	return static_cast<INT>(GetLevel(type));
+	return static_cast<INT>(m_status->GetLevel(type));
 }
 
 void Client::ChangeStamina(FLOAT value)

@@ -9,11 +9,11 @@ public:
 		Unused = 0x00,
 		DungeonInteract = 0x01,
 		SkillInteract = 0x02,
-		EnhenceInteract = 0x04,
+		EnhanceInteract = 0x04,
 		OutputRoomUI = 0x08,
 		OutputPartyUI = 0x10,
 		OutputSkillUI = 0x20,
-		OutputEnhenceUI = 0x40,
+		OutputEnhanceUI = 0x40,
 		SceneLeave = 0x80,
 		BlurLevel1 = Unused,
 		BlurLevel2 = Unused,
@@ -21,7 +21,7 @@ public:
 		BlurLevel4 = Unused,
 		BlurLevel5 = Unused,
 		Bluring = BlurLevel1 | BlurLevel2 | BlurLevel3 | BlurLevel4 | BlurLevel5,
-		OutputUI = OutputRoomUI | OutputPartyUI | OutputSkillUI | OutputEnhenceUI,
+		OutputUI = OutputRoomUI | OutputPartyUI | OutputSkillUI | OutputEnhanceUI,
 		CantPlayerControl = OutputUI
 	};
 	enum class LightTag : INT {
@@ -114,7 +114,7 @@ private:
 	inline void BulidRoomUI();
 	inline void BuildPartyUI();
 	inline void BuildSkillSettingUI();
-	inline void BuildEnhenceUI();
+	inline void BuildEnhanceUI();
 	inline void BuildMainUI();
 	inline void BuildLight(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist);
 
@@ -192,14 +192,14 @@ protected:
 	shared_ptr<TextUI>				m_skillSettingGoldTextUI;
 
 	// Enhence UI ฐüทร
-	shared_ptr<UI>					m_enhenceUI;
-	shared_ptr<SwitchUI>			m_enhenceAttackSwitchUI;
-	shared_ptr<SwitchUI>			m_enhenceCritDamageSwtichUI;
-	shared_ptr<SwitchUI>			m_enhenceCritProbSwitchUI;
-	shared_ptr<SwitchUI>			m_enhenceDefenceSwitchUI;
-	shared_ptr<SwitchUI>			m_enhenceHpSwitchUI;
-	shared_ptr<TextUI>				m_enhenceGoldTextUI;
-	shared_ptr<TextUI>				m_enhenceInfoTextUI;
+	shared_ptr<UI>					m_enhanceUI;
+	shared_ptr<SwitchUI>			m_enhanceAttackSwitchUI;
+	shared_ptr<SwitchUI>			m_enhanceCritDamageSwtichUI;
+	shared_ptr<SwitchUI>			m_enhanceCritProbSwitchUI;
+	shared_ptr<SwitchUI>			m_enhanceDefenceSwitchUI;
+	shared_ptr<SwitchUI>			m_enhanceHpSwitchUI;
+	shared_ptr<TextUI>				m_enhanceGoldTextUI;
+	shared_ptr<TextUI>				m_enhanceInfoTextUI;
 
 	// Main UI
 	shared_ptr<UI>					m_mainUI;

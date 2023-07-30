@@ -262,7 +262,6 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 
 void Player::OnProcessingMouseMessage(UINT message, LPARAM lParam)
 {
-
 	switch (message)
 	{
 	case WM_LBUTTONDOWN:
@@ -363,7 +362,7 @@ void Player::Update(FLOAT timeElapsed)
 					ChangeAnimation(PlayerAnimation::RUN, true);
 				else
 					ChangeAnimation(ObjectAnimation::IDLE, true);
-
+				
 				SendPacket();
 			}
 		}

@@ -287,7 +287,6 @@ void TowerScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 	for (int i = 0; i < m_hpUI.size(); ++i) {
 		m_hpUI[i] = make_shared<HorzGaugeUI>(XMFLOAT2{ -0.75f, 0.75f - i * 0.3f }, XMFLOAT2{ 0.4f, 0.08f }, 0.f);
 		m_hpUI[i]->SetTexture("BOSSHPBAR");
-		m_hpUI[i]->SetMaxGauge(100.f);
 		m_hpUI[i]->SetDisable();
 
 		m_hpTextUI[i] = make_shared<TextUI>(XMFLOAT2{ -0.5f, 0.f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 120.f, 20.f });
@@ -1102,6 +1101,7 @@ void TowerScene::RecvAddPlayer(char* ptr)
 
 	m_idSet.insert({ id, (INT)m_idSet.size() });
 	m_hpUI[m_idSet[id]]->SetEnable();
+	m_hpUI[m_idSet[id]]->SetMaxGauge(packet->hp);
 	m_hpUI[m_idSet[id]]->SetGauge(packet->hp);
 
 	string name{ packet->name };
@@ -1335,11 +1335,14 @@ void TowerScene::RecvWarpNextFloor(char* ptr)
 		m_player->SetHp(m_player->GetMaxHp());
 
 		for (auto& elm : m_multiPlayers) {
-			if (-1 == elm.second->GetId()) continue;
+			auto id = elm.second->GetId();
+			if (id == -1) continue;
 
 			elm.second->SetPosition(RoomSetting::START_POSITION);
 			elm.second->ChangeAnimation(ObjectAnimation::IDLE, false);
 			elm.second->SetHp(elm.second->GetMaxHp());
+			m_hpUI[m_idSet[id]]->SetMaxGauge(elm.second->GetMaxHp());
+			m_hpUI[m_idSet[id]]->SetGauge(elm.second->GetMaxHp());
 		}
 
 		m_gate->SetPosition(RoomSetting::BATTLE_STARTER_POSITION);
@@ -1376,8 +1379,6 @@ void TowerScene::RecvPlayerDeath(char* ptr)
 void TowerScene::RecvArrowShoot(char* ptr)
 {
 	SC_ARROW_SHOOT_PACKET* packet = reinterpret_cast<SC_ARROW_SHOOT_PACKET*>(ptr);
-
-	cout << "화살 생성" << endl;
 
 	if (0 <= packet->id && packet->id < MAX_USER) {
 		if (packet->id == m_player->GetId()) {

@@ -203,12 +203,12 @@ void VillageScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr
 	skillNpc->Rotate(0.f, 0.f, 180.f);
 	m_shaders["ANIMATION"]->SetObject(skillNpc);
 
-	auto enhenceNpc = make_shared<Player>();
-	enhenceNpc->SetType(PlayerType::WIZARD);
-	LoadPlayerFromFile(enhenceNpc);
-	enhenceNpc->SetPosition(VillageSetting::ENHENCE_NPC);
-	enhenceNpc->Rotate(0.f, 0.f, 180.f);
-	m_shaders["ANIMATION"]->SetObject(enhenceNpc);
+	auto enhanceNpc = make_shared<Player>();
+	enhanceNpc->SetType(PlayerType::WIZARD);
+	LoadPlayerFromFile(enhanceNpc);
+	enhanceNpc->SetPosition(VillageSetting::ENHENCE_NPC);
+	enhanceNpc->Rotate(0.f, 0.f, 180.f);
+	m_shaders["ANIMATION"]->SetObject(enhanceNpc);
 
 	BuildUI();
 
@@ -238,7 +238,7 @@ void VillageScene::BuildUI()
 	BulidRoomUI();
 	BuildPartyUI();
 	BuildSkillSettingUI();
-	BuildEnhenceUI();
+	BuildEnhanceUI();
 	BuildMainUI();
 }
 
@@ -503,146 +503,146 @@ void VillageScene::BuildSkillSettingUI()
 	m_shaders["UI"]->SetUI(m_skillSettingUI);
 }
 
-inline void VillageScene::BuildEnhenceUI()
+inline void VillageScene::BuildEnhanceUI()
 {
-	m_enhenceUI = make_shared<BackgroundUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 0.6f, 0.6f });
-	m_enhenceUI->SetTexture("ROOMUI");
+	m_enhanceUI = make_shared<BackgroundUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 0.6f, 0.6f });
+	m_enhanceUI->SetTexture("ROOMUI");
 
-	auto enhenceTextUI = make_shared<TextUI>(XMFLOAT2{ 0.f, 0.75f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 400.f, 20.f });
-	enhenceTextUI->SetText(TEXT("캐릭터 강화"));
-	enhenceTextUI->SetColorBrush("WHITE");
-	enhenceTextUI->SetTextFormat("KOPUB5");
-	m_enhenceUI->SetChild(enhenceTextUI);
+	auto enhanceTextUI = make_shared<TextUI>(XMFLOAT2{ 0.f, 0.75f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 400.f, 20.f });
+	enhanceTextUI->SetText(TEXT("캐릭터 강화"));
+	enhanceTextUI->SetColorBrush("WHITE");
+	enhanceTextUI->SetTextFormat("KOPUB5");
+	m_enhanceUI->SetChild(enhanceTextUI);
 
-	auto enhenceCancelButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.95f, 0.9f}, XMFLOAT2{0.06f, 0.06f}) };
-	enhenceCancelButtonUI->SetTexture("CANCELUI");
-	enhenceCancelButtonUI->SetClickEvent([&]() {
-		ResetState(State::OutputEnhenceUI);
-		if (m_enhenceUI) m_enhenceUI->SetDisable();
-		if (m_enhenceAttackSwitchUI) m_enhenceAttackSwitchUI->SetNoActive();
-		if (m_enhenceCritDamageSwtichUI) m_enhenceCritDamageSwtichUI->SetNoActive();
-		if (m_enhenceCritProbSwitchUI) m_enhenceCritProbSwitchUI->SetNoActive();
-		if (m_enhenceDefenceSwitchUI) m_enhenceDefenceSwitchUI->SetNoActive();
-		if (m_enhenceHpSwitchUI) m_enhenceHpSwitchUI->SetNoActive();
-		if (m_enhenceInfoTextUI) m_enhenceInfoTextUI->SetText(TEXT(""));
+	auto enhanceCancelButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.95f, 0.9f}, XMFLOAT2{0.06f, 0.06f}) };
+	enhanceCancelButtonUI->SetTexture("CANCELUI");
+	enhanceCancelButtonUI->SetClickEvent([&]() {
+		ResetState(State::OutputEnhanceUI);
+		if (m_enhanceUI) m_enhanceUI->SetDisable();
+		if (m_enhanceAttackSwitchUI) m_enhanceAttackSwitchUI->SetNoActive();
+		if (m_enhanceCritDamageSwtichUI) m_enhanceCritDamageSwtichUI->SetNoActive();
+		if (m_enhanceCritProbSwitchUI) m_enhanceCritProbSwitchUI->SetNoActive();
+		if (m_enhanceDefenceSwitchUI) m_enhanceDefenceSwitchUI->SetNoActive();
+		if (m_enhanceHpSwitchUI) m_enhanceHpSwitchUI->SetNoActive();
+		if (m_enhanceInfoTextUI) m_enhanceInfoTextUI->SetText(TEXT(""));
 		});
-	m_enhenceUI->SetChild(enhenceCancelButtonUI);
+	m_enhanceUI->SetChild(enhanceCancelButtonUI);
 
-	auto enhenceAttackUI{ make_shared<UI>(XMFLOAT2{-0.7f, 0.4f}, XMFLOAT2{0.2f, 0.2f}) };
-	m_enhenceAttackSwitchUI = make_shared<SwitchUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.1f, 0.1f});
-	m_enhenceAttackSwitchUI->SetTexture("ENHENCEATTACK");
-	m_enhenceAttackSwitchUI->SetClickEvent([&]() {
+	auto enhanceAttackUI{ make_shared<UI>(XMFLOAT2{-0.7f, 0.4f}, XMFLOAT2{0.2f, 0.2f}) };
+	m_enhanceAttackSwitchUI = make_shared<SwitchUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.1f, 0.1f});
+	m_enhanceAttackSwitchUI->SetTexture("ENHENCEATTACK");
+	m_enhanceAttackSwitchUI->SetClickEvent([&]() {
 		UpdateEnhanceUI(EnhancementType::ATK);
 		});
-	enhenceAttackUI->SetChild(m_enhenceAttackSwitchUI);
-	auto enhenceAttackTextUI{ make_shared<TextUI>(XMFLOAT2{ 0.f, -0.5f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 100.f, 20.f }) };
-	enhenceAttackTextUI->SetText(TEXT("공격력"));
-	enhenceAttackTextUI->SetColorBrush("WHITE");
-	enhenceAttackTextUI->SetTextFormat("KOPUB3");
-	enhenceAttackUI->SetChild(enhenceAttackTextUI);
-	m_enhenceUI->SetChild(enhenceAttackUI);
+	enhanceAttackUI->SetChild(m_enhanceAttackSwitchUI);
+	auto enhanceAttackTextUI{ make_shared<TextUI>(XMFLOAT2{ 0.f, -0.5f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 100.f, 20.f }) };
+	enhanceAttackTextUI->SetText(TEXT("공격력"));
+	enhanceAttackTextUI->SetColorBrush("WHITE");
+	enhanceAttackTextUI->SetTextFormat("KOPUB3");
+	enhanceAttackUI->SetChild(enhanceAttackTextUI);
+	m_enhanceUI->SetChild(enhanceAttackUI);
 
-	auto enhenceCritDamageUI{ make_shared<UI>(XMFLOAT2{-0.35f, 0.4f}, XMFLOAT2{0.2f, 0.2f}) };
-	m_enhenceCritDamageSwtichUI = make_shared<SwitchUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{ 0.1f, 0.1f });
-	m_enhenceCritDamageSwtichUI->SetTexture("ENHENCECRITDAMAGE");
-	m_enhenceCritDamageSwtichUI->SetClickEvent([&]() {
+	auto enhanceCritDamageUI{ make_shared<UI>(XMFLOAT2{-0.35f, 0.4f}, XMFLOAT2{0.2f, 0.2f}) };
+	m_enhanceCritDamageSwtichUI = make_shared<SwitchUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{ 0.1f, 0.1f });
+	m_enhanceCritDamageSwtichUI->SetTexture("ENHENCECRITDAMAGE");
+	m_enhanceCritDamageSwtichUI->SetClickEvent([&]() {
 		UpdateEnhanceUI(EnhancementType::CRIT_DAMAGE);
 		});
-	enhenceCritDamageUI->SetChild(m_enhenceCritDamageSwtichUI);
-	auto enhenceCritDamageTextUI{ make_shared<TextUI>(XMFLOAT2{ 0.f, -0.5f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 100.f, 20.f }) };
-	enhenceCritDamageTextUI->SetText(TEXT("크리티컬 대미지"));
-	enhenceCritDamageTextUI->SetColorBrush("WHITE");
-	enhenceCritDamageTextUI->SetTextFormat("KOPUB3");
-	enhenceCritDamageUI->SetChild(enhenceCritDamageTextUI);
-	m_enhenceUI->SetChild(enhenceCritDamageUI);
+	enhanceCritDamageUI->SetChild(m_enhanceCritDamageSwtichUI);
+	auto enhanceCritDamageTextUI{ make_shared<TextUI>(XMFLOAT2{ 0.f, -0.5f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 100.f, 20.f }) };
+	enhanceCritDamageTextUI->SetText(TEXT("크리티컬 대미지"));
+	enhanceCritDamageTextUI->SetColorBrush("WHITE");
+	enhanceCritDamageTextUI->SetTextFormat("KOPUB3");
+	enhanceCritDamageUI->SetChild(enhanceCritDamageTextUI);
+	m_enhanceUI->SetChild(enhanceCritDamageUI);
 
-	auto enhenceCritProbUI{ make_shared<UI>(XMFLOAT2{0.f, 0.4f}, XMFLOAT2{0.2f, 0.2f}) };
-	m_enhenceCritProbSwitchUI = make_shared<SwitchUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{ 0.1f, 0.1f });
-	m_enhenceCritProbSwitchUI->SetTexture("ENHENCECRITPROB");
-	m_enhenceCritProbSwitchUI->SetClickEvent([&]() {
+	auto enhanceCritProbUI{ make_shared<UI>(XMFLOAT2{0.f, 0.4f}, XMFLOAT2{0.2f, 0.2f}) };
+	m_enhanceCritProbSwitchUI = make_shared<SwitchUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{ 0.1f, 0.1f });
+	m_enhanceCritProbSwitchUI->SetTexture("ENHENCECRITPROB");
+	m_enhanceCritProbSwitchUI->SetClickEvent([&]() {
 		UpdateEnhanceUI(EnhancementType::CRIT_RATE);
 		});
-	enhenceCritProbUI->SetChild(m_enhenceCritProbSwitchUI);
-	auto enhenceCritProbTextUI{ make_shared<TextUI>(XMFLOAT2{ 0.f, -0.5f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 100.f, 20.f }) };
-	enhenceCritProbTextUI->SetText(TEXT("크리티컬 확률"));
-	enhenceCritProbTextUI->SetColorBrush("WHITE");
-	enhenceCritProbTextUI->SetTextFormat("KOPUB3");
-	enhenceCritProbUI->SetChild(enhenceCritProbTextUI);
-	m_enhenceUI->SetChild(enhenceCritProbUI);
+	enhanceCritProbUI->SetChild(m_enhanceCritProbSwitchUI);
+	auto enhanceCritProbTextUI{ make_shared<TextUI>(XMFLOAT2{ 0.f, -0.5f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 100.f, 20.f }) };
+	enhanceCritProbTextUI->SetText(TEXT("크리티컬 확률"));
+	enhanceCritProbTextUI->SetColorBrush("WHITE");
+	enhanceCritProbTextUI->SetTextFormat("KOPUB3");
+	enhanceCritProbUI->SetChild(enhanceCritProbTextUI);
+	m_enhanceUI->SetChild(enhanceCritProbUI);
 
-	auto enhenceDefenceUI{ make_shared<UI>(XMFLOAT2{0.35f, 0.4f}, XMFLOAT2{0.2f, 0.2f}) };
-	m_enhenceDefenceSwitchUI = make_shared<SwitchUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{ 0.1f, 0.1f });
-	m_enhenceDefenceSwitchUI->SetTexture("ENHENCEDEFENCE");
-	m_enhenceDefenceSwitchUI->SetClickEvent([&]() {
+	auto enhanceDefenceUI{ make_shared<UI>(XMFLOAT2{0.35f, 0.4f}, XMFLOAT2{0.2f, 0.2f}) };
+	m_enhanceDefenceSwitchUI = make_shared<SwitchUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{ 0.1f, 0.1f });
+	m_enhanceDefenceSwitchUI->SetTexture("ENHENCEDEFENCE");
+	m_enhanceDefenceSwitchUI->SetClickEvent([&]() {
 		UpdateEnhanceUI(EnhancementType::DEF);
 		});
-	enhenceDefenceUI->SetChild(m_enhenceDefenceSwitchUI);
-	auto enhenceDefenceTextUI{ make_shared<TextUI>(XMFLOAT2{ 0.f, -0.5f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 100.f, 20.f }) };
-	enhenceDefenceTextUI->SetText(TEXT("방어력"));
-	enhenceDefenceTextUI->SetColorBrush("WHITE");
-	enhenceDefenceTextUI->SetTextFormat("KOPUB3");
-	enhenceDefenceUI->SetChild(enhenceDefenceTextUI);
-	m_enhenceUI->SetChild(enhenceDefenceUI);
+	enhanceDefenceUI->SetChild(m_enhanceDefenceSwitchUI);
+	auto enhanceDefenceTextUI{ make_shared<TextUI>(XMFLOAT2{ 0.f, -0.5f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 100.f, 20.f }) };
+	enhanceDefenceTextUI->SetText(TEXT("방어력"));
+	enhanceDefenceTextUI->SetColorBrush("WHITE");
+	enhanceDefenceTextUI->SetTextFormat("KOPUB3");
+	enhanceDefenceUI->SetChild(enhanceDefenceTextUI);
+	m_enhanceUI->SetChild(enhanceDefenceUI);
 
-	auto enhenceHpUI{ make_shared<UI>(XMFLOAT2{0.7f, 0.4f}, XMFLOAT2{0.2f, 0.2f}) };
-	m_enhenceHpSwitchUI = make_shared<SwitchUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{ 0.1f, 0.1f });
-	m_enhenceHpSwitchUI->SetTexture("ENHENCEHP");
-	m_enhenceHpSwitchUI->SetClickEvent([&]() {
+	auto enhanceHpUI{ make_shared<UI>(XMFLOAT2{0.7f, 0.4f}, XMFLOAT2{0.2f, 0.2f}) };
+	m_enhanceHpSwitchUI = make_shared<SwitchUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{ 0.1f, 0.1f });
+	m_enhanceHpSwitchUI->SetTexture("ENHENCEHP");
+	m_enhanceHpSwitchUI->SetClickEvent([&]() {
 		UpdateEnhanceUI(EnhancementType::HP);
 		});
-	enhenceHpUI->SetChild(m_enhenceHpSwitchUI);
-	auto enhenceHpTextUI{ make_shared<TextUI>(XMFLOAT2{ 0.f, -0.5f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 100.f, 20.f }) };
-	enhenceHpTextUI->SetText(TEXT("최대 체력"));
-	enhenceHpTextUI->SetColorBrush("WHITE");
-	enhenceHpTextUI->SetTextFormat("KOPUB3");
-	enhenceHpUI->SetChild(enhenceHpTextUI);
-	m_enhenceUI->SetChild(enhenceHpUI);
+	enhanceHpUI->SetChild(m_enhanceHpSwitchUI);
+	auto enhanceHpTextUI{ make_shared<TextUI>(XMFLOAT2{ 0.f, -0.5f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 100.f, 20.f }) };
+	enhanceHpTextUI->SetText(TEXT("최대 체력"));
+	enhanceHpTextUI->SetColorBrush("WHITE");
+	enhanceHpTextUI->SetTextFormat("KOPUB3");
+	enhanceHpUI->SetChild(enhanceHpTextUI);
+	m_enhanceUI->SetChild(enhanceHpUI);
 
-	auto enhenceButtonUI = make_shared<ButtonUI>(XMFLOAT2{ 0.f, -0.7f }, XMFLOAT2{ 0.29f, 0.1f });
-	enhenceButtonUI->SetTexture("BUTTONUI");
-	enhenceButtonUI->SetClickEvent([&]() {
-		if (m_enhenceAttackSwitchUI->IsActive()) {
+	auto enhanceButtonUI = make_shared<ButtonUI>(XMFLOAT2{ 0.f, -0.7f }, XMFLOAT2{ 0.29f, 0.1f });
+	enhanceButtonUI->SetTexture("BUTTONUI");
+	enhanceButtonUI->SetClickEvent([&]() {
+		if (m_enhanceAttackSwitchUI->IsActive()) {
 			TryEnhancement(EnhancementType::ATK);
 		}
-		if (m_enhenceCritDamageSwtichUI->IsActive()) {
+		if (m_enhanceCritDamageSwtichUI->IsActive()) {
 			TryEnhancement(EnhancementType::CRIT_DAMAGE);
 		}
-		if (m_enhenceCritProbSwitchUI->IsActive()) {
+		if (m_enhanceCritProbSwitchUI->IsActive()) {
 			TryEnhancement(EnhancementType::CRIT_RATE);
 		}
-		if (m_enhenceDefenceSwitchUI->IsActive()) {
+		if (m_enhanceDefenceSwitchUI->IsActive()) {
 			TryEnhancement(EnhancementType::DEF);
 		}
-		if (m_enhenceHpSwitchUI->IsActive()) {
+		if (m_enhanceHpSwitchUI->IsActive()) {
 			TryEnhancement(EnhancementType::HP);
 		}
 		});
-	auto enhenceButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.f, 0.f},XMFLOAT2{120.f, 10.f}) };
-	enhenceButtonTextUI->SetText(L"강화");
-	enhenceButtonTextUI->SetColorBrush("WHITE");
-	enhenceButtonTextUI->SetTextFormat("KOPUB3");
-	enhenceButtonUI->SetChild(enhenceButtonTextUI);
-	m_enhenceUI->SetChild(enhenceButtonUI);
+	auto enhanceButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.f, 0.f},XMFLOAT2{120.f, 10.f}) };
+	enhanceButtonTextUI->SetText(L"강화");
+	enhanceButtonTextUI->SetColorBrush("WHITE");
+	enhanceButtonTextUI->SetTextFormat("KOPUB3");
+	enhanceButtonUI->SetChild(enhanceButtonTextUI);
+	m_enhanceUI->SetChild(enhanceButtonUI);
 
-	auto enhenceGoldUI = make_shared<UI>(XMFLOAT2{ 0.5f, 0.7f }, XMFLOAT2{ 0.1f, 0.05f });
+	auto enhanceGoldUI = make_shared<UI>(XMFLOAT2{ 0.5f, 0.7f }, XMFLOAT2{ 0.1f, 0.05f });
 	auto goldTextureUI{ make_shared<ImageUI>(XMFLOAT2{-0.5f, 0.f}, XMFLOAT2{0.05f, 0.05f}) };
 	goldTextureUI->SetTexture("GOLDUI");
-	enhenceGoldUI->SetChild(goldTextureUI);
-	m_enhenceGoldTextUI = make_shared<TextUI>(XMFLOAT2{ 0.5f, 0.f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 100.f, 20.f });
-	m_enhenceGoldTextUI->SetText(to_wstring(g_playerInfo.gold));
-	m_enhenceGoldTextUI->SetColorBrush("WHITE");
-	m_enhenceGoldTextUI->SetTextFormat("KOPUB5");
-	enhenceGoldUI->SetChild(m_enhenceGoldTextUI);
-	m_enhenceUI->SetChild(enhenceGoldUI);
+	enhanceGoldUI->SetChild(goldTextureUI);
+	m_enhanceGoldTextUI = make_shared<TextUI>(XMFLOAT2{ 0.5f, 0.f }, XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 100.f, 20.f });
+	m_enhanceGoldTextUI->SetText(to_wstring(g_playerInfo.gold));
+	m_enhanceGoldTextUI->SetColorBrush("WHITE");
+	m_enhanceGoldTextUI->SetTextFormat("KOPUB5");
+	enhanceGoldUI->SetChild(m_enhanceGoldTextUI);
+	m_enhanceUI->SetChild(enhanceGoldUI);
 
-	m_enhenceInfoTextUI = make_shared<TextUI>(XMFLOAT2{0.f, -0.1f}, XMFLOAT2{0.f, 0.f},XMFLOAT2{300.f, 10.f});
-	m_enhenceInfoTextUI->SetText(L"");
-	m_enhenceInfoTextUI->SetColorBrush("WHITE");
-	m_enhenceInfoTextUI->SetTextFormat("KOPUB4");
-	m_enhenceUI->SetChild(m_enhenceInfoTextUI);
+	m_enhanceInfoTextUI = make_shared<TextUI>(XMFLOAT2{0.f, -0.1f}, XMFLOAT2{0.f, 0.f},XMFLOAT2{300.f, 10.f});
+	m_enhanceInfoTextUI->SetText(L"");
+	m_enhanceInfoTextUI->SetColorBrush("WHITE");
+	m_enhanceInfoTextUI->SetTextFormat("KOPUB4");
+	m_enhanceUI->SetChild(m_enhanceInfoTextUI);
 
-	m_enhenceUI->SetDisable();
-	m_shaders["UI"]->SetUI(m_enhenceUI);
+	m_enhanceUI->SetDisable();
+	m_shaders["UI"]->SetUI(m_enhanceUI);
 }
 
 inline void VillageScene::BuildMainUI()
@@ -733,7 +733,7 @@ void VillageScene::OnProcessingMouseMessage(HWND hWnd, UINT width, UINT height, 
 	if (m_roomUI) m_roomUI->OnProcessingMouseMessage(hWnd, width, height, deltaTime);
 	if (m_partyUI) m_partyUI->OnProcessingMouseMessage(hWnd, width, height, deltaTime);
 	if (m_skillSettingUI) m_skillSettingUI->OnProcessingMouseMessage(hWnd, width, height, deltaTime);
-	if (m_enhenceUI) m_enhenceUI->OnProcessingMouseMessage(hWnd, width, height, deltaTime);
+	if (m_enhanceUI) m_enhanceUI->OnProcessingMouseMessage(hWnd, width, height, deltaTime);
 }
 
 void VillageScene::OnProcessingMouseMessage(UINT message, LPARAM lParam)
@@ -767,8 +767,8 @@ void VillageScene::OnProcessingMouseMessage(UINT message, LPARAM lParam)
 			g_clickEventStack.pop();
 		}
 	}
-	if (CheckState(State::OutputEnhenceUI)) {
-		if (m_enhenceUI) m_enhenceUI->OnProcessingMouseMessage(message, lParam);
+	if (CheckState(State::OutputEnhanceUI)) {
+		if (m_enhanceUI) m_enhanceUI->OnProcessingMouseMessage(message, lParam);
 		//if (!g_clickEventStack.empty()) {
 		//	g_clickEventStack.top()();
 		//	while (!g_clickEventStack.empty()) {
@@ -814,12 +814,13 @@ void VillageScene::OnProcessingKeyboardMessage(HWND hWnd, UINT message, WPARAM w
 				SetState(State::OutputSkillUI);
 				m_skillSettingUI->SetEnable();
 			}
-			else if (CheckState(State::EnhenceInteract)) {
-				ResetState(State::EnhenceInteract);
-				SetState(State::OutputEnhenceUI);
-				m_enhenceUI->SetEnable();
+			else if (CheckState(State::EnhanceInteract)) {
+				ResetState(State::EnhanceInteract);
+				SetState(State::OutputEnhanceUI);
+				m_enhanceUI->SetEnable();
 			}
 		}
+		
 		break;
 	}
 }
@@ -827,7 +828,6 @@ void VillageScene::OnProcessingKeyboardMessage(HWND hWnd, UINT message, WPARAM w
 void VillageScene::Update(FLOAT timeElapsed)
 {
 	if (CheckState(State::SceneLeave)) {
-		//m_fadeFilter->FadeOut([&]() { g_GameFramework.ChangeScene(SCENETAG::TowerScene); });
 		g_GameFramework.ChangeScene(SCENETAG::TowerScene);
 		return;
 	}
@@ -861,7 +861,7 @@ void VillageScene::UpdateInteract(FLOAT timeElapsed)
 
 	ResetState(State::DungeonInteract);
 	ResetState(State::SkillInteract);
-	ResetState(State::EnhenceInteract);
+	ResetState(State::EnhanceInteract);
 	if (CheckState(State::OutputUI)) return;
 
 	const auto position = m_player->GetPosition();
@@ -904,7 +904,7 @@ void VillageScene::UpdateInteract(FLOAT timeElapsed)
 
 	if (isInteract) {
 		m_interactUI->SetEnable();
-		SetState(State::EnhenceInteract);
+		SetState(State::EnhanceInteract);
 		m_interactTextUI->SetText(TEXT("F : 능력치 강화"));
 		return;
 	}
@@ -1033,7 +1033,7 @@ void VillageScene::RenderText(const ComPtr<ID2D1DeviceContext2>& deviceContext)
 	if (m_roomUI) m_roomUI->RenderText(deviceContext);
 	if (m_partyUI) m_partyUI->RenderText(deviceContext);
 	if (m_skillSettingUI) m_skillSettingUI->RenderText(deviceContext);
-	if (m_enhenceUI) m_enhenceUI->RenderText(deviceContext);
+	if (m_enhanceUI) m_enhanceUI->RenderText(deviceContext);
 	if (m_mainUI) m_mainUI->RenderText(deviceContext);
 }
 
@@ -1114,6 +1114,7 @@ void VillageScene::ProcessPacket(char* ptr)
 		RecvEnterDungeon(ptr);
 		break;
 	case SC_PACKET_ENHANCE_OK:
+		cout << "강화" << endl;
 		RecvEnhanceOk(ptr);
 		break;
 	case SC_PACKET_RESET_COOLDOWN:
@@ -1162,6 +1163,8 @@ void VillageScene::RecvAddPlayer(char* ptr)
 
 	m_multiPlayers.insert({ packet->id, multiPlayer });
 
+	cout << "플레이어 추가 id : " << packet->id << endl;
+
 	m_shaders["ANIMATION"]->SetMultiPlayer(packet->id, multiPlayer);
 }
 
@@ -1187,6 +1190,8 @@ void VillageScene::RecvUpdateClient(char* ptr)
 void VillageScene::RecvRemovePlayer(char* ptr)
 {
 	SC_REMOVE_PLAYER_PACKET* packet = reinterpret_cast<SC_REMOVE_PLAYER_PACKET*>(ptr);
+
+	m_shaders["ANIMATION"]->RemoveMultiPlayer(packet->id);
 
 	if (!m_multiPlayers.contains(packet->id))
 		return;
@@ -2336,7 +2341,7 @@ void VillageScene::SetSkillUI()
 void VillageScene::UpdateGoldUI()
 {
 	m_skillSettingGoldTextUI->SetText(to_wstring(g_playerInfo.gold));
-	m_enhenceGoldTextUI->SetText(to_wstring(g_playerInfo.gold));
+	m_enhanceGoldTextUI->SetText(to_wstring(g_playerInfo.gold));
 	m_goldTextUI->SetText(to_wstring(g_playerInfo.gold));
 }
 
@@ -2360,60 +2365,60 @@ void VillageScene::UpdateEnhanceUI(EnhancementType type)
 	{
 	case EnhancementType::HP:
 		if (g_playerInfo.hpLevel == PlayerSetting::MAX_ENHANCE_LEVEL) {
-			m_enhenceInfoTextUI->SetText(TEXT("현재 레벨 : ") + to_wstring(g_playerInfo.hpLevel) +
+			m_enhanceInfoTextUI->SetText(TEXT("현재 레벨 : ") + to_wstring(g_playerInfo.hpLevel) +
 				TEXT("\n체력 증가량 : ") + to_wstring(PlayerSetting::DEFAULT_HP + (INT)(PlayerSetting::HP_INCREASEMENT * g_playerInfo.hpLevel)) +
 				TEXT("\n더 강화할 수 없습니다."));
 		}
 		else {
-			m_enhenceInfoTextUI->SetText(TEXT("현재 레벨 : ") + to_wstring(g_playerInfo.hpLevel) +
+			m_enhanceInfoTextUI->SetText(TEXT("현재 레벨 : ") + to_wstring(g_playerInfo.hpLevel) +
 				TEXT("\n체력 증가량 : ") + to_wstring(PlayerSetting::DEFAULT_HP + (INT)(PlayerSetting::HP_INCREASEMENT * g_playerInfo.hpLevel)) +
 				TEXT("\n강화 비용 : " + to_wstring(PlayerSetting::DEFAULT_ENHANCE_COST + PlayerSetting::ENHANCE_COST_INCREASEMENT * g_playerInfo.hpLevel)));
 		}
 		break;
 	case EnhancementType::ATK:
 		if (g_playerInfo.atkLevel == PlayerSetting::MAX_ENHANCE_LEVEL) {
-			m_enhenceInfoTextUI->SetText(TEXT("현재 레벨 : ") + to_wstring(g_playerInfo.atkLevel) +
+			m_enhanceInfoTextUI->SetText(TEXT("현재 레벨 : ") + to_wstring(g_playerInfo.atkLevel) +
 				TEXT("\n공격력 증가량 : ") + to_wstring(PlayerSetting::DEFAULT_ATK + (INT)(PlayerSetting::ATK_INCREASEMENT * g_playerInfo.atkLevel)) +
 				TEXT("\n더 강화할 수 없습니다."));
 		}
 		else {
-			m_enhenceInfoTextUI->SetText(TEXT("현재 레벨 : ") + to_wstring(g_playerInfo.atkLevel) +
+			m_enhanceInfoTextUI->SetText(TEXT("현재 레벨 : ") + to_wstring(g_playerInfo.atkLevel) +
 				TEXT("\n공격력 증가량 : ") + to_wstring(PlayerSetting::DEFAULT_ATK + (INT)(PlayerSetting::ATK_INCREASEMENT * g_playerInfo.atkLevel)) +
 				TEXT("\n강화 비용 : " + to_wstring(PlayerSetting::DEFAULT_ENHANCE_COST + PlayerSetting::ENHANCE_COST_INCREASEMENT * g_playerInfo.atkLevel)));
 		}
 		break;
 	case EnhancementType::DEF:
 		if (g_playerInfo.defLevel == PlayerSetting::MAX_ENHANCE_LEVEL) {
-			m_enhenceInfoTextUI->SetText(TEXT("현재 레벨 : ") + to_wstring(g_playerInfo.defLevel) +
+			m_enhanceInfoTextUI->SetText(TEXT("현재 레벨 : ") + to_wstring(g_playerInfo.defLevel) +
 				TEXT("\n방어력 증가량 : ") + to_wstring(PlayerSetting::DEFAULT_DEF + (INT)(PlayerSetting::DEF_INCREASEMENT * g_playerInfo.defLevel)) +
 				TEXT("\n더 강화할 수 없습니다."));
 		}
 		else {
-			m_enhenceInfoTextUI->SetText(TEXT("현재 레벨 : ") + to_wstring(g_playerInfo.defLevel) +
+			m_enhanceInfoTextUI->SetText(TEXT("현재 레벨 : ") + to_wstring(g_playerInfo.defLevel) +
 				TEXT("\n방어력 증가량 : ") + to_wstring(PlayerSetting::DEFAULT_DEF + (INT)(PlayerSetting::DEF_INCREASEMENT * g_playerInfo.defLevel)) +
 				TEXT("\n강화 비용 : " + to_wstring(PlayerSetting::DEFAULT_ENHANCE_COST + PlayerSetting::ENHANCE_COST_INCREASEMENT * g_playerInfo.defLevel)));
 		}
 		break;
 	case EnhancementType::CRIT_RATE:
 		if (g_playerInfo.critRateLevel == PlayerSetting::MAX_ENHANCE_LEVEL) {
-			m_enhenceInfoTextUI->SetText(TEXT("현재 레벨 : ") + to_wstring(g_playerInfo.critRateLevel) +
+			m_enhanceInfoTextUI->SetText(TEXT("현재 레벨 : ") + to_wstring(g_playerInfo.critRateLevel) +
 				TEXT("\n크리티컬 확률 증가량 : ") + to_wstring(PlayerSetting::DEFAULT_CRIT_RATE + PlayerSetting::CRIT_RATE_INCREASEMENT * g_playerInfo.critRateLevel) +
 				TEXT("\n더 강화할 수 없습니다."));
 		}
 		else {
-			m_enhenceInfoTextUI->SetText(TEXT("현재 레벨 : ") + to_wstring(g_playerInfo.critRateLevel) +
+			m_enhanceInfoTextUI->SetText(TEXT("현재 레벨 : ") + to_wstring(g_playerInfo.critRateLevel) +
 				TEXT("\n크리티컬 확률 증가량 : ") + to_wstring(PlayerSetting::DEFAULT_CRIT_RATE + PlayerSetting::CRIT_RATE_INCREASEMENT * g_playerInfo.critRateLevel) +
 				TEXT("\n강화 비용 : " + to_wstring(PlayerSetting::DEFAULT_ENHANCE_COST + PlayerSetting::ENHANCE_COST_INCREASEMENT * g_playerInfo.critRateLevel)));
 		}
 		break;
 	case EnhancementType::CRIT_DAMAGE:
 		if (g_playerInfo.critDamageLevel == PlayerSetting::MAX_ENHANCE_LEVEL) {
-			m_enhenceInfoTextUI->SetText(TEXT("현재 레벨 : ") + to_wstring(g_playerInfo.critDamageLevel) +
+			m_enhanceInfoTextUI->SetText(TEXT("현재 레벨 : ") + to_wstring(g_playerInfo.critDamageLevel) +
 				TEXT("\n크리티컬 대미지 증가량 : ") + to_wstring(PlayerSetting::DEFAULT_CRIT_DAMAGE + PlayerSetting::CRIT_RATE_INCREASEMENT * g_playerInfo.critDamageLevel) +
 				TEXT("\n더 강화할 수 없습니다."));
 		}
 		else {
-			m_enhenceInfoTextUI->SetText(TEXT("현재 레벨 : ") + to_wstring(g_playerInfo.critDamageLevel) +
+			m_enhanceInfoTextUI->SetText(TEXT("현재 레벨 : ") + to_wstring(g_playerInfo.critDamageLevel) +
 				TEXT("\n크리티컬 대미지 증가량 : ") + to_wstring(PlayerSetting::DEFAULT_CRIT_DAMAGE + PlayerSetting::CRIT_RATE_INCREASEMENT * g_playerInfo.critDamageLevel) +
 				TEXT("\n강화 비용 : " + to_wstring(PlayerSetting::DEFAULT_ENHANCE_COST + PlayerSetting::ENHANCE_COST_INCREASEMENT * g_playerInfo.critDamageLevel)));
 		}
