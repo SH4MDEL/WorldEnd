@@ -461,8 +461,6 @@ void VillageScene::BuildSkillSettingUI()
 	auto skillChangeButtonUI = make_shared<ButtonUI>(XMFLOAT2{ 0.f, -0.7f }, XMFLOAT2{ 0.29f, 0.1f });
 	skillChangeButtonUI->SetTexture("BUTTONUI");
 	skillChangeButtonUI->SetClickEvent([&]() {
-		// 스킬을 변경했다는 패킷 보냄..? 필요한가?
-		// 스킬 바꿀때마다 골드 깔거면 보내야 할 듯
 		if (m_skill1SwitchUI->IsActive()) {
 			TryChangeSkill(NormalSkill, 0);
 		}
@@ -831,6 +829,9 @@ void VillageScene::OnProcessingKeyboardMessage(HWND hWnd, UINT message, WPARAM w
 			break;
 		case VK_F3:
 			SendInvincible();
+			break;
+		case VK_F4:
+			SendIncreaseGold();
 			break;
 		}
 		break; 
@@ -1507,6 +1508,19 @@ void VillageScene::SendInvincible()
 #endif
 
 	g_playerInfo.invincible = (g_playerInfo.invincible) ? false : true;
+}
+
+void VillageScene::SendIncreaseGold()
+{
+#ifdef USE_NETWORK
+	CS_INCREASE_GOLD_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = CS_PACKET_INCREASE_GOLD;
+	send(g_socket, reinterpret_cast<char*>(&packet), sizeof(packet), 0);
+#endif
+
+	g_playerInfo.gold += PlayerSetting::GOLD_INCREASE_AMOUNT;
+	UpdateGoldUI();
 }
 
 void VillageScene::LoadSceneFromFile(wstring fileName, wstring sceneName)
@@ -2529,6 +2543,7 @@ void VillageScene::TryChangeSkill(USHORT skillType, USHORT changedType)
 			g_playerInfo.skill[(size_t)g_playerInfo.playerType].first = changedType;
 			UpdateGoldUI();
 
+			m_player->ResetAllCooldown();
 			SendChangeSkill(skillType, changedType);
 		}
 	}
@@ -2538,6 +2553,7 @@ void VillageScene::TryChangeSkill(USHORT skillType, USHORT changedType)
 			g_playerInfo.skill[(size_t)g_playerInfo.playerType].second = changedType;
 			UpdateGoldUI();
 
+			m_player->ResetAllCooldown();
 			SendChangeSkill(skillType, changedType);
 		}
 	}

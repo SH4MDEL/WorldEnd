@@ -1121,6 +1121,10 @@ void Server::ProcessPacket(int id, char* p)
 		client->ToggleInvinsible();	// 무적이 false면 true 로, true면 false 로 전환
 		break;
 	}
+	case CS_PACKET_INCREASE_GOLD: {
+		client->IncreaseGold(PlayerSetting::GOLD_INCREASE_AMOUNT);
+		break;
+	}
 
 
 	}

@@ -1282,7 +1282,8 @@ void TowerScene::RecvChangeMonsterBehavior(char* ptr)
 	monster->ChangeAnimation(packet->animation, false);
 	//monster->ChangeBehavior(packet->behavior);
 
-	if (packet->animation == BossMonsterAnimation::WIDE_SKILL) {
+	if (packet->animation == BossMonsterAnimation::WIDE_SKILL ||
+		packet->animation == BossMonsterAnimation::ENHANCE_WIDE_SKILL) {
 		static_pointer_cast<ThirdPersonCamera>(m_camera)->CameraShaking(0.8f);
 	}
 }

@@ -79,6 +79,7 @@ constexpr char CS_PACKET_TOWER_SCENE = 20;
 constexpr char CS_PACKET_TELEPORT_GATE = 21;
 constexpr char CS_PACKET_TELEPORT_NPC = 22;
 constexpr char CS_PACKET_INVINCIBLE = 23;
+constexpr char CS_PACKET_INCREASE_GOLD = 24;
 // -----------------------------------------
 
 
@@ -354,6 +355,7 @@ namespace PlayerSetting
 	// 치트 관련
 	constexpr DirectX::XMFLOAT3 GATE_POSITION = DirectX::XMFLOAT3{ 64.15f, 0.33f, 66.9f };
 	constexpr DirectX::XMFLOAT3 NPC_POSITION = DirectX::XMFLOAT3{ -39.61f, 5.65f, 73.3f };
+	constexpr int GOLD_INCREASE_AMOUNT = 500;
 }
 
 namespace MonsterSetting 
@@ -588,6 +590,12 @@ struct CS_INVINCIBLE_PACKET
 };
 
 struct CS_EXIT_DUNGEON_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+};
+
+struct CS_INCREASE_GOLD_PACKET
 {
 	UCHAR size;
 	UCHAR type;

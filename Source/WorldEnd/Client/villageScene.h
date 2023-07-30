@@ -110,6 +110,7 @@ public:
 	void SendTeleportGate();
 	void SendTeleportNpc();
 	void SendInvincible();
+	void SendIncreaseGold();
 
 private:
 	inline void BuildUI();
