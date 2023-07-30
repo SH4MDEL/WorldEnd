@@ -110,12 +110,12 @@ FLOAT Status::CalculateDamage()
 bool Status::CalculateHitDamage(FLOAT damage)
 {
 	FLOAT result_damage{ damage - m_def };
-	if (result_damage <= 0.f)
+	if (result_damage <= std::numeric_limits<FLOAT>::epsilon())
 		result_damage = 1.0f;
 
 	m_hp -= result_damage;
 	
-	if (m_hp <= 0.f) {
+	if (m_hp <= std::numeric_limits<FLOAT>::epsilon()) {
 		m_hp = 0.f;
 		return true;
 	}

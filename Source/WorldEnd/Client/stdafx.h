@@ -87,6 +87,7 @@ struct PlayerInfo {
     UCHAR      critRateLevel;
     UCHAR      critDamageLevel;
     pair<UCHAR, UCHAR> skill[(size_t)PlayerType::COUNT];
+    bool       invincible{ false };
 };
 
 

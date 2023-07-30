@@ -27,7 +27,7 @@ public:
 
 	void ChangeBehavior(MonsterBehavior behavior);
 	void DoBehavior(FLOAT elapsed_time);
-	virtual void DecreaseHp (FLOAT damage, INT id) override;
+	virtual DecreaseState DecreaseHp (FLOAT damage, INT id) override;
 	void DecreaseAggroLevel();
 	bool CheckPlayer();
 
@@ -145,7 +145,7 @@ public:
 
 	virtual void Init() override;
 	virtual void Update(FLOAT elapsed_time) override;
-	virtual void DecreaseHp(FLOAT damage, INT id) override;
+	virtual DecreaseState DecreaseHp(FLOAT damage, INT id) override;
 
 private:
 	virtual bool CanSwapAttackBehavior() override;

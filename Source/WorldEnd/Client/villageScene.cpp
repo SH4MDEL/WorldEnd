@@ -821,6 +821,22 @@ void VillageScene::OnProcessingKeyboardMessage(HWND hWnd, UINT message, WPARAM w
 			}
 		}
 		break;
+
+	case WM_KEYDOWN: {
+		switch (wParam) {
+		case VK_F1:
+			SendTeleportGate();
+			break;
+		case VK_F2:
+			SendTeleportNpc();
+			break;
+		case VK_F3:
+			SendInvincible();
+			break;
+		}
+		break; 
+	}
+
 	}
 }
 
@@ -1192,6 +1208,7 @@ void VillageScene::RecvRemovePlayer(char* ptr)
 		return;
 
 	m_multiPlayers.erase(packet->id);
+	m_shaders["ANIMATION"]->RemoveMultiPlayer(packet->id);
 }
 
 void VillageScene::RecvChangeAnimation(char* ptr)
@@ -1447,6 +1464,44 @@ void VillageScene::SendChangeCharacter(PlayerType type)
 	packet.player_type = type;
 	send(g_socket, reinterpret_cast<char*>(&packet), sizeof(packet), 0);
 #endif
+}
+
+void VillageScene::SendTeleportGate()
+{
+#ifdef USE_NETWORK
+	CS_TELEPORT_GATE_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = CS_PACKET_TELEPORT_GATE;
+	send(g_socket, reinterpret_cast<char*>(&packet), sizeof(packet), 0);
+#endif
+
+	m_onTerrain = true;
+	m_player->SetPosition(PlayerSetting::GATE_POSITION);
+}
+
+void VillageScene::SendTeleportNpc()
+{
+#ifdef USE_NETWORK
+	CS_TELEPORT_NPC_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = CS_PACKET_TELEPORT_NPC;
+	send(g_socket, reinterpret_cast<char*>(&packet), sizeof(packet), 0);
+#endif
+
+	m_onTerrain = false;
+	m_player->SetPosition(PlayerSetting::NPC_POSITION);
+}
+
+void VillageScene::SendInvincible()
+{
+#ifdef USE_NETWORK
+	CS_INVINCIBLE_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = CS_PACKET_INVINCIBLE;
+	send(g_socket, reinterpret_cast<char*>(&packet), sizeof(packet), 0);
+#endif
+
+	g_playerInfo.invincible = (g_playerInfo.invincible) ? false : true;
 }
 
 void VillageScene::LoadSceneFromFile(wstring fileName, wstring sceneName)

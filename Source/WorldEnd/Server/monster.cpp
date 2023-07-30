@@ -290,10 +290,10 @@ INT Monster::GetPlayerHighestDamage()
 	return m_pl_save_damage[0].first;
 }
 
-void Monster::DecreaseHp(FLOAT damage, INT id)
+DecreaseState Monster::DecreaseHp(FLOAT damage, INT id)
 {
-	if (m_status->GetHp() <= 0)
-		return;
+	if (m_status->GetHp() <= std::numeric_limits<FLOAT>::epsilon())
+		return DecreaseState::NONE;
 
 	bool death = m_status->CalculateHitDamage(damage);
 	if (death) {
@@ -303,7 +303,7 @@ void Monster::DecreaseHp(FLOAT damage, INT id)
 		}
 		// 죽은것 전송
 		ChangeBehavior(MonsterBehavior::DEATH);
-		return;
+		return DecreaseState::DECREASE;
 	}
 
 	// 보스 광폭화 상태 타겟팅 부분을 일반 몬스터에서 확인하기 위한 코드
@@ -335,7 +335,7 @@ void Monster::DecreaseHp(FLOAT damage, INT id)
 	//}
 	// ---------------------------------------------------------------------------------------------------------------------------------------------
 	if (AggroLevel::HIT_AGGRO < m_aggro_level)
-		return;
+		return DecreaseState::DECREASE;
 
 	// 일정 비율 이상 (현재는 20%) 데미지가 들어오면 타겟 변경
 	if ((m_status->GetMaxHp() / 5.f - damage) <= std::numeric_limits<FLOAT>::epsilon()) {
@@ -343,6 +343,7 @@ void Monster::DecreaseHp(FLOAT damage, INT id)
 		//SetAggroLevel(AggroLevel::HIT_AGGRO);
 	}
 
+	return DecreaseState::DECREASE;
 }	
 
 
@@ -1414,17 +1415,17 @@ std::chrono::milliseconds BossMonster::SetBehaviorTime(MonsterBehavior behavior)
 	return time;
 }
 
-void BossMonster::DecreaseHp(FLOAT damage, INT id)
+DecreaseState BossMonster::DecreaseHp(FLOAT damage, INT id)
 {
 	Server& server = Server::GetInstance();
 
-	if (m_status->GetHp() <= 0)
-		return;
+	if (m_status->GetHp() <= std::numeric_limits<FLOAT>::epsilon())
+		return DecreaseState::NONE;
 
 	bool death = m_status->CalculateHitDamage(damage);
 
 	if (-1 == id) {
-		return;
+		return DecreaseState::NONE;
 	}
 	server.m_clients[id]->SetSaveDamage(0);
 
@@ -1435,7 +1436,7 @@ void BossMonster::DecreaseHp(FLOAT damage, INT id)
 		}
 		// 죽은것 전송
 		ChangeBehavior(MonsterBehavior::DEATH);
-		return;
+		return DecreaseState::DECREASE;
 	}
 
 	m_pl_save_damage.push_back(std::make_pair(id, server.m_clients[id]->GetSaveDamage()));
@@ -1455,8 +1456,7 @@ void BossMonster::DecreaseHp(FLOAT damage, INT id)
 
 	//std::cout << id << "플레이어의 누적 데미지 - " << (FLOAT)pl_save_data->second << std::endl;
 
-	if (AggroLevel::HIT_AGGRO < m_aggro_level)
-		return;
+	return DecreaseState::DECREASE;
 }
 
 void BossMonster::RandomTarget()

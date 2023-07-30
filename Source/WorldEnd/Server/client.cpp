@@ -29,7 +29,7 @@ ExpOver::ExpOver(char* packet, INT packet_count)
 	memcpy(_send_buf, packet, static_cast<size_t>(packet[0] * packet_count));
 }
 
-Client::Client() : m_socket{}, m_is_ready{ false }, m_remain_size{ 0 },
+Client::Client() : m_socket{}, m_is_ready{ false },
 	m_recv_over{}
 {
 	for (size_t j = 0; j < static_cast<INT>(PlayerType::COUNT); ++j) {
@@ -61,6 +61,11 @@ void Client::Init()
 	this->SetTriggerFlag();
 	m_is_ready = false;
 	m_user_id.clear();
+
+	m_current_animation = ObjectAnimation::IDLE;
+	m_is_invincible = false;
+	m_invincible_roll = false;
+	m_remain_size = 0;
 
 	// 나중에 DB에서 처리될 것들
 	m_town_position = XMFLOAT3{ 25.f, 5.65f, 66.f };
@@ -265,6 +270,11 @@ void Client::SetTownPosition(FLOAT x, FLOAT y, FLOAT z)
 	SetTownPosition(XMFLOAT3{ x, y, z });
 }
 
+void Client::SetInvincible(bool value)
+{
+	m_is_invincible = value;
+}
+
 FLOAT Client::GetSkillRatio(ActionType type) const
 {
 	FLOAT ratio{};
@@ -333,7 +343,7 @@ INT Client::GetCost(EnhancementType type) const
 
 INT Client::GetLevel(EnhancementType type) const
 {
-	return static_cast<INT>(GetLevel(type));
+	return static_cast<INT>(m_status->GetLevel(type));
 }
 
 void Client::ChangeStamina(FLOAT value)
@@ -343,15 +353,21 @@ void Client::ChangeStamina(FLOAT value)
 		m_stamina = 0;
 }
 
-void Client::ChangeGold(INT value)
+void Client::IncreaseGold(INT value)
 {
 	m_gold += value;
 }
 
-void Client::DecreaseHp(FLOAT damage, INT id)
+DecreaseState Client::DecreaseHp(FLOAT damage, INT id)
 {
-	if (m_status->GetHp() <= 0)
-		return;
+	if (m_is_invincible)
+		return DecreaseState::NONE;
+
+	if (m_invincible_roll)
+		return DecreaseState::NONE;
+
+	if (m_status->GetHp() <= std::numeric_limits<FLOAT>::epsilon())
+		return DecreaseState::NONE;
 
 	if (m_invincible_roll == false) 
 	{
@@ -364,6 +380,8 @@ void Client::DecreaseHp(FLOAT damage, INT id)
 			m_current_animation = ObjectAnimation::DEATH;
 		}
 	}
+
+	return DecreaseState::DECREASE;
 }
 
 // 다음 방 넘어갈 때 상태 회복
@@ -374,6 +392,12 @@ void Client::RestoreCondition()
 	m_status->Init();
 	m_stamina = PlayerSetting::MAX_STAMINA;
 	m_interactable = false;
+}
+
+void Client::ToggleInvinsible()
+{
+	m_is_invincible = (m_is_invincible) ? false : true;
+	std::cout << "id : " << m_id << (int)m_is_invincible << std::endl;
 }
 
 void Client::SetBoundingBox(PlayerType type)

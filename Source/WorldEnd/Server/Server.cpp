@@ -47,10 +47,6 @@ Server::Server()
 	m_database = std::make_unique<DataBase>();
 	m_database->InitDataBase();
 
-
-	for (INT& id : m_player_ids)
-		id = -1;
-
 	printf("Complete Initialize!\n");
 	// ----------------------- //
 }
@@ -321,7 +317,7 @@ void Server::WorkerThread()
 				if (-1 == id) continue;
 
 				auto client = std::dynamic_pointer_cast<Client>(m_clients[id]);
-				client->ChangeGold(reward);
+				client->IncreaseGold(reward);
 				client->DoSend(&packet);
 			}
 
@@ -439,9 +435,8 @@ void Server::WorkerThread()
 			auto& player_ids = game_room->GetPlayerIds();
 
 			BoundingOrientedBox obb{};
-			float damage{ 0.f };	// 스킬이 있다면 계수 더하는 용도
-			damage = monster->GetDamage();
-
+			float damage{ monster->GetDamage() };	// 스킬이 있다면 계수 더하는 용도
+			
 			// 공격 충돌 검사시 행동이 공격 중이 아니면
 			/*if (monster->GetBehavior() != MonsterBehavior::ATTACK) {
 				delete exp_over;
@@ -490,8 +485,9 @@ void Server::WorkerThread()
 				if (State::INGAME != m_clients[id]->GetState()) continue;
 
 				if (obb.Intersects(m_clients[id]->GetBoundingBox())) {
-					m_clients[id]->DecreaseHp(m_clients[monster_id]->GetDamage(), -1);
-					SendChangeHp(id);
+					if (DecreaseState::DECREASE == m_clients[id]->DecreaseHp(m_clients[monster_id]->GetDamage(), -1)) {		// 감소한 경우에만 체력 변경
+						SendChangeHp(id);
+					}
 				}
 			}
 
@@ -631,8 +627,9 @@ void Server::WorkerThread()
 				if (ActionType::SKILL == *action_type || 
 					ActionType::NORMAL_ATTACK == *action_type) {
 					damage *= m_clients[id]->GetSkillRatio(*action_type);
-					m_clients[near_id]->DecreaseHp(damage, id);
-					SendChangeHp(near_id);
+					if (DecreaseState::DECREASE == m_clients[near_id]->DecreaseHp(damage, id)) {
+						SendChangeHp(near_id);
+					}
 				}
 				else if (ActionType::ULTIMATE == *action_type) {
 					// 주변 폭발 충돌
@@ -646,8 +643,9 @@ void Server::WorkerThread()
 				}
 			}
 			else {
-				m_clients[near_id]->DecreaseHp(damage, id);
-				SendChangeHp(near_id);
+				if (DecreaseState::DECREASE == m_clients[near_id]->DecreaseHp(damage, id)) {
+					SendChangeHp(near_id);
+				}
 			}
 
 			delete exp_over;
@@ -711,20 +709,8 @@ void Server::WorkerThread()
 				return;
 			}
 
-			// 방의 모든 몬스터들을 FREE로 만들고 배열을 -1 로 초기화
-			auto& ids = game_room->GetMonsterIds();
-			for (int& id : ids) {
-				if (-1 == id) continue;
+			game_room->Reset();
 
-				std::lock_guard<std::mutex> lock{ m_clients[id]->GetStateMutex() };
-				m_clients[id]->SetState(State::FREE);
-				id = -1;
-			}
-			game_room->SetMonsterCount(0);
-
-			// 방을 비어 있는 상태로 변경
-			std::lock_guard<std::mutex> lock{ game_room->GetStateMutex() };
-			game_room->SetState(GameRoomState::EMPTY);
 			delete exp_over;
 			break;
 		}
@@ -748,7 +734,7 @@ void Server::WorkerThread()
 			for (int id : ids) {
 				if (-1 == id) continue;
 
-				Move(dynamic_pointer_cast<Client>(m_clients[id]), RoomSetting::START_POSITION, id);
+				Move(id, RoomSetting::TOWER_START_POSITION);
 			}
 
 			delete exp_over;
@@ -861,7 +847,7 @@ void Server::ProcessPacket(int id, char* p)
 
 		client->SetYaw(packet->yaw);
 		RotateBoundingBox(client);
-		Move(client, packet->pos, id);
+		Move(id, packet->pos);
 		
 #ifdef USER_NUM_TEST
 		client->SetLastMoveTime(packet->move_time);
@@ -954,7 +940,6 @@ void Server::ProcessPacket(int id, char* p)
 	case CS_PACKET_EXIT_PARTY: {
 		CS_EXIT_PARTY_PACKET* packet = reinterpret_cast<CS_EXIT_PARTY_PACKET*>(p);
 
-		auto client = dynamic_pointer_cast<Client>(m_clients[id]);
 		m_party_manager->ExitParty(client->GetPartyNum(), id);
 		break;
 	}
@@ -962,7 +947,6 @@ void Server::ProcessPacket(int id, char* p)
 		CS_CHANGE_CHARACTER_PACKET* packet =
 			reinterpret_cast<CS_CHANGE_CHARACTER_PACKET*>(p);
 
-		auto client = dynamic_pointer_cast<Client>(m_clients[id]);
 		client->SetPlayerType(packet->player_type);
 		
 		SendChangeCharacter(id, packet->player_type);
@@ -971,24 +955,29 @@ void Server::ProcessPacket(int id, char* p)
 	case CS_PACKET_READY: {
 		CS_READY_PACKET* packet = reinterpret_cast<CS_READY_PACKET*>(p);
 
-		auto client = dynamic_pointer_cast<Client>(m_clients[id]);
 		m_party_manager->PlayerReady(client->GetPartyNum(), id);
 		break;
 	}
 	case CS_PACKET_ENTER_DUNGEON: {
 		CS_ENTER_DUNGEON_PACKET* packet = reinterpret_cast<CS_ENTER_DUNGEON_PACKET*>(p);
 
-		auto client = dynamic_pointer_cast<Client>(m_clients[id]);
 		auto& party = m_party_manager->GetParty(client->GetPartyNum());
 
 		party->SendEnterDungeon();
 
-		for (INT party_member : party->GetMembers()) {
-			for (INT& player_id : m_player_ids) {
-				if (party_member == player_id) {
-					player_id = -1;
+		// 파티원 마을 명단에서 삭제
+		std::unordered_set<int> removed_players{};
+		{
+			std::lock_guard<std::mutex> l{ m_village_lock };
+			for (INT party_member : party->GetMembers()) {
+				if (0 != m_village_ids.erase(party_member)) {	// 0 반환은 key 가 없을 경우 -> 존재하는 key 면 삭제하도록
+					removed_players.insert(party_member);
 				}
 			}
+		}
+
+		for (INT id : removed_players) {
+			SendRemoveInVillage(id);
 		}
 
 		m_game_room_manager->EnterGameRoom(party);
@@ -1011,18 +1000,23 @@ void Server::ProcessPacket(int id, char* p)
 	}
 	case CS_PACKET_ENTER_VILLAGE: {
 		CS_ENTER_VILLAGE_PACKET* packet = reinterpret_cast<CS_ENTER_VILLAGE_PACKET*>(p);
-		for (auto& id : m_player_ids) {
-			if (-1 == id) {
-				id = client->GetId();
-				break;
-			}
+		
+		// 마을 인원에 추가
+		std::unordered_set<int> ids{};
+		{
+			std::lock_guard<std::mutex> l{ m_village_lock };
+			m_village_ids.insert(id);
+			ids = m_village_ids;
 		}
 
-		for (auto& pl_id : m_player_ids) {
+		// 추가한 플레이어 add
+		for (auto& pl_id : ids) {
 			if (-1 == pl_id) continue;
 			if (pl_id == id) continue;
 
+			// 기존 플레이어 정보를 나에게 전송
 			SendAddPlayer(pl_id, id);
+
 			// 내 정보를 기존에 방에 있던 플레이어에게 전송
 			SendAddPlayer(id, pl_id);
 		}
@@ -1037,8 +1031,6 @@ void Server::ProcessPacket(int id, char* p)
 	case CS_PACKET_ENHANCE: {
 		CS_ENHANCE_PACKET* packet = reinterpret_cast<CS_ENHANCE_PACKET*>(p);
 
-		auto client = dynamic_pointer_cast<Client>(m_clients[id]);
-
 		int cost{ client->GetCost(packet->enhancement_type) };
 
 		if (cost > client->GetGold()) {
@@ -1050,7 +1042,7 @@ void Server::ProcessPacket(int id, char* p)
 		}
 
 		client->LevelUpEnhancement(packet->enhancement_type);
-		client->ChangeGold(-cost);
+		client->IncreaseGold(-cost);
 
 		SendEnhanceOk(id, packet->enhancement_type);
 
@@ -1058,8 +1050,6 @@ void Server::ProcessPacket(int id, char* p)
 	}
 	case CS_PACKET_CHNAGE_SKILL: {
 		CS_CHANGE_SKILL_PACKET* packet = reinterpret_cast<CS_CHANGE_SKILL_PACKET*>(p);
-
-		auto client = dynamic_pointer_cast<Client>(m_clients[id]);
 
 		int cost{};
 
@@ -1077,14 +1067,12 @@ void Server::ProcessPacket(int id, char* p)
 		}
 
 		client->ChangeSkill(packet->player_type, packet->skill_type, packet->changed_type);
-		client->ChangeGold(-cost);
+		client->IncreaseGold(-cost);
 
 		break;
 	}
 	case CS_PACKET_TOWER_SCENE: {		// 타워 씬으로 전환했음을 받고 플레이어, 몬스터를 ADD
-		CS_DUNGEON_SCENE_PACKET* packet = reinterpret_cast<CS_DUNGEON_SCENE_PACKET*>(p);
-
-		auto client = dynamic_pointer_cast<Client>(m_clients[id]);
+		CS_TOWER_SCENE_PACKET* packet = reinterpret_cast<CS_TOWER_SCENE_PACKET*>(p);
 
 		int room_num = client->GetRoomNum();
 		if (-1 == room_num) {
@@ -1109,6 +1097,19 @@ void Server::ProcessPacket(int id, char* p)
 		break;
 	}
 
+	case CS_PACKET_TELEPORT_GATE: {
+		Move(id, PlayerSetting::GATE_POSITION);
+		break;
+	}
+	case CS_PACKET_TELEPORT_NPC: {
+		Move(id, PlayerSetting::NPC_POSITION);
+		break;
+	}
+	case CS_PACKET_INVINCIBLE: {
+		client->ToggleInvinsible();	// 무적이 false면 true 로, true면 false 로 전환
+		break;
+	}
+
 
 	}
 }
@@ -1125,23 +1126,7 @@ void Server::Disconnect(int id)
 		m_game_room_manager->RemovePlayer(id);
 	}
 	else {
-		// 마을 내 플레이어 제거
-		SC_REMOVE_PLAYER_PACKET packet{};
-		packet.size = sizeof(packet);
-		packet.type = SC_PACKET_REMOVE_PLAYER;
-		packet.id = id;
-
-
-		// 마을에 있다는 내용을 날리고 나머지 플레이어들에게 remove
-		for (INT& player_id : m_player_ids) {
-			if (player_id == id) {
-				player_id = -1;
-			}
-			if (-1 == player_id) continue;
-			else {
-				m_clients[player_id]->DoSend(&packet);
-			}
-		}
+		SendRemoveInVillage(id);
 
 		// 파티 UI 보고 있었다면 함수 내부에서 지움
 		m_party_manager->ClosePartyUI(id);
@@ -1286,7 +1271,7 @@ void Server::SendChangeAnimation(int client_id, USHORT animation)
 	}
 	// 마을 처리
 	else {
-		for (auto id : m_player_ids) {
+		for (auto id : m_village_ids) {
 			if (-1 == id) continue;
 
 			m_clients[id]->DoSend(&packet);
@@ -1484,11 +1469,37 @@ void Server::SendChangeCharacter(int client_id, PlayerType type)
 	packet.id = client_id;
 	packet.player_type = type;
 
-	for (INT id : m_player_ids) {
+	for (INT id : m_village_ids) {
 		if (-1 == id) continue;
 		if (client_id == id) continue;
 
 		m_clients[id]->DoSend(&packet);
+	}
+}
+
+void Server::SendUpdateVillage()
+{
+	// 마을 위치 업데이트
+}
+
+void Server::SendRemoveInVillage(int client_id)
+{
+	// 마을 내 플레이어 제거
+	SC_REMOVE_PLAYER_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = SC_PACKET_REMOVE_PLAYER;
+	packet.id = client_id;
+
+	std::unordered_set<int> ids{};
+	{
+		std::lock_guard<std::mutex> l{ m_village_lock };
+		m_village_ids.erase(client_id);
+		ids = m_village_ids;
+	}
+
+	// 나머지 플레이어들에게 remove
+	for (INT player_id : ids) {
+		m_clients[player_id]->DoSend(&packet);
 	}
 }
 
@@ -1619,8 +1630,9 @@ INT Server::GetNewTriggerId(TriggerType type)
 	return -1;
 }
 
-void Server::Move(const std::shared_ptr<Client>& client, XMFLOAT3 position, int cleint_id)
+void Server::Move(int client_id, XMFLOAT3 position)
 {
+	auto client = std::dynamic_pointer_cast<Client>(m_clients[client_id]);
 	client->SetPosition(position);
 
 	// 게임 룸에 진입한채 움직이면 시야처리 X (타워 씬)
@@ -1635,14 +1647,15 @@ void Server::Move(const std::shared_ptr<Client>& client, XMFLOAT3 position, int 
 		// 마을 위치 갱신
 		client->SetTownPosition(position);
 
-		for (auto id : m_player_ids) {
+		for (auto id : m_village_ids) {
 			if (-1 == id) continue;
-			if (id == cleint_id) continue;
+			if (id == client_id) continue;
 			
-			
-			SendMovePlayer(cleint_id, id);
+			// 기존 플레이어를 나에게 전송
+			//SendMovePlayer(client_id, id);
 
-			SendMovePlayer(id, cleint_id);
+			// 나를 기존 플레이어들에게 전송
+			SendMovePlayer(id, client_id);
 		}
 
 
@@ -2715,8 +2728,10 @@ void Server::AttackCollisionWithMonster(int client_id, const BoundingOrientedBox
 
 		if (m_clients[id]->GetBoundingBox().Intersects(obb)) {
 			auto monster = dynamic_pointer_cast<Monster>(m_clients[id]);
-			monster->DecreaseHp(damage, client->GetId());
-			v.push_back(id);
+			
+			if (DecreaseState::DECREASE == monster->DecreaseHp(damage, client->GetId())) {
+				v.push_back(id);
+			}
 		}
 	}
 

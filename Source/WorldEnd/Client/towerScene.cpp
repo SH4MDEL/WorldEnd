@@ -155,7 +155,7 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 	LoadPlayerFromFile(m_player);
 
 	m_shaders["ANIMATION"]->SetPlayer(m_player);
-	m_player->SetPosition(RoomSetting::START_POSITION);
+	m_player->SetPosition(RoomSetting::TOWER_START_POSITION);
 	m_player->SetId(g_playerInfo.id);
 
 	// 체력 바 생성
@@ -232,7 +232,7 @@ void TowerScene::BuildObjects(const ComPtr<ID3D12Device>& device, const ComPtr<I
 
 	// Build 가 끝나면 던전에 진입했음을 알림
 #ifdef USE_NETWORK
-	CS_DUNGEON_SCENE_PACKET packet{};
+	CS_TOWER_SCENE_PACKET packet{};
 	packet.size = sizeof(packet);
 	packet.type = CS_PACKET_TOWER_SCENE;
 	send(g_socket, reinterpret_cast<char*>(&packet), sizeof(packet), 0);
@@ -571,12 +571,21 @@ void TowerScene::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 	if (!CheckState(State::CantPlayerControl)) {
 		if (m_player) m_player->OnProcessingKeyboardMessage(timeElapsed);
 	}
-	if (GetAsyncKeyState(VK_F1) & 0x8000) {
-		// 무적 패킷 보냄
-	}
 }
 
-void TowerScene::OnProcessingKeyboardMessage(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {}
+void TowerScene::OnProcessingKeyboardMessage(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	switch (message)
+	{
+	case WM_KEYDOWN:
+		switch(wParam){
+		case VK_F3:
+			SendInvincible();
+			break;
+		}
+		break;
+	}
+}
 
 void TowerScene::Update(FLOAT timeElapsed)
 {
@@ -1002,6 +1011,18 @@ void TowerScene::SendPlayerData()
 #endif
 }
 
+void TowerScene::SendInvincible()
+{
+#ifdef USE_NETWORK
+	CS_INVINCIBLE_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = CS_PACKET_INVINCIBLE;
+	send(g_socket, reinterpret_cast<char*>(&packet), sizeof(packet), 0);
+#endif
+
+	g_playerInfo.invincible = (g_playerInfo.invincible) ? false : true;
+}
+
 void TowerScene::ProcessPacket(char* ptr)
 {
 	//cout << "[Process Packet] Packet Type: " << (int)ptr[1] << endl;//test
@@ -1242,14 +1263,35 @@ void TowerScene::RecvClearFloor(char* ptr)
 	SetState(State::OutputResult);
 	m_resultUI->SetEnable();
 
+	g_playerInfo.gold += packet->reward;
+
 	if (-1 != m_bossId) {
 		m_bossHpUI->SetDisable();
 		m_bossIconUI->SetDisable();
 		m_bossId = -1;
 	}
 
-	m_shaders["ANIMATION"]->GetMonsters().clear();
+	if (m_monsters.empty())
+		return;
+
+	for (const auto& elm : m_monsters) {
+		if (elm.second) {
+			elm.second->SetPosition(XMFLOAT3(FAR_POSITION, FAR_POSITION, FAR_POSITION));
+		}
+	}
 	m_monsters.clear();
+
+
+	auto& monsters = m_shaders["ANIMATION"]->GetMonsters();
+	if (monsters.empty())
+		return;
+
+	for (const auto& elm : monsters) {
+		if (elm.second) {
+			elm.second->SetPosition(XMFLOAT3(FAR_POSITION, FAR_POSITION, FAR_POSITION));
+		}
+	}
+	monsters.clear();
 }
 
 void TowerScene::RecvFailFloor(char* ptr)
@@ -1331,13 +1373,13 @@ void TowerScene::RecvWarpNextFloor(char* ptr)
 	SetState(State::Fading);
 	m_fadeFilter->FadeOut([&]() {
 		m_player->ChangeAnimation(ObjectAnimation::IDLE, false);
-		m_player->SetPosition(RoomSetting::START_POSITION);
+		m_player->SetPosition(RoomSetting::TOWER_START_POSITION);
 		m_player->SetHp(m_player->GetMaxHp());
 
 		for (auto& elm : m_multiPlayers) {
 			if (-1 == elm.second->GetId()) continue;
 
-			elm.second->SetPosition(RoomSetting::START_POSITION);
+			elm.second->SetPosition(RoomSetting::TOWER_START_POSITION);
 			elm.second->ChangeAnimation(ObjectAnimation::IDLE, false);
 			elm.second->SetHp(elm.second->GetMaxHp());
 		}
@@ -1376,8 +1418,6 @@ void TowerScene::RecvPlayerDeath(char* ptr)
 void TowerScene::RecvArrowShoot(char* ptr)
 {
 	SC_ARROW_SHOOT_PACKET* packet = reinterpret_cast<SC_ARROW_SHOOT_PACKET*>(ptr);
-
-	cout << "화살 생성" << endl;
 
 	if (0 <= packet->id && packet->id < MAX_USER) {
 		if (packet->id == m_player->GetId()) {
@@ -1499,6 +1539,8 @@ void TowerScene::RecvAddMagicCircle(char* ptr)
 void TowerScene::RecvDungeonClear(char* ptr)
 {
 	SC_DUNGEON_CLEAR_PACKET* packet = reinterpret_cast<SC_DUNGEON_CLEAR_PACKET*>(ptr);
+
+	g_playerInfo.position = packet->position;
 
 	SetState(State::Fading);
 	m_fadeFilter->FadeOut([&]() {

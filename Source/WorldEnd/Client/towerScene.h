@@ -89,6 +89,8 @@ public:
 
     // 서버 추가 코드
 	void SendPlayerData();
+	void SendInvincible();
+
 	void ProcessPacket(char* ptr);
 	void RecvAddPlayer(char* ptr);
 	void RecvRemovePlayer(char* ptr);

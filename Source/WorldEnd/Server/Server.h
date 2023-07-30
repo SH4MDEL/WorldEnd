@@ -87,6 +87,8 @@ public:
 	void SendMovePlayer(int client_id, int move_object);
 	void SendEnhanceOk(int client_id, EnhancementType type);
 	void SendChangeCharacter(int client_id, PlayerType type);
+	void SendUpdateVillage();
+	void SendRemoveInVillage(int client_id);
 
 	// 기타 처리
 	bool IsPlayer(int client_id); 
@@ -127,7 +129,7 @@ public:
 	HANDLE GetIOCPHandle() const { return m_handle_iocp; }
 
 	// 플레이어 처리
-	void Move(const std::shared_ptr<Client>& client, XMFLOAT3 position , int cleint_id);
+	void Move(int client_id, XMFLOAT3 position);
 	bool CanSee(int from, int to);
 
 	// 오브젝트 처리
@@ -158,7 +160,8 @@ private:
 	std::unique_ptr<PartyManager> m_party_manager;
 	std::unique_ptr<DataBase> m_database;
 
-	std::array<INT, MAX_USER>			m_player_ids;
+	std::unordered_set<int>	m_village_ids;
+	std::mutex m_village_lock;
 
 	SOCKET				m_server_socket;
 	HANDLE				m_handle_iocp;

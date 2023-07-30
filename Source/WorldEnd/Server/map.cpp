@@ -76,7 +76,6 @@ void GameRoom::WarpNextFloor(INT room_num)
 	for (INT id : m_ingame_player_ids) {
 		if (-1 == id) continue;
 
-		server.m_clients[id]->SetHp(server.m_clients[id]->GetMaxHp());
 		SendAddMonster(id);
 	}
 }
@@ -92,8 +91,12 @@ void GameRoom::DungeonClear()
 	for (INT id : m_ingame_player_ids) {
 		if (-1 == id) continue;
 
-		server.m_clients[id]->SetHp(server.m_clients[id]->GetMaxHp());
-		server.m_clients[id]->SetRoomNum(-1);
+		auto client = std::dynamic_pointer_cast<Client>(server.m_clients[id]);
+		client->SetHp(server.m_clients[id]->GetMaxHp());
+		client->SetRoomNum(-1);
+		client->SetPosition(client->GetTownPosition());
+		packet.position = client->GetPosition();
+
 		server.m_clients[id]->DoSend(&packet);
 	}
 
@@ -126,7 +129,7 @@ bool GameRoom::SetPlayer(INT room_num, INT player_id)
 				}
 			}
 			l.unlock();
-			server.m_clients[id]->SetPosition(RoomSetting::START_POSITION);
+			server.m_clients[id]->SetPosition(RoomSetting::TOWER_START_POSITION);
 			join = true;
 
 			if (GameRoomState::ONBATTLE == m_state) {
@@ -478,8 +481,8 @@ void GameRoom::Init()
 		std::lock_guard<std::mutex> l{ m_state_lock };
 		m_state = GameRoomState::EMPTY;
 	}
-	m_floor = RoomSetting::BOSS_FLOOR;
-	//m_floor = 4;
+	//m_floor = RoomSetting::BOSS_FLOOR;
+	m_floor = 4;
 	m_type = EnvironmentType::FOG;
 	m_monster_count = 0;
 	m_arrow_id = 0;
@@ -962,6 +965,25 @@ void GameRoom::InitMonsters(INT room_num)
 void GameRoom::InitEnvironment()
 {
 	// 랜덤하게 환경을 설정함
+}
+
+void GameRoom::Reset()
+{
+	Server& server = Server::GetInstance();
+
+	for (int& id : m_monster_ids) {
+		if (-1 == id) continue;
+
+		std::lock_guard<std::mutex> lock{ server.m_clients[id]->GetStateMutex() };
+		server.m_clients[id]->SetState(State::FREE);
+		id = -1;
+	}
+	m_monster_count = 0;
+
+
+	// 방을 비어 있는 상태로 변경
+	std::lock_guard<std::mutex> lock{ m_state_lock };
+	m_state = GameRoomState::EMPTY;
 }
 
 void GameRoom::CollideWithEventObject(INT player_id, InteractionType type)

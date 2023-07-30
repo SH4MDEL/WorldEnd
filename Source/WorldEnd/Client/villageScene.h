@@ -107,6 +107,9 @@ public:
 	void SendChangeSkill(USHORT skillType, USHORT changedType);
 	void SendEnterDungeon();
 	void SendChangeCharacter(PlayerType type);
+	void SendTeleportGate();
+	void SendTeleportNpc();
+	void SendInvincible();
 
 private:
 	inline void BuildUI();
