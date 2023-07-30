@@ -1497,6 +1497,11 @@ void Server::SendChangeCharacter(int client_id, PlayerType type)
 	}
 }
 
+void Server::SendRemovePlayer(int client_id, int reomove_id)
+{
+
+}
+
 bool Server::IsPlayer(int client_id)
 {
 	if (0 <= client_id && client_id < MAX_USER)
@@ -1614,7 +1619,7 @@ INT Server::GetNewTriggerId(TriggerType type)
 	return -1;
 }
 
-void Server::Move(const std::shared_ptr<Client>& client, XMFLOAT3 position, int cleint_id)
+void Server::Move(const std::shared_ptr<Client>& client, XMFLOAT3 position, int client_id)
 {
 	client->SetPosition(position);
 
@@ -1630,65 +1635,118 @@ void Server::Move(const std::shared_ptr<Client>& client, XMFLOAT3 position, int 
 		// 마을 위치 갱신
 		client->SetTownPosition(position);
 
-		for (auto id : m_player_ids) {
+	/*	for (auto id : m_player_ids) {
 			if (-1 == id) continue;
-			if (id == cleint_id) continue;
+			if (id == client_id) continue;
 			
 			
-			SendMovePlayer(cleint_id, id);
+			SendMovePlayer(client_id, id);
 
-			SendMovePlayer(id, cleint_id);
-		}
+			SendMovePlayer(id, client_id);
+		}*/
 
 
 
-		//std::unordered_set<INT> near_list;
+		std::unordered_set<INT> near_list;
 
 		//for (auto other_player : m_clients) {
-		//	if (other_player->GetId() == id)
-		//		continue;
-		//	if (false == CanSee(id, other_player->GetId()))
-		//		continue;
+		//	/*if (other_player->GetId() == cleint_id)
+		//		continue;*/
+		//	
+		//	/*if (false == CanSee(cleint_id, other_player->GetId()))
+		//		continue;*/
 
 		//	near_list.insert(other_player->GetId());
 		//}
 
-		////lock시간을 줄이기 위해 자료를 복사해서 사용
-		//client->m_vl.lock();
-		//std::unordered_set<int> my_vl{ client->GetViewList() };
-		//client->m_vl.lock();
+		//뷰 리스트 업데이트를 위한 new near List 생성
+		client->m_vl.lock();
+		std::unordered_set<int> my_vl = client->m_view_list;
+		client->m_vl.unlock();
 
-		//// 움직일때 시야에 들어온 플레이어 추가
-		//for (INT other : near_list) {
-		//	
-		//	if (my_vl.count(other) == 0) {
-		//		
-		//		client->m_vl.lock();
-		//		client->SetViewList(other);
-		//		client->m_vl.lock();
+		for (auto& id : my_vl) {
+			if (m_clients[id]->GetId() == client_id) continue;
 
-		//		// 보였으니 그리라고 패킷을 보냄.
-		//		SendAddPlayer(client->GetId(), other);
+			if (CanSee(client_id, id)) {
+				client->m_vl.lock();
+				near_list.insert(id);
+				client->m_vl.unlock();
+			}
+		}
 
-		//		continue;
-		//	}
-		//	auto other_player = dynamic_pointer_cast<Client>(m_clients[other]);
 
-		//	other_player->m_vl.lock();
+		// 움직일때 시야에 들어온 플레이어 추가
+		for (INT other : near_list) {
 
-		//	if (other_player->GetViewList().count(client->GetId())) {
-		//		other_player->SetViewList(client->GetId());
-		//		other_player->m_vl.unlock();
-		//		SendAddPlayer(other, client->GetId());
-		//	}
-		//	else {
-		//		// 상대 뷰리스트에 있으면 이동 패킷 전송
-		//		other_player->m_vl.unlock();
-		//		SendMovePlayer(other, client->GetId());
-		//	}
-		//}
+		if (my_vl.count(other) == 0) {
 
+				client->m_vl.lock();
+				client->SetViewList(other);
+				client->m_vl.unlock();
+
+				// 보였으니 그리라고 패킷을 보냄.
+				SendAddPlayer(client_id, other);
+
+
+				auto other_player = dynamic_pointer_cast<Client>(m_clients[other]);
+
+				other_player->m_vl.lock();
+
+				if (other_player->m_view_list.count(client_id) == 0) {
+					other_player->SetViewList(client_id);
+					other_player->m_vl.unlock();
+					SendAddPlayer(other, client_id);
+				}
+				else {
+					// 상대 뷰리스트에 있으면 이동 패킷 전송
+					other_player->m_vl.unlock();
+					SendMovePlayer(other, client_id);
+				}
+			}
+		else{
+			auto other_player = dynamic_pointer_cast<Client>(m_clients[other]);
+			other_player->m_vl.lock();
+
+				if (other_player->m_view_list.count(client_id) != 0)
+				{
+					other_player->m_vl.unlock();
+
+					SendMovePlayer(other, client_id);
+				}
+				else {
+					other_player->m_view_list.insert(client_id);
+					other_player->m_vl.unlock();
+
+					SendAddPlayer(other, client_id);
+				}
+			}
 		
+
+		}
+
+		// 움직일때 시야에 빠진 플레이어 제거
+		for (INT other : my_vl) {
+
+			if (near_list.count(other) == 0) {
+
+				client->m_vl.lock();
+				client->m_view_list.erase(other);
+				client->m_vl.unlock();
+
+				Disconnect(other);
+				auto other_player = dynamic_pointer_cast<Client>(m_clients[other]);
+
+				other_player->m_vl.lock();
+				if (other_player->m_view_list.count(client_id) == 0) {
+					other_player->m_view_list.erase(client_id);
+
+					Disconnect(client_id);
+
+				}
+				else
+					other_player->m_vl.unlock();
+			}
+		}
 	}
 }
 

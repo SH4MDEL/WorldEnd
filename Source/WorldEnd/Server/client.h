@@ -91,7 +91,7 @@ public:
 	INT GetCost(EnhancementType type) const;
 
 	bool GetInvincibleRoll() const { return m_invincible_roll; }
-	const std::unordered_set<INT>& GetViewList() { return m_view_list;}
+	//const std::unordered_set<INT>& GetViewList() { return m_view_list;}
 
 	void ChangeStamina(FLOAT value);
 	void ChangeGold(INT value);
@@ -101,6 +101,7 @@ public:
 	void RestoreCondition();
 
 	std::mutex m_vl;                             // 뷰 리스트 전용 락
+	std::unordered_set<INT> m_view_list;
 
 private:
 	// 통신 관련 변수
@@ -125,7 +126,7 @@ private:
 	INT						m_gold;
 	bool                    m_invincible_roll = false;
 
-	std::unordered_set<INT> m_view_list;         // 이 클라의 뷰 리스트
+	//std::unordered_set<INT> m_view_list;         // 이 클라의 뷰 리스트
 	
 
 	std::array<std::array<std::shared_ptr<Skill>, static_cast<INT>(SkillType::COUNT)>,

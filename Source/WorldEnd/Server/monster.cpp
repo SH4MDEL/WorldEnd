@@ -1017,11 +1017,9 @@ void WizardMonster::Update(FLOAT elapsed_time)
 	if (CanSwapAttackBehavior()) {
 		if (IsInRange(m_boundary_range)) {
 			ChangeBehavior(MonsterBehavior::PREPARE_ATTACK);
-			//RandomTarget();
 		}
 		else if (IsInRange(m_attack_range)) {
 			ChangeBehavior(MonsterBehavior::PREPARE_CAST);
-			//RandomTarget();
 		}
 	}
 }
@@ -1479,7 +1477,7 @@ void BossMonster::PlayerHighestDamageTarget()
 	if (m_status->GetHp() <= m_status->GetMaxHp() / 1.6) {
 		pl_highest_damage_id = GetPlayerHighestDamage();
 		SetTarget(pl_highest_damage_id);
-		//std::cout << "변경된 플레이어 id - " << pl_highest_damage_id << std::endl;
+		std::cout << "변경된 플레이어 id - " << pl_highest_damage_id << std::endl;
 	}
 }
 

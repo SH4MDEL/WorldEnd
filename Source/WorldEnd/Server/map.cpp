@@ -491,7 +491,7 @@ void GameRoom::Init()
 		m_state = GameRoomState::EMPTY;
 	}
 	//m_floor = RoomSetting::BOSS_FLOOR;
-	m_floor = 4;
+	m_floor = 5;
 	m_type = EnvironmentType::FOG;
 	m_monster_count = 0;
 	m_arrow_id = 0;
