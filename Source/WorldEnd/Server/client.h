@@ -78,7 +78,6 @@ public:
 	virtual USHORT GetCurrentAnimation() const override { return m_current_animation; }
 	virtual UINT GetLastMoveTime() const override { return m_last_move_time; }
 	SHORT GetPartyNum() const { return m_party_num; }
-	bool GetReady() const { return m_is_ready; }
 	std::wstring GetUserId() const { return m_user_id; }
 	INT GetGold() const { return m_gold; }
 	UCHAR GetHpLevel() const { return m_status->GetHpLevel(); }
@@ -116,7 +115,6 @@ private:
 	UINT					m_last_move_time;
 
 	SHORT					m_party_num;
-	bool					m_is_ready;      // 로비에서 준비 
 
 	XMFLOAT3				m_town_position;
 	PlayerType				m_player_type;      // 플레이어 종류
@@ -163,7 +161,6 @@ public:
 
 	bool TryJoin(INT player_id);
 	void Exit(INT player_id);
-	void PlayerReady(INT player_id);
 	void AddMember(INT player_id);
 	bool IsExist();
 
@@ -175,7 +172,6 @@ private:
 	void SendAddMember(INT sender, INT receiver, INT locate_num);
 	void SendChangeHost(INT receiver);
 	void SendExitParty(INT exited_id, INT located_num);
-	void SendReady(INT sender);
 	void SendEnterFail();
 
 private:
@@ -200,7 +196,6 @@ public:
 	bool JoinParty(INT party_num, INT player_id);
 	void ExitParty(INT party_num, INT player_id);
 	void ChangeCharacter(INT party_num, INT player_id);
-	void PlayerReady(INT party_num, INT player_id);
 
 	void OpenPartyUI(INT player_id);
 	void ClosePartyUI(INT player_id);

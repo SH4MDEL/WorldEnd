@@ -956,10 +956,15 @@ void Server::ProcessPacket(int id, char* p)
 		SendChangeCharacter(id, packet->player_type);
 		break;
 	}
-	case CS_PACKET_READY: {
-		CS_READY_PACKET* packet = reinterpret_cast<CS_READY_PACKET*>(p);
+	case CS_PACKET_EXIT_DUNGEON: {
+		CS_EXIT_DUNGEON_PACKET* packet = reinterpret_cast<CS_EXIT_DUNGEON_PACKET*>(p);
 
-		m_party_manager->PlayerReady(client->GetPartyNum(), id);
+		
+		m_game_room_manager->RemovePlayer(id);
+		SendExitDungeonOk(id);
+		client->SetHp(m_clients[id]->GetMaxHp());
+		client->SetPosition(client->GetTownPosition());
+
 		break;
 	}
 	case CS_PACKET_ENTER_DUNGEON: {
@@ -1508,6 +1513,15 @@ void Server::SendRemoveInVillage(int client_id)
 	for (INT player_id : ids) {
 		m_clients[player_id]->DoSend(&packet);
 	}
+}
+
+void Server::SendExitDungeonOk(int client_id)
+{
+	SC_EXIT_DUNGEON_OK_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = SC_PACKET_EXIT_DUNGEON_OK;
+
+	m_clients[client_id]->DoSend(&packet);
 }
 
 bool Server::IsPlayer(int client_id)

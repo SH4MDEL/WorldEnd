@@ -91,6 +91,7 @@ public:
 	void SendPlayerData();
 	void SendInvincible();
 	void SendInteract();
+	void SendExitDungeon();
 
 	void ProcessPacket(char* ptr);
 	void RecvAddPlayer(char* ptr);
@@ -115,6 +116,7 @@ public:
 	void RecvAddTrigger(char* ptr);
 	void RecvAddMagicCircle(char* ptr);
 	void RecvDungeonClear(char* ptr);
+	void RecvExitDungeon(char* ptr);
 
 private:
 	void BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12GraphicsCommandList>& commandlist);

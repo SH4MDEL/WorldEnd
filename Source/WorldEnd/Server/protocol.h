@@ -62,7 +62,7 @@ constexpr char CS_PACKET_JOIN_PARTY = 8;
 constexpr char CS_PACKET_CREATE_PARTY = 9;
 constexpr char CS_PACKET_EXIT_PARTY = 10;
 constexpr char CS_PACKET_CHANGE_CHARACTER = 11;
-constexpr char CS_PACKET_READY = 12;
+constexpr char CS_PACKET_EXIT_DUNGEON = 12;
 constexpr char CS_PACKET_ENTER_DUNGEON = 13;
 constexpr char CS_PACKET_CHANGE_PARTY_PAGE = 14;
 constexpr char CS_PACKET_OPEN_PARTY_UI = 15;
@@ -128,6 +128,7 @@ constexpr char SC_PACKET_SIGNIN_OK = 37;
 constexpr char SC_PACKET_SIGNIN_FAIL = 38;
 constexpr char SC_PACKET_ENHANCE_OK = 39;
 constexpr char SC_PACKET_DUNGEON_CLEAR = 40;
+constexpr char SC_PACKET_EXIT_DUNGEON_OK = 41;
 
 
 enum class PlayerType : char { WARRIOR, ARCHER, WIZARD, COUNT };
@@ -515,13 +516,6 @@ struct CS_CHANGE_CHARACTER_PACKET
 	PlayerType player_type;
 };
 
-struct CS_READY_PACKET
-{
-	UCHAR size;
-	UCHAR type;
-	bool is_ready;
-};
-
 struct CS_ENTER_DUNGEON_PACKET
 {
 	UCHAR size;
@@ -588,6 +582,12 @@ struct CS_TELEPORT_NPC_PACKET
 };
 
 struct CS_INVINCIBLE_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+};
+
+struct CS_EXIT_DUNGEON_PACKET
 {
 	UCHAR size;
 	UCHAR type;
@@ -846,14 +846,6 @@ struct SC_CHANGE_CHARACTER_PACKET
 	PlayerType player_type;
 };
 
-struct SC_PLAYER_READY_PACKET
-{
-	UCHAR size;
-	UCHAR type;
-	INT id;
-	bool is_ready;
-};
-
 struct SC_ENTER_DUNGEON_PACKET
 {
 	UCHAR size;
@@ -898,6 +890,12 @@ struct SC_DUNGEON_CLEAR_PACKET
 	UCHAR size;
 	UCHAR type;
 	DirectX::XMFLOAT3 position;
+};
+
+struct SC_EXIT_DUNGEON_OK_PACKET
+{
+	UCHAR size;
+	UCHAR type;
 };
 
 #pragma pack (pop)

@@ -323,11 +323,13 @@ void GameRoom::RemovePlayer(INT player_id, INT room_num)
 	if (player_id < 0 || player_id >= MAX_USER)
 		return;
 
+	Server& server = Server::GetInstance();
 	{
 		std::lock_guard<std::mutex> lock{ m_player_lock };
 		auto it = std::remove(m_ingame_player_ids.begin(), m_ingame_player_ids.end(), player_id);
 		if (it != m_ingame_player_ids.end()) {
 			*it = -1;
+			server.m_clients[player_id]->SetRoomNum(-1);
 		}
 	}
 
@@ -342,7 +344,6 @@ void GameRoom::RemovePlayer(INT player_id, INT room_num)
 		server.SetTimerEvent(ev);
 	}
 	else {
-		Server& server = Server::GetInstance();
 
 		SC_REMOVE_PLAYER_PACKET packet{};
 		packet.size = sizeof(packet);

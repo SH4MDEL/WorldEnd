@@ -29,8 +29,7 @@ ExpOver::ExpOver(char* packet, INT packet_count)
 	memcpy(_send_buf, packet, static_cast<size_t>(packet[0] * packet_count));
 }
 
-Client::Client() : m_socket{}, m_is_ready{ false },
-	m_recv_over{}
+Client::Client() : m_socket{}, m_recv_over{}
 {
 	for (size_t j = 0; j < static_cast<INT>(PlayerType::COUNT); ++j) {
 		for (size_t i = 0; i < static_cast<INT>(SkillType::COUNT); ++i) {
@@ -59,7 +58,6 @@ void Client::Init()
 	m_last_move_time = 0;
 	m_party_num = -1;
 	this->SetTriggerFlag();
-	m_is_ready = false;
 	m_user_id.clear();
 
 	m_current_animation = ObjectAnimation::IDLE;
@@ -182,11 +180,6 @@ void Client::SetLastMoveTime(UINT time)
 void Client::SetPartyNum(SHORT party_num)
 {
 	m_party_num = party_num;
-}
-
-void Client::SetReady(bool value)
-{
-	m_is_ready = value;
 }
 
 void Client::SetUserId(const std::wstring_view& ws)
@@ -445,7 +438,6 @@ void Party::Reset()
 
 		auto client = dynamic_pointer_cast<Client>(server.m_clients[id]);
 		client->SetPartyNum(-1);
-		client->SetReady(false);
 		id = -1;
 	}
 
@@ -568,47 +560,6 @@ void Party::SendChangeCharacter(INT player_id)
 	}
 }
 
-void Party::PlayerReady(INT player_id)
-{
-	Server& server = Server::GetInstance();
-
-	if (player_id == m_host_id) {
-		// 한명이라도 준비가 안되면 입장 X
-		for (INT id : m_members) {
-			if (-1 == id) continue;
-			if (id == player_id) continue;
-
-			auto client = dynamic_pointer_cast<Client>(server.m_clients[player_id]);
-			if (!client->GetReady()) {
-				return;
-			}
-		}
-
-		// 게임룸 진입
-		auto room_manager = server.GetGameRoomManager();
-		bool entered = room_manager->EnterGameRoom(shared_from_this());
-
-		// 진입 상태에 따른 전송
-		if (entered) {
-			SendEnterDungeon();
-
-			// 게임룸에 진입했다면 파티 반환
-			Reset();
-		}
-		else {
-			SendEnterFail();
-		}
-	}
-	else {
-		auto client = dynamic_pointer_cast<Client>(server.m_clients[player_id]);
-		
-		client->SetReady(!client->GetReady());	// 현재 준비 상태 뒤집기
-
-		// 준비 상태 전송
-		SendReady(player_id);
-	}
-}
-
 void Party::AddMember(INT player_id)
 {
 	std::array<INT, MAX_INGAME_USER> ids{};
@@ -697,25 +648,6 @@ void Party::SendExitParty(INT exited_id, INT located_num)
 
 	for (INT id : m_members) {
 		if (-1 == id) continue;
-
-		server.m_clients[id]->DoSend(&packet);
-	}
-}
-
-void Party::SendReady(INT sender)
-{
-	Server& server = Server::GetInstance();
-	auto client = dynamic_pointer_cast<Client>(server.m_clients[sender]);
-
-	SC_PLAYER_READY_PACKET packet{};
-	packet.size = sizeof(packet);
-	packet.type = SC_PACKET_PLAYER_READY;
-	packet.id = sender;
-	packet.is_ready = client->GetReady();
-
-	for (INT id : m_members) {
-		if (-1 == id) continue;
-		if (id == sender) continue;
 
 		server.m_clients[id]->DoSend(&packet);
 	}
@@ -870,11 +802,6 @@ void PartyManager::ExitParty(INT party_num, INT player_id)
 void PartyManager::ChangeCharacter(INT party_num, INT player_id)
 {
 	m_parties[party_num]->SendChangeCharacter(player_id);
-}
-
-void PartyManager::PlayerReady(INT party_num, INT player_id)
-{
-	m_parties[party_num]->PlayerReady(player_id);
 }
 
 void PartyManager::OpenPartyUI(INT player_id)

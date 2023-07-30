@@ -89,6 +89,7 @@ public:
 	void SendChangeCharacter(int client_id, PlayerType type);
 	void SendUpdateVillage();
 	void SendRemoveInVillage(int client_id);
+	void SendExitDungeonOk(int client_id);
 
 	// 기타 처리
 	bool IsPlayer(int client_id); 

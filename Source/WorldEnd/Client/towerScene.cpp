@@ -350,10 +350,15 @@ void TowerScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 	auto exitButtonUI{ make_shared<ButtonUI>(XMFLOAT2{0.f, -0.7f}, XMFLOAT2{0.15f, 0.075f}) };
 	exitButtonUI->SetTexture("BUTTONUI");
 	exitButtonUI->SetClickEvent([&]() {
+#ifdef USE_NETWORK
+		SendExitDungeon();
+#else
 		SetState(State::Fading);
 		m_fadeFilter->FadeOut([&]() {
 			SetState(State::SceneLeave);
-		});
+			});
+#endif
+
 	});
 	auto exitButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.f, 0.f},XMFLOAT2{10.f, 10.f}) };
 	exitButtonTextUI->SetText(L"예");
@@ -1041,6 +1046,16 @@ void TowerScene::SendInteract()
 #endif
 }
 
+void TowerScene::SendExitDungeon()
+{
+#ifdef USE_NETWORK
+	CS_EXIT_DUNGEON_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = CS_PACKET_EXIT_DUNGEON;
+	send(g_socket, reinterpret_cast<char*>(&packet), sizeof(packet), 0);
+#endif
+}
+
 void TowerScene::ProcessPacket(char* ptr)
 {
 	//cout << "[Process Packet] Packet Type: " << (int)ptr[1] << endl;//test
@@ -1112,6 +1127,9 @@ void TowerScene::ProcessPacket(char* ptr)
 		break;
 	case SC_PACKET_DUNGEON_CLEAR:
 		RecvDungeonClear(ptr);
+		break;
+	case SC_PACKET_EXIT_DUNGEON_OK:
+		RecvExitDungeon(ptr);
 		break;
 	default:
 		cout << "UnDefined Packet : " << (int)ptr[1] << endl;
@@ -1563,6 +1581,16 @@ void TowerScene::RecvDungeonClear(char* ptr)
 	SC_DUNGEON_CLEAR_PACKET* packet = reinterpret_cast<SC_DUNGEON_CLEAR_PACKET*>(ptr);
 
 	g_playerInfo.position = packet->position;
+
+	SetState(State::Fading);
+	m_fadeFilter->FadeOut([&]() {
+		SetState(State::SceneLeave);
+		});
+}
+
+void TowerScene::RecvExitDungeon(char* ptr)
+{
+	SC_EXIT_DUNGEON_OK_PACKET* packet = reinterpret_cast<SC_EXIT_DUNGEON_OK_PACKET*>(ptr);
 
 	SetState(State::Fading);
 	m_fadeFilter->FadeOut([&]() {
