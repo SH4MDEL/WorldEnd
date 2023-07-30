@@ -1166,7 +1166,7 @@ BossMonster::BossMonster()
 {
 	m_bounding_box.Center = XMFLOAT3(6.556f, 1.032f, 2.018f);
 	m_bounding_box.Extents = XMFLOAT3(1.648f, 2.214f, 2.018f);
-	m_status->SetMaxHp(1500.f);
+	m_status->SetMaxHp(2500.f);
 	m_status->SetAtk(30.f);
 	m_attack_range = 5.f;
 	m_boundary_range = 4.f;
@@ -1290,10 +1290,10 @@ MonsterBehavior BossMonster::SetNextBehavior(MonsterBehavior behavior)
 		temp = MonsterBehavior::DELAY;
 		break;
 	case MonsterBehavior::DELAY:
-		if ((m_status->GetHp() <= m_status->GetMaxHp() / 1.6))
-			PlayerHighestDamageTarget();
-		else
-			RandomTarget();
+		//if ((m_status->GetHp() <= m_status->GetMaxHp() / 1.6))
+		//	PlayerHighestDamageTarget();
+		//else
+		RandomTarget();
 		temp = MonsterBehavior::CHASE;
 		break;
 	case MonsterBehavior::DEATH:
@@ -1440,6 +1440,7 @@ DecreaseState BossMonster::DecreaseHp(FLOAT damage, INT id)
 		m_enhance_check = true;
 		m_behavior_cnt = 0;
 		m_enhance_behavior_cnt = 0;
+		m_pl_save_damage.clear();
 		return DecreaseState::DECREASE;
 	}
 

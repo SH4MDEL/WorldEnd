@@ -60,6 +60,7 @@ void Client::Init()
 	this->SetTriggerFlag();
 	m_user_id.clear();
 
+	m_save_damage = 0.f;
 	m_current_animation = ObjectAnimation::IDLE;
 	m_is_invincible = false;
 	m_invincible_roll = false;
