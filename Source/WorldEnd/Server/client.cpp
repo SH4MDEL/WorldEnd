@@ -104,6 +104,9 @@ void Client::DoRecv()
 
 void Client::DoSend(void* p)
 {
+	if (State::FREE == m_state)
+		return;
+
 	ExpOver* ex_over = new ExpOver{ reinterpret_cast<char*>(p) };
 	int retval = WSASend(m_socket, &ex_over->_wsa_buf, 1, 0, 0, &ex_over->_wsa_over, nullptr);
 	if (SOCKET_ERROR == retval) {
@@ -121,6 +124,9 @@ void Client::DoSend(void* p)
 
 void Client::DoSend(void* p, INT packet_count)
 {
+	if (State::FREE == m_state)
+		return;
+
 	ExpOver* ex_over = new ExpOver{ reinterpret_cast<char*>(p), packet_count };
 	int retval = WSASend(m_socket, &ex_over->_wsa_buf, 1, 0, 0, &ex_over->_wsa_over, nullptr);
 	if (SOCKET_ERROR == retval) {
@@ -272,6 +278,10 @@ FLOAT Client::GetSkillRatio(ActionType type) const
 {
 	FLOAT ratio{};
 	switch (type) {
+	case ActionType::NORMAL_ATTACK: {
+		ratio = PlayerSetting::ATTACK_RATIO[static_cast<int>(m_player_type)];
+		break;
+	}
 	case ActionType::SKILL: {
 		INT skill_type = GetNormalSkillType(m_player_type);
 		ratio = PlayerSetting::SKILL_RATIO[static_cast<int>(m_player_type)][skill_type];

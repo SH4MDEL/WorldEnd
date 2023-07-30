@@ -1166,7 +1166,7 @@ BossMonster::BossMonster()
 {
 	m_bounding_box.Center = XMFLOAT3(6.556f, 1.032f, 2.018f);
 	m_bounding_box.Extents = XMFLOAT3(1.648f, 2.214f, 2.018f);
-	m_status->SetMaxHp(300.f);
+	m_status->SetMaxHp(1500.f);
 	m_status->SetAtk(30.f);
 	m_attack_range = 5.f;
 	m_boundary_range = 4.f;

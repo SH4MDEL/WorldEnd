@@ -199,7 +199,7 @@ void LoginScene::BuildUI(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12
 {
 	m_titleUI = make_shared<BackgroundUI>(XMFLOAT2{ 0.f, 0.f }, XMFLOAT2{ 1.f, 1.f });
 
-	auto titleUI{ make_shared<ImageUI>(XMFLOAT2{ 0.f, 0.5f }, XMFLOAT2{ 0.61f, 0.25f }) };
+	auto titleUI{ make_shared<ImageUI>(XMFLOAT2{ 0.f, 0.5f }, XMFLOAT2{ 0.722f, 0.242f }) };
 	titleUI->SetTexture("TITLE");
 	m_titleUI->SetChild(titleUI);
 

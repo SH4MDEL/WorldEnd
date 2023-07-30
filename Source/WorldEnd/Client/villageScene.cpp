@@ -343,6 +343,11 @@ void VillageScene::BuildPartyUI()
 		ResetState(State::OutputPartyUI);
 		if (m_partyUI) m_partyUI->SetDisable();
 
+		for (size_t i = 0; i < 3; ++i) {
+			m_partyPlayerUI[i]->SetDisable();
+			m_partyPlayerTextUI[i]->SetText(TEXT("EMPTY"));
+		}
+
 		SendExitParty();
 		});
 	m_partyUI->SetChild(partyCancelButtonUI);
@@ -2435,60 +2440,60 @@ void VillageScene::UpdateEnhanceUI(EnhancementType type)
 	case EnhancementType::HP:
 		if (g_playerInfo.hpLevel == PlayerSetting::MAX_ENHANCE_LEVEL) {
 			m_enhanceInfoTextUI->SetText(TEXT("현재 레벨 : ") + to_wstring(g_playerInfo.hpLevel) +
-				TEXT("\n체력 증가량 : ") + to_wstring(PlayerSetting::DEFAULT_HP + (INT)(PlayerSetting::HP_INCREASEMENT * g_playerInfo.hpLevel)) +
+				TEXT("\n체력 : ") + to_wstring(PlayerSetting::DEFAULT_HP + (INT)(PlayerSetting::HP_INCREASEMENT * g_playerInfo.hpLevel)) +
 				TEXT("\n더 강화할 수 없습니다."));
 		}
 		else {
 			m_enhanceInfoTextUI->SetText(TEXT("현재 레벨 : ") + to_wstring(g_playerInfo.hpLevel) +
-				TEXT("\n체력 증가량 : ") + to_wstring(PlayerSetting::DEFAULT_HP + (INT)(PlayerSetting::HP_INCREASEMENT * g_playerInfo.hpLevel)) +
+				TEXT("\n체력 : ") + to_wstring(PlayerSetting::DEFAULT_HP + (INT)(PlayerSetting::HP_INCREASEMENT * g_playerInfo.hpLevel)) +
 				TEXT("\n강화 비용 : " + to_wstring(PlayerSetting::DEFAULT_ENHANCE_COST + PlayerSetting::ENHANCE_COST_INCREASEMENT * g_playerInfo.hpLevel)));
 		}
 		break;
 	case EnhancementType::ATK:
 		if (g_playerInfo.atkLevel == PlayerSetting::MAX_ENHANCE_LEVEL) {
 			m_enhanceInfoTextUI->SetText(TEXT("현재 레벨 : ") + to_wstring(g_playerInfo.atkLevel) +
-				TEXT("\n공격력 증가량 : ") + to_wstring(PlayerSetting::DEFAULT_ATK + (INT)(PlayerSetting::ATK_INCREASEMENT * g_playerInfo.atkLevel)) +
+				TEXT("\n공격력 : ") + to_wstring(PlayerSetting::DEFAULT_ATK + (INT)(PlayerSetting::ATK_INCREASEMENT * g_playerInfo.atkLevel)) +
 				TEXT("\n더 강화할 수 없습니다."));
 		}
 		else {
 			m_enhanceInfoTextUI->SetText(TEXT("현재 레벨 : ") + to_wstring(g_playerInfo.atkLevel) +
-				TEXT("\n공격력 증가량 : ") + to_wstring(PlayerSetting::DEFAULT_ATK + (INT)(PlayerSetting::ATK_INCREASEMENT * g_playerInfo.atkLevel)) +
+				TEXT("\n공격력 : ") + to_wstring(PlayerSetting::DEFAULT_ATK + (INT)(PlayerSetting::ATK_INCREASEMENT * g_playerInfo.atkLevel)) +
 				TEXT("\n강화 비용 : " + to_wstring(PlayerSetting::DEFAULT_ENHANCE_COST + PlayerSetting::ENHANCE_COST_INCREASEMENT * g_playerInfo.atkLevel)));
 		}
 		break;
 	case EnhancementType::DEF:
 		if (g_playerInfo.defLevel == PlayerSetting::MAX_ENHANCE_LEVEL) {
 			m_enhanceInfoTextUI->SetText(TEXT("현재 레벨 : ") + to_wstring(g_playerInfo.defLevel) +
-				TEXT("\n방어력 증가량 : ") + to_wstring(PlayerSetting::DEFAULT_DEF + (INT)(PlayerSetting::DEF_INCREASEMENT * g_playerInfo.defLevel)) +
+				TEXT("\n방어력 : ") + to_wstring(PlayerSetting::DEFAULT_DEF + (INT)(PlayerSetting::DEF_INCREASEMENT * g_playerInfo.defLevel)) +
 				TEXT("\n더 강화할 수 없습니다."));
 		}
 		else {
 			m_enhanceInfoTextUI->SetText(TEXT("현재 레벨 : ") + to_wstring(g_playerInfo.defLevel) +
-				TEXT("\n방어력 증가량 : ") + to_wstring(PlayerSetting::DEFAULT_DEF + (INT)(PlayerSetting::DEF_INCREASEMENT * g_playerInfo.defLevel)) +
+				TEXT("\n방어력 : ") + to_wstring(PlayerSetting::DEFAULT_DEF + (INT)(PlayerSetting::DEF_INCREASEMENT * g_playerInfo.defLevel)) +
 				TEXT("\n강화 비용 : " + to_wstring(PlayerSetting::DEFAULT_ENHANCE_COST + PlayerSetting::ENHANCE_COST_INCREASEMENT * g_playerInfo.defLevel)));
 		}
 		break;
 	case EnhancementType::CRIT_RATE:
 		if (g_playerInfo.critRateLevel == PlayerSetting::MAX_ENHANCE_LEVEL) {
 			m_enhanceInfoTextUI->SetText(TEXT("현재 레벨 : ") + to_wstring(g_playerInfo.critRateLevel) +
-				TEXT("\n크리티컬 확률 증가량 : ") + to_wstring(PlayerSetting::DEFAULT_CRIT_RATE + PlayerSetting::CRIT_RATE_INCREASEMENT * g_playerInfo.critRateLevel) +
+				TEXT("\n크리티컬 확률 : ") + to_wstring(PlayerSetting::DEFAULT_CRIT_RATE + PlayerSetting::CRIT_RATE_INCREASEMENT * g_playerInfo.critRateLevel) +
 				TEXT("\n더 강화할 수 없습니다."));
 		}
 		else {
 			m_enhanceInfoTextUI->SetText(TEXT("현재 레벨 : ") + to_wstring(g_playerInfo.critRateLevel) +
-				TEXT("\n크리티컬 확률 증가량 : ") + to_wstring(PlayerSetting::DEFAULT_CRIT_RATE + PlayerSetting::CRIT_RATE_INCREASEMENT * g_playerInfo.critRateLevel) +
+				TEXT("\n크리티컬 확률 : ") + to_wstring(PlayerSetting::DEFAULT_CRIT_RATE + PlayerSetting::CRIT_RATE_INCREASEMENT * g_playerInfo.critRateLevel) +
 				TEXT("\n강화 비용 : " + to_wstring(PlayerSetting::DEFAULT_ENHANCE_COST + PlayerSetting::ENHANCE_COST_INCREASEMENT * g_playerInfo.critRateLevel)));
 		}
 		break;
 	case EnhancementType::CRIT_DAMAGE:
 		if (g_playerInfo.critDamageLevel == PlayerSetting::MAX_ENHANCE_LEVEL) {
 			m_enhanceInfoTextUI->SetText(TEXT("현재 레벨 : ") + to_wstring(g_playerInfo.critDamageLevel) +
-				TEXT("\n크리티컬 대미지 증가량 : ") + to_wstring(PlayerSetting::DEFAULT_CRIT_DAMAGE + PlayerSetting::CRIT_RATE_INCREASEMENT * g_playerInfo.critDamageLevel) +
+				TEXT("\n크리티컬 대미지 : ") + to_wstring(PlayerSetting::DEFAULT_CRIT_DAMAGE + PlayerSetting::CRIT_RATE_INCREASEMENT * g_playerInfo.critDamageLevel) +
 				TEXT("\n더 강화할 수 없습니다."));
 		}
 		else {
 			m_enhanceInfoTextUI->SetText(TEXT("현재 레벨 : ") + to_wstring(g_playerInfo.critDamageLevel) +
-				TEXT("\n크리티컬 대미지 증가량 : ") + to_wstring(PlayerSetting::DEFAULT_CRIT_DAMAGE + PlayerSetting::CRIT_RATE_INCREASEMENT * g_playerInfo.critDamageLevel) +
+				TEXT("\n크리티컬 대미지 : ") + to_wstring(PlayerSetting::DEFAULT_CRIT_DAMAGE + PlayerSetting::CRIT_RATE_INCREASEMENT * g_playerInfo.critDamageLevel) +
 				TEXT("\n강화 비용 : " + to_wstring(PlayerSetting::DEFAULT_ENHANCE_COST + PlayerSetting::ENHANCE_COST_INCREASEMENT * g_playerInfo.critDamageLevel)));
 		}
 		break;

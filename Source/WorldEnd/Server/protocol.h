@@ -278,8 +278,8 @@ namespace PlayerSetting
 
 	constexpr int MAX_ENHANCEMENT_LEVEL = 20;
 
-	constexpr float DEFAULT_HP = 100.0f;
-	constexpr float DEFAULT_ATK = 100.0f;
+	constexpr float DEFAULT_HP = 250.f;
+	constexpr float DEFAULT_ATK = 30.f;
 	constexpr float DEFAULT_DEF = 0.0f;
 	constexpr float DEFAULT_CRIT_RATE = 0.f;
 	constexpr float DEFAULT_CRIT_DAMAGE = 2.f;
@@ -308,6 +308,8 @@ namespace PlayerSetting
 
 	constexpr auto EXPLOSION_ARROW_FLIGHT_TIME = 600ms;
 
+	constexpr float ATTACK_RATIO[static_cast<int>(PlayerType::COUNT)] = { 1.f, 0.8f };
+
 	constexpr float SKILL_RATIO[static_cast<int>(PlayerType::COUNT)][2]		// 캐릭별, 스킬 개수별 계수
 	{ 
 		{ 1.5f, 1.5f },  // 전사 스킬 계수
@@ -315,7 +317,7 @@ namespace PlayerSetting
 	};
 	constexpr float ULTIMATE_RATIO[static_cast<int>(PlayerType::COUNT)][2]
 	{
-		{ 2.f,  2.2f },	// 전사 궁극기 계수
+		{ 2.f,  2.5f },	// 전사 궁극기 계수
 		{ 0.2f, 1.5f }	// 궁수 궁극기 계수
 	};
 	constexpr std::chrono::milliseconds
