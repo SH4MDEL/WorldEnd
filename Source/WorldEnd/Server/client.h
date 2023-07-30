@@ -64,6 +64,7 @@ public:
 	void SetViewList(int data) { m_view_list.insert(data);}
 	void SetTownPosition(const XMFLOAT3& position);
 	void SetTownPosition(FLOAT x, FLOAT y, FLOAT z);
+	void SetInvincible(bool value);
 
 	const SOCKET& GetSocket() const override { return m_socket; }
 	ExpOver& GetExpOver() { return m_recv_over; }
@@ -92,16 +93,18 @@ public:
 	XMFLOAT3 GetTownPosition() const { return m_town_position; }
 	INT GetCost(EnhancementType type) const;
 	INT GetLevel(EnhancementType type) const;
+	bool GetIsInvincible() const { return m_is_invincible; }
 
 	bool GetInvincibleRoll() const { return m_invincible_roll; }
 	const std::unordered_set<INT>& GetViewList() { return m_view_list;}
 
 	void ChangeStamina(FLOAT value);
-	void ChangeGold(INT value);
+	void IncreaseGold(INT value);
 	void LevelUpEnhancement(EnhancementType type);
 	void ChangeSkill(PlayerType player_type, USHORT skill_type, USHORT changed_type);
-	virtual void DecreaseHp(FLOAT damage, INT id) override;
+	virtual DecreaseState DecreaseHp(FLOAT damage, INT id) override;
 	void RestoreCondition();
+	void ToggleInvinsible();
 
 	std::mutex m_vl;                             // 뷰 리스트 전용 락
 
@@ -127,6 +130,7 @@ private:
 	std::wstring			m_user_id;
 	INT						m_gold;
 	bool                    m_invincible_roll = false;
+	bool					m_is_invincible;
 
 	std::unordered_set<INT> m_view_list;         // 이 클라의 뷰 리스트
 	

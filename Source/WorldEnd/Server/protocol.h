@@ -35,8 +35,8 @@ constexpr int WIZARD_MONSTER_END = ARCHER_MONSTER_END + MAX_WIZARD_MONSTER;
 constexpr int BOSS_MONSTER_START = WIZARD_MONSTER_END;
 constexpr int BOSS_MONSTER_END = WIZARD_MONSTER_END + MAX_BOSS_MONSTER;
 
-constexpr int MAX_ARROW_RAIN = 100;
-constexpr int MAX_UNDEAD_GRASP = 100;
+constexpr int MAX_ARROW_RAIN = MAX_GAME_ROOM_NUM;
+constexpr int MAX_UNDEAD_GRASP = MAX_GAME_ROOM_NUM;
 
 constexpr int ARROW_RAIN_START = 0;
 constexpr int ARROW_RAIN_END = MAX_ARROW_RAIN;
@@ -73,6 +73,13 @@ constexpr char CS_PACKET_ENTER_VILLAGE = 17;
 constexpr char CS_PACKET_ENHANCE = 18;
 constexpr char CS_PACKET_CHNAGE_SKILL = 19;
 constexpr char CS_PACKET_TOWER_SCENE = 20;
+
+
+// ----------------- 치트 ----------------- 
+constexpr char CS_PACKET_TELEPORT_GATE = 21;
+constexpr char CS_PACKET_TELEPORT_NPC = 22;
+constexpr char CS_PACKET_INVINCIBLE = 23;
+// -----------------------------------------
 
 
 constexpr char SC_PACKET_LOGIN_FAIL = 0;
@@ -342,6 +349,10 @@ namespace PlayerSetting
 		}
 	};
 
+
+	// 치트 관련
+	constexpr DirectX::XMFLOAT3 GATE_POSITION = DirectX::XMFLOAT3{ 64.15f, 0.33f, 66.9f };
+	constexpr DirectX::XMFLOAT3 NPC_POSITION = DirectX::XMFLOAT3{ -39.61f, 5.65f, 73.3f };
 }
 
 namespace MonsterSetting 
@@ -391,7 +402,7 @@ namespace RoomSetting
 	constexpr auto WARP_DELAY_TIME = 1000ms;
 	constexpr float EVENT_RADIUS = 1.f;
 	//constexpr DirectX::XMFLOAT3 START_POSITION { 0.f, -DOWNSIDE_STAIRS_HEIGHT, -45.f };
-	constexpr DirectX::XMFLOAT3 START_POSITION{ 0.f, 0.f, 0.f };
+	constexpr DirectX::XMFLOAT3 TOWER_START_POSITION{ 0.f, 0.f, 0.f };
 	constexpr DirectX::XMFLOAT3 BATTLE_STARTER_POSITION { 0.f, 0.f, 24.f };
 	constexpr DirectX::XMFLOAT3 WARP_PORTAL_POSITION { -1.f, TOPSIDE_STAIRS_HEIGHT, 60.f };
 }
@@ -558,7 +569,25 @@ struct CS_CHANGE_SKILL_PACKET
 	PlayerType player_type;
 };
 
-struct CS_DUNGEON_SCENE_PACKET
+struct CS_TOWER_SCENE_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+};
+
+struct CS_TELEPORT_GATE_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+};
+
+struct CS_TELEPORT_NPC_PACKET
+{
+	UCHAR size;
+	UCHAR type;
+};
+
+struct CS_INVINCIBLE_PACKET
 {
 	UCHAR size;
 	UCHAR type;
@@ -868,6 +897,7 @@ struct SC_DUNGEON_CLEAR_PACKET
 {
 	UCHAR size;
 	UCHAR type;
+	DirectX::XMFLOAT3 position;
 };
 
 #pragma pack (pop)

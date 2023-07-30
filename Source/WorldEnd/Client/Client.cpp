@@ -163,6 +163,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         g_GameFramework.OnProcessingMouseMessage(message, lParam);
         break;
     case WM_CHAR:
+    case WM_KEYDOWN:
         g_GameFramework.OnProcessingKeyboardMessage(hWnd, message, wParam, lParam);
         break;
     case WM_DESTROY:

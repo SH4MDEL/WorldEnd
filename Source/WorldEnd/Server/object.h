@@ -14,6 +14,7 @@ struct SCORE_DATA
 };
 
 enum class State { FREE, ACCEPT, INGAME, DEATH };
+enum class DecreaseState : INT { DECREASE, NONE };	// 皑家 贸府 O, 皑家 贸府 X(公利, 捞固 荤噶)
 
 class GameObject
 {
@@ -212,7 +213,7 @@ public:
 	FLOAT GetSaveDamage() { return m_save_damage; }
 
 	virtual void Update(FLOAT elapsed_time) {}
-	virtual void DecreaseHp(FLOAT damage, INT id) {}
+	virtual DecreaseState DecreaseHp(FLOAT damage, INT id) { return DecreaseState::NONE; }
 	XMFLOAT3 GetFront() const;
 	bool CheckTriggerFlag(UCHAR trigger);
 

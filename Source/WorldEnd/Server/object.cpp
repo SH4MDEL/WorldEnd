@@ -181,8 +181,13 @@ void WarpPortal::SendEvent(const std::span<INT>& ids, void* c)
 		if (-1 == id) continue;
 
 		auto client = dynamic_pointer_cast<Client>(server.m_clients[id]);
-
 		client->RestoreCondition();
+	}
+
+	for (INT id : ids) {
+		if (-1 == id) continue;
+
+		auto client = dynamic_pointer_cast<Client>(server.m_clients[id]);
 		client->DoSend(&packet);
 	}
 }
@@ -325,7 +330,8 @@ ArrowRain::ArrowRain()
 void ArrowRain::ProcessTrigger(INT id)
 {
 	Server& server = Server::GetInstance();
-	server.m_clients[id]->DecreaseHp(m_damage, -1);
+	if (DecreaseState::NONE == server.m_clients[id]->DecreaseHp(m_damage, -1))
+		return;
 
 	if (State::DEATH != server.m_clients[id]->GetState()) {
 		server.SendChangeHp(id);
@@ -354,9 +360,12 @@ UndeadGrasp::UndeadGrasp()
 void UndeadGrasp::ProcessTrigger(INT id)
 {
 	Server& server = Server::GetInstance();
-	server.m_clients[id]->DecreaseHp(m_damage, m_created_id);
+	auto client = std::dynamic_pointer_cast<Client>(server.m_clients[id]);
 
-	if (State::DEATH != server.m_clients[id]->GetState()) {
+	if (DecreaseState::NONE == client->DecreaseHp(m_damage, m_created_id))
+		return;
+
+	if (State::DEATH != client->GetState()) {
 		server.SendChangeHp(id);
 	}
 }

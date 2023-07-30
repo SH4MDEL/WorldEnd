@@ -54,6 +54,7 @@ public:
 	void InitGameRoom(INT room_num);
 	void InitMonsters(INT room_num);
 	void InitEnvironment();
+	void Reset();
 
 	std::array<INT, MAX_INGAME_USER>& GetPlayerIds() { return m_ingame_player_ids; }
 	std::array<INT, MAX_INGAME_MONSTER>& GetMonsterIds() { return m_monster_ids; }
