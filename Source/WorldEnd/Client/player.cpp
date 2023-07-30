@@ -250,14 +250,6 @@ void Player::OnProcessingKeyboardMessage(FLOAT timeElapsed)
 			SendPacket();
 		}
 	}
-
-	if (GetAsyncKeyState('F') & 0x8000) {
-		if (m_interactable) {
-			CreateInteractPacket();
-			SendPacket();
-		}
-	}
-
 }
 
 void Player::OnProcessingMouseMessage(UINT message, LPARAM lParam)

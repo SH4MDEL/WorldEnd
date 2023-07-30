@@ -350,9 +350,7 @@ void VillageScene::BuildPartyUI()
 	auto enterDungeonButtonUI = make_shared<ButtonUI>(XMFLOAT2{ 0.f, -0.75f }, XMFLOAT2{ 0.29f, 0.1f });
 	enterDungeonButtonUI->SetTexture("BUTTONUI");
 	enterDungeonButtonUI->SetClickEvent([&]() {
-		ResetState(State::OutputPartyUI);
-		if (m_partyUI) m_partyUI->SetDisable();
-
+		
 		SendEnterDungeon();
 		});
 	auto enterDungeonButtonTextUI{ make_shared<TextUI>(XMFLOAT2{0.f, 0.f}, XMFLOAT2{0.f, 0.f},XMFLOAT2{120.f, 10.f}) };
@@ -1309,6 +1307,8 @@ void VillageScene::RecvRemovePartyMember(char* ptr)
 void VillageScene::RecvEnterDungeon(char* ptr)
 {
 	SC_ENTER_DUNGEON_PACKET* packet = reinterpret_cast<SC_ENTER_DUNGEON_PACKET*>(ptr);
+	ResetState(State::OutputPartyUI);
+	if (m_partyUI) m_partyUI->SetDisable();
 
 	SetState(State::SceneLeave);
 }

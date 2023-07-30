@@ -578,8 +578,13 @@ void TowerScene::OnProcessingKeyboardMessage(HWND hWnd, UINT message, WPARAM wPa
 	{
 	case WM_KEYDOWN:
 		switch(wParam){
+
 		case VK_F3:
 			SendInvincible();
+			break;
+		case 'f':
+		case 'F':
+			SendInteract();
 			break;
 		}
 		break;
@@ -1022,6 +1027,20 @@ void TowerScene::SendInvincible()
 	g_playerInfo.invincible = (g_playerInfo.invincible) ? false : true;
 }
 
+void TowerScene::SendInteract()
+{
+	if (!m_player->GetInteractable())
+		return;
+
+#ifdef USE_NETWORK
+	CS_INTERACT_OBJECT_PACKET packet{};
+	packet.size = sizeof(packet);
+	packet.type = CS_PACKET_INTERACT_OBJECT;
+	packet.interaction_type = m_player->GetInteractableType();
+	send(g_socket, reinterpret_cast<char*>(&packet), sizeof(packet), 0);
+#endif
+}
+
 void TowerScene::ProcessPacket(char* ptr)
 {
 	//cout << "[Process Packet] Packet Type: " << (int)ptr[1] << endl;//test
@@ -1095,7 +1114,7 @@ void TowerScene::ProcessPacket(char* ptr)
 		RecvDungeonClear(ptr);
 		break;
 	default:
-		cout << "UnDefined Packet!!" << endl;
+		cout << "UnDefined Packet : " << (int)ptr[1] << endl;
 		break;
 	}
 }

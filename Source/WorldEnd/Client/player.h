@@ -40,7 +40,9 @@ public:
 	FLOAT GetStamina() const { return m_stamina; }
 	FLOAT GetMaxStamina() const { return m_maxStamina; }
 	PlayerType GetType() const { return m_type; }
+	bool GetInteractable() const { return m_interactable; }
 	InteractionType GetInteractableType() const { return m_interactableType; }	
+
 
 	void ResetCooldown(char type);
 	void ResetAllCooldown();

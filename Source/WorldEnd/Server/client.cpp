@@ -642,7 +642,7 @@ void Party::AddMember(INT player_id)
 
 bool Party::IsExist()
 {
-	return (-1 == m_host_id) ? false : true;
+	return (PartyState::EMPTY != m_state) ? false : true;
 }
 
 void Party::SendJoinOk(INT receiver)
@@ -776,11 +776,15 @@ bool PartyManager::CreateParty(INT party_num, INT player_id)
 
 	auto& party = m_parties[party_num];
 
-	bool exist = party->IsExist();
-	if (exist) {
+	std::unique_lock<std::mutex> l{ party->GetStateMutex() };
+	if (party->GetState() != PartyState::EMPTY) {
 		SendCreateFail(player_id);
+		l.unlock();
 		return false;
 	}
+	
+	party->SetState(PartyState::ACCEPT);
+	l.unlock();
 
 	// 생성 전송
 	SendCreateOk(player_id);
@@ -815,11 +819,14 @@ bool PartyManager::JoinParty(INT party_num, INT player_id)
 {
 	auto& party = m_parties[party_num];
 
-	bool exist = party->IsExist();
-	if (!exist) {
+	std::unique_lock<std::mutex> l{ party->GetStateMutex() };
+	
+	if (party->GetState() != PartyState::ACCEPT) {
 		SendJoinFail(player_id);
+		l.unlock();
 		return false;
 	}
+	l.unlock();
 
 	bool success = party->TryJoin(player_id);
 	if (success) {

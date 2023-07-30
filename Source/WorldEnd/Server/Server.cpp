@@ -899,6 +899,10 @@ void Server::ProcessPacket(int id, char* p)
 		CS_INTERACT_OBJECT_PACKET* packet =
 			reinterpret_cast<CS_INTERACT_OBJECT_PACKET*>(p);
 
+		if (!client->GetInteractable()) {
+			break;
+		}
+
 		// 해당 아이디에 타입에 맞는 상호작용 처리
 		switch (packet->interaction_type) {
 		case InteractionType::BATTLE_STARTER:
@@ -962,6 +966,9 @@ void Server::ProcessPacket(int id, char* p)
 		CS_ENTER_DUNGEON_PACKET* packet = reinterpret_cast<CS_ENTER_DUNGEON_PACKET*>(p);
 
 		auto& party = m_party_manager->GetParty(client->GetPartyNum());
+
+		if (party->GetHostId() != id)
+			break;
 
 		party->SendEnterDungeon();
 
